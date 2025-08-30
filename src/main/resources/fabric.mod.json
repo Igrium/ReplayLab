@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "id": "replaylab",
+  "version": "${version}",
+  "name": "ReplayLab",
+  "description": "A complete re-implementation of the Replay Editor using CraftUI",
+  "authors": [
+    "Igrium"
+  ],
+  "icon": "assets/replaylab/icon.png",
+  "environment": "client",
+  "entrypoints": {
+    "main": [
+      "com.igrium.replaylab.ReplayLab"
+    ]
+  },
+  "mixins": [
+    "replaylab.mixins.json"
+  ],
+  "depends": {
+    "fabricloader": ">=0.14.6",
+    "minecraft": "~1.21.4",
+    "java": ">=21",
+    "fabric-api": "*",
+    "craftui": ">=0.2.0",
+    "replaymod": "*"
+  },
+  "suggests": {
+  }
+}
