@@ -6,6 +6,7 @@ import org.spongepowered.asm.mixin.gen.Accessor;
 
 @Mixin(value = GuiReplayViewer.GuiReplayEntry.class, remap = false)
 public interface AccessorGuiReplayEntry {
+
     @Accessor("incompatible")
     boolean isIncompatible();
 }
