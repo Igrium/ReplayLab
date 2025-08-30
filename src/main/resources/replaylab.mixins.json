@@ -3,6 +3,8 @@
   "package": "com.igrium.replaylab.mixin",
   "compatibilityLevel": "JAVA_21",
   "mixins": [
+    "AccessorGuiReplayEntry",
+    "MixinGuiReplayViewer"
   ],
   "injectors": {
     "defaultRequire": 1
