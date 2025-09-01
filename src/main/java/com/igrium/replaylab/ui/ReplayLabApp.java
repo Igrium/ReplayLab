@@ -7,7 +7,6 @@ import com.replaymod.replay.ReplayModReplay;
 import imgui.ImGui;
 import imgui.type.ImFloat;
 import net.minecraft.client.MinecraftClient;
-import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -28,6 +27,7 @@ public class ReplayLabApp extends DockSpaceApp {
         return ReplayModReplay.instance.getReplayHandler();
     }
 
+//    private final DopeSheetOld dopeSheet = new DopeSheetOld();
     private final DopeSheet dopeSheet = new DopeSheet();
 
     public ReplayLabApp() {
@@ -57,20 +57,24 @@ public class ReplayLabApp extends DockSpaceApp {
 
     }
 
-    private final List<DopeSheet.DopeChannel> testChannels = new ArrayList<>();
-    {
-        testChannels.add(new DopeSheet.DopeChannel("Test Channel", List.of(new ImFloat(0), new ImFloat(5))));
-        testChannels.add(new DopeSheet.DopeChannel("Test 2", List.of(new ImFloat(0), new ImFloat(1), new ImFloat(2))));
-        testChannels.add(new DopeSheet.DopeChannel("Test channel three has a long name", List.of(new ImFloat(2))));
-    }
 
     private final Set<DopeSheet.KeyReference> testSelected = new HashSet<>();
+    private final List<DopeSheet.KeyChannelCategory> categories = new ArrayList<>();
+
+    {
+        DopeSheet.KeyChannelCategory cat1 = new DopeSheet.KeyChannelCategory("Category 1", new ArrayList<>());
+        cat1.channels().add(new DopeSheet.KeyChannel("Channel 1", List.of(new ImFloat(5), new ImFloat(2))));
+        categories.add(cat1);
+
+        DopeSheet.KeyChannelCategory cat2 = new DopeSheet.KeyChannelCategory("Category 2 lol", new ArrayList<>());
+        cat2.channels().add(new DopeSheet.KeyChannel("Channel 2", List.of(new ImFloat(2))));
+        cat2.channels().add(new DopeSheet.KeyChannel("The third channel", List.of(new ImFloat(3), new ImFloat(2))));
+        categories.add(cat2);
+    }
 
     private void drawDopeSheet() {
         if (ImGui.begin("Dope Sheet")) {
-            ImGui.pushItemWidth(ImGui.getContentRegionAvailX());
-            dopeSheet.drawDopeSheet(testChannels, testSelected, null, 0);
-            ImGui.popItemWidth();
+            dopeSheet.drawDopeSheet(categories, testSelected, 0, 0, null, 0);
         }
         ImGui.end();
     }

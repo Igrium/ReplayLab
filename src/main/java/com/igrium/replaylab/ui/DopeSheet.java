@@ -3,246 +3,314 @@ package com.igrium.replaylab.ui;
 import imgui.ImColor;
 import imgui.ImDrawList;
 import imgui.ImGui;
-import imgui.flag.ImGuiStyleVar;
+import imgui.flag.ImGuiTreeNodeFlags;
 import imgui.type.ImFloat;
-import it.unimi.dsi.fastutil.objects.Object2FloatMap;
-import it.unimi.dsi.fastutil.objects.Object2FloatOpenHashMap;
+import it.unimi.dsi.fastutil.floats.Float2IntAVLTreeMap;
+import it.unimi.dsi.fastutil.floats.Float2IntMap;
+import it.unimi.dsi.fastutil.ints.IntArraySet;
+import it.unimi.dsi.fastutil.ints.IntSet;
 import lombok.Getter;
 import lombok.Setter;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.List;
-import java.util.Set;
+import java.util.*;
+import java.util.function.*;
 
 public class DopeSheet {
-
     /**
      * Don't allow editing
      */
     public static final int READONLY = 1;
 
     /**
-     * Fill the available height, even if there aren't enough channels to do it natively.
-     * (width is always filled)
-     */
-    public static final int FILL_HEIGHT = 2;
-
-    /**
-     * Reset the view bounds this frame.
-     */
-    public static final int RESET_VIEW = 4;
-
-    /**
      * If set, snap keyframes to increments of 1 while editing.
      */
-    public static final int SNAP_KEYS = 8;
+    public static final int SNAP_KEYS = 2;
 
     /**
      * Don't draw the header
      */
-    public static final int NO_HEADER = 16;
+    public static final int NO_HEADER = 4;
 
     /**
      * Don't draw the playhead
      */
-    public static final int NO_PLAYHEAD = 32;
+    public static final int NO_PLAYHEAD = 8;
 
     /**
      * Do not allow the playhead to be moved manually by the user
      */
-    public static final int READONLY_PLAYHEAD = 64;
+    public static final int READONLY_PLAYHEAD = 16;
 
     /**
      * Snap the playhead to increments of 1 while scrubbing
      */
-    public static final int SNAP_PLAYHEAD = 128;
+    public static final int SNAP_PLAYHEAD = 32;
 
     /**
-     * Don't draw ticks.
+     * Don't draw ticks
      */
     public static final int NO_TICKS = 64;
 
-    public record DopeChannel(String name, List<ImFloat> keys) {};
-    public record KeyReference(int channel, int key) {
-        public @Nullable ImFloat get(List<DopeChannel> channels) {
-            if (key < 0 || channel < 0 || channel >= channels.size()) {
-                return null;
-            }
-            var c = channels.get(channel);
-            if (key >= c.keys.size()) {
-                return null;
-            }
-            return c.keys.get(key);
-        }
-    };
+    public static final int DRAW_IN_POINT = 128;
+    public static final int DRAW_OUT_POINT = 256;
 
-    /**
-     * The offset in pixels to render the start of the timeline.
-     */
-    @Getter @Setter
-    private float offsetX = 0;
+    public record KeyChannel(String name, List<ImFloat> keys) {};
+    public record KeyChannelCategory(String name, List<KeyChannel> channels) {}
+
+    public record KeyReference(int category, int channel, int key) {
+        public @Nullable ImFloat getValue(List<KeyChannelCategory> categories) {
+            if (category < 0 || channel < 0 || key < 0 || category >= categories.size()) {
+                return null;
+            }
+            var cat = categories.get(category);
+            if (channel >= cat.channels.size()) {
+                return null;
+            }
+
+            var ch = cat.channels.get(channel);
+
+            if (key >= ch.keys.size()) {
+                return null;
+            }
+
+            return ch.keys().get(key);
+        }
+    }
+
 
     @Getter
-    private float factorX = 32;
+    private float zoomFactor = 32;
 
-    public void setFactorX(float factorX) {
-        if (factorX <= 0)
-            throw new IllegalArgumentException("zoomX must be greater than 0");
-        this.factorX = factorX;
+    public void setZoomFactor(float zoomFactor) {
+        if (zoomFactor <= 0) {
+            throw new IllegalArgumentException("Zoom factor must be greater than 0");
+        }
+        this.zoomFactor = zoomFactor;
+    }
+
+    @Getter @Setter
+    private float startFrame;
+
+    @Getter
+    private float size = 512;
+
+    public void setSize(float size) {
+        if (size < 0) {
+            throw new IllegalArgumentException("Size may not be negative");
+        }
+        this.size = size;
     }
 
     /**
-     * The interval between major ticks. Set to <= 0 to disable.
+     * A map of keys being dragged with their time before the drag.
      */
-    @Getter @Setter
-    private int majorTickInterval = 10;
+    private final Map<KeyReference, Float> keyDragOffsets = new HashMap<>();
 
-    // drag state
-//    private boolean dragging = false;
+    /** When the playhead is being dragged */
+    @Nullable
+    private Float playheadDragOffset = null;
 
-    /**
-     * A map of keys being dragged and their start time.
-     */
-    private final Object2FloatMap<KeyReference> dragging = new Object2FloatOpenHashMap<>();
-
-    private boolean wasMouseDragging;
+    private boolean mouseWasDragging;
+    /** true if the mouse started dragging this frame */
     private boolean mouseStartedDragging;
 
-    private boolean isDragging() {
-        return !dragging.isEmpty();
-    }
+    private final IntSet openCategories = new IntArraySet();
 
-    private void startDragging(Set<KeyReference> selected, List<DopeChannel> channels) {
-        for (var ref : selected) {
-            ImFloat val = ref.get(channels);
-            if (val != null) {
-                dragging.put(ref, val.floatValue());
-            }
+    public void drawDopeSheet(List<KeyChannelCategory> categories, Set<KeyReference> selected,
+                                  float inPoint, float outPoint, @Nullable ImFloat playhead, int flags) {
+        if (ImGui.isMouseDragging(0)) {
+            mouseStartedDragging = !mouseWasDragging;
+            mouseWasDragging = true;
+        } else {
+            mouseStartedDragging = false;
+            mouseWasDragging = false;
         }
-    }
 
-    private float tickToPixel(float tick) {
-        return tick * factorX - offsetX;
-    }
-
-    private float pixelToTick(float pixel) {
-        return (pixel + offsetX) / factorX;
-    }
-
-    public void drawDopeSheet(List<DopeChannel> channels, Set<KeyReference> selected, @Nullable ImFloat playhead, int flags) {
         ImDrawList drawList = ImGui.getWindowDrawList();
 
-        if (ImGui.isMouseDragging(0, 1)) {
-            mouseStartedDragging = !wasMouseDragging;
-            wasMouseDragging = true;
-        } else {
-            wasMouseDragging = false;
-            mouseStartedDragging = false;
+        if (!hasFlag(NO_HEADER, flags)) {
+            ImGui.text("TODO: Implement header");
         }
 
-        boolean header = !hasFlag(NO_HEADER, flags);
+        ImGui.beginChild("Dope Sheet Data", ImGui.getContentRegionAvailX(), ImGui.getContentRegionAvailY(), false);
 
-        float width = ImGui.calcItemWidth();
-        float height = ImGui.getTextLineHeightWithSpacing() * channels.size();
+        drawChannelList(categories, openCategories);
+        ImGui.sameLine();
 
-        // HEADER
-        if (header) {
-            height += 1;
+        ImGui.beginGroup();
+        ImGui.pushItemWidth(ImGui.getContentRegionAvailX());
+        drawKeyframes(categories, openCategories, selected, inPoint, outPoint, playhead, flags);
+        ImGui.popItemWidth();
+        ImGui.endGroup();
 
+        ImGui.endChild();
 
-        }
+    }
 
-        if (isDragging()) {
-            if (ImGui.isMouseDragging(0, 0)) {
-                float dx = ImGui.getMouseDragDeltaX() / factorX;
-                for (var entry : dragging.object2FloatEntrySet()) {
-                    var time = entry.getKey().get(channels);
-                    if (time != null) {
-                        float tPrime = entry.getFloatValue() + dx;
-                        if (hasFlag(SNAP_KEYS, flags)) {
-                            tPrime = Math.round(tPrime);
-                        }
-                        time.set(tPrime);
+    private void drawChannelList(List<KeyChannelCategory> categories, IntSet openCategories) {
+        ImGui.pushID("channels");
+        ImGui.beginGroup();
+
+        int catIndex = 0;
+        for (var cat : categories) {
+            ImGui.setNextItemOpen(openCategories.contains(catIndex));
+
+            boolean catOpen = ImGui.treeNodeEx(cat.name);
+
+            // If the tree item was toggled, add or remove it to openCategories depending on it's state.
+            if (ImGui.isItemToggledOpen() && !openCategories.remove(catIndex)) {
+                openCategories.add(catIndex);
+            }
+
+            if (catOpen) {
+                for (var ch : cat.channels()) {
+                    if (ImGui.treeNodeEx(ch.name(), ImGuiTreeNodeFlags.Leaf)) {
+                        ImGui.treePop();
                     }
                 }
-            } else {
-                dragging.clear();
+                ImGui.treePop();
             }
+
+            catIndex++;
         }
 
-        float maxNameLength = 0;
-        for (var c : channels) {
-            float len = ImGui.calcTextSize(c.name).x;
-            if (len > maxNameLength)
-                maxNameLength = len;
-        }
+        ImGui.endGroup();
+        ImGui.popID();
+    }
 
-        int channelIndex = 0;
+    private record IntPair(int a, int b) {};
+
+    // A mapping between key indices in the category row and which keyframes they represent in the channel rows
+    // Store here so we don't need to re-allocate each frame
+//    private Map<Integer, Set<IntPair>> channelKeyMapping = new HashMap<>();
+    private final List<Set<IntPair>> categoryKeyRefs = new ArrayList<>();
+    private final Float2IntMap keyIndexCache = new Float2IntAVLTreeMap();
+    private final List<ImFloat> categoryKeys = new ArrayList<>();
+
+    private void drawKeyframes(List<KeyChannelCategory> categories, IntSet openCategories, Set<KeyReference> selected,
+                               float inPoint, float outPoint, @Nullable ImFloat playhead, int flags) {
+
+        ImDrawList drawList = ImGui.getWindowDrawList();
+
+        int rowIndex = 0;
         boolean wantsStartDragging = false;
+        for (int catIndex = 0; catIndex < categories.size(); catIndex++) {
+            // Build ref cache
+            KeyChannelCategory category = categories.get(catIndex);
+            categoryKeyRefs.clear();
+            keyIndexCache.clear();
+            categoryKeys.clear();
 
-        ImGui.pushStyleVar(ImGuiStyleVar.ItemSpacing, ImGui.getStyle().getItemSpacingX(), 0);
+            // Index all channel keyframes
+            for (int chIndex = 0; chIndex < category.channels().size(); chIndex++) {
+                KeyChannel channel = category.channels().get(chIndex);
 
-        float localCursorX = ImGui.getCursorPosX();
-        ImGui.dummy(maxNameLength, 0);
-        ImGui.sameLine();
-        drawHeader(playhead, drawList, flags);
-        for (var channel : channels) {
-            ImGui.alignTextToFramePadding();
-            ImGui.text(channel.name);
-            ImGui.sameLine(localCursorX + maxNameLength + ImGui.getStyle().getItemSpacingX());
-            if (drawDopeChannel(channel, channelIndex, selected, drawList, flags)) {
+                for (int keyIndex = 0; keyIndex < channel.keys().size(); keyIndex++) {
+                    float keyTime = channel.keys().get(keyIndex).get();
+                    int categoryIndex;
+                    Set<IntPair> keyRefs;
+                    if (keyIndexCache.containsKey(keyTime)) {
+                        categoryIndex = keyIndexCache.get(keyTime);
+                        keyRefs = categoryKeyRefs.get(categoryIndex);
+                    } else {
+                        keyRefs = new HashSet<>();
+                        categoryIndex = categoryKeyRefs.size();
+                        categoryKeyRefs.add(keyRefs);
+                        categoryKeys.add(new ImFloat(keyTime));
+                        keyIndexCache.put(keyTime, categoryIndex);
+                    }
+
+                    keyRefs.add(new IntPair(chIndex, keyIndex));
+                }
+            }
+
+            // Draw category
+            int catIndexCopy = catIndex; // I hate lambdas
+            if (drawKeyChannel(categoryKeys, rowIndex, keyIndex -> {
+                for (var ref : categoryKeyRefs.get(keyIndex)) {
+                    if (selected.contains(new KeyReference(catIndexCopy, ref.a(), ref.b()))) {
+                        return true;
+                    }
+                }
+                return false;
+            }, keyIndex -> {
+                if (!ImGui.getIO().getKeyCtrl()) {
+                    selected.clear();
+                }
+                if (keyIndex != null) {
+                    for (var ref : categoryKeyRefs.get(keyIndex)) {
+                        selected.add(new KeyReference(catIndexCopy, ref.a(), ref.b()));
+                    }
+                }
+            }, drawList, flags)) {
                 wantsStartDragging = true;
             }
-            channelIndex++;
-        }
+            rowIndex++;
 
-        ImGui.popStyleVar();
+            // Draw individual channels
+            if (openCategories.contains(catIndex)) {
+                for (int chIndex = 0; chIndex < category.channels().size(); chIndex++) {
+                    KeyChannel channel = category.channels.get(chIndex);
 
-        if (wantsStartDragging && !hasFlag(READONLY, flags)) {
-            startDragging(selected, channels);
+                    int chIndexCopy = chIndex;
+                    if (drawKeyChannel(channel.keys(), rowIndex,
+                            keyIndex -> selected.contains(new KeyReference(catIndexCopy, chIndexCopy, keyIndex)),
+                            keyIndex -> {
+                                if (!ImGui.getIO().getKeyCtrl()) {
+                                    selected.clear();
+                                }
+                                if (keyIndex != null) {
+                                    selected.add(new KeyReference(catIndexCopy, chIndexCopy, keyIndex));
+                                }
+                            }, drawList, flags)) {
+                        wantsStartDragging = true;
+                    };
+
+                    rowIndex++;
+                }
+            }
         }
     }
 
-    private void drawHeader(@Nullable ImFloat playhead, ImDrawList drawList, int flags) {
-        ImGui.pushID("Dope Header");
-//        float currentPixel = 0;
-
-        float cursorX = ImGui.getCursorScreenPosX();
-        float cursorY = ImGui.getCursorScreenPosY();
-
-        float lineHeight = ImGui.getFrameHeight();
-        float lineWidth = ImGui.calcItemWidth();
-
-        ImGui.invisibleButton("##canvas", lineWidth, lineHeight);
-
-        int drawNumber = majorTickInterval * Math.round(pixelToTick(0) / majorTickInterval);
-        while (tickToPixel(drawNumber) < lineWidth) {
-            float globalX = cursorX + tickToPixel(drawNumber);
-            String str = Integer.toString(drawNumber);
-            float radius = ImGui.calcTextSize(str).x;
-            drawList.addText(globalX - radius, cursorY, ImColor.rgb(255, 255, 255), str);
-            drawNumber += majorTickInterval;
-        }
-
-        ImGui.popID();
+    private static <K, T> T clearOrCreate(Map<K, T> map, K key, Supplier<T> factory, Consumer<T> clearFunction) {
+        return map.compute(key, (k, v) -> {
+            if (v != null) {
+                clearFunction.accept(v);
+                return v;
+            } else {
+                v = factory.get();
+                return v;
+            }
+        });
     }
 
     private interface BiFloatFunction<T> {
         T apply(float a, float b);
     }
 
-    private boolean drawDopeChannel(DopeChannel channel, int channelIndex, Set<KeyReference> selected, ImDrawList drawList, int flags) {
-        ImGui.pushID("Dope Channel " + channel.name());
+    /**
+     * Draw a single channel in the dope sheet.
+     *
+     * @param keys       List of key positions.
+     * @param rowIndex   Vertical index of the channel in the list.
+     * @param isSelected A predicate to check if the key at a given index in keys is selected.
+     * @param onClick    Called when the user clicks on the channel, optionally with the key that was clicked on.
+     * @param drawList   Draw list to use.
+     * @param flags      Render flags.
+     * @return true if the user started dragging the selected keys.
+     */
+    private boolean drawKeyChannel(List<ImFloat> keys, int rowIndex, IntPredicate isSelected, Consumer<Integer> onClick, ImDrawList drawList, int flags) {
+        ImGui.pushID("Dope Channel " + rowIndex);
 
-        float lineHeight = ImGui.getFrameHeight();
         float lineWidth = ImGui.calcItemWidth();
+        float lineHeight = ImGui.getFrameHeight();
 
         float cursorX = ImGui.getCursorScreenPosX();
         float cursorY = ImGui.getCursorScreenPosY();
 
-
         // Background
-        int color = channelIndex % 2 == 0 ? ImColor.rgba(1, 1, 1, .05f) : ImColor.rgba(.5f, .5f, .5f, .05f);
+        int color = rowIndex % 2 == 0 ? ImColor.rgba(1, 1, 1, .05f) : ImColor.rgba(.5f, .5f, .5f, .05f);
 
         drawList.addRectFilled(cursorX, cursorY, cursorX + lineWidth, cursorY + lineHeight, color);
 
@@ -252,8 +320,8 @@ public class DopeSheet {
 
         BiFloatFunction<Integer> getHoveredKey = (posX, posY) -> {
             int i = 0;
-            for (var keyTime : channel.keys) {
-                float centerX = cursorX + tickToPixel(keyTime.get());
+            for (var keyTime : keys) {
+                float centerX = cursorX + keyTime.get() * zoomFactor;
                 if (centerX - keyRadius - 2 < posX && posX < centerX + keyRadius + 2
                         && centerY - keyRadius - 2 <= posY && posY <= centerY + keyRadius + 2) {
                     return i;
@@ -269,33 +337,23 @@ public class DopeSheet {
 
         float mx = ImGui.getMousePosX();
         float my = ImGui.getMousePosY();
+
         Integer hovered = getHoveredKey.apply(mx, my);
 
-        if (!isDragging() && ImGui.isItemHovered()) {
+        if (ImGui.isItemHovered()) {
             if (mouseStartedDragging && hovered != null) {
                 wantsStartDragging = true;
             } else if (ImGui.isMouseClicked(0)) {
-                if (ImGui.getIO().getKeyCtrl()) {
-                    if (hovered != null) {
-                        KeyReference keyRef = new KeyReference(channelIndex, hovered);
-                        if (!selected.remove(keyRef)) {
-                            selected.add(keyRef);
-                        }
-                    }
-                } else if (hovered != null) {
-                    KeyReference keyRef = new KeyReference(channelIndex, hovered);
-                    selected.clear();
-                    selected.add(keyRef);
-                }
+                onClick.accept(hovered);
             }
         }
 
         int i = 0;
-        for (ImFloat keyTime : channel.keys()) {
-            boolean isSelected = selected.contains(new KeyReference(channelIndex, i));
-            int keyColor = isSelected ? ImColor.rgb(1f, 1f, 1f) : ImColor.rgb(.5f, .5f, .5f);
+        for (ImFloat keyTime : keys) {
+            boolean selected = isSelected.test(i);
+            int keyColor = selected ? ImColor.rgb(1f, 1f, 1f) : ImColor.rgb(.5f, .5f, .5f);
 
-            float centerX = cursorX + tickToPixel(keyTime.get());
+            float centerX = cursorX + keyTime.get() * zoomFactor;
             drawList.addNgonFilled(centerX, centerY, keyRadius, keyColor, 4);
             i++;
         }
