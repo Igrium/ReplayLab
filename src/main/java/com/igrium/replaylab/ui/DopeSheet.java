@@ -1,5 +1,6 @@
 package com.igrium.replaylab.ui;
 
+import com.igrium.replaylab.util.IntBruteSet;
 import imgui.ImColor;
 import imgui.ImDrawList;
 import imgui.ImGui;
@@ -7,7 +8,6 @@ import imgui.flag.ImGuiTreeNodeFlags;
 import imgui.type.ImFloat;
 import it.unimi.dsi.fastutil.floats.Float2IntAVLTreeMap;
 import it.unimi.dsi.fastutil.floats.Float2IntMap;
-import it.unimi.dsi.fastutil.ints.IntArraySet;
 import it.unimi.dsi.fastutil.ints.IntSet;
 import lombok.Getter;
 import lombok.Setter;
@@ -115,7 +115,8 @@ public class DopeSheet {
     /** true if the mouse started dragging this frame */
     private boolean mouseStartedDragging;
 
-    private final IntSet openCategories = new IntArraySet();
+    private final IntSet openCategories = new IntBruteSet();
+
 
     public void drawDopeSheet(List<KeyChannelCategory> categories, Set<KeyReference> selected,
                                   float inPoint, float outPoint, @Nullable ImFloat playhead, int flags) {
@@ -127,8 +128,6 @@ public class DopeSheet {
             mouseWasDragging = false;
         }
 
-        ImDrawList drawList = ImGui.getWindowDrawList();
-
         if (!hasFlag(NO_HEADER, flags)) {
             ImGui.text("TODO: Implement header");
         }
@@ -136,13 +135,16 @@ public class DopeSheet {
         ImGui.beginChild("Dope Sheet Data", ImGui.getContentRegionAvailX(), ImGui.getContentRegionAvailY(), false);
 
         drawChannelList(categories, openCategories);
+        float catGroupHeight = ImGui.getItemRectSizeY();
         ImGui.sameLine();
 
-        ImGui.beginGroup();
+        ImGui.beginChild("KeyList", ImGui.getContentRegionAvailX(), catGroupHeight);
         ImGui.pushItemWidth(ImGui.getContentRegionAvailX());
-        drawKeyframes(categories, openCategories, selected, inPoint, outPoint, playhead, flags);
-        ImGui.popItemWidth();
-        ImGui.endGroup();
+        boolean wantStartDragging = drawKeyframes(categories, openCategories, selected, inPoint, outPoint, playhead, flags);
+
+
+
+        ImGui.endChild();
 
         ImGui.endChild();
 
@@ -152,10 +154,12 @@ public class DopeSheet {
         ImGui.pushID("channels");
         ImGui.beginGroup();
 
+
         int catIndex = 0;
         for (var cat : categories) {
             ImGui.setNextItemOpen(openCategories.contains(catIndex));
 
+            ImGui.alignTextToFramePadding();
             boolean catOpen = ImGui.treeNodeEx(cat.name);
 
             // If the tree item was toggled, add or remove it to openCategories depending on it's state.
@@ -165,6 +169,7 @@ public class DopeSheet {
 
             if (catOpen) {
                 for (var ch : cat.channels()) {
+                    ImGui.alignTextToFramePadding();
                     if (ImGui.treeNodeEx(ch.name(), ImGuiTreeNodeFlags.Leaf)) {
                         ImGui.treePop();
                     }
@@ -183,18 +188,17 @@ public class DopeSheet {
 
     // A mapping between key indices in the category row and which keyframes they represent in the channel rows
     // Store here so we don't need to re-allocate each frame
-//    private Map<Integer, Set<IntPair>> channelKeyMapping = new HashMap<>();
     private final List<Set<IntPair>> categoryKeyRefs = new ArrayList<>();
     private final Float2IntMap keyIndexCache = new Float2IntAVLTreeMap();
     private final List<ImFloat> categoryKeys = new ArrayList<>();
 
-    private void drawKeyframes(List<KeyChannelCategory> categories, IntSet openCategories, Set<KeyReference> selected,
+    private boolean drawKeyframes(List<KeyChannelCategory> categories, IntSet openCategories, Set<KeyReference> selected,
                                float inPoint, float outPoint, @Nullable ImFloat playhead, int flags) {
 
         ImDrawList drawList = ImGui.getWindowDrawList();
 
         int rowIndex = 0;
-        boolean wantsStartDragging = false;
+        boolean wantStartDragging = false;
         for (int catIndex = 0; catIndex < categories.size(); catIndex++) {
             // Build ref cache
             KeyChannelCategory category = categories.get(catIndex);
@@ -244,7 +248,7 @@ public class DopeSheet {
                     }
                 }
             }, drawList, flags)) {
-                wantsStartDragging = true;
+                wantStartDragging = true;
             }
             rowIndex++;
 
@@ -264,13 +268,14 @@ public class DopeSheet {
                                     selected.add(new KeyReference(catIndexCopy, chIndexCopy, keyIndex));
                                 }
                             }, drawList, flags)) {
-                        wantsStartDragging = true;
-                    };
+                        wantStartDragging = true;
+                    }
 
                     rowIndex++;
                 }
             }
         }
+        return wantStartDragging;
     }
 
     private static <K, T> T clearOrCreate(Map<K, T> map, K key, Supplier<T> factory, Consumer<T> clearFunction) {
