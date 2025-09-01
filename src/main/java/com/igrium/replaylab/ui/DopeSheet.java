@@ -3,6 +3,7 @@ package com.igrium.replaylab.ui;
 import imgui.ImColor;
 import imgui.ImDrawList;
 import imgui.ImGui;
+import imgui.flag.ImGuiStyleVar;
 import imgui.type.ImFloat;
 import it.unimi.dsi.fastutil.objects.Object2FloatMap;
 import it.unimi.dsi.fastutil.objects.Object2FloatOpenHashMap;
@@ -12,8 +13,6 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 import java.util.Set;
-import java.util.function.BiPredicate;
-import java.util.function.Predicate;
 
 public class DopeSheet {
 
@@ -38,6 +37,31 @@ public class DopeSheet {
      */
     public static final int SNAP_KEYS = 8;
 
+    /**
+     * Don't draw the header
+     */
+    public static final int NO_HEADER = 16;
+
+    /**
+     * Don't draw the playhead
+     */
+    public static final int NO_PLAYHEAD = 32;
+
+    /**
+     * Do not allow the playhead to be moved manually by the user
+     */
+    public static final int READONLY_PLAYHEAD = 64;
+
+    /**
+     * Snap the playhead to increments of 1 while scrubbing
+     */
+    public static final int SNAP_PLAYHEAD = 128;
+
+    /**
+     * Don't draw ticks.
+     */
+    public static final int NO_TICKS = 64;
+
     public record DopeChannel(String name, List<ImFloat> keys) {};
     public record KeyReference(int channel, int key) {
         public @Nullable ImFloat get(List<DopeChannel> channels) {
@@ -52,6 +76,9 @@ public class DopeSheet {
         }
     };
 
+    /**
+     * The offset in pixels to render the start of the timeline.
+     */
     @Getter @Setter
     private float offsetX = 0;
 
@@ -64,6 +91,12 @@ public class DopeSheet {
         this.factorX = factorX;
     }
 
+    /**
+     * The interval between major ticks. Set to <= 0 to disable.
+     */
+    @Getter @Setter
+    private int majorTickInterval = 10;
+
     // drag state
 //    private boolean dragging = false;
 
@@ -71,6 +104,9 @@ public class DopeSheet {
      * A map of keys being dragged and their start time.
      */
     private final Object2FloatMap<KeyReference> dragging = new Object2FloatOpenHashMap<>();
+
+    private boolean wasMouseDragging;
+    private boolean mouseStartedDragging;
 
     private boolean isDragging() {
         return !dragging.isEmpty();
@@ -85,8 +121,36 @@ public class DopeSheet {
         }
     }
 
-    public void drawDopeSheet(List<DopeChannel> channels, Set<KeyReference> selected, int flags) {
+    private float tickToPixel(float tick) {
+        return tick * factorX - offsetX;
+    }
+
+    private float pixelToTick(float pixel) {
+        return (pixel + offsetX) / factorX;
+    }
+
+    public void drawDopeSheet(List<DopeChannel> channels, Set<KeyReference> selected, @Nullable ImFloat playhead, int flags) {
         ImDrawList drawList = ImGui.getWindowDrawList();
+
+        if (ImGui.isMouseDragging(0, 1)) {
+            mouseStartedDragging = !wasMouseDragging;
+            wasMouseDragging = true;
+        } else {
+            wasMouseDragging = false;
+            mouseStartedDragging = false;
+        }
+
+        boolean header = !hasFlag(NO_HEADER, flags);
+
+        float width = ImGui.calcItemWidth();
+        float height = ImGui.getTextLineHeightWithSpacing() * channels.size();
+
+        // HEADER
+        if (header) {
+            height += 1;
+
+
+        }
 
         if (isDragging()) {
             if (ImGui.isMouseDragging(0, 0)) {
@@ -106,22 +170,61 @@ public class DopeSheet {
             }
         }
 
+        float maxNameLength = 0;
+        for (var c : channels) {
+            float len = ImGui.calcTextSize(c.name).x;
+            if (len > maxNameLength)
+                maxNameLength = len;
+        }
+
         int channelIndex = 0;
         boolean wantsStartDragging = false;
+
+        ImGui.pushStyleVar(ImGuiStyleVar.ItemSpacing, ImGui.getStyle().getItemSpacingX(), 0);
+
+        float localCursorX = ImGui.getCursorPosX();
+        ImGui.dummy(maxNameLength, 0);
+        ImGui.sameLine();
+        drawHeader(playhead, drawList, flags);
         for (var channel : channels) {
+            ImGui.alignTextToFramePadding();
+            ImGui.text(channel.name);
+            ImGui.sameLine(localCursorX + maxNameLength + ImGui.getStyle().getItemSpacingX());
             if (drawDopeChannel(channel, channelIndex, selected, drawList, flags)) {
                 wantsStartDragging = true;
             }
             channelIndex++;
         }
 
+        ImGui.popStyleVar();
+
         if (wantsStartDragging && !hasFlag(READONLY, flags)) {
             startDragging(selected, channels);
         }
     }
 
-    private interface BiFloatPredicate {
-        boolean test(float a, float b);
+    private void drawHeader(@Nullable ImFloat playhead, ImDrawList drawList, int flags) {
+        ImGui.pushID("Dope Header");
+//        float currentPixel = 0;
+
+        float cursorX = ImGui.getCursorScreenPosX();
+        float cursorY = ImGui.getCursorScreenPosY();
+
+        float lineHeight = ImGui.getFrameHeight();
+        float lineWidth = ImGui.calcItemWidth();
+
+        ImGui.invisibleButton("##canvas", lineWidth, lineHeight);
+
+        int drawNumber = majorTickInterval * Math.round(pixelToTick(0) / majorTickInterval);
+        while (tickToPixel(drawNumber) < lineWidth) {
+            float globalX = cursorX + tickToPixel(drawNumber);
+            String str = Integer.toString(drawNumber);
+            float radius = ImGui.calcTextSize(str).x;
+            drawList.addText(globalX - radius, cursorY, ImColor.rgb(255, 255, 255), str);
+            drawNumber += majorTickInterval;
+        }
+
+        ImGui.popID();
     }
 
     private interface BiFloatFunction<T> {
@@ -139,7 +242,7 @@ public class DopeSheet {
 
 
         // Background
-        int color = channelIndex % 2 == 0 ? ImColor.rgba(1, 1, 1, .25f) : ImColor.rgba(.5f, .5f, .5f, .25f);
+        int color = channelIndex % 2 == 0 ? ImColor.rgba(1, 1, 1, .05f) : ImColor.rgba(.5f, .5f, .5f, .05f);
 
         drawList.addRectFilled(cursorX, cursorY, cursorX + lineWidth, cursorY + lineHeight, color);
 
@@ -150,7 +253,7 @@ public class DopeSheet {
         BiFloatFunction<Integer> getHoveredKey = (posX, posY) -> {
             int i = 0;
             for (var keyTime : channel.keys) {
-                float centerX = cursorX + keyTime.get() * factorX;
+                float centerX = cursorX + tickToPixel(keyTime.get());
                 if (centerX - keyRadius - 2 < posX && posX < centerX + keyRadius + 2
                         && centerY - keyRadius - 2 <= posY && posY <= centerY + keyRadius + 2) {
                     return i;
@@ -169,7 +272,7 @@ public class DopeSheet {
         Integer hovered = getHoveredKey.apply(mx, my);
 
         if (!isDragging() && ImGui.isItemHovered()) {
-            if (ImGui.isMouseDragging(0) && hovered != null) {
+            if (mouseStartedDragging && hovered != null) {
                 wantsStartDragging = true;
             } else if (ImGui.isMouseClicked(0)) {
                 if (ImGui.getIO().getKeyCtrl()) {
@@ -192,7 +295,7 @@ public class DopeSheet {
             boolean isSelected = selected.contains(new KeyReference(channelIndex, i));
             int keyColor = isSelected ? ImColor.rgb(1f, 1f, 1f) : ImColor.rgb(.5f, .5f, .5f);
 
-            float centerX = cursorX + keyTime.get() * factorX;
+            float centerX = cursorX + tickToPixel(keyTime.get());
             drawList.addNgonFilled(centerX, centerY, keyRadius, keyColor, 4);
             i++;
         }

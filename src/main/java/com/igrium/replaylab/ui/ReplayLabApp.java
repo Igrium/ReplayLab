@@ -61,6 +61,7 @@ public class ReplayLabApp extends DockSpaceApp {
     {
         testChannels.add(new DopeSheet.DopeChannel("Test Channel", List.of(new ImFloat(0), new ImFloat(5))));
         testChannels.add(new DopeSheet.DopeChannel("Test 2", List.of(new ImFloat(0), new ImFloat(1), new ImFloat(2))));
+        testChannels.add(new DopeSheet.DopeChannel("Test channel three has a long name", List.of(new ImFloat(2))));
     }
 
     private final Set<DopeSheet.KeyReference> testSelected = new HashSet<>();
@@ -68,7 +69,7 @@ public class ReplayLabApp extends DockSpaceApp {
     private void drawDopeSheet() {
         if (ImGui.begin("Dope Sheet")) {
             ImGui.pushItemWidth(ImGui.getContentRegionAvailX());
-            dopeSheet.drawDopeSheet(testChannels, testSelected, 0);
+            dopeSheet.drawDopeSheet(testChannels, testSelected, null, 0);
             ImGui.popItemWidth();
         }
         ImGui.end();
