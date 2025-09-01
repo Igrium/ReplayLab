@@ -56,10 +56,10 @@ public class DopeSheet {
     public static final int DRAW_OUT_POINT = 256;
 
     public record KeyChannel(String name, List<ImFloat> keys) {};
-    public record KeyChannelCategory(String name, List<KeyChannel> channels) {}
+    public record ChannelCategory(String name, List<KeyChannel> channels) {}
 
     public record KeyReference(int category, int channel, int key) {
-        public @Nullable ImFloat getValue(List<KeyChannelCategory> categories) {
+        public @Nullable ImFloat getValue(List<ChannelCategory> categories) {
             if (category < 0 || channel < 0 || key < 0 || category >= categories.size()) {
                 return null;
             }
@@ -117,9 +117,17 @@ public class DopeSheet {
 
     private final IntSet openCategories = new IntBruteSet();
 
+    private void startDragging(Set<KeyReference> selected, List<ChannelCategory> categories) {
+        for (var ref : selected) {
+            ImFloat val = ref.getValue(categories);
+            if (val != null) {
+                keyDragOffsets.put(ref, val.floatValue());
+            }
+        }
+    }
 
-    public void drawDopeSheet(List<KeyChannelCategory> categories, Set<KeyReference> selected,
-                                  float inPoint, float outPoint, @Nullable ImFloat playhead, int flags) {
+    public void drawDopeSheet(List<ChannelCategory> categories, Set<KeyReference> selected,
+                              float inPoint, float outPoint, @Nullable ImFloat playhead, int flags) {
         if (ImGui.isMouseDragging(0)) {
             mouseStartedDragging = !mouseWasDragging;
             mouseWasDragging = true;
@@ -142,15 +150,32 @@ public class DopeSheet {
         ImGui.pushItemWidth(ImGui.getContentRegionAvailX());
         boolean wantStartDragging = drawKeyframes(categories, openCategories, selected, inPoint, outPoint, playhead, flags);
 
-
+        if (!keyDragOffsets.isEmpty()) {
+            if (ImGui.isMouseDragging(0, 0)) {
+                float dx = ImGui.getMouseDragDeltaX() / zoomFactor;
+                for (var entry : keyDragOffsets.entrySet()) {
+                    var time = entry.getKey().getValue(categories);
+                    if (time != null) {
+                        float tPrime = entry.getValue() + dx;
+                        if (hasFlag(SNAP_KEYS, flags)) {
+                            tPrime = Math.round(tPrime);
+                        }
+                        time.set(tPrime);
+                    }
+                }
+            } else {
+                keyDragOffsets.clear();
+            }
+        } else if (wantStartDragging && !hasFlag(READONLY, flags)) {
+            startDragging(selected, categories);
+        }
 
         ImGui.endChild();
-
         ImGui.endChild();
 
     }
 
-    private void drawChannelList(List<KeyChannelCategory> categories, IntSet openCategories) {
+    private void drawChannelList(List<ChannelCategory> categories, IntSet openCategories) {
         ImGui.pushID("channels");
         ImGui.beginGroup();
 
@@ -192,8 +217,8 @@ public class DopeSheet {
     private final Float2IntMap keyIndexCache = new Float2IntAVLTreeMap();
     private final List<ImFloat> categoryKeys = new ArrayList<>();
 
-    private boolean drawKeyframes(List<KeyChannelCategory> categories, IntSet openCategories, Set<KeyReference> selected,
-                               float inPoint, float outPoint, @Nullable ImFloat playhead, int flags) {
+    private boolean drawKeyframes(List<ChannelCategory> categories, IntSet openCategories, Set<KeyReference> selected,
+                                  float inPoint, float outPoint, @Nullable ImFloat playhead, int flags) {
 
         ImDrawList drawList = ImGui.getWindowDrawList();
 
@@ -201,7 +226,7 @@ public class DopeSheet {
         boolean wantStartDragging = false;
         for (int catIndex = 0; catIndex < categories.size(); catIndex++) {
             // Build ref cache
-            KeyChannelCategory category = categories.get(catIndex);
+            ChannelCategory category = categories.get(catIndex);
             categoryKeyRefs.clear();
             keyIndexCache.clear();
             categoryKeys.clear();

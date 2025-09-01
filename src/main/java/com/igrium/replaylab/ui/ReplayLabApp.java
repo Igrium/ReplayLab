@@ -59,14 +59,14 @@ public class ReplayLabApp extends DockSpaceApp {
 
 
     private final Set<DopeSheet.KeyReference> testSelected = new HashSet<>();
-    private final List<DopeSheet.KeyChannelCategory> categories = new ArrayList<>();
+    private final List<DopeSheet.ChannelCategory> categories = new ArrayList<>();
 
     {
-        DopeSheet.KeyChannelCategory cat1 = new DopeSheet.KeyChannelCategory("Category 1", new ArrayList<>());
+        DopeSheet.ChannelCategory cat1 = new DopeSheet.ChannelCategory("Category 1", new ArrayList<>());
         cat1.channels().add(new DopeSheet.KeyChannel("Channel 1", List.of(new ImFloat(5), new ImFloat(2))));
         categories.add(cat1);
 
-        DopeSheet.KeyChannelCategory cat2 = new DopeSheet.KeyChannelCategory("Category 2 lol", new ArrayList<>());
+        DopeSheet.ChannelCategory cat2 = new DopeSheet.ChannelCategory("Category 2 lol", new ArrayList<>());
         cat2.channels().add(new DopeSheet.KeyChannel("Channel 2", List.of(new ImFloat(2))));
         cat2.channels().add(new DopeSheet.KeyChannel("The third channel", List.of(new ImFloat(3), new ImFloat(2))));
         categories.add(cat2);
