@@ -12,6 +12,7 @@ import imgui.type.ImFloat;
 import it.unimi.dsi.fastutil.floats.Float2IntAVLTreeMap;
 import it.unimi.dsi.fastutil.floats.Float2IntMap;
 import it.unimi.dsi.fastutil.ints.IntSet;
+import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
 import org.jetbrains.annotations.Nullable;
@@ -129,7 +130,7 @@ public class DopeSheet {
         // Round to power of 2
         double log2 = Math.log(idealTicks) / Math.log(2.0);
         double roundedPower = Math.round(log2);
-        return (int) Math.pow(2, roundedPower);
+        return Math.max((int) Math.pow(2, roundedPower), 1);
     }
 
     private void startDragging(Set<KeyReference> selected, List<ChannelCategory> categories) {
@@ -189,6 +190,7 @@ public class DopeSheet {
         ImGui.pushItemWidth(ImGui.getContentRegionAvailX());
         boolean wantStartDragging = drawKeyframes(categories, openCategories, selected, inPoint, length, playhead, flags);
 
+        // Handle dragging
         if (!keyDragOffsets.isEmpty()) {
             if (ImGui.isMouseDragging(0, 0)) {
                 float dx = ImGui.getMouseDragDeltaX() / zoomFactor;
@@ -209,20 +211,31 @@ public class DopeSheet {
             startDragging(selected, categories);
         }
 
+        // Handle scroll wheel zoom
+        float mWheel = ImGui.getIO().getMouseWheel();
+        if (mWheel != 0 && ImGui.isWindowHovered()) {
+            float factor = (float) Math.pow(2, mWheel * .125f);
+            zoomFactor *= factor;
+            // TODO: SetItemKeyOwner once it's added to the bindings
+        }
+
+        float timelineScrollAmount = ImGui.getScrollX();
+
         ImGui.endChild();
         ImGui.endChild();
 
         if (!hasFlag(NO_HEADER, flags)) {
             ImGui.setCursorPosX(headerCursorX);
             ImGui.setCursorPosY(headerCursorY);
-            drawHeader(headerHeight, catGroupWidth, inPoint, length, playhead, flags);
+            drawHeader(headerHeight, catGroupWidth, timelineScrollAmount, inPoint, length, playhead, flags);
         }
 
         ImGui.popStyleVar();
         ImGui.popStyleVar();
     }
 
-    private void drawHeader(float headerHeight, float timelineOffset, float inPoint, float outPoint, @Nullable ImFloat playhead, int flags) {
+    private void drawHeader(float headerHeight, float timelineOffset, float scrollAmount, float inPoint, float length,
+                            @Nullable ImFloat playhead, int flags) {
         float width = ImGui.getContentRegionAvailX();
 
         float cursorScreenX = ImGui.getCursorScreenPosX();
@@ -236,13 +249,13 @@ public class DopeSheet {
 
         float em = ImGui.getFontSize();
 
-        int majorInterval = computeMajorTickSpacing(getZoomFactor() / em, 8);
+        int majorInterval = computeMajorTickSpacing(getZoomFactor() / em, 6);
 
         int inTick = Math.floorDiv((int) inPoint, majorInterval) * majorInterval;
-        int outTick = Math.ceilDiv((int) outPoint, majorInterval) * majorInterval;
+        int outTick = Math.ceilDiv((int) (inPoint + length), majorInterval) * majorInterval;
 
         for (int tick = inTick; tick <= outTick; tick += majorInterval) {
-            float pos = tick * zoomFactor + timelineOffset;
+            float pos = tick * zoomFactor + timelineOffset - scrollAmount;
             String str = Integer.toString(tick);
             ImVec2 strLen = ImGui.calcTextSize(str);
 
@@ -293,10 +306,9 @@ public class DopeSheet {
     private final List<ImFloat> categoryKeys = new ArrayList<>();
 
     private boolean drawKeyframes(List<ChannelCategory> categories, IntSet openCategories, Set<KeyReference> selected,
-                                  float inPoint, float outPoint, @Nullable ImFloat playhead, int flags) {
+                                  float inPoint, float length, @Nullable ImFloat playhead, int flags) {
 
         ImDrawList drawList = ImGui.getWindowDrawList();
-
         int rowIndex = 0;
         boolean wantStartDragging = false;
         for (int catIndex = 0; catIndex < categories.size(); catIndex++) {
@@ -330,7 +342,7 @@ public class DopeSheet {
             }
 
             // Draw category
-            ImGui.setNextItemWidth((outPoint - inPoint) * zoomFactor);
+            ImGui.setNextItemWidth(length * zoomFactor);
             int catIndexCopy = catIndex; // I hate lambdas
             if (drawKeyChannel(categoryKeys, rowIndex, keyIndex -> {
                 for (var ref : categoryKeyRefs.get(keyIndex)) {
@@ -348,7 +360,7 @@ public class DopeSheet {
                         selected.add(new KeyReference(catIndexCopy, ref.a(), ref.b()));
                     }
                 }
-            }, drawList, inPoint, flags)) {
+            }, drawList, flags)) {
                 wantStartDragging = true;
             }
             rowIndex++;
@@ -358,7 +370,7 @@ public class DopeSheet {
                 for (int chIndex = 0; chIndex < category.channels().size(); chIndex++) {
                     KeyChannel channel = category.channels.get(chIndex);
 
-                    ImGui.setNextItemWidth((outPoint - inPoint) * zoomFactor);
+                    ImGui.setNextItemWidth(length * zoomFactor);
                     int chIndexCopy = chIndex;
                     if (drawKeyChannel(channel.keys(), rowIndex,
                             keyIndex -> selected.contains(new KeyReference(catIndexCopy, chIndexCopy, keyIndex)),
@@ -369,7 +381,7 @@ public class DopeSheet {
                                 if (keyIndex != null) {
                                     selected.add(new KeyReference(catIndexCopy, chIndexCopy, keyIndex));
                                 }
-                            }, drawList, inPoint, flags)) {
+                            }, drawList, flags)) {
                         wantStartDragging = true;
                     }
 
@@ -378,18 +390,6 @@ public class DopeSheet {
             }
         }
         return wantStartDragging;
-    }
-
-    private static <K, T> T clearOrCreate(Map<K, T> map, K key, Supplier<T> factory, Consumer<T> clearFunction) {
-        return map.compute(key, (k, v) -> {
-            if (v != null) {
-                clearFunction.accept(v);
-                return v;
-            } else {
-                v = factory.get();
-                return v;
-            }
-        });
     }
 
     private interface BiFloatFunction<T> {
@@ -407,7 +407,7 @@ public class DopeSheet {
      * @param flags      Render flags.
      * @return true if the user started dragging the selected keys.
      */
-    private boolean drawKeyChannel(List<ImFloat> keys, int rowIndex, IntPredicate isSelected, Consumer<Integer> onClick, ImDrawList drawList, float inPoint, int flags) {
+    private boolean drawKeyChannel(List<ImFloat> keys, int rowIndex, IntPredicate isSelected, Consumer<Integer> onClick, ImDrawList drawList, int flags) {
         ImGui.pushID("Dope Channel " + rowIndex);
 
         float lineWidth = ImGui.calcItemWidth();
