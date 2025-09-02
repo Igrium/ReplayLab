@@ -17,6 +17,7 @@ import lombok.Getter;
 import lombok.Setter;
 import org.jetbrains.annotations.Nullable;
 
+import java.text.DecimalFormat;
 import java.util.*;
 import java.util.function.*;
 
@@ -124,15 +125,6 @@ public class DopeSheet {
 
     private final IntSet openCategories = new IntBruteSet();
 
-    private static int computeMajorTickSpacing(float unitsPerTick, int targetInterval) {
-        double idealTicks = targetInterval / unitsPerTick;
-
-        // Round to power of 2
-        double log2 = Math.log(idealTicks) / Math.log(2.0);
-        double roundedPower = Math.round(log2);
-        return Math.max((int) Math.pow(2, roundedPower), 1);
-    }
-
     private void startDragging(Set<KeyReference> selected, List<ChannelCategory> categories) {
         for (var ref : selected) {
             ImFloat val = ref.getValue(categories);
@@ -148,13 +140,12 @@ public class DopeSheet {
      * @param categories All the keyframes to render. Keyframes <em>relative to the timeline's in point</em>
      *                   and will be updated as the user changes them
      * @param selected   All keyframes which are currently selected. Updated as the player selects/deselects keyframes.
-     * @param inPoint    The in point of the timeline. Cosmetic only.
      * @param length     Length of the timeline (outPoint - inPoint)
      * @param playhead   The current playhead position. Updated as the player scrubs.
      * @param flags      Render flags.
      */
     public void drawDopeSheet(List<ChannelCategory> categories, Set<KeyReference> selected,
-                              float inPoint, float length, @Nullable ImFloat playhead, int flags) {
+                              float length, @Nullable ImFloat playhead, int flags) {
         if (ImGui.isMouseDragging(0)) {
             mouseStartedDragging = !mouseWasDragging;
             mouseWasDragging = true;
@@ -188,7 +179,7 @@ public class DopeSheet {
         ImGui.beginChild("KeyList", ImGui.getContentRegionAvailX(), catGroupHeight + ImGui.getStyle().getScrollbarSize(),
                 false, ImGuiWindowFlags.HorizontalScrollbar);
         ImGui.pushItemWidth(ImGui.getContentRegionAvailX());
-        boolean wantStartDragging = drawKeyframes(categories, openCategories, selected, inPoint, length, playhead, flags);
+        boolean wantStartDragging = drawKeyframes(categories, openCategories, selected, length, playhead, flags);
 
         // Handle dragging
         if (!keyDragOffsets.isEmpty()) {
@@ -227,39 +218,67 @@ public class DopeSheet {
         if (!hasFlag(NO_HEADER, flags)) {
             ImGui.setCursorPosX(headerCursorX);
             ImGui.setCursorPosY(headerCursorY);
-            drawHeader(headerHeight, catGroupWidth, timelineScrollAmount, inPoint, length, playhead, flags);
+            drawHeader(headerHeight, catGroupWidth, timelineScrollAmount, length, 20, playhead, flags);
         }
 
         ImGui.popStyleVar();
         ImGui.popStyleVar();
     }
 
-    private void drawHeader(float headerHeight, float timelineOffset, float scrollAmount, float inPoint, float length,
-                            @Nullable ImFloat playhead, int flags) {
+    private static float computeMajorTimeSpacing(float emPerSecond, int targetEmInterval, int multiple) {
+        double idealSeconds = targetEmInterval / emPerSecond;
+        double log2 = Math.log(idealSeconds) / Math.log(multiple);
+        double roundedPower = Math.round(log2);
+        return (float) Math.pow(multiple, roundedPower);
+    }
+
+    /**
+     * Draw the header
+     *
+     * @param headerHeight   Vertical height of the header (pixels).
+     * @param timelineOffset Distance from the left of the screen that the timeline starts (channels width).
+     * @param scrollAmount   Distance the timeline has been scrolled in pixels.
+     * @param length         Total length of the timeline.
+     * @param tps            Number of timeline ticks in a second.
+     * @param playhead       The current playhead position. Updated as the player scrubs.
+     * @param flags          Render flags
+     */
+    private void drawHeader(float headerHeight, float timelineOffset, float scrollAmount, float length,
+                            int tps, @Nullable ImFloat playhead, int flags) {
+
         float width = ImGui.getContentRegionAvailX();
 
-        float cursorScreenX = ImGui.getCursorScreenPosX();
-        float cursorScreenY = ImGui.getCursorScreenPosY();
+        float cursorX = ImGui.getCursorScreenPosX();
+        float cursorY = ImGui.getCursorScreenPosY();
 
         ImDrawList drawList = ImGui.getWindowDrawList();
-        drawList.addRectFilled(cursorScreenX, cursorScreenY, cursorScreenX + width, cursorScreenY + headerHeight,
+
+        drawList.addRectFilled(cursorX, cursorY, cursorX + width, cursorY + headerHeight,
                 ImColor.rgba(0, 0, 0, .25f));
 
         ImGui.invisibleButton("#header", width, headerHeight);
 
         float em = ImGui.getFontSize();
+        float zoomFactor = getZoomFactor(); // pixels per tick
+        float emPerSecond = (zoomFactor * tps) / em; // em per second
 
-        int majorInterval = computeMajorTickSpacing(getZoomFactor() / em, 6);
+        float majorInterval = computeMajorTimeSpacing(emPerSecond, 10, 10); // target 6em spacing
 
-        int inTick = Math.floorDiv((int) inPoint, majorInterval) * majorInterval;
-        int outTick = Math.ceilDiv((int) (inPoint + length), majorInterval) * majorInterval;
+        int outSecond = (int) Math.ceil(length / (float)tps);
 
-        for (int tick = inTick; tick <= outTick; tick += majorInterval) {
-            float pos = tick * zoomFactor + timelineOffset - scrollAmount;
-            String str = Integer.toString(tick);
+        for (float sec = 0; sec <= outSecond; sec += majorInterval) {
+            float pos = sec * tps * zoomFactor + timelineOffset - scrollAmount;
+
+            String str;
+            if (majorInterval < 1) {
+                str = String.format("%.2f", sec);
+            } else {
+                str = Integer.toString(Math.round(sec));
+            }
+
             ImVec2 strLen = ImGui.calcTextSize(str);
 
-            drawList.addText(cursorScreenX + (pos - strLen.x / 2f), cursorScreenY, 0xFFFFFFFF, str);
+            drawList.addText(cursorX + (pos - strLen.x / 2f), cursorY, 0xFFFFFFFF, str);
         }
     }
 
@@ -306,7 +325,7 @@ public class DopeSheet {
     private final List<ImFloat> categoryKeys = new ArrayList<>();
 
     private boolean drawKeyframes(List<ChannelCategory> categories, IntSet openCategories, Set<KeyReference> selected,
-                                  float inPoint, float length, @Nullable ImFloat playhead, int flags) {
+                                  float length, @Nullable ImFloat playhead, int flags) {
 
         ImDrawList drawList = ImGui.getWindowDrawList();
         int rowIndex = 0;

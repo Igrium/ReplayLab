@@ -79,7 +79,7 @@ public class ReplayLabApp extends DockSpaceApp {
 
     private void drawDopeSheet() {
         if (ImGui.begin("Dope Sheet")) {
-            dopeSheet.drawDopeSheet(categories, testSelected, 0, 128, null, 0);
+            dopeSheet.drawDopeSheet(categories, testSelected, 20 * 20, null, 0);
         }
         ImGui.end();
     }
