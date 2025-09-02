@@ -4,7 +4,10 @@ import com.igrium.replaylab.util.IntBruteSet;
 import imgui.ImColor;
 import imgui.ImDrawList;
 import imgui.ImGui;
+import imgui.ImVec2;
+import imgui.flag.ImGuiStyleVar;
 import imgui.flag.ImGuiTreeNodeFlags;
+import imgui.flag.ImGuiWindowFlags;
 import imgui.type.ImFloat;
 import it.unimi.dsi.fastutil.floats.Float2IntAVLTreeMap;
 import it.unimi.dsi.fastutil.floats.Float2IntMap;
@@ -79,6 +82,9 @@ public class DopeSheet {
     }
 
 
+    /**
+     * The number of pixels per tick
+     */
     @Getter
     private float zoomFactor = 32;
 
@@ -117,6 +123,15 @@ public class DopeSheet {
 
     private final IntSet openCategories = new IntBruteSet();
 
+    private static int computeMajorTickSpacing(float unitsPerTick, int targetInterval) {
+        double idealTicks = targetInterval / unitsPerTick;
+
+        // Round to power of 2
+        double log2 = Math.log(idealTicks) / Math.log(2.0);
+        double roundedPower = Math.round(log2);
+        return (int) Math.pow(2, roundedPower);
+    }
+
     private void startDragging(Set<KeyReference> selected, List<ChannelCategory> categories) {
         for (var ref : selected) {
             ImFloat val = ref.getValue(categories);
@@ -126,8 +141,19 @@ public class DopeSheet {
         }
     }
 
+    /**
+     * Draw the dope sheet.
+     *
+     * @param categories All the keyframes to render. Keyframes <em>relative to the timeline's in point</em>
+     *                   and will be updated as the user changes them
+     * @param selected   All keyframes which are currently selected. Updated as the player selects/deselects keyframes.
+     * @param inPoint    The in point of the timeline. Cosmetic only.
+     * @param length     Length of the timeline (outPoint - inPoint)
+     * @param playhead   The current playhead position. Updated as the player scrubs.
+     * @param flags      Render flags.
+     */
     public void drawDopeSheet(List<ChannelCategory> categories, Set<KeyReference> selected,
-                              float inPoint, float outPoint, @Nullable ImFloat playhead, int flags) {
+                              float inPoint, float length, @Nullable ImFloat playhead, int flags) {
         if (ImGui.isMouseDragging(0)) {
             mouseStartedDragging = !mouseWasDragging;
             mouseWasDragging = true;
@@ -136,19 +162,32 @@ public class DopeSheet {
             mouseWasDragging = false;
         }
 
+        float headerCursorX = 0;
+        float headerCursorY = 0;
+
+        ImGui.pushStyleVar(ImGuiStyleVar.ChildBorderSize, 0);
+        ImGui.pushStyleVar(ImGuiStyleVar.ItemSpacing, ImGui.getStyle().getItemSpacingX(), 0);
+
+        float headerHeight = ImGui.getTextLineHeight() * 1.5f;
+
         if (!hasFlag(NO_HEADER, flags)) {
-            ImGui.text("TODO: Implement header");
+            headerCursorX = ImGui.getCursorPosX();
+            headerCursorY = ImGui.getCursorPosY();
+            ImGui.dummy(0, headerHeight);
         }
+
 
         ImGui.beginChild("Dope Sheet Data", ImGui.getContentRegionAvailX(), ImGui.getContentRegionAvailY(), false);
 
         drawChannelList(categories, openCategories);
+        float catGroupWidth = ImGui.getItemRectSizeX();
         float catGroupHeight = ImGui.getItemRectSizeY();
         ImGui.sameLine();
 
-        ImGui.beginChild("KeyList", ImGui.getContentRegionAvailX(), catGroupHeight);
+        ImGui.beginChild("KeyList", ImGui.getContentRegionAvailX(), catGroupHeight + ImGui.getStyle().getScrollbarSize(),
+                false, ImGuiWindowFlags.HorizontalScrollbar);
         ImGui.pushItemWidth(ImGui.getContentRegionAvailX());
-        boolean wantStartDragging = drawKeyframes(categories, openCategories, selected, inPoint, outPoint, playhead, flags);
+        boolean wantStartDragging = drawKeyframes(categories, openCategories, selected, inPoint, length, playhead, flags);
 
         if (!keyDragOffsets.isEmpty()) {
             if (ImGui.isMouseDragging(0, 0)) {
@@ -173,6 +212,42 @@ public class DopeSheet {
         ImGui.endChild();
         ImGui.endChild();
 
+        if (!hasFlag(NO_HEADER, flags)) {
+            ImGui.setCursorPosX(headerCursorX);
+            ImGui.setCursorPosY(headerCursorY);
+            drawHeader(headerHeight, catGroupWidth, inPoint, length, playhead, flags);
+        }
+
+        ImGui.popStyleVar();
+        ImGui.popStyleVar();
+    }
+
+    private void drawHeader(float headerHeight, float timelineOffset, float inPoint, float outPoint, @Nullable ImFloat playhead, int flags) {
+        float width = ImGui.getContentRegionAvailX();
+
+        float cursorScreenX = ImGui.getCursorScreenPosX();
+        float cursorScreenY = ImGui.getCursorScreenPosY();
+
+        ImDrawList drawList = ImGui.getWindowDrawList();
+        drawList.addRectFilled(cursorScreenX, cursorScreenY, cursorScreenX + width, cursorScreenY + headerHeight,
+                ImColor.rgba(0, 0, 0, .25f));
+
+        ImGui.invisibleButton("#header", width, headerHeight);
+
+        float em = ImGui.getFontSize();
+
+        int majorInterval = computeMajorTickSpacing(getZoomFactor() / em, 8);
+
+        int inTick = Math.floorDiv((int) inPoint, majorInterval) * majorInterval;
+        int outTick = Math.ceilDiv((int) outPoint, majorInterval) * majorInterval;
+
+        for (int tick = inTick; tick <= outTick; tick += majorInterval) {
+            float pos = tick * zoomFactor + timelineOffset;
+            String str = Integer.toString(tick);
+            ImVec2 strLen = ImGui.calcTextSize(str);
+
+            drawList.addText(cursorScreenX + (pos - strLen.x / 2f), cursorScreenY, 0xFFFFFFFF, str);
+        }
     }
 
     private void drawChannelList(List<ChannelCategory> categories, IntSet openCategories) {
@@ -255,6 +330,7 @@ public class DopeSheet {
             }
 
             // Draw category
+            ImGui.setNextItemWidth((outPoint - inPoint) * zoomFactor);
             int catIndexCopy = catIndex; // I hate lambdas
             if (drawKeyChannel(categoryKeys, rowIndex, keyIndex -> {
                 for (var ref : categoryKeyRefs.get(keyIndex)) {
@@ -272,7 +348,7 @@ public class DopeSheet {
                         selected.add(new KeyReference(catIndexCopy, ref.a(), ref.b()));
                     }
                 }
-            }, drawList, flags)) {
+            }, drawList, inPoint, flags)) {
                 wantStartDragging = true;
             }
             rowIndex++;
@@ -282,6 +358,7 @@ public class DopeSheet {
                 for (int chIndex = 0; chIndex < category.channels().size(); chIndex++) {
                     KeyChannel channel = category.channels.get(chIndex);
 
+                    ImGui.setNextItemWidth((outPoint - inPoint) * zoomFactor);
                     int chIndexCopy = chIndex;
                     if (drawKeyChannel(channel.keys(), rowIndex,
                             keyIndex -> selected.contains(new KeyReference(catIndexCopy, chIndexCopy, keyIndex)),
@@ -292,7 +369,7 @@ public class DopeSheet {
                                 if (keyIndex != null) {
                                     selected.add(new KeyReference(catIndexCopy, chIndexCopy, keyIndex));
                                 }
-                            }, drawList, flags)) {
+                            }, drawList, inPoint, flags)) {
                         wantStartDragging = true;
                     }
 
@@ -330,7 +407,7 @@ public class DopeSheet {
      * @param flags      Render flags.
      * @return true if the user started dragging the selected keys.
      */
-    private boolean drawKeyChannel(List<ImFloat> keys, int rowIndex, IntPredicate isSelected, Consumer<Integer> onClick, ImDrawList drawList, int flags) {
+    private boolean drawKeyChannel(List<ImFloat> keys, int rowIndex, IntPredicate isSelected, Consumer<Integer> onClick, ImDrawList drawList, float inPoint, int flags) {
         ImGui.pushID("Dope Channel " + rowIndex);
 
         float lineWidth = ImGui.calcItemWidth();
@@ -340,7 +417,7 @@ public class DopeSheet {
         float cursorY = ImGui.getCursorScreenPosY();
 
         // Background
-        int color = rowIndex % 2 == 0 ? ImColor.rgba(1, 1, 1, .05f) : ImColor.rgba(.5f, .5f, .5f, .05f);
+        int color = rowIndex % 2 == 0 ? ImColor.rgba(1, 1, 1, .1f) : ImColor.rgba(.5f, .5f, .5f, .1f);
 
         drawList.addRectFilled(cursorX, cursorY, cursorX + lineWidth, cursorY + lineHeight, color);
 
@@ -351,7 +428,7 @@ public class DopeSheet {
         BiFloatFunction<Integer> getHoveredKey = (posX, posY) -> {
             int i = 0;
             for (var keyTime : keys) {
-                float centerX = cursorX + keyTime.get() * zoomFactor;
+                float centerX = cursorX + (keyTime.get()) * zoomFactor;
                 if (centerX - keyRadius - 2 < posX && posX < centerX + keyRadius + 2
                         && centerY - keyRadius - 2 <= posY && posY <= centerY + keyRadius + 2) {
                     return i;
@@ -383,7 +460,7 @@ public class DopeSheet {
             boolean selected = isSelected.test(i);
             int keyColor = selected ? ImColor.rgb(1f, 1f, 1f) : ImColor.rgb(.5f, .5f, .5f);
 
-            float centerX = cursorX + keyTime.get() * zoomFactor;
+            float centerX = cursorX + (keyTime.get()) * zoomFactor;
             drawList.addNgonFilled(centerX, centerY, keyRadius, keyColor, 4);
             i++;
         }

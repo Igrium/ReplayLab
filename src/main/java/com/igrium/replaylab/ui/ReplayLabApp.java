@@ -5,6 +5,7 @@ import com.igrium.craftui.app.DockSpaceApp;
 import com.replaymod.replay.ReplayHandler;
 import com.replaymod.replay.ReplayModReplay;
 import imgui.ImGui;
+import imgui.flag.ImGuiCol;
 import imgui.type.ImFloat;
 import net.minecraft.client.MinecraftClient;
 import org.slf4j.Logger;
@@ -48,13 +49,15 @@ public class ReplayLabApp extends DockSpaceApp {
 
         super.render(client);
 
+        ImGui.pushStyleColor(ImGuiCol.WindowBg, 0xFF222222);
         if (beginViewport("Viewport", 0)) {
             ImGui.text("This is the viewport");
         }
-        drawDopeSheet();
-
         ImGui.end();
 
+        drawDopeSheet();
+
+        ImGui.popStyleColor();
     }
 
 
@@ -70,11 +73,13 @@ public class ReplayLabApp extends DockSpaceApp {
         cat2.channels().add(new DopeSheet.KeyChannel("Channel 2", List.of(new ImFloat(2))));
         cat2.channels().add(new DopeSheet.KeyChannel("The third channel", List.of(new ImFloat(3), new ImFloat(2))));
         categories.add(cat2);
+
+        dopeSheet.setZoomFactor(64);
     }
 
     private void drawDopeSheet() {
         if (ImGui.begin("Dope Sheet")) {
-            dopeSheet.drawDopeSheet(categories, testSelected, 0, 0, null, 0);
+            dopeSheet.drawDopeSheet(categories, testSelected, 0, 128, null, 0);
         }
         ImGui.end();
     }

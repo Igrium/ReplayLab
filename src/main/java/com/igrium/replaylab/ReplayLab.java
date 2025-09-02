@@ -1,11 +1,15 @@
 package com.igrium.replaylab;
 
+import com.igrium.craftui.CraftUI;
 import com.igrium.craftui.app.AppManager;
+import com.igrium.craftui.event.ImGuiEvents;
 import com.igrium.replaylab.ui.ReplayLabApp;
 import com.replaymod.core.ReplayMod;
 import com.replaymod.replay.ReplayHandler;
 import com.replaymod.replay.ReplayModReplay;
 import com.replaymod.replaystudio.replay.ReplayFile;
+import imgui.ImGui;
+import imgui.flag.ImGuiCol;
 import lombok.Getter;
 import net.fabricmc.api.ModInitializer;
 
@@ -50,6 +54,8 @@ public class ReplayLab implements ModInitializer {
         ReplayModReplay.instance.startReplay(replayFile, false, true);
         appInstance = new ReplayLabApp();
         AppManager.openApp(appInstance);
+
+
     }
 
 }
