@@ -50,9 +50,7 @@ public class ReplayLabApp extends DockSpaceApp {
         super.render(client);
 
         ImGui.pushStyleColor(ImGuiCol.WindowBg, 0xFF222222);
-        if (beginViewport("Viewport", 0)) {
-            ImGui.text("This is the viewport");
-        }
+        beginViewport("Viewport", 0);
         ImGui.end();
 
         drawDopeSheet();
@@ -79,7 +77,7 @@ public class ReplayLabApp extends DockSpaceApp {
 
     private void drawDopeSheet() {
         if (ImGui.begin("Dope Sheet")) {
-            dopeSheet.drawDopeSheet(categories, testSelected, 20 * 20, null, 0);
+            dopeSheet.drawDopeSheet(categories, testSelected, 200 * 20, null, 0);
         }
         ImGui.end();
     }

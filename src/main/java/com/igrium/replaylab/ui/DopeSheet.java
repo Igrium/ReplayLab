@@ -160,7 +160,7 @@ public class DopeSheet {
         ImGui.pushStyleVar(ImGuiStyleVar.ChildBorderSize, 0);
         ImGui.pushStyleVar(ImGuiStyleVar.ItemSpacing, ImGui.getStyle().getItemSpacingX(), 0);
 
-        float headerHeight = ImGui.getTextLineHeight() * 1.5f;
+        float headerHeight = ImGui.getTextLineHeight() * 2f;
 
         if (!hasFlag(NO_HEADER, flags)) {
             headerCursorX = ImGui.getCursorPosX();
@@ -172,7 +172,7 @@ public class DopeSheet {
         ImGui.beginChild("Dope Sheet Data", ImGui.getContentRegionAvailX(), ImGui.getContentRegionAvailY(), false);
 
         drawChannelList(categories, openCategories);
-        float catGroupWidth = ImGui.getItemRectSizeX();
+        float catGroupWidth = ImGui.getItemRectSizeX() + ImGui.getStyle().getItemSpacingX();
         float catGroupHeight = ImGui.getItemRectSizeY();
         ImGui.sameLine();
 
@@ -216,9 +216,9 @@ public class DopeSheet {
         ImGui.endChild();
 
         if (!hasFlag(NO_HEADER, flags)) {
-            ImGui.setCursorPosX(headerCursorX);
+            ImGui.setCursorPosX(headerCursorX + catGroupWidth);
             ImGui.setCursorPosY(headerCursorY);
-            drawHeader(headerHeight, catGroupWidth, timelineScrollAmount, length, 20, playhead, flags);
+            drawHeader(headerHeight, timelineScrollAmount, length, 20, playhead, flags);
         }
 
         ImGui.popStyleVar();
@@ -236,14 +236,13 @@ public class DopeSheet {
      * Draw the header
      *
      * @param headerHeight   Vertical height of the header (pixels).
-     * @param timelineOffset Distance from the left of the screen that the timeline starts (channels width).
      * @param scrollAmount   Distance the timeline has been scrolled in pixels.
      * @param length         Total length of the timeline.
      * @param tps            Number of timeline ticks in a second.
      * @param playhead       The current playhead position. Updated as the player scrubs.
      * @param flags          Render flags
      */
-    private void drawHeader(float headerHeight, float timelineOffset, float scrollAmount, float length,
+    private void drawHeader(float headerHeight, float scrollAmount, float length,
                             int tps, @Nullable ImFloat playhead, int flags) {
 
         float width = ImGui.getContentRegionAvailX();
@@ -255,6 +254,7 @@ public class DopeSheet {
 
         drawList.addRectFilled(cursorX, cursorY, cursorX + width, cursorY + headerHeight,
                 ImColor.rgba(0, 0, 0, .25f));
+        drawList.pushClipRect(cursorX, cursorY, cursorX + width, cursorY + headerHeight);
 
         ImGui.invisibleButton("#header", width, headerHeight);
 
@@ -262,12 +262,15 @@ public class DopeSheet {
         float zoomFactor = getZoomFactor(); // pixels per tick
         float emPerSecond = (zoomFactor * tps) / em; // em per second
 
-        float majorInterval = computeMajorTimeSpacing(emPerSecond, 10, 10); // target 6em spacing
+        float majorInterval = computeMajorTimeSpacing(emPerSecond, 8, 10);
 
-        int outSecond = (int) Math.ceil(length / (float)tps);
+        // TODO: only render intervals that are present in frame
 
+        int outSecond = (int) Math.ceil(length / (float) tps);
+
+        // Major Intervals
         for (float sec = 0; sec <= outSecond; sec += majorInterval) {
-            float pos = sec * tps * zoomFactor + timelineOffset - scrollAmount;
+            float pos = sec * tps * zoomFactor - scrollAmount;
 
             String str;
             if (majorInterval < 1) {
@@ -277,9 +280,29 @@ public class DopeSheet {
             }
 
             ImVec2 strLen = ImGui.calcTextSize(str);
-
             drawList.addText(cursorX + (pos - strLen.x / 2f), cursorY, 0xFFFFFFFF, str);
+
+            // Major tick
+            drawList.addLine(cursorX + pos, cursorY + headerHeight / 1.8f, cursorX + pos, cursorY + headerHeight, 0xAAAAAAAA);
         }
+
+        // Minor ticks
+        float minorInterval = majorInterval / 2;
+        for (float sec = 0; sec <= outSecond; sec += minorInterval) {
+            float pos = sec * tps * zoomFactor - scrollAmount;
+            drawList.addLine(cursorX + pos, cursorY + headerHeight / 1.4f, cursorX + pos, cursorY + headerHeight, 0xAAAAAAAA);
+        }
+
+        // Don't bother drawing tiny ticks if they're too small
+        float tinyInterval = majorInterval / 4;
+        if (tinyInterval * tps * zoomFactor > em * 1.2) {
+            for (float sec = 0; sec <= outSecond; sec += tinyInterval) {
+                float pos = sec * tps * zoomFactor - scrollAmount;
+                drawList.addLine(cursorX + pos, cursorY + headerHeight / 1.2f, cursorX + pos, cursorY + headerHeight, 0xAAAAAAAA);
+            }
+        }
+
+        drawList.popClipRect();
     }
 
     private void drawChannelList(List<ChannelCategory> categories, IntSet openCategories) {
