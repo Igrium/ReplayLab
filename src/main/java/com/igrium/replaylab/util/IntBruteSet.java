@@ -5,6 +5,7 @@ import it.unimi.dsi.fastutil.ints.IntCollection;
 import it.unimi.dsi.fastutil.ints.IntIterator;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.Arrays;
 import java.util.NoSuchElementException;
 
 /**
@@ -66,12 +67,12 @@ public class IntBruteSet extends AbstractIntSet {
 
     @Override
     public boolean addAll(IntCollection c) {
-        // Identify number of non-present values in c.
+        // Identify the greatest number in c
         int maxMissing = -1;
         IntIterator iter = c.intIterator();
         while (iter.hasNext()) {
             int i = iter.nextInt();
-            if (i >= 0 && !contains(i) && i > maxMissing) {
+            if (i > maxMissing) {
                 maxMissing = i;
             }
         }
@@ -104,6 +105,12 @@ public class IntBruteSet extends AbstractIntSet {
             return true;
         }
         return false;
+    }
+
+    @Override
+    public void clear() {
+        Arrays.fill(array, false);
+        size = 0;
     }
 
     // No need to implement custom removeAll because we don't grow
