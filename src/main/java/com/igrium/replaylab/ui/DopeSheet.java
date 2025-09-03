@@ -5,6 +5,7 @@ import imgui.ImColor;
 import imgui.ImDrawList;
 import imgui.ImGui;
 import imgui.ImVec2;
+import imgui.flag.ImGuiCol;
 import imgui.flag.ImGuiStyleVar;
 import imgui.flag.ImGuiTreeNodeFlags;
 import imgui.flag.ImGuiWindowFlags;
@@ -123,6 +124,8 @@ public class DopeSheet {
     /** true if the mouse started dragging this frame */
     private boolean mouseStartedDragging;
 
+    private boolean isPlayheadDragging;
+
     private final IntSet openCategories = new IntBruteSet();
 
     private void startDragging(Set<KeyReference> selected, List<ChannelCategory> categories) {
@@ -152,7 +155,9 @@ public class DopeSheet {
         } else {
             mouseStartedDragging = false;
             mouseWasDragging = false;
+            isPlayheadDragging = false;
         }
+
 
         float headerCursorX = 0;
         float headerCursorY = 0;
@@ -218,7 +223,7 @@ public class DopeSheet {
         if (!hasFlag(NO_HEADER, flags)) {
             ImGui.setCursorPosX(headerCursorX + catGroupWidth);
             ImGui.setCursorPosY(headerCursorY);
-            drawHeader(headerHeight, timelineScrollAmount, length, 20, playhead, flags);
+            drawHeader(headerHeight, timelineScrollAmount, length, 20, playhead, catGroupHeight, flags);
         }
 
         ImGui.popStyleVar();
@@ -240,10 +245,11 @@ public class DopeSheet {
      * @param length         Total length of the timeline.
      * @param tps            Number of timeline ticks in a second.
      * @param playhead       The current playhead position. Updated as the player scrubs.
+     * @param channelsHeight Total height of the channel list. Used for drawing the playhead line.
      * @param flags          Render flags
      */
     private void drawHeader(float headerHeight, float scrollAmount, float length,
-                            int tps, @Nullable ImFloat playhead, int flags) {
+                            int tps, @Nullable ImFloat playhead, float channelsHeight, int flags) {
 
         float width = ImGui.getContentRegionAvailX();
 
@@ -252,8 +258,7 @@ public class DopeSheet {
 
         ImDrawList drawList = ImGui.getWindowDrawList();
 
-        drawList.addRectFilled(cursorX, cursorY, cursorX + width, cursorY + headerHeight,
-                ImColor.rgba(0, 0, 0, .25f));
+        drawList.addRectFilled(cursorX, cursorY, cursorX + width, cursorY + headerHeight, 0x40000000);
         drawList.pushClipRect(cursorX, cursorY, cursorX + width, cursorY + headerHeight);
 
         ImGui.invisibleButton("#header", width, headerHeight);
@@ -268,42 +273,75 @@ public class DopeSheet {
 
         int outSecond = (int) Math.ceil(length / (float) tps);
 
-        // Major Intervals
-        for (float sec = 0; sec <= outSecond; sec += majorInterval) {
-            float pos = sec * tps * zoomFactor - scrollAmount;
-
-            String str;
-            if (majorInterval < 1) {
-                str = String.format("%.2f", sec);
-            } else {
-                str = Integer.toString(Math.round(sec));
-            }
-
-            ImVec2 strLen = ImGui.calcTextSize(str);
-            drawList.addText(cursorX + (pos - strLen.x / 2f), cursorY, 0xFFFFFFFF, str);
-
-            // Major tick
-            drawList.addLine(cursorX + pos, cursorY + headerHeight / 1.8f, cursorX + pos, cursorY + headerHeight, 0xAAAAAAAA);
-        }
-
-        // Minor ticks
-        float minorInterval = majorInterval / 2;
-        for (float sec = 0; sec <= outSecond; sec += minorInterval) {
-            float pos = sec * tps * zoomFactor - scrollAmount;
-            drawList.addLine(cursorX + pos, cursorY + headerHeight / 1.4f, cursorX + pos, cursorY + headerHeight, 0xAAAAAAAA);
-        }
-
-        // Don't bother drawing tiny ticks if they're too small
-        float tinyInterval = majorInterval / 4;
-        if (tinyInterval * tps * zoomFactor > em * 1.2) {
-            for (float sec = 0; sec <= outSecond; sec += tinyInterval) {
+        if (!hasFlag(NO_TICKS, flags)) {
+            // Major Intervals
+            for (float sec = 0; sec <= outSecond; sec += majorInterval) {
                 float pos = sec * tps * zoomFactor - scrollAmount;
-                drawList.addLine(cursorX + pos, cursorY + headerHeight / 1.2f, cursorX + pos, cursorY + headerHeight, 0xAAAAAAAA);
+
+                String str;
+                if (majorInterval < 1) {
+                    str = String.format("%.2f", sec);
+                } else {
+                    str = Integer.toString(Math.round(sec));
+                }
+
+                ImVec2 strLen = ImGui.calcTextSize(str);
+                drawList.addText(cursorX + (pos - strLen.x / 2f), cursorY, 0xFFFFFFFF, str);
+
+                // Major tick
+                drawList.addLine(cursorX + pos, cursorY + headerHeight / 1.8f, cursorX + pos, cursorY + headerHeight, 0xAAAAAAAA);
+            }
+
+            // Minor ticks
+            float minorInterval = majorInterval / 2;
+            for (float sec = 0; sec <= outSecond; sec += minorInterval) {
+                float pos = sec * tps * zoomFactor - scrollAmount;
+                drawList.addLine(cursorX + pos, cursorY + headerHeight / 1.4f, cursorX + pos, cursorY + headerHeight, 0xAAAAAAAA);
+            }
+
+            // Don't bother drawing tiny ticks if they're too small
+            float tinyInterval = majorInterval / 4;
+            if (tinyInterval * tps * zoomFactor > em * 1.2) {
+                for (float sec = 0; sec <= outSecond; sec += tinyInterval) {
+                    float pos = sec * tps * zoomFactor - scrollAmount;
+                    drawList.addLine(cursorX + pos, cursorY + headerHeight / 1.2f, cursorX + pos, cursorY + headerHeight, 0xAAAAAAAA);
+                }
             }
         }
-
         drawList.popClipRect();
+
+        // Playhead
+        if (playhead != null && !hasFlag(NO_PLAYHEAD, flags)) {
+            int color = ImGui.getColorU32(ImGuiCol.Tab) | 0xFF000000;
+
+            if (!hasFlag(READONLY_PLAYHEAD, flags) && ImGui.isItemHovered() && ImGui.isMouseDown(0)) {
+                isPlayheadDragging = true;
+            }
+
+            if (isPlayheadDragging) {
+                float newPlayhead = (ImGui.getMousePosX() + scrollAmount - cursorX) / zoomFactor;
+
+                if (newPlayhead < 0)
+                    newPlayhead = 0;
+                else if (newPlayhead > length)
+                    newPlayhead = length;
+
+                playhead.set(newPlayhead);
+                color = ImGui.getColorU32(ImGuiCol.TabHovered) | 0xFF000000;
+            }
+
+            float playheadX = cursorX + playhead.get() * zoomFactor - scrollAmount;
+            float radius = ImGui.getFontSize() / 2f;
+
+            if (playheadX >= cursorX) {
+//                var fgDrawList = ImGui.getForegroundDrawList();
+
+                drawList.addRectFilled(playheadX - radius, cursorY + headerHeight / 2, playheadX + radius, cursorY + headerHeight, color);
+                drawList.addLine(playheadX, cursorY + headerHeight, playheadX, cursorY + headerHeight + channelsHeight, color);
+            }
+        }
     }
+
 
     private void drawChannelList(List<ChannelCategory> categories, IntSet openCategories) {
         ImGui.pushID("channels");
