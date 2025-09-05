@@ -10,6 +10,7 @@ import com.replaymod.replay.ReplayModReplay;
 import imgui.ImGui;
 import imgui.flag.ImGuiCol;
 import imgui.type.ImFloat;
+import imgui.type.ImInt;
 import net.minecraft.client.MinecraftClient;
 import org.lwjgl.glfw.GLFW;
 import org.slf4j.Logger;
@@ -33,15 +34,31 @@ public class ReplayLabUI extends DockSpaceApp {
 //    private final DopeSheetOld dopeSheet = new DopeSheetOld();
     private final DopeSheet dopeSheet = new DopeSheet();
 
+    private final ImInt playhead = new ImInt(0);
+    private boolean wantsJumpTime;
+
+
     public ReplayLabUI() {
         setViewportInputMode(ViewportInputMode.HOLD);
         setViewportInputButtons(1);
     }
 
     @Override
+    protected void preRender(MinecraftClient client) {
+        super.preRender(client);
+
+        if (wantsJumpTime) {
+            int replayTime = scene.sceneToReplayTime(playhead.get());
+            replayTime = Math.min(replayTime, getReplayHandler().getReplayDuration());
+            getReplayHandler().doJump(replayTime, true);
+            wantsJumpTime = false;
+        }
+    }
+
+    @Override
     protected void render(MinecraftClient client) {
         var replayHandler = getReplayHandler();
-        if (replayHandler== null) {
+        if (replayHandler == null) {
             close(); // Close the app if we have no replay open.
             return;
         }
@@ -102,16 +119,23 @@ public class ReplayLabUI extends DockSpaceApp {
     // Testing variables
     private final EditorScene scene = new EditorScene();
     private final Set<KeyframeManifest.KeyReference> selected = new HashSet<>();
-    private final ImFloat playhead = new ImFloat(0);
 
     private void drawDopeSheet() {
         if (ImGui.begin("Dope Sheet")) {
-            dopeSheet.drawDopeSheet(scene.getKeyManifest(), selected, 20 * 20, playhead, 0);
+            dopeSheet.drawDopeSheet(scene.getKeyManifest(), selected, 20 * 1000, playhead, 0);
             if (dopeSheet.isFinishedDraggingKeys()) {
                 scene.commitKeyframeUpdates();
             }
         }
         ImGui.end();
+
+        long replayTime = scene.sceneToReplayTime(playhead.get());
+        // If we dropped the playhead, always jump. Otherwise, only jump of we moved forward.
+        if (dopeSheet.isFinishedDraggingPlayhead() ||
+                (dopeSheet.isDraggingPlayhead() && replayTime >= getReplayHandler().getReplaySender().currentTimeStamp())) {
+            wantsJumpTime = true;
+        }
+
     }
 
     @Override

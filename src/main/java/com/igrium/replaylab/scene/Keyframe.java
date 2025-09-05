@@ -9,10 +9,10 @@ import lombok.Setter;
 @Getter
 @Setter
 public class Keyframe {
-    private float time;
+    private int time;
     private double value;
 
-    public Keyframe(float time, double value) {
+    public Keyframe(int time, double value) {
         this.time = time;
         this.value = value;
     }

@@ -34,9 +34,9 @@ public class EditorScene {
      * The global start position of the rendered scene in ticks.
      */
     @Getter
-    private double startTick;
+    private int startTick;
 
-    public void setStartTick(double startTick) {
+    public void setStartTick(int startTick) {
         if (startTick < 0) {
             throw new IllegalArgumentException("Start tick may not be negative.");
         }
@@ -47,13 +47,24 @@ public class EditorScene {
      * The length of the scene in ticks.
      */
     @Getter
-    private double length;
+    private int length = 10000;
 
-    public void setLength(double length) {
+    public void setLength(int length) {
         if (length < 0) {
             throw new IllegalArgumentException("Length may not be negative.");
         }
         this.length = length;
+    }
+
+    /**
+     * Convert a time local to the scene into a global replay time suitable for the replay mod.
+     *
+     * @param sceneTime Scene time in Minecraft ticks.
+     * @return Replay time in milliseconds.
+     */
+    public int sceneToReplayTime(int sceneTime) {
+        // TODO: Update this to handle time dilation
+        return sceneTime + startTick;
     }
 
     /**
@@ -119,12 +130,12 @@ public class EditorScene {
 
         KeyChannel ch1 = new KeyChannel("Channel 1");
         ch1.getKeys().add(new Keyframe(0, 0));
-        ch1.getKeys().add(new Keyframe(10, 0));
+        ch1.getKeys().add(new Keyframe(100, 0));
         cat1.getChannels().add(ch1);
 
         KeyChannel ch2 = new KeyChannel("Channel 2");
-        ch2.getKeys().add(new Keyframe(10, 0));
-        ch2.getKeys().add(new Keyframe(5, 2));
+        ch2.getKeys().add(new Keyframe(100, 0));
+        ch2.getKeys().add(new Keyframe(50, 20));
         cat1.getChannels().add(ch2);
 
         getInternalKeyManifest().getCategories().add(cat1);
@@ -132,7 +143,7 @@ public class EditorScene {
         KeyChannelCategory cat2 = new KeyChannelCategory("This category has a very long name");
 
         KeyChannel ch3 = new KeyChannel("Channel 3");
-        ch3.getKeys().add(new Keyframe(0, 20));
+        ch3.getKeys().add(new Keyframe(0, 200));
         cat2.getChannels().add(ch3);
 
         getInternalKeyManifest().getCategories().add(cat2);

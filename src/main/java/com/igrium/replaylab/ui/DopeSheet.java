@@ -14,13 +14,12 @@ import imgui.flag.ImGuiCol;
 import imgui.flag.ImGuiStyleVar;
 import imgui.flag.ImGuiTreeNodeFlags;
 import imgui.flag.ImGuiWindowFlags;
-import imgui.type.ImFloat;
-import it.unimi.dsi.fastutil.floats.Float2IntAVLTreeMap;
-import it.unimi.dsi.fastutil.floats.Float2IntMap;
+import imgui.type.ImInt;
+import it.unimi.dsi.fastutil.ints.Int2IntAVLTreeMap;
+import it.unimi.dsi.fastutil.ints.Int2IntMap;
 import it.unimi.dsi.fastutil.ints.IntSet;
 import lombok.Getter;
 import lombok.Setter;
-import lombok.experimental.Accessors;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
@@ -65,11 +64,13 @@ public class DopeSheet {
     public static final int DRAW_IN_POINT = 128;
     public static final int DRAW_OUT_POINT = 256;
 
+    private static final int TICKS_PER_SECOND = 1000;
+
     /**
      * The number of pixels per tick
      */
     @Getter
-    private float zoomFactor = 32;
+    private float zoomFactor = 1;
 
     public void setZoomFactor(float zoomFactor) {
         if (zoomFactor <= 0) {
@@ -94,13 +95,36 @@ public class DopeSheet {
     /**
      * A map of keys being dragged with their time before the drag.
      */
-    private final Map<KeyReference, Float> keyDragOffsets = new HashMap<>();
+    private final Map<KeyReference, Integer> keyDragOffsets = new HashMap<>();
+
+    /**
+     * <code>true</code> if any keyframes are currently being dragged.
+     */
+    public boolean isDraggingKeys() {
+        return !keyDragOffsets.isEmpty();
+    }
 
     private boolean mouseWasDragging;
     /** true if the mouse started dragging this frame */
     private boolean mouseStartedDragging;
 
-    private boolean isPlayheadDragging;
+    /**
+     * <code>true</code> if the playhead is currently being dragged.
+     */
+    @Getter
+    private boolean draggingPlayhead;
+
+    /**
+     * <code>true</code> if the playhead was being dragged but stopped this frame.
+     */
+    @Getter
+    private boolean finishedDraggingPlayhead;
+
+    /**
+     * <code>true</code> if the user started dragging keyframes on this frame.
+     */
+    @Getter
+    private boolean startedDraggingKeys;
 
     /**
      * <code>true</code> if the user was dragging keyframes but dropped them this frame.
@@ -108,11 +132,6 @@ public class DopeSheet {
     @Getter
     private boolean finishedDraggingKeys;
 
-    /**
-     * <code>true</code> if the user started dragging keyframes on this frame.
-     */
-    @Getter
-    private boolean startedDraggingKeys;
 
     @Getter
     private final IntSet openCategories = new IntBruteSet();
@@ -138,16 +157,21 @@ public class DopeSheet {
      * @param flags    Render flags.
      */
     public void drawDopeSheet(KeyframeManifest manifest, Set<KeyReference> selected,
-                              float length, @Nullable ImFloat playhead, int flags) {
+                              int length, @Nullable ImInt playhead, int flags) {
+        finishedDraggingKeys = false;
+        finishedDraggingPlayhead = false;
+
         if (ImGui.isMouseDragging(0)) {
             mouseStartedDragging = !mouseWasDragging;
             mouseWasDragging = true;
         } else {
             mouseStartedDragging = false;
             mouseWasDragging = false;
-            isPlayheadDragging = false;
+            if (draggingPlayhead) {
+                finishedDraggingPlayhead = true;
+            }
+            draggingPlayhead = false;
         }
-        finishedDraggingKeys = false;
 
         float headerCursorX = 0;
         float headerCursorY = 0;
@@ -174,7 +198,7 @@ public class DopeSheet {
         ImGui.beginChild("KeyList", ImGui.getContentRegionAvailX(), catGroupHeight + ImGui.getStyle().getScrollbarSize(),
                 false, ImGuiWindowFlags.HorizontalScrollbar);
         ImGui.pushItemWidth(ImGui.getContentRegionAvailX());
-        boolean wantStartDragging = drawKeyframes(manifest, openCategories, selected, length, playhead, flags);
+        boolean wantStartDragging = drawKeyframes(manifest, openCategories, selected, length, flags);
 
         // Handle dragging
         if (!keyDragOffsets.isEmpty()) {
@@ -187,7 +211,7 @@ public class DopeSheet {
                         if (hasFlag(SNAP_KEYS, flags)) {
                             tPrime = Math.round(tPrime);
                         }
-                        key.setTime(tPrime);
+                        key.setTime((int) tPrime);
                     }
                 }
             } else {
@@ -214,7 +238,7 @@ public class DopeSheet {
         if (!hasFlag(NO_HEADER, flags)) {
             ImGui.setCursorPosX(headerCursorX + catGroupWidth);
             ImGui.setCursorPosY(headerCursorY);
-            drawHeader(headerHeight, timelineScrollAmount, length, 20, playhead, catGroupHeight, flags);
+            drawHeader(headerHeight, timelineScrollAmount, length, playhead, catGroupHeight, flags);
         }
 
         ImGui.popStyleVar();
@@ -228,19 +252,19 @@ public class DopeSheet {
         return (float) Math.pow(multiple, roundedPower);
     }
 
+
     /**
      * Draw the header
      *
      * @param headerHeight   Vertical height of the header (pixels).
      * @param scrollAmount   Distance the timeline has been scrolled in pixels.
      * @param length         Total length of the timeline.
-     * @param tps            Number of timeline ticks in a second.
      * @param playhead       The current playhead position. Updated as the player scrubs.
      * @param channelsHeight Total height of the channel list. Used for drawing the playhead line.
      * @param flags          Render flags
      */
-    private void drawHeader(float headerHeight, float scrollAmount, float length,
-                            int tps, @Nullable ImFloat playhead, float channelsHeight, int flags) {
+    private void drawHeader(float headerHeight, float scrollAmount, int length,
+                            @Nullable ImInt playhead, float channelsHeight, int flags) {
 
         float width = ImGui.getContentRegionAvailX();
 
@@ -256,18 +280,18 @@ public class DopeSheet {
 
         float em = ImGui.getFontSize();
         float zoomFactor = getZoomFactor(); // pixels per tick
-        float emPerSecond = (zoomFactor * tps) / em; // em per second
+        float emPerSecond = (zoomFactor * TICKS_PER_SECOND) / em; // em per second
 
         float majorInterval = computeMajorTimeSpacing(emPerSecond, 8, 10);
 
         // TODO: only render intervals that are present in frame
 
-        int outSecond = (int) Math.ceil(length / (float) tps);
+        int outSecond = Math.ceilDiv(length, TICKS_PER_SECOND);
 
         if (!hasFlag(NO_TICKS, flags)) {
             // Major Intervals
             for (float sec = 0; sec <= outSecond; sec += majorInterval) {
-                float pos = sec * tps * zoomFactor - scrollAmount;
+                float pos = sec * TICKS_PER_SECOND * zoomFactor - scrollAmount;
 
                 String str;
                 if (majorInterval < 1) {
@@ -286,15 +310,15 @@ public class DopeSheet {
             // Minor ticks
             float minorInterval = majorInterval / 2;
             for (float sec = 0; sec <= outSecond; sec += minorInterval) {
-                float pos = sec * tps * zoomFactor - scrollAmount;
+                float pos = sec * TICKS_PER_SECOND * zoomFactor - scrollAmount;
                 drawList.addLine(cursorX + pos, cursorY + headerHeight / 1.4f, cursorX + pos, cursorY + headerHeight, 0xAAAAAAAA);
             }
 
             // Don't bother drawing tiny ticks if they're too small
             float tinyInterval = majorInterval / 4;
-            if (tinyInterval * tps * zoomFactor > em * 1.2) {
+            if (tinyInterval * TICKS_PER_SECOND * zoomFactor > em * 1.2) {
                 for (float sec = 0; sec <= outSecond; sec += tinyInterval) {
-                    float pos = sec * tps * zoomFactor - scrollAmount;
+                    float pos = sec * TICKS_PER_SECOND * zoomFactor - scrollAmount;
                     drawList.addLine(cursorX + pos, cursorY + headerHeight / 1.2f, cursorX + pos, cursorY + headerHeight, 0xAAAAAAAA);
                 }
             }
@@ -306,11 +330,11 @@ public class DopeSheet {
             int color = ImGui.getColorU32(ImGuiCol.Tab) | 0xFF000000;
 
             if (!hasFlag(READONLY_PLAYHEAD, flags) && ImGui.isItemHovered() && ImGui.isMouseDown(0)) {
-                isPlayheadDragging = true;
+                draggingPlayhead = true;
             }
 
-            if (isPlayheadDragging) {
-                float newPlayhead = (ImGui.getMousePosX() + scrollAmount - cursorX) / zoomFactor;
+            if (draggingPlayhead) {
+                int newPlayhead = (int) ((ImGui.getMousePosX() + scrollAmount - cursorX) / zoomFactor);
 
                 if (newPlayhead < 0)
                     newPlayhead = 0;
@@ -372,13 +396,13 @@ public class DopeSheet {
     // A mapping between key indices in the category row and which keyframes they represent in the channel rows
     // Store here so we don't need to re-allocate each frame
     private final List<Set<IntPair>> categoryKeyRefs = new ArrayList<>();
-    private final Float2IntMap keyIndexCache = new Float2IntAVLTreeMap();
+    private final Int2IntMap keyIndexCache = new Int2IntAVLTreeMap();
 
     // Dummy keyframes used to display category header
     private final List<Keyframe> categoryKeys = new ArrayList<>();
 
     private boolean drawKeyframes(KeyframeManifest manifest, IntSet openCategories, Set<KeyReference> selected,
-                                  float length, @Nullable ImFloat playhead, int flags) {
+                                  float length, int flags) {
 
         ImDrawList drawList = ImGui.getWindowDrawList();
         int rowIndex = 0;
@@ -395,7 +419,7 @@ public class DopeSheet {
                 KeyChannel channel = category.getChannels().get(chIndex);
 
                 for (int keyIndex = 0; keyIndex < channel.getKeys().size(); keyIndex++) {
-                    float keyTime = channel.getKeys().get(keyIndex).getTime();
+                    int keyTime = channel.getKeys().get(keyIndex).getTime();
                     int categoryIndex;
                     Set<IntPair> keyRefs;
                     if (keyIndexCache.containsKey(keyTime)) {
