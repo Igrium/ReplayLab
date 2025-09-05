@@ -67,7 +67,7 @@ public class EditorScene {
      * Apply the working keyframe manifest into the core keyframe manifest,
      * creating an undo step in the process.
      */
-    public void applyKeyManifest() {
+    public void commitKeyframeUpdates() {
         KeyframeManifest updated = keyManifest.copy();
         ApplyKeyManifestOperator op = new ApplyKeyManifestOperator(internalKeyManifest, updated);
         setInternalKeyManifest(updated);

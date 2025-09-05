@@ -20,6 +20,7 @@ import it.unimi.dsi.fastutil.floats.Float2IntMap;
 import it.unimi.dsi.fastutil.ints.IntSet;
 import lombok.Getter;
 import lombok.Setter;
+import lombok.experimental.Accessors;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
@@ -101,6 +102,19 @@ public class DopeSheet {
 
     private boolean isPlayheadDragging;
 
+    /**
+     * <code>true</code> if the user was dragging keyframes but dropped them this frame.
+     */
+    @Getter
+    private boolean finishedDraggingKeys;
+
+    /**
+     * <code>true</code> if the user started dragging keyframes on this frame.
+     */
+    @Getter
+    private boolean startedDraggingKeys;
+
+    @Getter
     private final IntSet openCategories = new IntBruteSet();
 
     private void startDragging(Set<KeyReference> selected, KeyframeManifest manifest) {
@@ -110,17 +124,18 @@ public class DopeSheet {
                 keyDragOffsets.put(ref, keyframe.getTime());
             }
         }
+        startedDraggingKeys = true;
     }
 
     /**
      * Draw the dope sheet.
      *
      * @param manifest The keyframe manifest to edit. Keyframes <em>relative to the timeline's in point</em>
-     *                   and will be updated as the user changes them
-     * @param selected   All keyframes which are currently selected. Updated as the player selects/deselects keyframes.
-     * @param length     Length of the timeline (outPoint - inPoint)
-     * @param playhead   The current playhead position. Updated as the player scrubs.
-     * @param flags      Render flags.
+     *                 and will be updated as the user changes them
+     * @param selected All keyframes which are currently selected. Updated as the player selects/deselects keyframes.
+     * @param length   Length of the timeline (outPoint - inPoint)
+     * @param playhead The current playhead position. Updated as the player scrubs.
+     * @param flags    Render flags.
      */
     public void drawDopeSheet(KeyframeManifest manifest, Set<KeyReference> selected,
                               float length, @Nullable ImFloat playhead, int flags) {
@@ -132,6 +147,7 @@ public class DopeSheet {
             mouseWasDragging = false;
             isPlayheadDragging = false;
         }
+        finishedDraggingKeys = false;
 
         float headerCursorX = 0;
         float headerCursorY = 0;
@@ -176,6 +192,7 @@ public class DopeSheet {
                 }
             } else {
                 keyDragOffsets.clear();
+                finishedDraggingKeys = true;
             }
         } else if (wantStartDragging && !hasFlag(READONLY, flags)) {
             startDragging(selected, manifest);

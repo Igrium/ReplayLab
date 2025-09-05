@@ -1,6 +1,5 @@
 package com.igrium.replaylab.scene;
 
-import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -9,10 +8,14 @@ import lombok.Setter;
  */
 @Getter
 @Setter
-@AllArgsConstructor
 public class Keyframe {
     private float time;
     private double value;
+
+    public Keyframe(float time, double value) {
+        this.time = time;
+        this.value = value;
+    }
 
     public Keyframe(Keyframe other) {
         this(other.time, other.value);
