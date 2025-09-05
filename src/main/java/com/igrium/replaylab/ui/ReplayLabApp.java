@@ -59,26 +59,9 @@ public class ReplayLabApp extends DockSpaceApp {
     }
 
 
-    private final Set<DopeSheet.KeyReference> testSelected = new HashSet<>();
-    private final List<DopeSheet.ChannelCategory> categories = new ArrayList<>();
-    private final ImFloat playhead = new ImFloat(20f);
-
-    {
-        DopeSheet.ChannelCategory cat1 = new DopeSheet.ChannelCategory("Category 1", new ArrayList<>());
-        cat1.channels().add(new DopeSheet.KeyChannel("Channel 1", List.of(new ImFloat(5), new ImFloat(2))));
-        categories.add(cat1);
-
-        DopeSheet.ChannelCategory cat2 = new DopeSheet.ChannelCategory("Category 2 lol", new ArrayList<>());
-        cat2.channels().add(new DopeSheet.KeyChannel("Channel 2", List.of(new ImFloat(2))));
-        cat2.channels().add(new DopeSheet.KeyChannel("The third channel", List.of(new ImFloat(3), new ImFloat(2))));
-        categories.add(cat2);
-
-        dopeSheet.setZoomFactor(64);
-    }
-
     private void drawDopeSheet() {
         if (ImGui.begin("Dope Sheet")) {
-            dopeSheet.drawDopeSheet(categories, testSelected, 200 * 20, playhead, 0);
+//            dopeSheet.drawDopeSheet(categories, testSelected, 200 * 20, playhead, 0);
         }
         ImGui.end();
     }
