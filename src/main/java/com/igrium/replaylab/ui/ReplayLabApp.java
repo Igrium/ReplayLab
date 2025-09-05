@@ -2,6 +2,8 @@ package com.igrium.replaylab.ui;
 
 
 import com.igrium.craftui.app.DockSpaceApp;
+import com.igrium.replaylab.scene.EditorScene;
+import com.igrium.replaylab.scene.KeyframeManifest;
 import com.replaymod.replay.ReplayHandler;
 import com.replaymod.replay.ReplayModReplay;
 import imgui.ImGui;
@@ -58,9 +60,13 @@ public class ReplayLabApp extends DockSpaceApp {
         ImGui.popStyleColor();
     }
 
+    private EditorScene scene = new EditorScene();
+    private final Set<KeyframeManifest.KeyReference> selected = new HashSet<>();
+    private ImFloat playhead = new ImFloat(0);
 
     private void drawDopeSheet() {
         if (ImGui.begin("Dope Sheet")) {
+            dopeSheet.drawDopeSheet(scene.getKeyManifest(), selected, 20 * 20, playhead, 0);
 //            dopeSheet.drawDopeSheet(categories, testSelected, 200 * 20, playhead, 0);
         }
         ImGui.end();
