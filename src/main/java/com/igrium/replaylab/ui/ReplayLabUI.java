@@ -9,7 +9,8 @@ import com.replaymod.replay.ReplayHandler;
 import com.replaymod.replay.ReplayModReplay;
 import imgui.ImGui;
 import imgui.flag.ImGuiCol;
-import imgui.type.ImFloat;
+import imgui.flag.ImGuiStyleVar;
+import imgui.flag.ImGuiWindowFlags;
 import imgui.type.ImInt;
 import net.minecraft.client.MinecraftClient;
 import org.lwjgl.glfw.GLFW;
@@ -37,6 +38,10 @@ public class ReplayLabUI extends DockSpaceApp {
     private final ImInt playhead = new ImInt(0);
     private boolean wantsJumpTime;
 
+    /**
+     * The height of the viewport footer on the previous frame. Used when adjusting the viewport bounds.
+     */
+    private float viewportFooterHeight;
 
     public ReplayLabUI() {
         setViewportInputMode(ViewportInputMode.HOLD);
@@ -71,7 +76,19 @@ public class ReplayLabUI extends DockSpaceApp {
 
         drawMenuBar();
 
-        beginViewport("Viewport", 0);
+        int bgColor = ImGui.getColorU32(ImGuiCol.WindowBg);
+
+        ImGui.pushStyleVar(ImGuiStyleVar.WindowPadding, 0, 0);
+        ImGui.pushStyleVar(ImGuiStyleVar.WindowBorderSize, 0);
+        var beginViewport = beginViewport("Viewport", 0);
+        ImGui.popStyleVar(2);
+
+        if (beginViewport) {
+            ImGui.pushStyleColor(ImGuiCol.ChildBg, bgColor);
+            drawPlaybackControls();
+            ImGui.popStyleColor();
+        }
+
         ImGui.end();
 
         drawDopeSheet();
@@ -108,10 +125,10 @@ public class ReplayLabUI extends DockSpaceApp {
 
     private void processHotkeys() {
         var io = ImGui.getIO();
-        if (io.getKeyCtrl() && ImGui.isKeyPressed(GLFW.GLFW_KEY_Z)) {
+        if (isCtrlPressed() && ImGui.isKeyPressed(GLFW.GLFW_KEY_Z)) {
             scene.undo();
         }
-        if (io.getKeyCtrl() && io.getKeyShift() && ImGui.isKeyPressed(GLFW.GLFW_KEY_Z)) {
+        if (isCtrlPressed() && io.getKeyShift() && ImGui.isKeyPressed(GLFW.GLFW_KEY_Z)) {
             scene.redo();
         }
     }
@@ -119,6 +136,42 @@ public class ReplayLabUI extends DockSpaceApp {
     // Testing variables
     private final EditorScene scene = new EditorScene();
     private final Set<KeyframeManifest.KeyReference> selected = new HashSet<>();
+
+    private void drawPlaybackControls() {
+        ImGui.pushFont(PlaybackIcons.playbackIcons());
+        float buttonSize = ImGui.getTextLineHeightWithSpacing() * 1.25f;
+        viewportFooterHeight = buttonSize + ImGui.getStyle().getWindowPaddingY() * 2;
+        ImGui.popFont();
+
+        ImGui.setCursorPosY(ImGui.getContentRegionMaxY() - viewportFooterHeight);
+
+        ImGui.setNextWindowBgAlpha(1);
+        if (ImGui.beginChild("Playback", ImGui.getContentRegionAvailX(), viewportFooterHeight, true, ImGuiWindowFlags.AlwaysAutoResize)) {
+            float groupWidth = (buttonSize + ImGui.getStyle().getItemSpacingX()) * 5 - ImGui.getStyle().getItemSpacingX();
+
+            ImGui.setCursorPosX(ImGui.getContentRegionAvailX() / 2 - groupWidth / 2);
+            ImGui.alignTextToFramePadding();
+
+            playbackIcon(PlaybackIcons.JUMP_START, "Scene Start", buttonSize);
+            playbackIcon(PlaybackIcons.PREV_KEYFRAME, "Previous Keyframe", buttonSize);
+            playbackIcon(PlaybackIcons.PLAY, "Play/Pause", buttonSize);
+            playbackIcon(PlaybackIcons.NEXT_KEYFRAME, "Next Keyframe", buttonSize);
+            playbackIcon(PlaybackIcons.JUMP_END, "Scene End", buttonSize);
+        }
+        ImGui.endChild();
+    }
+
+    private boolean playbackIcon(String icon, String tooltip, float buttonSize) {
+        ImGui.pushFont(PlaybackIcons.playbackIcons());
+        boolean res = ImGui.button(icon, buttonSize, buttonSize);
+        ImGui.popFont();
+
+        if (ImGui.isItemHovered()) {
+            ImGui.setTooltip(tooltip);
+        }
+        ImGui.sameLine();
+        return res;
+    }
 
     private void drawDopeSheet() {
         if (ImGui.begin("Dope Sheet")) {
@@ -136,6 +189,12 @@ public class ReplayLabUI extends DockSpaceApp {
             wantsJumpTime = true;
         }
 
+    }
+
+    @Override
+    protected ViewportBounds getCustomViewportBounds() {
+        var bounds = super.getCustomViewportBounds();
+        return new ViewportBounds(bounds.x(), bounds.y() + (int) viewportFooterHeight, bounds.width(), bounds.height() - (int) viewportFooterHeight);
     }
 
     @Override
