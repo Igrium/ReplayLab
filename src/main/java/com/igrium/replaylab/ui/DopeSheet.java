@@ -235,14 +235,15 @@ public class DopeSheet {
         ImGui.endChild();
         ImGui.endChild();
 
+        ImGui.popStyleVar();
+        ImGui.popStyleVar();
+
         if (!hasFlag(NO_HEADER, flags)) {
             ImGui.setCursorPosX(headerCursorX + catGroupWidth);
             ImGui.setCursorPosY(headerCursorY);
             drawHeader(headerHeight, timelineScrollAmount, length, playhead, catGroupHeight, flags);
         }
 
-        ImGui.popStyleVar();
-        ImGui.popStyleVar();
     }
 
     private static float computeMajorTimeSpacing(float emPerSecond, int targetEmInterval, int multiple) {
@@ -273,7 +274,7 @@ public class DopeSheet {
 
         ImDrawList drawList = ImGui.getWindowDrawList();
 
-        drawList.addRectFilled(cursorX, cursorY, cursorX + width, cursorY + headerHeight, 0x40000000);
+        drawList.addRectFilled(cursorX, cursorY, cursorX + width, cursorY + headerHeight, ImGuiCol.TableHeaderBg);
         drawList.pushClipRect(cursorX, cursorY, cursorX + width, cursorY + headerHeight);
 
         ImGui.invisibleButton("#header", width, headerHeight);
@@ -326,8 +327,9 @@ public class DopeSheet {
         drawList.popClipRect();
 
         // Playhead
+
         if (playhead != null && !hasFlag(NO_PLAYHEAD, flags)) {
-            int color = ImGui.getColorU32(ImGuiCol.Tab) | 0xFF000000;
+            int color = ImGui.getColorU32(ImGuiCol.CheckMark) | 0xFF000000;
 
             if (!hasFlag(READONLY_PLAYHEAD, flags) && ImGui.isItemHovered() && ImGui.isMouseDown(0)) {
                 draggingPlayhead = true;
@@ -342,19 +344,25 @@ public class DopeSheet {
                     newPlayhead = length;
 
                 playhead.set(newPlayhead);
-                color = ImGui.getColorU32(ImGuiCol.TabHovered) | 0xFF000000;
+//                color = ImGui.getColorU32(ImGuiCol.CheckMark) | 0xFF000000;
             }
+
+            ImGui.setCursorPos(0, 0);
+            ImGui.beginChild("overlay", ImGui.getContentRegionAvailX(), ImGui.getContentRegionAvailY(), false,
+                    ImGuiWindowFlags.NoBackground | ImGuiWindowFlags.NoInputs);
 
             float playheadX = cursorX + playhead.get() * zoomFactor - scrollAmount;
             float radius = ImGui.getFontSize() / 2f;
 
+            var drawList2 = ImGui.getWindowDrawList();
             if (playheadX >= cursorX) {
-//                var fgDrawList = ImGui.getForegroundDrawList();
-
-                drawList.addRectFilled(playheadX - radius, cursorY + headerHeight / 2, playheadX + radius, cursorY + headerHeight, color);
-                drawList.addLine(playheadX, cursorY + headerHeight, playheadX, cursorY + headerHeight + channelsHeight, color);
+                drawList2.addLine(playheadX, cursorY + headerHeight, playheadX, cursorY + headerHeight + channelsHeight, color);
+                drawList2.addRectFilled(playheadX - radius, cursorY + headerHeight / 2, playheadX + radius, cursorY + headerHeight, color);
             }
+            ImGui.endChild();
+
         }
+
     }
 
 
@@ -513,7 +521,7 @@ public class DopeSheet {
         float cursorY = ImGui.getCursorScreenPosY();
 
         // Background
-        int color = rowIndex % 2 == 0 ? ImColor.rgba(1, 1, 1, .1f) : ImColor.rgba(.5f, .5f, .5f, .1f);
+        int color = rowIndex % 2 == 0 ? ImGui.getColorU32(ImGuiCol.TableRowBgAlt) : ImGui.getColorU32(ImGuiCol.TableRowBg);
 
         drawList.addRectFilled(cursorX, cursorY, cursorX + lineWidth, cursorY + lineHeight, color);
 
