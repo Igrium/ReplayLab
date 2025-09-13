@@ -1,6 +1,6 @@
 package com.igrium.replaylab.ui;
 
-import com.igrium.craftui.impl.font.ImFontManager;
+import com.igrium.craftui.CraftUIFonts;
 import imgui.ImFont;
 import lombok.experimental.UtilityClass;
 import net.minecraft.util.Identifier;
@@ -10,7 +10,7 @@ public final class PlaybackIcons {
     public static final Identifier PLAYBACK_ICONS = Identifier.of("replaylab:playback-icons");
 
     public static ImFont playbackIcons() {
-        return ImFontManager.getInstance().get(PLAYBACK_ICONS);
+        return CraftUIFonts.getFont(PLAYBACK_ICONS);
     }
 
     public static final String PLAY = "A";

@@ -12,7 +12,7 @@ import java.util.Deque;
 /**
  * Keeps track of all the runtime stuff regarding a scene.
  */
-public class EditorScene {
+public class ReplayScene {
     /**
      * The keyframe manifest that gets saved into the file, used in undo/redo, etc.
      * <b>CONSIDERED EFFECTIVELY IMMUTABLE</b>
@@ -38,7 +38,7 @@ public class EditorScene {
 
     public void setStartTick(int startTick) {
         if (startTick < 0) {
-            throw new IllegalArgumentException("Start tick may not be negative.");
+            throw new IllegalArgumentException("Start tick may not be neg ative.");
         }
         this.startTick = startTick;
     }
@@ -65,6 +65,15 @@ public class EditorScene {
     public int sceneToReplayTime(int sceneTime) {
         // TODO: Update this to handle time dilation
         return sceneTime + startTick;
+    }
+
+    /**
+     * Apply all animated values in the scene to the game. Does <em>not</em> update actual game time;
+     * simply updates all manually-animated values.
+     * @param time Timestamp to apply (in ms).
+     */
+    public void applyToGame(int time) {
+        // TODO: actually implement this
     }
 
     /**
@@ -124,7 +133,7 @@ public class EditorScene {
     }
 
 
-    public EditorScene() {
+    public ReplayScene() {
         // Init temporary values
         KeyChannelCategory cat1 = new KeyChannelCategory("Category 1");
 

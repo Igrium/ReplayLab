@@ -3,10 +3,11 @@ package com.igrium.replaylab.ui;
 
 import com.igrium.craftui.app.DockSpaceApp;
 import com.igrium.craftui.file.FileDialogs;
-import com.igrium.replaylab.scene.EditorScene;
+import com.igrium.replaylab.scene.ReplayScene;
 import com.igrium.replaylab.scene.KeyframeManifest;
 import com.replaymod.replay.ReplayHandler;
 import com.replaymod.replay.ReplayModReplay;
+import com.replaymod.replay.ReplaySender;
 import imgui.ImGui;
 import imgui.flag.ImGuiCol;
 import imgui.flag.ImGuiStyleVar;
@@ -32,7 +33,7 @@ public class ReplayLabUI extends DockSpaceApp {
         return ReplayModReplay.instance.getReplayHandler();
     }
 
-//    private final DopeSheetOld dopeSheet = new DopeSheetOld();
+    //    private final DopeSheetOld dopeSheet = new DopeSheetOld();
     private final DopeSheet dopeSheet = new DopeSheet();
 
     private final ImInt playhead = new ImInt(0);
@@ -72,8 +73,6 @@ public class ReplayLabUI extends DockSpaceApp {
         replayHandler.getOverlay().setVisible(false);
         super.render(client);
 
-        ImGui.pushStyleColor(ImGuiCol.WindowBg, 0xFF222222);
-
         drawMenuBar();
 
         int bgColor = ImGui.getColorU32(ImGuiCol.WindowBg);
@@ -93,12 +92,11 @@ public class ReplayLabUI extends DockSpaceApp {
 
         drawDopeSheet();
 
-        ImGui.popStyleColor();
-
         var io = ImGui.getIO();
         if (io.getWantCaptureKeyboard() && !io.getWantTextInput()) {
             processHotkeys();
         }
+
     }
 
     private void drawMenuBar() {
@@ -134,7 +132,7 @@ public class ReplayLabUI extends DockSpaceApp {
     }
 
     // Testing variables
-    private final EditorScene scene = new EditorScene();
+    private final ReplayScene scene = new ReplayScene();
     private final Set<KeyframeManifest.KeyReference> selected = new HashSet<>();
 
     private void drawPlaybackControls() {
@@ -154,11 +152,23 @@ public class ReplayLabUI extends DockSpaceApp {
 
             playbackIcon(PlaybackIcons.JUMP_START, "Scene Start", buttonSize);
             playbackIcon(PlaybackIcons.PREV_KEYFRAME, "Previous Keyframe", buttonSize);
-            playbackIcon(PlaybackIcons.PLAY, "Play/Pause", buttonSize);
+            if (playbackIcon(PlaybackIcons.PLAY, "Play/Pause", buttonSize)) {
+                onPlayPauseClicked();
+            }
+            ;
             playbackIcon(PlaybackIcons.NEXT_KEYFRAME, "Next Keyframe", buttonSize);
             playbackIcon(PlaybackIcons.JUMP_END, "Scene End", buttonSize);
         }
         ImGui.endChild();
+    }
+
+    private void onPlayPauseClicked() {
+        ReplaySender sender = getReplayHandler().getReplaySender();
+        if (sender.paused()) {
+            sender.setReplaySpeed(1);
+        } else {
+            sender.setReplaySpeed(0);
+        }
     }
 
     private boolean playbackIcon(String icon, String tooltip, float buttonSize) {
@@ -172,6 +182,7 @@ public class ReplayLabUI extends DockSpaceApp {
         ImGui.sameLine();
         return res;
     }
+
 
     private void drawDopeSheet() {
         if (ImGui.begin("Dope Sheet")) {
@@ -194,6 +205,8 @@ public class ReplayLabUI extends DockSpaceApp {
     @Override
     protected ViewportBounds getCustomViewportBounds() {
         var bounds = super.getCustomViewportBounds();
+        if (bounds == null) return null; // Shouldn't happen
+
         return new ViewportBounds(bounds.x(), bounds.y() + (int) viewportFooterHeight, bounds.width(), bounds.height() - (int) viewportFooterHeight);
     }
 
