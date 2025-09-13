@@ -10,6 +10,7 @@ import com.replaymod.replay.ReplayHandler;
 import com.replaymod.replay.ReplaySender;
 import lombok.Getter;
 import lombok.NonNull;
+import lombok.Setter;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.render.RenderTickCounter;
 import org.jetbrains.annotations.Nullable;
@@ -48,10 +49,6 @@ public abstract class AbstractScenePlayer extends EventRegistrations {
     }
 
     public CompletableFuture<Void> start(@NonNull ReplayScene scene) {
-        if (this.scene != null) {
-            throw new IllegalStateException("Player has already started!");
-        }
-
         this.scene = scene;
         maxTimestamp = scene.getLength();
 
@@ -71,6 +68,12 @@ public abstract class AbstractScenePlayer extends EventRegistrations {
         timer.tickDelta = timer.ticksThisFrame = 0;
 
         return future = new CompletableFuture<>();
+    }
+
+    public void stop() {
+        if (future != null) {
+            future.cancel(false);
+        }
     }
 
     /**
@@ -100,17 +103,20 @@ public abstract class AbstractScenePlayer extends EventRegistrations {
             timestamp = maxTimestamp;
         }
 
-        scene.applyToGame(timestamp);
 
         // Apply timestamp to game
         ReplaySender sender = replayHandler.getReplaySender();
         int replayTime = scene.sceneToReplayTime(timestamp);
+
+        replayTime = Math.min(replayTime, replayHandler.getReplayDuration());
 
         if (sender.isAsyncMode()) {
             sender.jumpToTime(replayTime);
         } else {
             sender.sendPacketsTill(replayTime);
         }
+
+        scene.applyToGame(timestamp);
 
         if (prevReplayTime == 0) {
             prevReplayTime = replayTime; // first frame

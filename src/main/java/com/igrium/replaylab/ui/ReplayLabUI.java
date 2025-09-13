@@ -3,7 +3,6 @@ package com.igrium.replaylab.ui;
 
 import com.igrium.craftui.app.DockSpaceApp;
 import com.igrium.craftui.file.FileDialogs;
-import com.igrium.replaylab.scene.ReplayScene;
 import com.igrium.replaylab.scene.KeyframeManifest;
 import com.replaymod.replay.ReplayHandler;
 import com.replaymod.replay.ReplayModReplay;
@@ -12,7 +11,6 @@ import imgui.ImGui;
 import imgui.flag.ImGuiCol;
 import imgui.flag.ImGuiStyleVar;
 import imgui.flag.ImGuiWindowFlags;
-import imgui.type.ImInt;
 import net.minecraft.client.MinecraftClient;
 import org.lwjgl.glfw.GLFW;
 import org.slf4j.Logger;
@@ -33,10 +31,10 @@ public class ReplayLabUI extends DockSpaceApp {
         return ReplayModReplay.instance.getReplayHandler();
     }
 
+    private final ReplayLabEditorState state = new ReplayLabEditorState();
+
     //    private final DopeSheetOld dopeSheet = new DopeSheetOld();
     private final DopeSheet dopeSheet = new DopeSheet();
-
-    private final ImInt playhead = new ImInt(0);
     private boolean wantsJumpTime;
 
     /**
@@ -54,11 +52,11 @@ public class ReplayLabUI extends DockSpaceApp {
         super.preRender(client);
 
         if (wantsJumpTime) {
-            int replayTime = scene.sceneToReplayTime(playhead.get());
-            replayTime = Math.min(replayTime, getReplayHandler().getReplayDuration());
-            getReplayHandler().doJump(replayTime, true);
+            state.doTimeJump();
             wantsJumpTime = false;
         }
+
+        state.onPreRender();
     }
 
     @Override
@@ -109,10 +107,10 @@ public class ReplayLabUI extends DockSpaceApp {
             }
             if (ImGui.beginMenu("Edit")) {
                 if (ImGui.menuItem("Undo", "Ctrl+Z")) {
-                    scene.undo();
+                    state.getScene().undo();
                 }
                 if (ImGui.menuItem("Redo", "Ctrl+Shift+Z")) {
-                    scene.redo();
+                    state.getScene().redo();
                 }
                 ImGui.endMenu();
             }
@@ -124,15 +122,14 @@ public class ReplayLabUI extends DockSpaceApp {
     private void processHotkeys() {
         var io = ImGui.getIO();
         if (isCtrlPressed() && ImGui.isKeyPressed(GLFW.GLFW_KEY_Z)) {
-            scene.undo();
+            state.getScene().undo();
         }
         if (isCtrlPressed() && io.getKeyShift() && ImGui.isKeyPressed(GLFW.GLFW_KEY_Z)) {
-            scene.redo();
+            state.getScene().redo();
         }
     }
 
     // Testing variables
-    private final ReplayScene scene = new ReplayScene();
     private final Set<KeyframeManifest.KeyReference> selected = new HashSet<>();
 
     private void drawPlaybackControls() {
@@ -163,11 +160,10 @@ public class ReplayLabUI extends DockSpaceApp {
     }
 
     private void onPlayPauseClicked() {
-        ReplaySender sender = getReplayHandler().getReplaySender();
-        if (sender.paused()) {
-            sender.setReplaySpeed(1);
+        if (state.isPlaying()) {
+            state.stopPlaying();
         } else {
-            sender.setReplaySpeed(0);
+            state.startPlaying(state.getPlayhead());
         }
     }
 
@@ -186,14 +182,14 @@ public class ReplayLabUI extends DockSpaceApp {
 
     private void drawDopeSheet() {
         if (ImGui.begin("Dope Sheet")) {
-            dopeSheet.drawDopeSheet(scene.getKeyManifest(), selected, 20 * 1000, playhead, 0);
+            dopeSheet.drawDopeSheet(state.getScene().getKeyManifest(), selected, 20 * 1000, state.getPlayheadRef(), 0);
             if (dopeSheet.isFinishedDraggingKeys()) {
-                scene.commitKeyframeUpdates();
+                state.getScene().commitKeyframeUpdates();
             }
         }
         ImGui.end();
 
-        long replayTime = scene.sceneToReplayTime(playhead.get());
+        long replayTime = state.getScene().sceneToReplayTime(state.getPlayhead());
         // If we dropped the playhead, always jump. Otherwise, only jump of we moved forward.
         if (dopeSheet.isFinishedDraggingPlayhead() ||
                 (dopeSheet.isDraggingPlayhead() && replayTime >= getReplayHandler().getReplaySender().currentTimeStamp())) {
