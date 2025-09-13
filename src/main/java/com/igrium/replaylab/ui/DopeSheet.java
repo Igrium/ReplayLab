@@ -134,7 +134,7 @@ public class DopeSheet {
 
 
     @Getter
-    private final IntSet openCategories = new IntBruteSet();
+    private final Set<String> openCategories = new HashSet<>();
 
     private void startDragging(Set<KeyReference> selected, KeyframeManifest manifest) {
         for (var ref : selected) {
@@ -344,7 +344,6 @@ public class DopeSheet {
                     newPlayhead = length;
 
                 playhead.set(newPlayhead);
-//                color = ImGui.getColorU32(ImGuiCol.CheckMark) | 0xFF000000;
             }
 
             ImGui.setCursorPos(0, 0);
@@ -366,20 +365,22 @@ public class DopeSheet {
     }
 
 
-    private void drawChannelList(KeyframeManifest manifest, IntSet openCategories) {
+    private void drawChannelList(KeyframeManifest manifest, Set<String> openCategories) {
         ImGui.pushID("channels");
         ImGui.beginGroup();
 
         int catIndex = 0;
-        for (var cat : manifest.getCategories()) {
-            ImGui.setNextItemOpen(openCategories.contains(catIndex));
+        for (var entry : manifest.getCategories().entrySet()) {
+            String catName = entry.getKey();
+            KeyChannelCategory cat = entry.getValue();
+            ImGui.setNextItemOpen(openCategories.contains(catName));
 
             ImGui.alignTextToFramePadding();
-            boolean catOpen = ImGui.treeNodeEx(cat.getName());
+            boolean catOpen = ImGui.treeNodeEx(catName);
 
             // If the tree item was toggled, add or remove it to openCategories depending on it's state.
-            if (ImGui.isItemToggledOpen() && !openCategories.remove(catIndex)) {
-                openCategories.add(catIndex);
+            if (ImGui.isItemToggledOpen() && !openCategories.remove(catName)) {
+                openCategories.add(catName);
             }
 
             if (catOpen) {
@@ -409,15 +410,18 @@ public class DopeSheet {
     // Dummy keyframes used to display category header
     private final List<Keyframe> categoryKeys = new ArrayList<>();
 
-    private boolean drawKeyframes(KeyframeManifest manifest, IntSet openCategories, Set<KeyReference> selected,
+    private boolean drawKeyframes(KeyframeManifest manifest, Set<String> openCategories, Set<KeyReference> selected,
                                   float length, int flags) {
 
         ImDrawList drawList = ImGui.getWindowDrawList();
         int rowIndex = 0;
         boolean wantStartDragging = false;
-        for (int catIndex = 0; catIndex < manifest.getCategories().size(); catIndex++) {
+
+        // Since categories are now a Map<String, KeyChannelCategory>
+        for (var entry : manifest.getCategories().entrySet()) {
             // Build ref cache
-            KeyChannelCategory category = manifest.getCategories().get(catIndex);
+            String categoryId = entry.getKey();
+            KeyChannelCategory category = entry.getValue();
             categoryKeyRefs.clear();
             keyIndexCache.clear();
             categoryKeys.clear();
@@ -447,10 +451,9 @@ public class DopeSheet {
 
             // Draw category
             ImGui.setNextItemWidth(length * zoomFactor);
-            int catIndexCopy = catIndex; // I hate lambdas
             if (drawKeyChannel(categoryKeys, rowIndex, keyIndex -> {
                 for (var ref : categoryKeyRefs.get(keyIndex)) {
-                    if (selected.contains(new KeyReference(catIndexCopy, ref.a(), ref.b()))) {
+                    if (selected.contains(new KeyReference(categoryId, ref.a(), ref.b()))) {
                         return true;
                     }
                 }
@@ -461,7 +464,7 @@ public class DopeSheet {
                 }
                 if (keyIndex != null) {
                     for (var ref : categoryKeyRefs.get(keyIndex)) {
-                        selected.add(new KeyReference(catIndexCopy, ref.a(), ref.b()));
+                        selected.add(new KeyReference(categoryId, ref.a(), ref.b()));
                     }
                 }
             }, drawList, flags)) {
@@ -470,20 +473,20 @@ public class DopeSheet {
             rowIndex++;
 
             // Draw individual channels
-            if (openCategories.contains(catIndex)) {
+            if (openCategories.contains(categoryId)) {
                 for (int chIndex = 0; chIndex < category.getChannels().size(); chIndex++) {
                     KeyChannel channel = category.getChannels().get(chIndex);
 
                     ImGui.setNextItemWidth(length * zoomFactor);
                     int chIndexCopy = chIndex;
                     if (drawKeyChannel(channel.getKeys(), rowIndex,
-                            keyIndex -> selected.contains(new KeyReference(catIndexCopy, chIndexCopy, keyIndex)),
+                            keyIndex -> selected.contains(new KeyReference(categoryId, chIndexCopy, keyIndex)),
                             keyIndex -> {
                                 if (!ImGui.getIO().getKeyCtrl()) {
                                     selected.clear();
                                 }
                                 if (keyIndex != null) {
-                                    selected.add(new KeyReference(catIndexCopy, chIndexCopy, keyIndex));
+                                    selected.add(new KeyReference(categoryId, chIndexCopy, keyIndex));
                                 }
                             }, drawList, flags)) {
                         wantStartDragging = true;
@@ -495,6 +498,7 @@ public class DopeSheet {
         }
         return wantStartDragging;
     }
+
 
     private interface BiFloatFunction<T> {
         T apply(float a, float b);

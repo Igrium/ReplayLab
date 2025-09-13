@@ -1,10 +1,9 @@
 package com.igrium.replaylab.scene;
 
+import com.google.common.collect.BiMap;
+import com.google.common.collect.HashBiMap;
 import lombok.Getter;
 import org.jetbrains.annotations.Nullable;
-
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * A collection of all keyframe channels in the scene.
@@ -20,25 +19,28 @@ public class KeyframeManifest {
      * @param channel  Channel index within the category.
      * @param keyframe Keyframe index within the channel.
      */
-    public record KeyReference(int category, int channel, int keyframe) {
+    public record KeyReference(String category, int channel, int keyframe) {
     }
 
     @Getter
-    private final List<KeyChannelCategory> categories;
+    private final BiMap<String, KeyChannelCategory> categories;
+
+//    @Getter
+//    private final List<KeyChannelCategory> categories;
 
 
-    protected KeyframeManifest(List<KeyChannelCategory> categories) {
+    protected KeyframeManifest(BiMap<String, KeyChannelCategory> categories) {
         this.categories = categories;
     }
 
     public KeyframeManifest() {
-        this(new ArrayList<>());
+        this(HashBiMap.create());
     }
 
     public KeyframeManifest copy() {
-        List<KeyChannelCategory> copied = new ArrayList<>(categories.size());
-        for (var cat : categories) {
-            copied.add(cat.copy());
+        BiMap<String, KeyChannelCategory> copied = HashBiMap.create(categories.size());
+        for (var entry : categories.entrySet()) {
+            copied.put(entry.getKey(), entry.getValue().copy());
         }
         return new KeyframeManifest(copied);
     }
@@ -61,11 +63,14 @@ public class KeyframeManifest {
      * @param keyframe Keyframe index within the channel.
      * @return A mutable object reference to the keyframe. <code>null</code> if the indices were out of bounds.
      */
-    public @Nullable Keyframe getKeyframe(int category, int channel, int keyframe) {
-        if (category < 0 || channel < 0 || keyframe < 0 || category >= categories.size()) {
+    public @Nullable Keyframe getKeyframe(String category, int channel, int keyframe) {
+        if (channel < 0 || keyframe < 0)
+            return null;
+
+        var cat = categories.get(category);
+        if (cat == null) {
             return null;
         }
-        var cat = categories.get(category);
         if (channel >= cat.getChannels().size()) {
             return null;
         }

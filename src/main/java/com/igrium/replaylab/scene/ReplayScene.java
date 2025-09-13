@@ -135,27 +135,27 @@ public class ReplayScene {
 
     public ReplayScene() {
         // Init temporary values
-        KeyChannelCategory cat1 = new KeyChannelCategory("Category 1");
+        KeyChannelCategory cat1 = new KeyChannelCategory();
 
         KeyChannel ch1 = new KeyChannel("Channel 1");
         ch1.getKeys().add(new Keyframe(0, 0));
-        ch1.getKeys().add(new Keyframe(100, 0));
+        ch1.getKeys().add(new Keyframe(1000, 0));
         cat1.getChannels().add(ch1);
 
         KeyChannel ch2 = new KeyChannel("Channel 2");
-        ch2.getKeys().add(new Keyframe(100, 0));
-        ch2.getKeys().add(new Keyframe(50, 20));
+        ch2.getKeys().add(new Keyframe(1000, 0));
+        ch2.getKeys().add(new Keyframe(500, 20));
         cat1.getChannels().add(ch2);
 
-        getInternalKeyManifest().getCategories().add(cat1);
+        getInternalKeyManifest().getCategories().put("Category 1", cat1);
 
-        KeyChannelCategory cat2 = new KeyChannelCategory("This category has a very long name");
+        KeyChannelCategory cat2 = new KeyChannelCategory();
 
         KeyChannel ch3 = new KeyChannel("Channel 3");
-        ch3.getKeys().add(new Keyframe(0, 200));
+        ch3.getKeys().add(new Keyframe(0, 2000));
         cat2.getChannels().add(ch3);
 
-        getInternalKeyManifest().getCategories().add(cat2);
+        getInternalKeyManifest().getCategories().put("Category 2", cat2);
 
         resetKeyManifest();
     }
