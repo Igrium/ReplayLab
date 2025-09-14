@@ -31,6 +31,15 @@ public class KeyChannel {
         this.name = name;
     }
 
+    /**
+     * Sample the curve at a given timestamp.
+     * @param timestamp Timestamp to sample at.
+     * @return The scalar value of the curve at that time.
+     */
+    public double sample(int timestamp) {
+        return 0; // TODO: implement
+    }
+
     public KeyChannel copy() {
         List<Keyframe> copied = new ArrayList<>(keys.size());
         for (Keyframe key : keys) {

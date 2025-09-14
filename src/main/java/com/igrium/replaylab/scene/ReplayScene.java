@@ -1,10 +1,17 @@
 package com.igrium.replaylab.scene;
 
+import com.google.common.collect.BiMap;
+import com.google.common.collect.HashBiMap;
+import com.google.common.collect.Maps;
+import com.igrium.replaylab.anim.AnimationObject;
 import com.igrium.replaylab.operator.ApplyKeyManifestOperator;
-import com.igrium.replaylab.operator.UndoStep;
+import com.igrium.replaylab.operator.ReplayOperator;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.Setter;
+import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayDeque;
 import java.util.Deque;
@@ -13,6 +20,9 @@ import java.util.Deque;
  * Keeps track of all the runtime stuff regarding a scene.
  */
 public class ReplayScene {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger("ReplayLab/ReplayScene");
+
     /**
      * The keyframe manifest that gets saved into the file, used in undo/redo, etc.
      * <b>CONSIDERED EFFECTIVELY IMMUTABLE</b>
@@ -27,8 +37,11 @@ public class ReplayScene {
     @Getter @Setter @NonNull
     private KeyframeManifest keyManifest = new KeyframeManifest();
 
-    private final Deque<UndoStep> undoStack = new ArrayDeque<>();
-    private final Deque<UndoStep> redoStack = new ArrayDeque<>();
+    private final BiMap<String, AnimationObject> objects = HashBiMap.create();
+    private final BiMap<String, AnimationObject> objectsUnmod = Maps.unmodifiableBiMap(objects);
+
+    private final Deque<ReplayOperator> undoStack = new ArrayDeque<>();
+    private final Deque<ReplayOperator> redoStack = new ArrayDeque<>();
 
     /**
      * The global start position of the rendered scene in ticks.
@@ -77,6 +90,48 @@ public class ReplayScene {
     }
 
     /**
+     * Get a map of all the animation objects in this scene.
+     * @return Unmodifiable view of all objects.
+     */
+    public BiMap<String, AnimationObject> getObjects() {
+        return objectsUnmod;
+    }
+
+    /**
+     * Get the animation object belonging to a specific ID.
+     * @param id ID to search for.
+     * @return The object, or <code>null</code> if no object by that ID exists.
+     */
+    public @Nullable AnimationObject getObject(String id) {
+        return objects.get(id);
+    }
+
+    /**
+     * Add an animation object to this scene.
+     *
+     * @param id     ID to assign the new object.
+     * @param object Object to add.
+     * @return The previous object that belonged to that ID, if any.
+     * @throws IllegalArgumentException If the object belongs to the wrong scene.
+     */
+    public @Nullable AnimationObject putObject(String id, AnimationObject object) throws IllegalArgumentException {
+        if (object.getScene() != this) {
+            throw new IllegalArgumentException("Object belongs to the wrong scene!");
+        }
+        return objects.put(id, object);
+    }
+
+    /**
+     * Remove an animation object from the scene.
+     *
+     * @param id ID of the object to remove.
+     * @return The object that had that ID, if any.
+     */
+    public @Nullable AnimationObject removeObject(String id) {
+        return objects.remove(id);
+    }
+
+    /**
      * Restore the working keyframe manifest to a copy of the internal one
      */
     public void resetKeyManifest() {
@@ -88,50 +143,75 @@ public class ReplayScene {
      * creating an undo step in the process.
      */
     public void commitKeyframeUpdates() {
-        KeyframeManifest updated = keyManifest.copy();
-        ApplyKeyManifestOperator op = new ApplyKeyManifestOperator(internalKeyManifest, updated);
-        setInternalKeyManifest(updated);
-        pushUndoStep(op);
+        applyOperator(new ApplyKeyManifestOperator());
+//        KeyframeManifest updated = keyManifest.copy();
+//        ApplyKeyManifestOperatorOld op = new ApplyKeyManifestOperatorOld(internalKeyManifest, updated);
+//        setInternalKeyManifest(updated);
+//        pushUndoStep(op);
     }
 
     /**
-     * Push an undo step onto the stack, clearing the redo stack in the process.
-     * @param step Step to push.
-     * @apiNote It is expected that the actual action the step undoes has already completed.
+     * Attempt to execute an operator.
+     * @param operator Operator to execute.
+     * @return <code>true</code> if the operation was successful and the operator was added to the undo stack.
      */
-    public void pushUndoStep(UndoStep step) {
-        redoStack.clear();
-        undoStack.push(step);
+    public boolean applyOperator(ReplayOperator operator) {
+        boolean result;
+        try {
+            result = operator.execute(this);
+        } catch (Exception e) {
+            LOGGER.error("Error applying operator: ", e);
+            // We consider the undo/redo stack corrupted.
+            undoStack.clear();
+            redoStack.clear();
+            return false;
+        }
+        if (result) {
+            undoStack.push(operator);
+            redoStack.clear();
+        }
+        return result;
     }
 
     /**
-     * Attempt to undo the last operation.
-     * @return If there was an operation to undo.
+     * Undo the previous operation.
+     * @return <code>true</code> if there was an operator to undo and it undid successfully.
      */
     public boolean undo() {
-        if (!undoStack.isEmpty()) {
-            UndoStep step = undoStack.pop();
-            step.undo(this);
-            redoStack.push(step);
-            return true;
+        if (undoStack.isEmpty()) return false;
+
+        ReplayOperator op = undoStack.pop();
+        try {
+            op.undo(this);
+        } catch (Exception e) {
+            LOGGER.error("Error undoing operator: ", e);
+            undoStack.clear();
+            redoStack.clear();
+            return false;
         }
-        return false;
+        redoStack.push(op);
+        return true;
     }
 
     /**
-     * Attempt to redo the last undone operation.
-     * @return If there was an operation to redo.
+     * Redo the previous operation.
+     * @return <code>true</code> if there was an operator to redo and it redid successfully.
      */
     public boolean redo() {
-        if (!redoStack.isEmpty()) {
-            UndoStep step = redoStack.pop();
-            step.redo(this);
-            undoStack.push(step);
-            return true;
-        }
-        return false;
-    }
+        if (redoStack.isEmpty()) return false;
 
+        ReplayOperator op = redoStack.pop();
+        try {
+            op.redo(this);
+        } catch (Exception e) {
+            LOGGER.error("Error redoing operator: ", e);
+            undoStack.clear();
+            redoStack.clear();
+            return false;
+        }
+        undoStack.push(op);
+        return true;
+    }
 
     public ReplayScene() {
         // Init temporary values

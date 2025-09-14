@@ -23,6 +23,10 @@ public class KeyChannelCategory {
         this.channels = new ArrayList<>();
     }
 
+    public KeyChannel getChannel(int index) {
+        return channels.get(index);
+    }
+
     public KeyChannelCategory copy() {
         List<KeyChannel> copied = new ArrayList<>(channels.size());
         for (KeyChannel channel : channels) {
