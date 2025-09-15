@@ -3,6 +3,8 @@ package com.igrium.replaylab.scene;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.Maps;
+import com.google.gson.Gson;
+import com.google.gson.JsonObject;
 import com.igrium.replaylab.anim.AnimationObject;
 import com.igrium.replaylab.operator.ApplyKeyManifestOperator;
 import com.igrium.replaylab.operator.ReplayOperator;
@@ -19,7 +21,7 @@ import java.util.Deque;
 /**
  * Keeps track of all the runtime stuff regarding a scene.
  */
-public class ReplayScene {
+public final class ReplayScene {
 
     private static final Logger LOGGER = LoggerFactory.getLogger("ReplayLab/ReplayScene");
 
@@ -213,30 +215,45 @@ public class ReplayScene {
         return true;
     }
 
-    public ReplayScene() {
-        // Init temporary values
-        KeyChannelCategory cat1 = new KeyChannelCategory();
+    /**
+     * Parse a serialized replay scene and apply its values.
+     * @param json Json to parse.
+     */
+    public void readJson(JsonObject json, Gson gson) {
+        undoStack.clear();
+        redoStack.clear();
 
-        KeyChannel ch1 = new KeyChannel("Channel 1");
-        ch1.getKeys().add(new Keyframe(0, 0));
-        ch1.getKeys().add(new Keyframe(1000, 0));
-        cat1.getChannels().add(ch1);
-
-        KeyChannel ch2 = new KeyChannel("Channel 2");
-        ch2.getKeys().add(new Keyframe(1000, 0));
-        ch2.getKeys().add(new Keyframe(500, 20));
-        cat1.getChannels().add(ch2);
-
-        getInternalKeyManifest().getCategories().put("Category 1", cat1);
-
-        KeyChannelCategory cat2 = new KeyChannelCategory();
-
-        KeyChannel ch3 = new KeyChannel("Channel 3");
-        ch3.getKeys().add(new Keyframe(0, 2000));
-        cat2.getChannels().add(ch3);
-
-        getInternalKeyManifest().getCategories().put("Category 2", cat2);
+        JsonObject keyObj = json.getAsJsonObject("keys");
+        setInternalKeyManifest(gson.fromJson(keyObj, KeyframeManifest.class));
 
         resetKeyManifest();
+
+        objects.clear();
+
+        for (var entry : json.getAsJsonObject("objects").entrySet()) {
+            try {
+                JsonObject jsonObj = entry.getValue().getAsJsonObject();
+                AnimationObject object = AnimationObject.fromJson(jsonObj, this);
+                objects.put(entry.getKey(), object);
+            } catch (Exception e) {
+                LOGGER.error("Error parsing animation object {}: ", entry.getKey(), e);
+            }
+        }
+
+        // TODO: scene global data
+    }
+
+    public void writeJson(JsonObject json, Gson gson) {
+
+        JsonObject keyObj = gson.toJsonTree(getInternalKeyManifest()).getAsJsonObject();
+        json.add("keys", keyObj);
+
+        JsonObject objectSet = new JsonObject();
+        for (var entry : objectsUnmod.entrySet()) {
+            JsonObject jsonObj = AnimationObject.toJson(entry.getValue(), new JsonObject());
+            objectSet.add(entry.getKey(), jsonObj);
+        }
+
+        json.add("objects", objectSet);
     }
 }

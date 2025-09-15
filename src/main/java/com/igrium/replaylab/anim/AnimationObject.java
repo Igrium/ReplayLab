@@ -1,12 +1,13 @@
 package com.igrium.replaylab.anim;
 
-import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import com.google.gson.JsonParseException;
 import com.google.gson.JsonPrimitive;
 import com.igrium.replaylab.scene.KeyChannelCategory;
 import com.igrium.replaylab.scene.ReplayScene;
+import imgui.ImGui;
 import lombok.Getter;
+import lombok.NonNull;
+import lombok.Setter;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
@@ -22,6 +23,14 @@ public abstract class AnimationObject {
     @Getter
     private final ReplayScene scene;
 
+    /**
+     * The most recently saved version of the object properties, excluding any changes currently being made.
+     * Used when creating undo steps.
+     * @apiNote <b>Each json object here should be considered immutable.</b>
+     */
+    @Getter @Setter @NonNull
+    private JsonObject prevSavedProperties = new JsonObject();
+
     protected AnimationObject(AnimationObjectType<?> type, ReplayScene scene) {
         this.type = type;
         this.scene = scene;
@@ -34,6 +43,7 @@ public abstract class AnimationObject {
     public final @Nullable String getId() {
         return scene.getObjects().inverse().get(this);
     }
+
 
     public void readJson(JsonObject json) {};
 
@@ -52,6 +62,15 @@ public abstract class AnimationObject {
      * The length of this list determines the number of channels.
      */
     public abstract List<String> listChannelNames();
+
+    /**
+     * Called during the ImGui render process to draw the object's configurable properties.
+     * @return If a property was updated this frame, triggering an undo step to be created.
+     */
+    public boolean drawPropertiesPanel() {
+        ImGui.text("This object has no editable properties.");
+        return false;
+    }
 
     public static JsonObject toJson(AnimationObject obj, JsonObject json) {
         obj.writeJson(json);
@@ -72,6 +91,7 @@ public abstract class AnimationObject {
 
         AnimationObject obj = type.create(scene);
         obj.readJson(json);
+        obj.setPrevSavedProperties(json);
         return obj;
     }
 }
