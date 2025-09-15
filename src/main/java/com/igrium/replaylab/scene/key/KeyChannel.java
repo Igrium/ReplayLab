@@ -29,7 +29,8 @@ public class KeyChannel {
         this.keys = keyframes;
     }
 
-    public KeyChannel() {
+    public KeyChannel(String name) {
+        this.name = name;
         this.keys = new ArrayList<>();
     }
 

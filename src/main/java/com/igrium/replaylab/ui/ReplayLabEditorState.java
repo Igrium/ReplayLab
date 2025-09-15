@@ -7,10 +7,13 @@ import com.replaymod.replay.ReplayModReplay;
 import imgui.type.ImInt;
 import lombok.Getter;
 import lombok.NonNull;
+import lombok.Setter;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.function.Consumer;
 
 /**
  * Manages replay lab editor state. Implemented to try to separate editor global logic from UI for code cleanliness.
@@ -51,11 +54,29 @@ public class ReplayLabEditorState {
     @Getter @Nullable
     private String sceneName;
 
-    public void setScene(@NotNull ReplayScene scene) {
-        // TODO: update logic
-        this.scene = scene;
+    @Getter @Setter @Nullable
+    private String selectedObject;
+
+    @Setter @Nullable
+    private Consumer<? super Exception> exceptionCallback;
+
+    public ReplayLabEditorState() {
+        scene.setExceptionCallback(this::onException);
     }
 
+    public void setScene(@NotNull ReplayScene scene) {
+        if (this.scene == scene) return;
+
+        this.scene.setExceptionCallback(null);
+        this.scene = scene;
+        this.scene.setExceptionCallback(this::onException);
+    }
+
+    private void onException(Exception e) {
+        if (exceptionCallback != null) {
+            exceptionCallback.accept(e);
+        }
+    }
 
 
     @Nullable

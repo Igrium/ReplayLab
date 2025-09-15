@@ -32,7 +32,7 @@ public class ReplayLabUI extends DockSpaceApp {
         return ReplayModReplay.instance.getReplayHandler();
     }
 
-    private final ReplayLabEditorState state = new ReplayLabEditorState();
+    private final ReplayLabEditorState editorState = new ReplayLabEditorState();
 
     //    private final DopeSheetOld dopeSheet = new DopeSheetOld();
     private final DopeSheet dopeSheet = new DopeSheet();
@@ -50,6 +50,7 @@ public class ReplayLabUI extends DockSpaceApp {
     public ReplayLabUI() {
         setViewportInputMode(ViewportInputMode.HOLD);
         setViewportInputButtons(1);
+        editorState.setExceptionCallback(exceptionPopup::displayException);
     }
 
     @Override
@@ -57,11 +58,11 @@ public class ReplayLabUI extends DockSpaceApp {
         super.preRender(client);
 
         if (wantsJumpTime) {
-            state.doTimeJump();
+            editorState.doTimeJump();
             wantsJumpTime = false;
         }
 
-        state.onPreRender();
+        editorState.onPreRender();
     }
 
     @Override
@@ -95,12 +96,12 @@ public class ReplayLabUI extends DockSpaceApp {
         ImGui.end();
 
         drawDopeSheet();
+        drawOutliner();
 
         var io = ImGui.getIO();
         if (io.getWantCaptureKeyboard() && !io.getWantTextInput()) {
             processHotkeys();
         }
-
     }
 
     private void drawMenuBar() {
@@ -113,20 +114,12 @@ public class ReplayLabUI extends DockSpaceApp {
             }
             if (ImGui.beginMenu("Edit")) {
                 if (ImGui.menuItem("Undo", "Ctrl+Z")) {
-                    state.getScene().undo();
+                    editorState.getScene().undo();
                 }
                 if (ImGui.menuItem("Redo", "Ctrl+Shift+Z")) {
-                    state.getScene().redo();
+                    editorState.getScene().redo();
                 }
 
-                if (ImGui.menuItem("Throw test exceptions")) {
-                    exceptionPopup.displayException(new IOException("This is an IO exception"));
-                    try {
-                        throw new RuntimeException("This is a RuntimeException");
-                    } catch (Exception e) {
-                        exceptionPopup.displayException(e);
-                    }
-                }
                 ImGui.endMenu();
             }
 
@@ -138,10 +131,10 @@ public class ReplayLabUI extends DockSpaceApp {
     private void processHotkeys() {
         var io = ImGui.getIO();
         if (isCtrlPressed() && ImGui.isKeyPressed(GLFW.GLFW_KEY_Z)) {
-            state.getScene().undo();
+            editorState.getScene().undo();
         }
         if (isCtrlPressed() && io.getKeyShift() && ImGui.isKeyPressed(GLFW.GLFW_KEY_Z)) {
-            state.getScene().redo();
+            editorState.getScene().redo();
         }
     }
 
@@ -176,10 +169,10 @@ public class ReplayLabUI extends DockSpaceApp {
     }
 
     private void onPlayPauseClicked() {
-        if (state.isPlaying()) {
-            state.stopPlaying();
+        if (editorState.isPlaying()) {
+            editorState.stopPlaying();
         } else {
-            state.startPlaying(state.getPlayhead());
+            editorState.startPlaying(editorState.getPlayhead());
         }
     }
 
@@ -198,20 +191,27 @@ public class ReplayLabUI extends DockSpaceApp {
 
     private void drawDopeSheet() {
         if (ImGui.begin("Dope Sheet")) {
-            dopeSheet.drawDopeSheet(state.getScene().getKeyManifest(), selected, 20 * 1000, state.getPlayheadRef(), 0);
+            dopeSheet.drawDopeSheet(editorState.getScene().getKeyManifest(), selected, 20 * 1000, editorState.getPlayheadRef(), 0);
             if (dopeSheet.isFinishedDraggingKeys()) {
-                state.getScene().commitKeyframeUpdates();
+                editorState.getScene().commitKeyframeUpdates();
             }
         }
         ImGui.end();
 
-        long replayTime = state.getScene().sceneToReplayTime(state.getPlayhead());
+        long replayTime = editorState.getScene().sceneToReplayTime(editorState.getPlayhead());
         // If we dropped the playhead, always jump. Otherwise, only jump of we moved forward.
         if (dopeSheet.isFinishedDraggingPlayhead() ||
                 (dopeSheet.isDraggingPlayhead() && replayTime >= getReplayHandler().getReplaySender().currentTimeStamp())) {
             wantsJumpTime = true;
         }
 
+    }
+
+    private void drawOutliner() {
+        if (ImGui.begin("Outliner")) {
+            Outliner.drawOutliner(editorState);
+        }
+        ImGui.end();
     }
 
     @Override

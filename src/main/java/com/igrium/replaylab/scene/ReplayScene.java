@@ -5,12 +5,13 @@ import com.google.common.collect.HashBiMap;
 import com.google.common.collect.Maps;
 import com.google.gson.*;
 import com.google.gson.annotations.JsonAdapter;
+import com.igrium.replaylab.scene.key.KeyChannel;
+import com.igrium.replaylab.scene.key.KeyChannelCategory;
 import com.igrium.replaylab.scene.key.KeyframeManifest;
 import com.igrium.replaylab.scene.obj.AnimationObject;
 import com.igrium.replaylab.scene.obj.AnimationObjectType;
 import com.igrium.replaylab.operator.ApplyKeyManifestOperator;
 import com.igrium.replaylab.operator.ReplayOperator;
-import com.replaymod.replaystudio.replay.ReplayFile;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.Setter;
@@ -21,7 +22,7 @@ import org.slf4j.LoggerFactory;
 import java.lang.reflect.Type;
 import java.util.ArrayDeque;
 import java.util.Deque;
-import java.util.concurrent.CompletableFuture;
+import java.util.function.Consumer;
 
 /**
  * Keeps track of all the runtime stuff regarding a scene.
@@ -45,6 +46,9 @@ public final class ReplayScene {
     @Getter @Setter @NonNull
     private KeyframeManifest keyManifest = new KeyframeManifest();
 
+    @Setter @Nullable
+    private transient Consumer<? super Exception> exceptionCallback;
+
     private final BiMap<String, AnimationObject> objects = HashBiMap.create();
     private final BiMap<String, AnimationObject> objectsUnmod = Maps.unmodifiableBiMap(objects);
 
@@ -59,7 +63,7 @@ public final class ReplayScene {
 
     public void setStartTick(int startTick) {
         if (startTick < 0) {
-            throw new IllegalArgumentException("Start tick may not be neg ative.");
+            throw new IllegalArgumentException("Start tick may not be negative.");
         }
         this.startTick = startTick;
     }
@@ -122,11 +126,44 @@ public final class ReplayScene {
      * @return The previous object that belonged to that ID, if any.
      * @throws IllegalArgumentException If the object belongs to the wrong scene.
      */
-    public @Nullable AnimationObject putObject(String id, AnimationObject object) throws IllegalArgumentException {
+    public @Nullable AnimationObject addObject(String id, AnimationObject object) throws IllegalArgumentException {
         if (object.getScene() != this) {
             throw new IllegalArgumentException("Object belongs to the wrong scene!");
         }
-        return objects.put(id, object);
+        var prev = objects.put(id, object);
+        if (prev != null) {
+            onRemoveObject(id, prev);
+        }
+        onAddObject(id, object);
+        return prev;
+    }
+
+    /**
+     * Add an animation object to this scene if there is none already existing with that ID.
+     *
+     * @param id     ID to assign the new object.
+     * @param object Object to add.
+     * @return The current object that belonged to that ID, if any.
+     * @throws IllegalArgumentException If the object belongs to the wrong scene.
+     */
+    public @Nullable AnimationObject addObjectIfAbsent(String id, AnimationObject object) throws IllegalArgumentException {
+        if (object.getScene() != this) {
+            throw new IllegalArgumentException("Object belongs to the wrong scene!");
+        }
+        var prev = objects.putIfAbsent(id, object);
+        if (prev == null) {
+            onAddObject(id, object);
+        }
+        return prev;
+    }
+
+    private void onAddObject(String id, AnimationObject obj) {
+        KeyChannelCategory cat = new KeyChannelCategory();
+        for (var name : obj.listChannelNames()) {
+            cat.getChannels().add(new KeyChannel(name));
+        }
+        keyManifest.getCategories().put(id, cat);
+        commitKeyframeUpdates();
     }
 
     /**
@@ -136,7 +173,16 @@ public final class ReplayScene {
      * @return The object that had that ID, if any.
      */
     public @Nullable AnimationObject removeObject(String id) {
-        return objects.remove(id);
+        var obj = objects.remove(id);
+        if (obj != null) {
+            onRemoveObject(id, obj);
+        }
+        return obj;
+    }
+
+    private void onRemoveObject(String id, AnimationObject obj) {
+        keyManifest.getCategories().remove(id);
+        commitKeyframeUpdates();
     }
 
     /**
@@ -152,10 +198,7 @@ public final class ReplayScene {
      */
     public void commitKeyframeUpdates() {
         applyOperator(new ApplyKeyManifestOperator());
-//        KeyframeManifest updated = keyManifest.copy();
-//        ApplyKeyManifestOperatorOld op = new ApplyKeyManifestOperatorOld(internalKeyManifest, updated);
-//        setInternalKeyManifest(updated);
-//        pushUndoStep(op);
+
     }
 
     /**
@@ -172,6 +215,9 @@ public final class ReplayScene {
             // We consider the undo/redo stack corrupted.
             undoStack.clear();
             redoStack.clear();
+            if (exceptionCallback != null) {
+                exceptionCallback.accept(e);
+            }
             return false;
         }
         if (result) {
@@ -195,6 +241,9 @@ public final class ReplayScene {
             LOGGER.error("Error undoing operator: ", e);
             undoStack.clear();
             redoStack.clear();
+            if (exceptionCallback != null) {
+                exceptionCallback.accept(e);
+            }
             return false;
         }
         redoStack.push(op);
@@ -215,6 +264,9 @@ public final class ReplayScene {
             LOGGER.error("Error redoing operator: ", e);
             undoStack.clear();
             redoStack.clear();
+            if (exceptionCallback != null) {
+                exceptionCallback.accept(e);
+            }
             return false;
         }
         undoStack.push(op);

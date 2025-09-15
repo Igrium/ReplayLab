@@ -32,6 +32,8 @@ public class AnimationObjectType<T extends AnimationObject> {
 
     public static final BiMap<String, AnimationObjectType<?>> REGISTRY = HashBiMap.create();
 
+    public static final AnimationObjectType<DummyObject> DUMMY = new AnimationObjectType<>(DummyObject::new);
+
     /**
      * Create an animation object from a type identifier.
      * @param type Type identifier string.

@@ -7,6 +7,8 @@ import imgui.flag.ImGuiCond;
 import imgui.flag.ImGuiWindowFlags;
 import imgui.type.ImBoolean;
 import lombok.NonNull;
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.util.Clipboard;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.PrintWriter;
@@ -59,9 +61,12 @@ public class ExceptionPopup {
 
         ImGui.getMainViewport().getCenter(center);
         ImGui.setNextWindowPos(center.x, center.y, ImGuiCond.Appearing, 0.5f, 0.5f);
+        ImGui.setNextWindowSize(640, 480, ImGuiCond.FirstUseEver);
 
         if (ImGui.beginPopupModal(POPUP_NAME, isOpen, ImGuiWindowFlags.NoSavedSettings)) {
-            ImGui.text(currentException.getLocalizedMessage());
+            String message = currentException.getLocalizedMessage();
+            if (message == null) message = "[no message]";
+            ImGui.text(message);
             ImGui.separator();
 
             if (ImGui.beginChild("stacktrace", ImGui.getContentRegionAvailX(),
@@ -81,6 +86,12 @@ public class ExceptionPopup {
                 ImGui.closeCurrentPopup();
             }
             ImGui.setItemDefaultFocus();
+
+            ImGui.sameLine();
+            if (ImGui.button("Copy to Clipboard")) {
+                MinecraftClient.getInstance().keyboard.setClipboard(message + System.lineSeparator() + stackTrace);
+            }
+
             ImGui.endPopup();
         } else {
             currentException = null;
