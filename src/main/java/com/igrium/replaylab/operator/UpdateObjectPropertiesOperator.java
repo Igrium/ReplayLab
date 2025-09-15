@@ -1,7 +1,7 @@
 package com.igrium.replaylab.operator;
 
 import com.google.gson.JsonObject;
-import com.igrium.replaylab.anim.AnimationObject;
+import com.igrium.replaylab.scene.obj.AnimationObject;
 import com.igrium.replaylab.scene.ReplayScene;
 
 public class UpdateObjectPropertiesOperator implements ReplayOperator {

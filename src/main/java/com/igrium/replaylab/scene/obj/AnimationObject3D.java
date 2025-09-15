@@ -1,6 +1,6 @@
-package com.igrium.replaylab.anim;
+package com.igrium.replaylab.scene.obj;
 
-import com.igrium.replaylab.scene.KeyChannelCategory;
+import com.igrium.replaylab.scene.key.KeyChannelCategory;
 import com.igrium.replaylab.scene.ReplayScene;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Vector3d;
@@ -10,7 +10,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * An animation object that consists
+ * An animation object that consists of a 3D transform
  */
 public abstract class AnimationObject3D extends AnimationObject {
 

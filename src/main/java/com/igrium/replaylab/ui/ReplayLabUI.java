@@ -3,14 +3,15 @@ package com.igrium.replaylab.ui;
 
 import com.igrium.craftui.app.DockSpaceApp;
 import com.igrium.craftui.file.FileDialogs;
-import com.igrium.replaylab.scene.KeyframeManifest;
+import com.igrium.replaylab.scene.key.KeyframeManifest;
+import com.igrium.replaylab.ui.util.ExceptionPopup;
 import com.replaymod.replay.ReplayHandler;
 import com.replaymod.replay.ReplayModReplay;
-import com.replaymod.replay.ReplaySender;
 import imgui.ImGui;
 import imgui.flag.ImGuiCol;
 import imgui.flag.ImGuiStyleVar;
 import imgui.flag.ImGuiWindowFlags;
+import lombok.Getter;
 import net.minecraft.client.MinecraftClient;
 import org.lwjgl.glfw.GLFW;
 import org.slf4j.Logger;
@@ -37,10 +38,14 @@ public class ReplayLabUI extends DockSpaceApp {
     private final DopeSheet dopeSheet = new DopeSheet();
     private boolean wantsJumpTime;
 
+    @Getter
+    private final ExceptionPopup exceptionPopup = new ExceptionPopup();
+
     /**
      * The height of the viewport footer on the previous frame. Used when adjusting the viewport bounds.
      */
     private float viewportFooterHeight;
+
 
     public ReplayLabUI() {
         setViewportInputMode(ViewportInputMode.HOLD);
@@ -72,6 +77,7 @@ public class ReplayLabUI extends DockSpaceApp {
         super.render(client);
 
         drawMenuBar();
+        exceptionPopup.render();
 
         int bgColor = ImGui.getColorU32(ImGuiCol.WindowBg);
 
@@ -112,8 +118,18 @@ public class ReplayLabUI extends DockSpaceApp {
                 if (ImGui.menuItem("Redo", "Ctrl+Shift+Z")) {
                     state.getScene().redo();
                 }
+
+                if (ImGui.menuItem("Throw test exceptions")) {
+                    exceptionPopup.displayException(new IOException("This is an IO exception"));
+                    try {
+                        throw new RuntimeException("This is a RuntimeException");
+                    } catch (Exception e) {
+                        exceptionPopup.displayException(e);
+                    }
+                }
                 ImGui.endMenu();
             }
+
             ImGui.endMainMenuBar();
         }
 

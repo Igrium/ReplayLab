@@ -1,4 +1,4 @@
-package com.igrium.replaylab.scene;
+package com.igrium.replaylab.scene.key;
 
 import com.google.gson.TypeAdapter;
 import com.google.gson.annotations.JsonAdapter;

@@ -1,10 +1,10 @@
 package com.igrium.replaylab.ui;
 
-import com.igrium.replaylab.scene.KeyChannelCategory;
-import com.igrium.replaylab.scene.KeyframeManifest;
-import com.igrium.replaylab.scene.KeyframeManifest.KeyReference;
-import com.igrium.replaylab.scene.Keyframe;
-import com.igrium.replaylab.scene.KeyChannel;
+import com.igrium.replaylab.scene.key.KeyChannelCategory;
+import com.igrium.replaylab.scene.key.KeyframeManifest;
+import com.igrium.replaylab.scene.key.KeyframeManifest.KeyReference;
+import com.igrium.replaylab.scene.key.Keyframe;
+import com.igrium.replaylab.scene.key.KeyChannel;
 import imgui.ImColor;
 import imgui.ImDrawList;
 import imgui.ImGui;

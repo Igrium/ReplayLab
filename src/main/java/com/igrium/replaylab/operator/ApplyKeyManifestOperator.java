@@ -1,6 +1,6 @@
 package com.igrium.replaylab.operator;
 
-import com.igrium.replaylab.scene.KeyframeManifest;
+import com.igrium.replaylab.scene.key.KeyframeManifest;
 import com.igrium.replaylab.scene.ReplayScene;
 
 /**

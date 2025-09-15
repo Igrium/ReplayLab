@@ -3,11 +3,14 @@ package com.igrium.replaylab.scene;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.Maps;
-import com.google.gson.Gson;
-import com.google.gson.JsonObject;
-import com.igrium.replaylab.anim.AnimationObject;
+import com.google.gson.*;
+import com.google.gson.annotations.JsonAdapter;
+import com.igrium.replaylab.scene.key.KeyframeManifest;
+import com.igrium.replaylab.scene.obj.AnimationObject;
+import com.igrium.replaylab.scene.obj.AnimationObjectType;
 import com.igrium.replaylab.operator.ApplyKeyManifestOperator;
 import com.igrium.replaylab.operator.ReplayOperator;
+import com.replaymod.replaystudio.replay.ReplayFile;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.Setter;
@@ -15,12 +18,15 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.lang.reflect.Type;
 import java.util.ArrayDeque;
 import java.util.Deque;
+import java.util.concurrent.CompletableFuture;
 
 /**
  * Keeps track of all the runtime stuff regarding a scene.
  */
+@JsonAdapter(ReplaySceneSerializer.class)
 public final class ReplayScene {
 
     private static final Logger LOGGER = LoggerFactory.getLogger("ReplayLab/ReplayScene");
@@ -219,12 +225,12 @@ public final class ReplayScene {
      * Parse a serialized replay scene and apply its values.
      * @param json Json to parse.
      */
-    public void readJson(JsonObject json, Gson gson) {
+    public void readJson(JsonObject json, JsonDeserializationContext gson) {
         undoStack.clear();
         redoStack.clear();
 
-        JsonObject keyObj = json.getAsJsonObject("keys");
-        setInternalKeyManifest(gson.fromJson(keyObj, KeyframeManifest.class));
+        JsonElement keyObj = json.get("keys");
+        setInternalKeyManifest(gson.deserialize(keyObj, KeyframeManifest.class));
 
         resetKeyManifest();
 
@@ -233,7 +239,7 @@ public final class ReplayScene {
         for (var entry : json.getAsJsonObject("objects").entrySet()) {
             try {
                 JsonObject jsonObj = entry.getValue().getAsJsonObject();
-                AnimationObject object = AnimationObject.fromJson(jsonObj, this);
+                AnimationObject object = AnimationObjectType.fromJson(jsonObj, this);
                 objects.put(entry.getKey(), object);
             } catch (Exception e) {
                 LOGGER.error("Error parsing animation object {}: ", entry.getKey(), e);
@@ -243,17 +249,35 @@ public final class ReplayScene {
         // TODO: scene global data
     }
 
-    public void writeJson(JsonObject json, Gson gson) {
+    public void writeJson(JsonObject json, JsonSerializationContext gson) {
 
-        JsonObject keyObj = gson.toJsonTree(getInternalKeyManifest()).getAsJsonObject();
+        JsonElement keyObj = gson.serialize(getInternalKeyManifest());
+
         json.add("keys", keyObj);
 
         JsonObject objectSet = new JsonObject();
         for (var entry : objectsUnmod.entrySet()) {
-            JsonObject jsonObj = AnimationObject.toJson(entry.getValue(), new JsonObject());
+            JsonObject jsonObj = AnimationObjectType.toJson(entry.getValue(), new JsonObject());
             objectSet.add(entry.getKey(), jsonObj);
         }
 
         json.add("objects", objectSet);
+    }
+}
+
+class ReplaySceneSerializer implements JsonSerializer<ReplayScene>, JsonDeserializer<ReplayScene> {
+
+    @Override
+    public ReplayScene deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
+        ReplayScene scene = new ReplayScene();
+        scene.readJson(json.getAsJsonObject(), context);
+        return scene;
+    }
+
+    @Override
+    public JsonElement serialize(ReplayScene src, Type typeOfSrc, JsonSerializationContext context) {
+        JsonObject obj = new JsonObject();
+        src.writeJson(obj, context);
+        return obj;
     }
 }

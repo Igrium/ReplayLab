@@ -1,4 +1,4 @@
-package com.igrium.replaylab.scene;
+package com.igrium.replaylab.scene.key;
 
 import com.google.gson.TypeAdapter;
 import com.google.gson.annotations.JsonAdapter;
@@ -17,11 +17,13 @@ import java.util.List;
  * A single "channel" of keyframes. A given channel always contain a single curve of scalar values.
  * If you need to tie multiple values together (like a vector), use a {@link KeyChannelCategory}
  */
-@JsonAdapter(KeyChannelTypeAdapter.class)
 public class KeyChannel {
 
     @Getter
     private final List<Keyframe> keys;
+
+    @Getter @Setter @NonNull
+    private String name = "";
 
     protected KeyChannel(List<Keyframe> keyframes) {
         this.keys = keyframes;
@@ -49,27 +51,4 @@ public class KeyChannel {
     }
 }
 
-class KeyChannelTypeAdapter extends TypeAdapter<KeyChannel> {
 
-    final KeyframeTypeAdapter keyAdapter = new KeyframeTypeAdapter();
-
-    @Override
-    public void write(JsonWriter out, KeyChannel value) throws IOException {
-        out.beginArray();
-        for (var key : value.getKeys()) {
-            keyAdapter.write(out, key);
-        }
-        out.endArray();
-    }
-
-    @Override
-    public KeyChannel read(JsonReader in) throws IOException {
-        KeyChannel value = new KeyChannel();
-        in.beginArray();
-        while (in.peek() != JsonToken.END_ARRAY) {
-            value.getKeys().add(keyAdapter.read(in));
-        }
-        in.endArray();
-        return value;
-    }
-}

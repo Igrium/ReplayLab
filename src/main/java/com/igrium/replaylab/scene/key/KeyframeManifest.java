@@ -1,4 +1,4 @@
-package com.igrium.replaylab.scene;
+package com.igrium.replaylab.scene.key;
 
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
@@ -16,7 +16,6 @@ import java.io.IOException;
  * A collection of all keyframe channels in the scene.
  * All values in the manifest are mutable - keyframes <em>and</em> collection values.
  */
-@JsonAdapter(KeyframeManifestTypeAdapter.class)
 public class KeyframeManifest {
 
     /**
@@ -86,33 +85,5 @@ public class KeyframeManifest {
         }
 
         return ch.getKeys().get(keyframe);
-    }
-}
-
-class KeyframeManifestTypeAdapter extends TypeAdapter<KeyframeManifest> {
-
-    final KeyChannelCatTypeAdapter catTypeAdapter = new KeyChannelCatTypeAdapter();
-
-    @Override
-    public void write(JsonWriter out, KeyframeManifest value) throws IOException {
-        out.beginObject();
-        for (var entry : value.getCategories().entrySet()) {
-            out.name(entry.getKey());
-            catTypeAdapter.write(out, entry.getValue());
-        }
-        out.endObject();
-    }
-
-    @Override
-    public KeyframeManifest read(JsonReader in) throws IOException {
-        KeyframeManifest manifest = new KeyframeManifest();
-        in.beginObject();
-        while (in.peek() != JsonToken.END_OBJECT) {
-            String name = in.nextName();
-            KeyChannelCategory cat = catTypeAdapter.read(in);
-            manifest.getCategories().put(name, cat);
-        }
-        in.endObject();
-        return manifest;
     }
 }

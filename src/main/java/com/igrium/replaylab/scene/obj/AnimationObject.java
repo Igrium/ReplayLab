@@ -1,8 +1,7 @@
-package com.igrium.replaylab.anim;
+package com.igrium.replaylab.scene.obj;
 
 import com.google.gson.JsonObject;
-import com.google.gson.JsonPrimitive;
-import com.igrium.replaylab.scene.KeyChannelCategory;
+import com.igrium.replaylab.scene.key.KeyChannelCategory;
 import com.igrium.replaylab.scene.ReplayScene;
 import imgui.ImGui;
 import lombok.Getter;
@@ -31,7 +30,7 @@ public abstract class AnimationObject {
     @Getter @Setter @NonNull
     private JsonObject prevSavedProperties = new JsonObject();
 
-    protected AnimationObject(AnimationObjectType<?> type, ReplayScene scene) {
+    protected AnimationObject(@NonNull AnimationObjectType<?> type, @NonNull ReplayScene scene) {
         this.type = type;
         this.scene = scene;
     }
@@ -72,26 +71,4 @@ public abstract class AnimationObject {
         return false;
     }
 
-    public static JsonObject toJson(AnimationObject obj, JsonObject json) {
-        obj.writeJson(json);
-        json.addProperty("type", obj.getType().getId());
-        return json;
-    }
-
-    public static AnimationObject fromJson(JsonObject json, ReplayScene scene) throws IllegalArgumentException {
-        JsonPrimitive typeE = json.getAsJsonPrimitive("type");
-        if (typeE == null || !typeE.isString()) {
-            throw new IllegalArgumentException("Animation object must include a 'type' string tag.");
-        }
-
-        var type = AnimationObjectType.REGISTRY.get(typeE.getAsString());
-        if (type == null) {
-            throw new IllegalArgumentException("Unknown animation object type: " + typeE.getAsString());
-        }
-
-        AnimationObject obj = type.create(scene);
-        obj.readJson(json);
-        obj.setPrevSavedProperties(json);
-        return obj;
-    }
 }

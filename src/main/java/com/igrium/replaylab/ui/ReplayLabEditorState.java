@@ -6,6 +6,8 @@ import com.replaymod.replay.ReplayHandler;
 import com.replaymod.replay.ReplayModReplay;
 import imgui.type.ImInt;
 import lombok.Getter;
+import lombok.NonNull;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -43,13 +45,18 @@ public class ReplayLabEditorState {
         playheadRef.set(playhead);
     }
 
-    @Getter
+    @Getter @NonNull
     private ReplayScene scene = new ReplayScene();
 
-    public void setScene(ReplayScene scene) {
+    @Getter @Nullable
+    private String sceneName;
+
+    public void setScene(@NotNull ReplayScene scene) {
         // TODO: update logic
         this.scene = scene;
     }
+
+
 
     @Nullable
     private RealtimeScenePlayer scenePlayer;
