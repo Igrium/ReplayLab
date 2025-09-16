@@ -3,13 +3,16 @@ package com.igrium.replaylab.scene;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.Maps;
+import com.google.gson.Gson;
+import com.google.gson.JsonObject;
+import com.google.gson.reflect.TypeToken;
 import com.igrium.replaylab.operator.ReplayOperator;
 import com.igrium.replaylab.scene.key.KeyChannel;
 import com.igrium.replaylab.scene.key.Keyframe;
-import com.igrium.replaylab.scene.obj.ReplayObject;
-import com.igrium.replaylab.scene.obj.ReplayObjectType;
+import com.igrium.replaylab.scene.obj.objs.ReplayObject;
+import com.igrium.replaylab.scene.obj.ReplayObjects;
+import com.igrium.replaylab.scene.obj.objs.ScenePropsObject;
 import com.igrium.replaylab.scene.obj.SerializedReplayObject;
-import com.igrium.replaylab.scene.obj.ScenePropsObject;
 import lombok.Setter;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
@@ -17,6 +20,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.ArrayDeque;
 import java.util.Deque;
+import java.util.Map;
 import java.util.function.Consumer;
 
 /**
@@ -51,6 +55,7 @@ public class ReplayScene {
      * A map of serialized versions of each object. Used for undo/redo.
      */
     private final BiMap<String, SerializedReplayObject> savedObjects = HashBiMap.create();
+    private final BiMap<String, SerializedReplayObject> savedObjectsUnmod = Maps.unmodifiableBiMap(savedObjects);
 
     private final Deque<ReplayOperator> undoStack = new ArrayDeque<>();
     private final Deque<ReplayOperator> redoStack = new ArrayDeque<>();
@@ -69,7 +74,7 @@ public class ReplayScene {
             sceneProps = (ScenePropsObject) obj;
         } else {
             LOGGER.info("No Scene object found. Creating.");
-            sceneProps = ReplayObjectType.SCENE_PROPS.create(this);
+            sceneProps = ReplayObjects.SCENE_PROPS.create(this);
             addObject(SCENE_PROPS, sceneProps);
         }
         return sceneProps;
@@ -167,7 +172,7 @@ public class ReplayScene {
     /**
      * Remove a replay object from the scene.
      * @param id ID of the object to remove.
-     * @return The objet that was removed, if any.
+     * @return The object that was removed, if any.
      */
     public @Nullable ReplayObject removeObject(String id) {
         var obj = objects.remove(id);
@@ -186,6 +191,14 @@ public class ReplayScene {
         savedObjects.remove(id);
     }
 
+    /**
+     * Return a map of all the serialized objects in this scene.
+     * @return Unmodifiable view of serialized objects.
+     * @apiNote Will not include uncommitted changes.
+     */
+    public BiMap<String, SerializedReplayObject> getSavedObjects() {
+        return savedObjectsUnmod;
+    }
 
     public @Nullable SerializedReplayObject getSavedObject(String id) {
         return savedObjects.get(id);
@@ -197,7 +210,7 @@ public class ReplayScene {
     }
 
     /**
-     * Save an object into the saved object cached. Used when an undo step is created.
+     * Save an object into the saved object cache. Used when an undo step is created.
      * @param id ID of object to save.
      * @return The new serialized data. <code>null</code> if the object could not be found.
      */
@@ -313,6 +326,28 @@ public class ReplayScene {
     public void applyToGame(int timestamp) {
         for (var obj : getObjects().values()) {
             obj.apply(timestamp);
+        }
+    }
+
+    /**
+     * Clear the scene and re-create it from the serialized form of all its objects.
+     * @param serialized Serialized objects.
+     */
+    public void readSerializedObjects(Map<? extends String, ? extends SerializedReplayObject> serialized) {
+        savedObjects.clear();
+        objects.clear();
+
+        savedObjects.putAll(serialized);
+
+        for (var entry : savedObjects.entrySet()) {
+            try {
+                objects.put(entry.getKey(), ReplayObjects.deserialize(entry.getValue(), this));
+            } catch (Exception e) {
+                LOGGER.error("Error deserializing replay object {}: ", entry.getKey(), e);
+                if (exceptionCallback != null) {
+                    exceptionCallback.accept(e);
+                }
+            }
         }
     }
 }

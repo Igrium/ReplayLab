@@ -1,9 +1,10 @@
-package com.igrium.replaylab.scene.obj;
+package com.igrium.replaylab.scene.obj.objs;
 
 import com.google.gson.JsonDeserializationContext;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonSerializationContext;
 import com.igrium.replaylab.scene.ReplayScene;
+import com.igrium.replaylab.scene.obj.ReplayObjectType;
 import imgui.ImGui;
 import imgui.type.ImInt;
 import lombok.Getter;

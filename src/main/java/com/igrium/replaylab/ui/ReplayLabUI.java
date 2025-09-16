@@ -6,7 +6,7 @@ import com.igrium.craftui.file.FileDialogs;
 import com.igrium.replaylab.operator.ModifyObjectOperator;
 import com.igrium.replaylab.operator.ModifyObjectsOperator;
 import com.igrium.replaylab.scene.ReplayScene;
-import com.igrium.replaylab.scene.obj.ReplayObject;
+import com.igrium.replaylab.scene.obj.objs.ReplayObject;
 import com.igrium.replaylab.ui.util.ExceptionPopup;
 import com.replaymod.replay.ReplayHandler;
 import com.replaymod.replay.ReplayModReplay;
@@ -114,6 +114,9 @@ public class ReplayLabUI extends DockSpaceApp {
                 if (ImGui.menuItem("Open")) {
                     FileDialogs.showOpenDialog(null);
                 }
+                if (ImGui.menuItem("Save")) {
+                    saveScene();
+                }
                 ImGui.endMenu();
             }
             if (ImGui.beginMenu("Edit")) {
@@ -140,6 +143,17 @@ public class ReplayLabUI extends DockSpaceApp {
         if (isCtrlPressed() && io.getKeyShift() && ImGui.isKeyPressed(GLFW.GLFW_KEY_Z)) {
             editorState.getScene().redo();
         }
+    }
+
+    private void saveScene() {
+        if (editorState.getSceneName() == null) {
+            editorState.setSceneName("demo");
+        }
+        editorState.saveSceneAsync().exceptionally(e -> {
+            LOGGER.error("Unable to save scene: ", e);
+            exceptionPopup.displayException(e);
+            return null;
+        });
     }
 
     // Testing variables
@@ -196,9 +210,8 @@ public class ReplayLabUI extends DockSpaceApp {
     private void drawDopeSheet() {
         if (ImGui.begin("Dope Sheet")) {
             dopeSheet.drawDopeSheet(editorState.getScene(), selected, 20 * 1000, editorState.getPlayheadRef(), 0);
-            if (dopeSheet.isFinishedDraggingKeys()) {
-                var updated = dopeSheet.getKeyDragOffsets().keySet().stream().map(ReplayScene.KeyReference::object).toList();
-                editorState.getScene().applyOperator(new ModifyObjectsOperator(updated));
+            if (!dopeSheet.getUpdatedObjects().isEmpty()) {
+                editorState.getScene().applyOperator(new ModifyObjectsOperator(dopeSheet.getUpdatedObjects()));
             }
         }
         ImGui.end();

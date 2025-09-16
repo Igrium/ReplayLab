@@ -4,7 +4,7 @@ import com.igrium.replaylab.scene.ReplayScene;
 import com.igrium.replaylab.scene.ReplayScene.KeyReference;
 import com.igrium.replaylab.scene.key.Keyframe;
 import com.igrium.replaylab.scene.key.KeyChannel;
-import com.igrium.replaylab.scene.obj.ReplayObject;
+import com.igrium.replaylab.scene.obj.objs.ReplayObject;
 import imgui.ImColor;
 import imgui.ImDrawList;
 import imgui.ImGui;
@@ -125,15 +125,15 @@ public class DopeSheet {
     @Getter
     private boolean startedDraggingKeys;
 
-    /**
-     * <code>true</code> if the user was dragging keyframes but dropped them this frame.
-     */
-    @Getter
-    private boolean finishedDraggingKeys;
-
-
     @Getter
     private final Set<String> openCategories = new HashSet<>();
+
+    /**
+     * All the replay objects that have had an update <em>committed</em> this frame.
+     * Does not include keyframes being dragged.
+     */
+    @Getter
+    private final Set<String> updatedObjects = new HashSet<>();
 
     private void startDragging(Set<KeyReference> selected, ReplayScene scene) {
         for (var ref : selected) {
@@ -158,13 +158,8 @@ public class DopeSheet {
     public void drawDopeSheet(ReplayScene scene, Set<KeyReference> selected,
                               int length, @Nullable ImInt playhead, int flags) {
 
-        // Don't clear until the next frame so we can use it to apply the operator
-        if (finishedDraggingKeys) {
-            keyDragOffsets.clear();
-        }
-
-        finishedDraggingKeys = false;
         finishedDraggingPlayhead = false;
+        updatedObjects.clear();
 
         if (ImGui.isMouseDragging(0)) {
             mouseStartedDragging = !mouseWasDragging;
@@ -220,7 +215,8 @@ public class DopeSheet {
                     }
                 }
             } else {
-                finishedDraggingKeys = true;
+                updatedObjects.addAll(keyDragOffsets.keySet().stream().map(KeyReference::object).toList());
+                keyDragOffsets.clear();
             }
         } else if (wantStartDragging && !hasFlag(READONLY, flags)) {
             startDragging(selected, scene);
@@ -371,6 +367,7 @@ public class DopeSheet {
 
     private void drawChannelList(ReplayScene scene, Set<String> openCategories) {
         ImGui.pushID("channels");
+
         ImGui.beginGroup();
 
         int catIndex = 0;
@@ -400,6 +397,8 @@ public class DopeSheet {
             catIndex++;
         }
 
+
+        ImGui.dummy(128, 0); //force width
         ImGui.endGroup();
         ImGui.popID();
     }

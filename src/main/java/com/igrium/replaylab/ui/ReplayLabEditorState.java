@@ -2,17 +2,22 @@ package com.igrium.replaylab.ui;
 
 import com.igrium.replaylab.playback.RealtimeScenePlayer;
 import com.igrium.replaylab.scene.ReplayScene;
+import com.igrium.replaylab.scene.ReplayScenes;
 import com.replaymod.replay.ReplayHandler;
 import com.replaymod.replay.ReplayModReplay;
 import imgui.type.ImInt;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.Setter;
+import net.minecraft.util.Util;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 
 /**
@@ -51,7 +56,7 @@ public class ReplayLabEditorState {
     @Getter @NonNull
     private ReplayScene scene = new ReplayScene();
 
-    @Getter @Nullable
+    @Getter @Setter @Nullable
     private String sceneName;
 
     @Getter @Setter @Nullable
@@ -70,6 +75,11 @@ public class ReplayLabEditorState {
         this.scene.setExceptionCallback(null);
         this.scene = scene;
         this.scene.setExceptionCallback(this::onException);
+    }
+
+    public void setSceneName(@NonNull ReplayScene scene, String sceneName) {
+        setScene(scene);
+        setSceneName(sceneName);
     }
 
     private void onException(Exception e) {
@@ -124,4 +134,28 @@ public class ReplayLabEditorState {
         scenePlayer.stop();
     }
 
+    /**
+     * Save the active scene to file.
+     * @throws IllegalStateException If the current scene doesn't have a name.
+     * @throws IOException If an IO exception occurs saving the scene.
+     */
+    public void saveScene() throws IllegalStateException, IOException  {
+        String name = getSceneName();
+        if (name == null) {
+            throw new IllegalStateException("Scene does not have a name!");
+        }
+
+        ReplayScenes.saveScene(scene, name, getReplayHandlerOrThrow().getReplayFile());
+    }
+
+
+    public CompletableFuture<?> saveSceneAsync() {
+        return CompletableFuture.runAsync(() -> {
+            try {
+                saveScene();
+            } catch (IOException e) {
+                throw ExceptionUtils.asRuntimeException(e);
+            }
+        }, Util.getIoWorkerExecutor());
+    }
 }

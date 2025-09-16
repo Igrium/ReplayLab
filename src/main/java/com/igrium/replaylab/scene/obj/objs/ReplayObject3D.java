@@ -1,7 +1,8 @@
-package com.igrium.replaylab.scene.obj;
+package com.igrium.replaylab.scene.obj.objs;
 
 import com.igrium.replaylab.scene.ReplayScene;
 import com.igrium.replaylab.scene.key.KeyChannel;
+import com.igrium.replaylab.scene.obj.ReplayObjectType;
 import lombok.Getter;
 import lombok.experimental.Accessors;
 import org.jetbrains.annotations.Nullable;

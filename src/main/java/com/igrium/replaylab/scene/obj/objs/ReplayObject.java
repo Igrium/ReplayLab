@@ -1,8 +1,10 @@
-package com.igrium.replaylab.scene.obj;
+package com.igrium.replaylab.scene.obj.objs;
 
 import com.google.gson.*;
 import com.igrium.replaylab.scene.ReplayScene;
 import com.igrium.replaylab.scene.key.KeyChannel;
+import com.igrium.replaylab.scene.obj.ReplayObjectType;
+import com.igrium.replaylab.scene.obj.SerializedReplayObject;
 import com.igrium.replaylab.util.GsonSerializationContext;
 import imgui.ImGui;
 import lombok.Getter;
