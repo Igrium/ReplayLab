@@ -12,6 +12,8 @@ public interface ReplayOperator {
      * @param scene Scene to use
      * @return <code>true</code> if the operation was successful and should be added to the undo stack.</true>
      * @throws Exception If the operation throws an exception.
+     * @apiNote If the execution returns <code>false</code>, the scene should not be modified.
+     * Otherwise, the undo/redo stack may be corrupted.
      */
     boolean execute(ReplayScene scene) throws Exception;
 

@@ -1,7 +1,6 @@
 package com.igrium.replaylab.ui;
 
 import com.igrium.replaylab.operator.AddObjectOperator;
-import com.igrium.replaylab.scene.obj.AnimationObjectType;
 import imgui.ImGui;
 
 public class Outliner {
@@ -29,6 +28,7 @@ public class Outliner {
 
     private static void addObject(ReplayLabEditorState editorState) {
         var scene = editorState.getScene();
-        scene.applyOperator(new AddObjectOperator(AnimationObjectType.DUMMY, "testObj"));
+        
+//        scene.applyOperator(new AddObjectOperator(AnimationObjectType.DUMMY, "testObj"));
     }
 }

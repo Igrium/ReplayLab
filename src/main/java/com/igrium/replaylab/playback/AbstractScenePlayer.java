@@ -10,7 +10,6 @@ import com.replaymod.replay.ReplayHandler;
 import com.replaymod.replay.ReplaySender;
 import lombok.Getter;
 import lombok.NonNull;
-import lombok.Setter;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.render.RenderTickCounter;
 import org.jetbrains.annotations.Nullable;

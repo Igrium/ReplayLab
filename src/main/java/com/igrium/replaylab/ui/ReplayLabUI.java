@@ -3,7 +3,8 @@ package com.igrium.replaylab.ui;
 
 import com.igrium.craftui.app.DockSpaceApp;
 import com.igrium.craftui.file.FileDialogs;
-import com.igrium.replaylab.scene.key.KeyframeManifest;
+import com.igrium.replaylab.operator.ModifyObjectsOperator;
+import com.igrium.replaylab.scene.ReplayScene;
 import com.igrium.replaylab.ui.util.ExceptionPopup;
 import com.replaymod.replay.ReplayHandler;
 import com.replaymod.replay.ReplayModReplay;
@@ -139,7 +140,7 @@ public class ReplayLabUI extends DockSpaceApp {
     }
 
     // Testing variables
-    private final Set<KeyframeManifest.KeyReference> selected = new HashSet<>();
+    private final Set<ReplayScene.KeyReference> selected = new HashSet<>();
 
     private void drawPlaybackControls() {
         ImGui.pushFont(PlaybackIcons.playbackIcons());
@@ -161,7 +162,7 @@ public class ReplayLabUI extends DockSpaceApp {
             if (playbackIcon(PlaybackIcons.PLAY, "Play/Pause", buttonSize)) {
                 onPlayPauseClicked();
             }
-            ;
+
             playbackIcon(PlaybackIcons.NEXT_KEYFRAME, "Next Keyframe", buttonSize);
             playbackIcon(PlaybackIcons.JUMP_END, "Scene End", buttonSize);
         }
@@ -191,9 +192,10 @@ public class ReplayLabUI extends DockSpaceApp {
 
     private void drawDopeSheet() {
         if (ImGui.begin("Dope Sheet")) {
-            dopeSheet.drawDopeSheet(editorState.getScene().getKeyManifest(), selected, 20 * 1000, editorState.getPlayheadRef(), 0);
+            dopeSheet.drawDopeSheet(editorState.getScene(), selected, 20 * 1000, editorState.getPlayheadRef(), 0);
             if (dopeSheet.isFinishedDraggingKeys()) {
-                editorState.getScene().commitKeyframeUpdates();
+                var updated = dopeSheet.getKeyDragOffsets().keySet().stream().map(ReplayScene.KeyReference::object).toList();
+                editorState.getScene().applyOperator(new ModifyObjectsOperator(updated));
             }
         }
         ImGui.end();

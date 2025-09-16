@@ -1,10 +1,10 @@
 package com.igrium.replaylab.ui;
 
-import com.igrium.replaylab.scene.key.KeyChannelCategory;
-import com.igrium.replaylab.scene.key.KeyframeManifest;
-import com.igrium.replaylab.scene.key.KeyframeManifest.KeyReference;
+import com.igrium.replaylab.scene.ReplayScene;
+import com.igrium.replaylab.scene.ReplayScene.KeyReference;
 import com.igrium.replaylab.scene.key.Keyframe;
 import com.igrium.replaylab.scene.key.KeyChannel;
+import com.igrium.replaylab.scene.obj.ReplayObject;
 import imgui.ImColor;
 import imgui.ImDrawList;
 import imgui.ImGui;
@@ -93,6 +93,7 @@ public class DopeSheet {
     /**
      * A map of keys being dragged with their time before the drag.
      */
+    @Getter
     private final Map<KeyReference, Integer> keyDragOffsets = new HashMap<>();
 
     /**
@@ -134,9 +135,9 @@ public class DopeSheet {
     @Getter
     private final Set<String> openCategories = new HashSet<>();
 
-    private void startDragging(Set<KeyReference> selected, KeyframeManifest manifest) {
+    private void startDragging(Set<KeyReference> selected, ReplayScene scene) {
         for (var ref : selected) {
-            Keyframe keyframe = manifest.getKeyframe(ref);
+            Keyframe keyframe = scene.getKeyframe(ref);
             if (keyframe != null) {
                 keyDragOffsets.put(ref, keyframe.getTime());
             }
@@ -147,15 +148,21 @@ public class DopeSheet {
     /**
      * Draw the dope sheet.
      *
-     * @param manifest The keyframe manifest to edit. Keyframes <em>relative to the timeline's in point</em>
+     * @param scene    The scene to edit. Keyframes <em>relative to the timeline's in point</em>
      *                 and will be updated as the user changes them
      * @param selected All keyframes which are currently selected. Updated as the player selects/deselects keyframes.
      * @param length   Length of the timeline (outPoint - inPoint)
      * @param playhead The current playhead position. Updated as the player scrubs.
      * @param flags    Render flags.
      */
-    public void drawDopeSheet(KeyframeManifest manifest, Set<KeyReference> selected,
+    public void drawDopeSheet(ReplayScene scene, Set<KeyReference> selected,
                               int length, @Nullable ImInt playhead, int flags) {
+
+        // Don't clear until the next frame so we can use it to apply the operator
+        if (finishedDraggingKeys) {
+            keyDragOffsets.clear();
+        }
+
         finishedDraggingKeys = false;
         finishedDraggingPlayhead = false;
 
@@ -188,7 +195,7 @@ public class DopeSheet {
 
         ImGui.beginChild("Dope Sheet Data", ImGui.getContentRegionAvailX(), ImGui.getContentRegionAvailY(), false);
 
-        drawChannelList(manifest, openCategories);
+        drawChannelList(scene, openCategories);
         float catGroupWidth = ImGui.getItemRectSizeX() + ImGui.getStyle().getItemSpacingX();
         float catGroupHeight = ImGui.getItemRectSizeY();
         ImGui.sameLine();
@@ -196,14 +203,14 @@ public class DopeSheet {
         ImGui.beginChild("KeyList", ImGui.getContentRegionAvailX(), catGroupHeight + ImGui.getStyle().getScrollbarSize(),
                 false, ImGuiWindowFlags.HorizontalScrollbar);
         ImGui.pushItemWidth(ImGui.getContentRegionAvailX());
-        boolean wantStartDragging = drawKeyframes(manifest, openCategories, selected, length, flags);
+        boolean wantStartDragging = drawKeyframes(scene, openCategories, selected, length, flags);
 
         // Handle dragging
         if (!keyDragOffsets.isEmpty()) {
             if (ImGui.isMouseDragging(0, 0)) {
                 float dx = ImGui.getMouseDragDeltaX() / zoomFactor;
                 for (var entry : keyDragOffsets.entrySet()) {
-                    var key = manifest.getKeyframe(entry.getKey());
+                    var key = scene.getKeyframe(entry.getKey());
                     if (key != null) {
                         float tPrime = entry.getValue() + dx;
                         if (hasFlag(SNAP_KEYS, flags)) {
@@ -213,11 +220,10 @@ public class DopeSheet {
                     }
                 }
             } else {
-                keyDragOffsets.clear();
                 finishedDraggingKeys = true;
             }
         } else if (wantStartDragging && !hasFlag(READONLY, flags)) {
-            startDragging(selected, manifest);
+            startDragging(selected, scene);
         }
 
         // Handle scroll wheel zoom
@@ -363,14 +369,14 @@ public class DopeSheet {
     }
 
 
-    private void drawChannelList(KeyframeManifest manifest, Set<String> openCategories) {
+    private void drawChannelList(ReplayScene scene, Set<String> openCategories) {
         ImGui.pushID("channels");
         ImGui.beginGroup();
 
         int catIndex = 0;
-        for (var entry : manifest.getCategories().entrySet()) {
+        for (var entry : scene.getObjects().entrySet()) {
             String catName = entry.getKey();
-            KeyChannelCategory cat = entry.getValue();
+            ReplayObject cat = entry.getValue();
             ImGui.setNextItemOpen(openCategories.contains(catName));
 
             ImGui.alignTextToFramePadding();
@@ -408,7 +414,7 @@ public class DopeSheet {
     // Dummy keyframes used to display category header
     private final List<Keyframe> categoryKeys = new ArrayList<>();
 
-    private boolean drawKeyframes(KeyframeManifest manifest, Set<String> openCategories, Set<KeyReference> selected,
+    private boolean drawKeyframes(ReplayScene scene, Set<String> openCategories, Set<KeyReference> selected,
                                   float length, int flags) {
 
         ImDrawList drawList = ImGui.getWindowDrawList();
@@ -416,10 +422,10 @@ public class DopeSheet {
         boolean wantStartDragging = false;
 
         // Since categories are now a Map<String, KeyChannelCategory>
-        for (var entry : manifest.getCategories().entrySet()) {
+        for (var entry : scene.getObjects().entrySet()) {
             // Build ref cache
             String categoryId = entry.getKey();
-            KeyChannelCategory category = entry.getValue();
+            ReplayObject category = entry.getValue();
             categoryKeyRefs.clear();
             keyIndexCache.clear();
             categoryKeys.clear();

@@ -3,109 +3,117 @@ package com.igrium.replaylab.scene;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.Maps;
-import com.google.gson.*;
-import com.google.gson.annotations.JsonAdapter;
-import com.igrium.replaylab.scene.key.KeyChannel;
-import com.igrium.replaylab.scene.key.KeyChannelCategory;
-import com.igrium.replaylab.scene.key.KeyframeManifest;
-import com.igrium.replaylab.scene.obj.AnimationObject;
-import com.igrium.replaylab.scene.obj.AnimationObjectType;
-import com.igrium.replaylab.operator.ApplyKeyManifestOperator;
 import com.igrium.replaylab.operator.ReplayOperator;
-import lombok.Getter;
-import lombok.NonNull;
+import com.igrium.replaylab.scene.key.KeyChannel;
+import com.igrium.replaylab.scene.key.Keyframe;
+import com.igrium.replaylab.scene.obj.ReplayObject;
+import com.igrium.replaylab.scene.obj.ReplayObjectType;
+import com.igrium.replaylab.scene.obj.SerializedReplayObject;
 import lombok.Setter;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.lang.reflect.Type;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.function.Consumer;
 
 /**
  * Keeps track of all the runtime stuff regarding a scene.
+ * @apiNote <b>Warning:</b> Calling most of these functions on their own can corrupt the undo/redo stack.
+ * Prefer using operators.
  */
-@JsonAdapter(ReplaySceneSerializer.class)
-public final class ReplayScene {
-
+public class ReplayScene {
     private static final Logger LOGGER = LoggerFactory.getLogger("ReplayLab/ReplayScene");
 
-    /**
-     * The keyframe manifest that gets saved into the file, used in undo/redo, etc.
-     * <b>CONSIDERED EFFECTIVELY IMMUTABLE</b>
-     */
-    @Getter @Setter @NonNull
-    private KeyframeManifest internalKeyManifest = new KeyframeManifest();
+    public static final String SCENE_PROPS = "scene";
 
     /**
-     * The version of the keyframe manifest that gets edited, displayed, etc.
-     * before getting saved to the undo stack.
+     *
+     * Contains a "reference" to a particular keyframe within the manifest.
+     * If the manifest gets re-initialized for any reason, this reference should remain.
+     *
+     * @param object   Object name
+     * @param channel  Channel index within the category.
+     * @param keyframe Keyframe index within the channel.
      */
-    @Getter @Setter @NonNull
-    private KeyframeManifest keyManifest = new KeyframeManifest();
+    public record KeyReference(String object, int channel, int keyframe) {
+    }
 
-    @Setter @Nullable
-    private transient Consumer<? super Exception> exceptionCallback;
+    /**
+     * All the objects in this scene.
+     */
+    private final BiMap<String, ReplayObject> objects = HashBiMap.create();
+    private final BiMap<String, ReplayObject> objectsUnmod = Maps.unmodifiableBiMap(objects);
 
-    private final BiMap<String, AnimationObject> objects = HashBiMap.create();
-    private final BiMap<String, AnimationObject> objectsUnmod = Maps.unmodifiableBiMap(objects);
+    /**
+     * A map of serialized versions of each object. Used for undo/redo.
+     */
+    private final BiMap<String, SerializedReplayObject> savedObjects = HashBiMap.create();
 
     private final Deque<ReplayOperator> undoStack = new ArrayDeque<>();
     private final Deque<ReplayOperator> redoStack = new ArrayDeque<>();
 
-    /**
-     * The global start position of the rendered scene in ticks.
-     */
-    @Getter
-    private int startTick;
+    @Setter @Nullable
+    private Consumer<? super Exception> exceptionCallback;
 
-    public void setStartTick(int startTick) {
-        if (startTick < 0) {
-            throw new IllegalArgumentException("Start tick may not be negative.");
+//    public ReplayScene() {
+//        addObject("sceneProps", ReplayObjectType.SCENE_PROPS.create());
+//    }
+
+    public ScenePropsObject getSceneProps() {
+        ReplayObject obj = getObject(SCENE_PROPS);
+        ScenePropsObject sceneProps;
+        if (obj instanceof ScenePropsObject) {
+            sceneProps = (ScenePropsObject) obj;
+        } else {
+            LOGGER.info("No Scene object found. Creating.");
+            sceneProps = ReplayObjectType.SCENE_PROPS.create();
+            addObject(SCENE_PROPS, sceneProps);
         }
-        this.startTick = startTick;
+        return sceneProps;
     }
 
-    /**
-     * The length of the scene in ticks.
-     */
-    @Getter
-    private int length = 10000;
-
-    public void setLength(int length) {
-        if (length < 0) {
-            throw new IllegalArgumentException("Length may not be negative.");
-        }
-        this.length = length;
+    public int getLength() {
+        return getSceneProps().getLength();
     }
 
+    public int getStartTime() {
+        return getSceneProps().getStartTime();
+    }
+
+
     /**
-     * Convert a time local to the scene into a global replay time suitable for the replay mod.
-     *
-     * @param sceneTime Scene time in Minecraft ticks.
-     * @return Replay time in milliseconds.
+     * Convert a local timestamp to a global replay time suitable for the relay mod.
+     * @param sceneTimestamp Scene time in ms.
+     * @return Global replay time in ms.
      */
-    public int sceneToReplayTime(int sceneTime) {
+    public int sceneToReplayTime(int sceneTimestamp) {
         // TODO: Update this to handle time dilation
-        return sceneTime + startTick;
+        return sceneTimestamp + getStartTime();
+    }
+
+    public @Nullable Keyframe getKeyframe(String object, int channel, int keyframe) {
+        if (channel < 0 || keyframe < 0) return null;
+
+        ReplayObject obj = getObject(object);
+        if (obj == null || channel >= obj.getChannels().size()) return null;
+
+        KeyChannel ch = obj.getChannels().get(channel);
+        if (keyframe >= ch.getKeys().size()) return null;
+
+        return ch.getKeys().get(keyframe);
+    }
+
+    public @Nullable Keyframe getKeyframe(KeyReference ref) {
+        return getKeyframe(ref.object(), ref.channel(), ref.keyframe());
     }
 
     /**
-     * Apply all animated values in the scene to the game. Does <em>not</em> update actual game time;
-     * simply updates all manually-animated values.
-     * @param time Timestamp to apply (in ms).
-     */
-    public void applyToGame(int time) {
-        // TODO: actually implement this
-    }
-
-    /**
-     * Get a map of all the animation objects in this scene.
+     * Get a map of all the replay objects in this scene.
      * @return Unmodifiable view of all objects.
      */
-    public BiMap<String, AnimationObject> getObjects() {
+    public BiMap<String, ReplayObject> getObjects() {
         return objectsUnmod;
     }
 
@@ -114,65 +122,47 @@ public final class ReplayScene {
      * @param id ID to search for.
      * @return The object, or <code>null</code> if no object by that ID exists.
      */
-    public @Nullable AnimationObject getObject(String id) {
+    public @Nullable ReplayObject getObject(String id) {
         return objects.get(id);
     }
 
     /**
-     * Add an animation object to this scene.
+     * Add a replay object to this scene, replacing any old ones.
      *
-     * @param id     ID to assign the new object.
-     * @param object Object to add.
+     * @param id  ID to assign the new object.
+     * @param obj Object to add.
      * @return The previous object that belonged to that ID, if any.
-     * @throws IllegalArgumentException If the object belongs to the wrong scene.
      */
-    public @Nullable AnimationObject addObject(String id, AnimationObject object) throws IllegalArgumentException {
-        if (object.getScene() != this) {
-            throw new IllegalArgumentException("Object belongs to the wrong scene!");
-        }
-        var prev = objects.put(id, object);
+    public @Nullable ReplayObject addObject(String id, ReplayObject obj) {
+        var prev = objects.put(id, obj);
         if (prev != null) {
             onRemoveObject(id, prev);
         }
-        onAddObject(id, object);
+        onAddObject(id, obj);
         return prev;
     }
 
     /**
-     * Add an animation object to this scene if there is none already existing with that ID.
+     * Add a replay object to this scene if there isn't already one with its ID.
      *
-     * @param id     ID to assign the new object.
-     * @param object Object to add.
-     * @return The current object that belonged to that ID, if any.
-     * @throws IllegalArgumentException If the object belongs to the wrong scene.
+     * @param id  ID to assign the new object.
+     * @param obj Object to add.
+     * @return <code>true</code> if the object was added; <code>false</code> if there was a naming conflict.
      */
-    public @Nullable AnimationObject addObjectIfAbsent(String id, AnimationObject object) throws IllegalArgumentException {
-        if (object.getScene() != this) {
-            throw new IllegalArgumentException("Object belongs to the wrong scene!");
+    public boolean addObjectIfAbsent(String id, ReplayObject obj) {
+        if (objects.putIfAbsent(id, obj) == null) {
+            onAddObject(id, obj);
+            return true;
         }
-        var prev = objects.putIfAbsent(id, object);
-        if (prev == null) {
-            onAddObject(id, object);
-        }
-        return prev;
-    }
-
-    private void onAddObject(String id, AnimationObject obj) {
-        KeyChannelCategory cat = new KeyChannelCategory();
-        for (var name : obj.listChannelNames()) {
-            cat.getChannels().add(new KeyChannel(name));
-        }
-        keyManifest.getCategories().put(id, cat);
-        commitKeyframeUpdates();
+        return false;
     }
 
     /**
-     * Remove an animation object from the scene.
-     *
+     * Remove a replay object from the scene.
      * @param id ID of the object to remove.
-     * @return The object that had that ID, if any.
+     * @return The objet that was removed, if any.
      */
-    public @Nullable AnimationObject removeObject(String id) {
+    public @Nullable ReplayObject removeObject(String id) {
         var obj = objects.remove(id);
         if (obj != null) {
             onRemoveObject(id, obj);
@@ -180,25 +170,60 @@ public final class ReplayScene {
         return obj;
     }
 
-    private void onRemoveObject(String id, AnimationObject obj) {
-        keyManifest.getCategories().remove(id);
-        commitKeyframeUpdates();
+    private void onAddObject(String id, ReplayObject obj) {
+        SerializedReplayObject s = obj.save();
+        savedObjects.put(id, s);
+    }
+
+    private void onRemoveObject(String id, ReplayObject obj) {
+        savedObjects.remove(id);
+    }
+
+
+    public @Nullable SerializedReplayObject getSavedObject(String id) {
+        return savedObjects.get(id);
+    }
+
+
+    public void setSavedObject(String id, SerializedReplayObject obj) {
+        savedObjects.put(id, obj);
     }
 
     /**
-     * Restore the working keyframe manifest to a copy of the internal one
+     * Save an object into the saved object cached. Used when an undo step is created.
+     * @param id ID of object to save.
+     * @return The new serialized data. <code>null</code> if the object could not be found.
      */
-    public void resetKeyManifest() {
-        keyManifest = internalKeyManifest.copy();
+    public @Nullable SerializedReplayObject saveObject(String id) {
+        ReplayObject obj = getObject(id);
+        if (obj == null) {
+            LOGGER.warn("Unable to commit object {} because it cannot be found.", id);
+            return null;
+        }
+
+        SerializedReplayObject serialized = obj.save();
+        savedObjects.put(id, serialized);
+        return serialized;
     }
 
     /**
-     * Apply the working keyframe manifest into the core keyframe manifest,
-     * creating an undo step in the process.
+     * Revert an object to the version in the saved object cache.
+     * @param id ID of the object to revert.
      */
-    public void commitKeyframeUpdates() {
-        applyOperator(new ApplyKeyManifestOperator());
+    public void revertObject(String id) {
+        ReplayObject obj = getObject(id);
+        if (obj == null) {
+            LOGGER.warn("Unable to revert object {} because it cannot be found.", id);
+            return;
+        }
 
+        var serialized = savedObjects.get(id);
+        if (serialized == null) {
+            LOGGER.warn("No serialized form of {} found.", id);
+            return;
+        }
+
+        obj.parse(serialized);
     }
 
     /**
@@ -211,7 +236,7 @@ public final class ReplayScene {
         try {
             result = operator.execute(this);
         } catch (Exception e) {
-            LOGGER.error("Error applying operator: ", e);
+            LOGGER.error("Error executing operator {}: ", operator.getClass().getSimpleName(), e);
             // We consider the undo/redo stack corrupted.
             undoStack.clear();
             redoStack.clear();
@@ -274,62 +299,13 @@ public final class ReplayScene {
     }
 
     /**
-     * Parse a serialized replay scene and apply its values.
-     * @param json Json to parse.
+     * Sample and apply all animated values from the scene into the game
+     * @param timestamp Timestamp to apply.
+     * @apiNote Does not apply game packets, only directly animated values like camera moves.
      */
-    public void readJson(JsonObject json, JsonDeserializationContext gson) {
-        undoStack.clear();
-        redoStack.clear();
-
-        JsonElement keyObj = json.get("keys");
-        setInternalKeyManifest(gson.deserialize(keyObj, KeyframeManifest.class));
-
-        resetKeyManifest();
-
-        objects.clear();
-
-        for (var entry : json.getAsJsonObject("objects").entrySet()) {
-            try {
-                JsonObject jsonObj = entry.getValue().getAsJsonObject();
-                AnimationObject object = AnimationObjectType.fromJson(jsonObj, this);
-                objects.put(entry.getKey(), object);
-            } catch (Exception e) {
-                LOGGER.error("Error parsing animation object {}: ", entry.getKey(), e);
-            }
+    public void applyToGame(int timestamp) {
+        for (var obj : getObjects().values()) {
+            obj.apply(timestamp);
         }
-
-        // TODO: scene global data
-    }
-
-    public void writeJson(JsonObject json, JsonSerializationContext gson) {
-
-        JsonElement keyObj = gson.serialize(getInternalKeyManifest());
-
-        json.add("keys", keyObj);
-
-        JsonObject objectSet = new JsonObject();
-        for (var entry : objectsUnmod.entrySet()) {
-            JsonObject jsonObj = AnimationObjectType.toJson(entry.getValue(), new JsonObject());
-            objectSet.add(entry.getKey(), jsonObj);
-        }
-
-        json.add("objects", objectSet);
-    }
-}
-
-class ReplaySceneSerializer implements JsonSerializer<ReplayScene>, JsonDeserializer<ReplayScene> {
-
-    @Override
-    public ReplayScene deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
-        ReplayScene scene = new ReplayScene();
-        scene.readJson(json.getAsJsonObject(), context);
-        return scene;
-    }
-
-    @Override
-    public JsonElement serialize(ReplayScene src, Type typeOfSrc, JsonSerializationContext context) {
-        JsonObject obj = new JsonObject();
-        src.writeJson(obj, context);
-        return obj;
     }
 }
