@@ -2,7 +2,7 @@ package com.igrium.replaylab.scene.obj;
 
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
-import com.igrium.replaylab.scene.ScenePropsObject;
+import com.igrium.replaylab.scene.ReplayScene;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -14,13 +14,13 @@ public class ReplayObjectType<T extends ReplayObject> {
     }
 
     public interface Factory<T extends ReplayObject> {
-        T create(ReplayObjectType<T> type);
+        T create(ReplayObjectType<T> type, ReplayScene scene);
     }
 
     private final Factory<T> factory;
 
-    public T create() {
-        return factory.create(this);
+    public T create(ReplayScene scene) {
+        return factory.create(this, scene);
     }
 
     public String getId() {
@@ -39,12 +39,12 @@ public class ReplayObjectType<T extends ReplayObject> {
      * @return The new replay object.
      * @throws InvalidObjectTypeException If the specified type can't be found.
      */
-    public static ReplayObject create(String typeId) throws InvalidObjectTypeException {
+    public static ReplayObject create(String typeId, ReplayScene scene) throws InvalidObjectTypeException {
         var type = REGISTRY.get(typeId);
         if (type == null) {
             throw new InvalidObjectTypeException(typeId);
         }
-        return type.create();
+        return type.create(scene);
     }
 
     public static <T extends ReplayObject> ReplayObjectType<T> register(String id, Factory<T> factory) {

@@ -1,10 +1,11 @@
-package com.igrium.replaylab.scene;
+package com.igrium.replaylab.scene.obj;
 
 import com.google.gson.JsonDeserializationContext;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonSerializationContext;
-import com.igrium.replaylab.scene.obj.ReplayObject;
-import com.igrium.replaylab.scene.obj.ReplayObjectType;
+import com.igrium.replaylab.scene.ReplayScene;
+import imgui.ImGui;
+import imgui.type.ImInt;
 import lombok.Getter;
 
 /**
@@ -32,8 +33,8 @@ public final class ScenePropsObject extends ReplayObject {
         this.length = length;
     }
 
-    public ScenePropsObject(ReplayObjectType<?> type) {
-        super(type);
+    public ScenePropsObject(ReplayObjectType<?> type, ReplayScene scene) {
+        super(type, scene);
     }
 
     @Override
@@ -54,7 +55,35 @@ public final class ScenePropsObject extends ReplayObject {
     @Override
     protected void writeProperties(JsonObject json, JsonSerializationContext context) {
         super.writeProperties(json, context);
-        json.addProperty("startTime", getLength());
+        json.addProperty("startTime", getStartTime());
         json.addProperty("length", getLength());
+    }
+
+
+    private final ImInt startTimeInput = new ImInt();
+    private final ImInt lengthInput = new ImInt();
+
+    @Override
+    public boolean drawPropertiesPanel() {
+
+        boolean modified = false;
+
+        startTimeInput.set(startTime);
+        if (ImGui.inputInt("Start Time", startTimeInput)) {
+            modified = true;
+        }
+        startTime = startTimeInput.get();
+        if (startTime < 0)
+            startTime = 0;
+
+        lengthInput.set(length);
+        if (ImGui.inputInt("Length (ms)", lengthInput)) {
+            modified = true;
+        }
+        length = lengthInput.get();
+        if (length < 0)
+            length = 0;
+
+        return modified;
     }
 }

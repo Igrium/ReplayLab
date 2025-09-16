@@ -9,6 +9,7 @@ import com.igrium.replaylab.scene.key.Keyframe;
 import com.igrium.replaylab.scene.obj.ReplayObject;
 import com.igrium.replaylab.scene.obj.ReplayObjectType;
 import com.igrium.replaylab.scene.obj.SerializedReplayObject;
+import com.igrium.replaylab.scene.obj.ScenePropsObject;
 import lombok.Setter;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
@@ -68,7 +69,7 @@ public class ReplayScene {
             sceneProps = (ScenePropsObject) obj;
         } else {
             LOGGER.info("No Scene object found. Creating.");
-            sceneProps = ReplayObjectType.SCENE_PROPS.create();
+            sceneProps = ReplayObjectType.SCENE_PROPS.create(this);
             addObject(SCENE_PROPS, sceneProps);
         }
         return sceneProps;
@@ -134,6 +135,9 @@ public class ReplayScene {
      * @return The previous object that belonged to that ID, if any.
      */
     public @Nullable ReplayObject addObject(String id, ReplayObject obj) {
+        if (obj.getScene() != this) {
+            throw new IllegalArgumentException("Object belongs to the wrong scene.");
+        }
         var prev = objects.put(id, obj);
         if (prev != null) {
             onRemoveObject(id, prev);
@@ -150,6 +154,9 @@ public class ReplayScene {
      * @return <code>true</code> if the object was added; <code>false</code> if there was a naming conflict.
      */
     public boolean addObjectIfAbsent(String id, ReplayObject obj) {
+        if (obj.getScene() != this) {
+            throw new IllegalArgumentException("Object belongs to the wrong scene.");
+        }
         if (objects.putIfAbsent(id, obj) == null) {
             onAddObject(id, obj);
             return true;

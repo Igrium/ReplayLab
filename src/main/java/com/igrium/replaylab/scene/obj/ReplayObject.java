@@ -1,6 +1,7 @@
 package com.igrium.replaylab.scene.obj;
 
 import com.google.gson.*;
+import com.igrium.replaylab.scene.ReplayScene;
 import com.igrium.replaylab.scene.key.KeyChannel;
 import com.igrium.replaylab.util.GsonSerializationContext;
 import imgui.ImGui;
@@ -20,8 +21,12 @@ public abstract class ReplayObject {
     @Getter
     private final List<KeyChannel> channels = new ArrayList<>();
 
-    public ReplayObject(ReplayObjectType<?> type) {
+    @Getter
+    private final ReplayScene scene;
+
+    public ReplayObject(ReplayObjectType<?> type, ReplayScene scene) {
         this.type = type;
+        this.scene = scene;
     }
 
     /**
@@ -89,5 +94,9 @@ public abstract class ReplayObject {
         } else {
             return channels.get(channel).sample(timestamp);
         }
+    }
+
+    public final KeyChannel getChannel(int index) throws IndexOutOfBoundsException {
+        return channels.get(index);
     }
 }

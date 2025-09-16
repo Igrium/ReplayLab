@@ -3,10 +3,7 @@ package com.igrium.replaylab.operator;
 import com.igrium.replaylab.scene.ReplayScene;
 import com.igrium.replaylab.scene.obj.SerializedReplayObject;
 
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 
 public class ModifyObjectsOperator implements ReplayOperator {
     private final List<String> ids;
@@ -21,9 +18,11 @@ public class ModifyObjectsOperator implements ReplayOperator {
 
     @Override
     public boolean execute(ReplayScene scene) {
+        pre = new HashMap<>();
         for (var id : ids) {
             pre.put(id, Objects.requireNonNull(scene.getSavedObject(id)));
         }
+        post = new HashMap<>();
         for (var id : ids) {
             post.put(id, Objects.requireNonNull(scene.saveObject(id)));
         }

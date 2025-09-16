@@ -3,8 +3,10 @@ package com.igrium.replaylab.ui;
 
 import com.igrium.craftui.app.DockSpaceApp;
 import com.igrium.craftui.file.FileDialogs;
+import com.igrium.replaylab.operator.ModifyObjectOperator;
 import com.igrium.replaylab.operator.ModifyObjectsOperator;
 import com.igrium.replaylab.scene.ReplayScene;
+import com.igrium.replaylab.scene.obj.ReplayObject;
 import com.igrium.replaylab.ui.util.ExceptionPopup;
 import com.replaymod.replay.ReplayHandler;
 import com.replaymod.replay.ReplayModReplay;
@@ -98,6 +100,7 @@ public class ReplayLabUI extends DockSpaceApp {
 
         drawDopeSheet();
         drawOutliner();
+        drawInspector();
 
         var io = ImGui.getIO();
         if (io.getWantCaptureKeyboard() && !io.getWantTextInput()) {
@@ -212,6 +215,22 @@ public class ReplayLabUI extends DockSpaceApp {
     private void drawOutliner() {
         if (ImGui.begin("Outliner")) {
             Outliner.drawOutliner(editorState);
+        }
+        ImGui.end();
+    }
+
+    private void drawInspector() {
+        if (ImGui.begin("Inspector")) {
+            String selId = editorState.getSelectedObject();
+            ReplayObject selected = selId != null ? editorState.getScene().getObject(selId) : null;
+
+            if (selected == null) {
+                ImGui.text("No selected object.");
+            } else {
+                if (selected.drawPropertiesPanel()) {
+                    editorState.getScene().applyOperator(new ModifyObjectOperator(selId));
+                }
+            }
         }
         ImGui.end();
     }
