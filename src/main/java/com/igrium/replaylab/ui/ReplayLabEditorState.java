@@ -17,6 +17,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 
@@ -63,10 +66,35 @@ public class ReplayLabEditorState {
     private String selectedObject;
 
     @Setter @Nullable
-    private Consumer<? super Exception> exceptionCallback;
+    private Consumer<? super Throwable> exceptionCallback;
+
+    /**
+     * All the scenes in the current replay file.
+     */
+    @Getter
+    private final List<String> scenes = Collections.synchronizedList(new ArrayList<>());
 
     public ReplayLabEditorState() {
         scene.setExceptionCallback(this::onException);
+        refreshSceneListAsync();
+    }
+
+    public CompletableFuture<?> refreshSceneListAsync() {
+        var handler = getReplayHandler();
+        if (handler != null) {
+            return ReplayScenes.listScenesAsync(handler.getReplayFile()).whenComplete((res, e) -> {
+                if (res != null) {
+                    scenes.clear();
+                    scenes.addAll(res);
+                } else if (e != null) {
+                    LOGGER.error("Error loading scenes from replay file: ", e);
+                    onException(e);
+                }
+            });
+        } else {
+            LOGGER.error("Unable to load scene list: no replay handler");
+            return CompletableFuture.completedFuture(null);
+        }
     }
 
     public void setScene(@NotNull ReplayScene scene) {
@@ -77,12 +105,35 @@ public class ReplayLabEditorState {
         this.scene.setExceptionCallback(this::onException);
     }
 
-    public void setSceneName(@NonNull ReplayScene scene, String sceneName) {
+    public void setScene(@NonNull ReplayScene scene, String sceneName) {
         setScene(scene);
         setSceneName(sceneName);
     }
 
-    private void onException(Exception e) {
+    public CompletableFuture<ReplayScene> newScene(String sceneName) {
+        ReplayScene scene = new ReplayScene();
+        setScene(scene, sceneName);
+        return saveSceneAsync().thenCompose(v -> refreshSceneListAsync()).thenApply(v -> scene);
+    }
+
+    /**
+     * Attempt to load a scene from the replay file
+     * @param sceneName Scene to load.
+     * @return The loaded scene, or <code>null</code> if the scene failed to load.
+     */
+    public @Nullable ReplayScene loadScene(String sceneName) {
+        try {
+            var scene = ReplayScenes.readScene(sceneName, getReplayHandlerOrThrow().getReplayFile(), this::onException);
+            setScene(scene, sceneName);
+            return scene;
+        } catch (Exception e) {
+            LOGGER.error("Error loading scene {}: ", sceneName, e);
+            onException(e);
+            return null;
+        }
+    }
+
+    private void onException(Throwable e) {
         if (exceptionCallback != null) {
             exceptionCallback.accept(e);
         }
@@ -153,8 +204,9 @@ public class ReplayLabEditorState {
         return CompletableFuture.runAsync(() -> {
             try {
                 saveScene();
-            } catch (IOException e) {
-                throw ExceptionUtils.asRuntimeException(e);
+            } catch (Exception e) {
+                LOGGER.error("Error saving scene {}", sceneName, e);
+                onException(e);
             }
         }, Util.getIoWorkerExecutor());
     }

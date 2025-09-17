@@ -2,7 +2,6 @@ package com.igrium.replaylab.ui;
 
 
 import com.igrium.craftui.app.DockSpaceApp;
-import com.igrium.craftui.file.FileDialogs;
 import com.igrium.replaylab.operator.ModifyObjectOperator;
 import com.igrium.replaylab.operator.ModifyObjectsOperator;
 import com.igrium.replaylab.scene.ReplayScene;
@@ -39,6 +38,7 @@ public class ReplayLabUI extends DockSpaceApp {
 
     //    private final DopeSheetOld dopeSheet = new DopeSheetOld();
     private final DopeSheet dopeSheet = new DopeSheet();
+    private final SceneSelector sceneSelector = new SceneSelector();
     private boolean wantsJumpTime;
 
     @Getter
@@ -82,6 +82,7 @@ public class ReplayLabUI extends DockSpaceApp {
 
         drawMenuBar();
         exceptionPopup.render();
+        sceneSelector.render(editorState);
 
         int bgColor = ImGui.getColorU32(ImGuiCol.WindowBg);
 
@@ -112,7 +113,7 @@ public class ReplayLabUI extends DockSpaceApp {
         if (ImGui.beginMainMenuBar()) {
             if (ImGui.beginMenu("File")) {
                 if (ImGui.menuItem("Open")) {
-                    FileDialogs.showOpenDialog(null);
+                    sceneSelector.open();
                 }
                 if (ImGui.menuItem("Save")) {
                     saveScene();
@@ -147,13 +148,9 @@ public class ReplayLabUI extends DockSpaceApp {
 
     private void saveScene() {
         if (editorState.getSceneName() == null) {
-            editorState.setSceneName("demo");
+            editorState.setSceneName("scene");
         }
-        editorState.saveSceneAsync().exceptionally(e -> {
-            LOGGER.error("Unable to save scene: ", e);
-            exceptionPopup.displayException(e);
-            return null;
-        });
+        editorState.saveSceneAsync();
     }
 
     // Testing variables

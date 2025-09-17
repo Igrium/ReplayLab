@@ -3,6 +3,7 @@ package com.igrium.replaylab.scene;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import com.igrium.replaylab.scene.obj.SerializedReplayObject;
+import com.replaymod.replaystudio.data.ReplayAssetEntry;
 import com.replaymod.replaystudio.replay.ReplayFile;
 import lombok.experimental.UtilityClass;
 import net.minecraft.util.Util;
@@ -13,6 +14,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.*;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
@@ -46,7 +48,7 @@ public final class ReplayScenes {
     private static final TypeToken<Map<String, SerializedReplayObject>> serializedType = new TypeToken<>() {};
 
     /**
-     * Load a scene from a replay file.
+     * Read a scene from a replay file.
      *
      * @param name              Name of the scene
      * @param replayFile        Replay file to load from
@@ -55,7 +57,7 @@ public final class ReplayScenes {
      * @throws FileNotFoundException If the scene does not exist.
      * @throws IOException           If a fatal IO exception occurs loading the file.
      */
-    public static ReplayScene loadScene(String name, ReplayFile replayFile, @Nullable Consumer<Exception> exceptionCallback)
+    public static ReplayScene readScene(String name, ReplayFile replayFile, @Nullable Consumer<Exception> exceptionCallback)
             throws FileNotFoundException, IOException {
         String path = getScenePath(name);
         var opt = replayFile.get(path);
@@ -90,4 +92,26 @@ public final class ReplayScenes {
         LOGGER.info("Saved scene to {}", path);
     }
 
+    /**
+     * Scan a replay file for ReplayLab scenes.
+     * @param file File to scan.
+     * @return List of all scenes.
+     * @throws IOException If an IO exception occurs trying to read the file.
+     */
+    public static List<String> listScenes(ReplayFile file) throws IOException {
+        return file.getAssets().stream()
+                .map(ReplayAssetEntry::getName)
+                .filter(s -> s.startsWith("scenes") && s.endsWith(".json"))
+                .map(ReplayScenes::getSceneName).toList();
+    }
+
+    public static CompletableFuture<List<String>> listScenesAsync(ReplayFile file) {
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                return listScenes(file);
+            } catch (IOException e) {
+                throw ExceptionUtils.asRuntimeException(e);
+            }
+        }, Util.getIoWorkerExecutor());
+    }
 }
