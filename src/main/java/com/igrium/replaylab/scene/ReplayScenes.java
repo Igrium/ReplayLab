@@ -14,10 +14,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.*;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
+import java.util.regex.Pattern;
+import java.util.stream.Stream;
 
 /**
  * Utility methods regarding scenes.
@@ -26,6 +29,8 @@ import java.util.function.Consumer;
 public final class ReplayScenes {
     private static final Logger LOGGER = LoggerFactory.getLogger("ReplayLab/ReplayScenes");
     private static final Gson GSON = new Gson();
+
+    private static final Pattern PATTERN_SCENE = Pattern.compile("^scenes/.*\\.json$");
 
     /**
      * Return a scene's name from its path within the replay file.
@@ -98,20 +103,30 @@ public final class ReplayScenes {
      * @return List of all scenes.
      * @throws IOException If an IO exception occurs trying to read the file.
      */
-    public static List<String> listScenes(ReplayFile file) throws IOException {
-        return file.getAssets().stream()
-                .map(ReplayAssetEntry::getName)
-                .filter(s -> s.startsWith("scenes") && s.endsWith(".json"))
-                .map(ReplayScenes::getSceneName).toList();
+    public static Stream<String> listScenes(ReplayFile file) throws IOException {
+        Map<String, InputStream> entries = file.getAll(PATTERN_SCENE);
+        entries.values().forEach(ReplayScenes::closeQuietly);
+
+        return entries.keySet().stream().map(ReplayScenes::getSceneName);
     }
 
     public static CompletableFuture<List<String>> listScenesAsync(ReplayFile file) {
         return CompletableFuture.supplyAsync(() -> {
             try {
-                return listScenes(file);
+                return listScenes(file).toList();
             } catch (IOException e) {
                 throw ExceptionUtils.asRuntimeException(e);
             }
         }, Util.getIoWorkerExecutor());
+    }
+
+    private static void closeQuietly(@Nullable Closeable closable) {
+        if (closable != null) {
+            try {
+                closable.close();
+            } catch (IOException e) {
+                LOGGER.warn("IO exception while closing closable.", e);
+            }
+        }
     }
 }

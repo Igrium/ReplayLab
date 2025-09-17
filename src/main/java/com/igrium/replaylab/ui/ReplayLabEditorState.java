@@ -197,6 +197,7 @@ public class ReplayLabEditorState {
         }
 
         ReplayScenes.saveScene(scene, name, getReplayHandlerOrThrow().getReplayFile());
+        refreshSceneListAsync();
     }
 
 

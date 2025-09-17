@@ -42,7 +42,8 @@ public class SceneSelector {
         }
 
         if (ImGui.beginPopupModal(POPUP_NAME, isOpen, ImGuiWindowFlags.NoSavedSettings)) {
-            ImGui.beginChild("Scenes");
+            ImGui.beginChild("Scenes", ImGui.getContentRegionAvailX(),
+                    ImGui.getContentRegionAvailY() - (ImGui.getTextLineHeightWithSpacing() + ImGui.getStyle().getItemSpacingY() * 2) - 4);
             ImGui.setNextItemWidth(ImGui.getContentRegionAvailX());
 
             if (ImGui.beginListBox("##scenes")) {
