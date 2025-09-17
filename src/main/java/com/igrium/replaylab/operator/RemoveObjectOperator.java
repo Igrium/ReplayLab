@@ -1,7 +1,7 @@
 package com.igrium.replaylab.operator;
 
 import com.igrium.replaylab.scene.ReplayScene;
-import com.igrium.replaylab.scene.obj.objs.ReplayObject;
+import com.igrium.replaylab.scene.obj.ReplayObject;
 
 public class RemoveObjectOperator implements ReplayOperator {
 

@@ -4,6 +4,7 @@ import com.google.gson.JsonDeserializationContext;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonSerializationContext;
 import com.igrium.replaylab.scene.ReplayScene;
+import com.igrium.replaylab.scene.obj.ReplayObject;
 import com.igrium.replaylab.scene.obj.ReplayObjectType;
 import imgui.ImGui;
 import imgui.type.ImInt;
@@ -43,8 +44,7 @@ public final class ScenePropsObject extends ReplayObject {
     }
 
     @Override
-    protected void readProperties(JsonObject json, JsonDeserializationContext context) {
-        super.readProperties(json, context);
+    protected void readJson(JsonObject json, JsonDeserializationContext context) {
         if (json.has("startTime")) {
             setStartTime(json.getAsJsonPrimitive("startTime").getAsInt());
         }
@@ -54,8 +54,7 @@ public final class ScenePropsObject extends ReplayObject {
     }
 
     @Override
-    protected void writeProperties(JsonObject json, JsonSerializationContext context) {
-        super.writeProperties(json, context);
+    protected void writeJson(JsonObject json, JsonSerializationContext context) {
         json.addProperty("startTime", getStartTime());
         json.addProperty("length", getLength());
     }

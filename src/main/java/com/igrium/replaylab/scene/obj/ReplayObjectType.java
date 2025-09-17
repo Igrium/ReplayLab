@@ -1,7 +1,6 @@
 package com.igrium.replaylab.scene.obj;
 
 import com.igrium.replaylab.scene.ReplayScene;
-import com.igrium.replaylab.scene.obj.objs.ReplayObject;
 
 
 public class ReplayObjectType<T extends ReplayObject> {

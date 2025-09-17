@@ -3,13 +3,10 @@ package com.igrium.replaylab.scene;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.Maps;
-import com.google.gson.Gson;
-import com.google.gson.JsonObject;
-import com.google.gson.reflect.TypeToken;
 import com.igrium.replaylab.operator.ReplayOperator;
 import com.igrium.replaylab.scene.key.KeyChannel;
 import com.igrium.replaylab.scene.key.Keyframe;
-import com.igrium.replaylab.scene.obj.objs.ReplayObject;
+import com.igrium.replaylab.scene.obj.ReplayObject;
 import com.igrium.replaylab.scene.obj.ReplayObjects;
 import com.igrium.replaylab.scene.obj.objs.ScenePropsObject;
 import com.igrium.replaylab.scene.obj.SerializedReplayObject;
@@ -39,10 +36,10 @@ public class ReplayScene {
      * If the manifest gets re-initialized for any reason, this reference should remain.
      *
      * @param object   Object name
-     * @param channel  Channel index within the category.
+     * @param channel  Channel name within the category.
      * @param keyframe Keyframe index within the channel.
      */
-    public record KeyReference(String object, int channel, int keyframe) {
+    public record KeyReference(String object, String channel, int keyframe) {
     }
 
     /**
@@ -99,14 +96,14 @@ public class ReplayScene {
         return sceneTimestamp + getStartTime();
     }
 
-    public @Nullable Keyframe getKeyframe(String object, int channel, int keyframe) {
-        if (channel < 0 || keyframe < 0) return null;
+    public @Nullable Keyframe getKeyframe(String object, String channel, int keyframe) {
+        if (keyframe < 0) return null;
 
         ReplayObject obj = getObject(object);
-        if (obj == null || channel >= obj.getChannels().size()) return null;
+        if (obj == null) return null;
 
         KeyChannel ch = obj.getChannels().get(channel);
-        if (keyframe >= ch.getKeys().size()) return null;
+        if (ch == null || keyframe >= ch.getKeys().size()) return null;
 
         return ch.getKeys().get(keyframe);
     }

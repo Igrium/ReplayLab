@@ -4,7 +4,7 @@ import com.igrium.replaylab.scene.ReplayScene;
 import com.igrium.replaylab.scene.ReplayScene.KeyReference;
 import com.igrium.replaylab.scene.key.Keyframe;
 import com.igrium.replaylab.scene.key.KeyChannel;
-import com.igrium.replaylab.scene.obj.objs.ReplayObject;
+import com.igrium.replaylab.scene.obj.ReplayObject;
 import imgui.ImColor;
 import imgui.ImDrawList;
 import imgui.ImGui;
@@ -385,9 +385,9 @@ public class DopeSheet {
             }
 
             if (catOpen) {
-                for (var ch : cat.getChannels()) {
+                for (var chName : cat.getChannels().keySet()) {
                     ImGui.alignTextToFramePadding();
-                    if (ImGui.treeNodeEx(ch.getName(), ImGuiTreeNodeFlags.Leaf)) {
+                    if (ImGui.treeNodeEx(chName, ImGuiTreeNodeFlags.Leaf)) {
                         ImGui.treePop();
                     }
                 }
@@ -403,11 +403,13 @@ public class DopeSheet {
         ImGui.popID();
     }
 
+    @Deprecated
     private record IntPair(int a, int b) {};
+    private record ChannelKeyRef(String channelId, int keyIndex) {};
 
     // A mapping between key indices in the category row and which keyframes they represent in the channel rows
     // Store here so we don't need to re-allocate each frame
-    private final List<Set<IntPair>> categoryKeyRefs = new ArrayList<>();
+    private final List<Set<ChannelKeyRef>> categoryKeyRefs = new ArrayList<>();
     private final Int2IntMap keyIndexCache = new Int2IntAVLTreeMap();
 
     // Dummy keyframes used to display category header
@@ -430,13 +432,15 @@ public class DopeSheet {
             categoryKeys.clear();
 
             // Index all channel keyframes
-            for (int chIndex = 0; chIndex < category.getChannels().size(); chIndex++) {
-                KeyChannel channel = category.getChannels().get(chIndex);
+
+            for (var chEntry : category.getChannels().entrySet()) {
+                String chName = chEntry.getKey();
+                KeyChannel channel = chEntry.getValue();
 
                 for (int keyIndex = 0; keyIndex < channel.getKeys().size(); keyIndex++) {
                     int keyTime = channel.getKeys().get(keyIndex).getTime();
                     int categoryIndex;
-                    Set<IntPair> keyRefs;
+                    Set<ChannelKeyRef> keyRefs;
                     if (keyIndexCache.containsKey(keyTime)) {
                         categoryIndex = keyIndexCache.get(keyTime);
                         keyRefs = categoryKeyRefs.get(categoryIndex);
@@ -448,7 +452,7 @@ public class DopeSheet {
                         keyIndexCache.put(keyTime, categoryIndex);
                     }
 
-                    keyRefs.add(new IntPair(chIndex, keyIndex));
+                    keyRefs.add(new ChannelKeyRef(chName, keyIndex));
                 }
             }
 
@@ -456,7 +460,7 @@ public class DopeSheet {
             ImGui.setNextItemWidth(length * zoomFactor);
             if (drawKeyChannel(categoryKeys, rowIndex, keyIndex -> {
                 for (var ref : categoryKeyRefs.get(keyIndex)) {
-                    if (selected.contains(new KeyReference(categoryId, ref.a(), ref.b()))) {
+                    if (selected.contains(new KeyReference(categoryId, ref.channelId(), ref.keyIndex()))) {
                         return true;
                     }
                 }
@@ -467,7 +471,7 @@ public class DopeSheet {
                 }
                 if (keyIndex != null) {
                     for (var ref : categoryKeyRefs.get(keyIndex)) {
-                        selected.add(new KeyReference(categoryId, ref.a(), ref.b()));
+                        selected.add(new KeyReference(categoryId, ref.channelId(), ref.keyIndex()));
                     }
                 }
             }, drawList, flags)) {
@@ -477,19 +481,19 @@ public class DopeSheet {
 
             // Draw individual channels
             if (openCategories.contains(categoryId)) {
-                for (int chIndex = 0; chIndex < category.getChannels().size(); chIndex++) {
-                    KeyChannel channel = category.getChannels().get(chIndex);
+
+                for (var chEntry : category.getChannels().entrySet()) {
+                    KeyChannel channel = chEntry.getValue();
 
                     ImGui.setNextItemWidth(length * zoomFactor);
-                    int chIndexCopy = chIndex;
                     if (drawKeyChannel(channel.getKeys(), rowIndex,
-                            keyIndex -> selected.contains(new KeyReference(categoryId, chIndexCopy, keyIndex)),
+                            keyIndex -> selected.contains(new KeyReference(categoryId, chEntry.getKey(), keyIndex)),
                             keyIndex -> {
                                 if (!ImGui.getIO().getKeyCtrl()) {
                                     selected.clear();
                                 }
                                 if (keyIndex != null) {
-                                    selected.add(new KeyReference(categoryId, chIndexCopy, keyIndex));
+                                    selected.add(new KeyReference(categoryId, chEntry.getKey(), keyIndex));
                                 }
                             }, drawList, flags)) {
                         wantStartDragging = true;

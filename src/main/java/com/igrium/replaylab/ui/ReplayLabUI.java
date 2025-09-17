@@ -5,7 +5,7 @@ import com.igrium.craftui.app.DockSpaceApp;
 import com.igrium.replaylab.operator.ModifyObjectOperator;
 import com.igrium.replaylab.operator.ModifyObjectsOperator;
 import com.igrium.replaylab.scene.ReplayScene;
-import com.igrium.replaylab.scene.obj.objs.ReplayObject;
+import com.igrium.replaylab.scene.obj.ReplayObject;
 import com.igrium.replaylab.ui.util.ExceptionPopup;
 import com.replaymod.replay.ReplayHandler;
 import com.replaymod.replay.ReplayModReplay;

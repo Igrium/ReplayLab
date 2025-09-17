@@ -8,7 +8,6 @@ import imgui.flag.ImGuiWindowFlags;
 import imgui.type.ImBoolean;
 import lombok.NonNull;
 import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.util.Clipboard;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.PrintWriter;

@@ -18,10 +18,10 @@ public class ModifyObjectOperator implements ReplayOperator {
     @Override
     public boolean execute(ReplayScene scene) {
         pre = scene.getSavedObject(objectId);
-        post = scene.saveObject(objectId);
         if (pre == null) {
             throw new IllegalStateException("Object has no pre-saved state.");
         }
+        post = scene.saveObject(objectId);
         return true;
     }
 

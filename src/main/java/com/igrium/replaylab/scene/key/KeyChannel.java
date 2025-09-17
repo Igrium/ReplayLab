@@ -1,30 +1,28 @@
 package com.igrium.replaylab.scene.key;
 
+import com.google.gson.*;
+import com.google.gson.annotations.JsonAdapter;
 import lombok.Getter;
-import lombok.NonNull;
-import lombok.Setter;
 
+import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
 
 /**
  * A single "channel" of keyframes. A given channel always contain a single curve of scalar values.
  */
+@JsonAdapter(KeyChannelSerializer.class)
 public class KeyChannel {
 
     @Getter
     private final List<Keyframe> keys;
 
-    @Getter @Setter @NonNull
-    private String name = "";
+    public KeyChannel() {
+        this(new ArrayList<>());
+    }
 
     protected KeyChannel(List<Keyframe> keyframes) {
         this.keys = keyframes;
-    }
-
-    public KeyChannel(@NonNull String name) {
-        this.name = name;
-        this.keys = new ArrayList<>();
     }
 
     /**
@@ -48,4 +46,23 @@ public class KeyChannel {
     }
 }
 
+class KeyChannelSerializer implements JsonSerializer<KeyChannel>, JsonDeserializer<KeyChannel> {
+
+    @Override
+    public KeyChannel deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
+        JsonArray arr = json.getAsJsonArray();
+        List<Keyframe> keys = new ArrayList<>(arr.size());
+
+        for (var el : arr) {
+            keys.add(context.deserialize(el, Keyframe.class));
+        }
+
+        return new KeyChannel(keys);
+    }
+
+    @Override
+    public JsonElement serialize(KeyChannel src, Type typeOfSrc, JsonSerializationContext context) {
+        return context.serialize(src.getKeys());
+    }
+}
 

@@ -4,7 +4,7 @@ import com.google.gson.JsonObject;
 import com.igrium.replaylab.scene.key.KeyChannel;
 import lombok.Getter;
 
-import java.util.List;
+import java.util.Map;
 
 /**
  * An immutable, serialized form of a replay object designed for use in undo/redo
@@ -13,13 +13,13 @@ public class SerializedReplayObject {
     @Getter
     private final String type;
     @Getter
-    private final List<KeyChannel> channels;
+    private final Map<String, KeyChannel> channels;
     @Getter
-    private final JsonObject props;
+    private final JsonObject attributes;
 
-    public SerializedReplayObject(String type, List<KeyChannel> channels, JsonObject props) {
+    public SerializedReplayObject(String type, Map<String, KeyChannel> channels, JsonObject attributes) {
         this.type = type;
         this.channels = channels;
-        this.props = props;
+        this.attributes = attributes;
     }
 }
