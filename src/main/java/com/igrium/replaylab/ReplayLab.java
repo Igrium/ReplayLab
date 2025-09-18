@@ -49,8 +49,7 @@ public class ReplayLab implements ModInitializer {
         ReplayModReplay.instance.startReplay(replayFile, false, true);
         appInstance = new ReplayLabUI();
         AppManager.openApp(appInstance);
-
-
+        appInstance.afterOpen();
     }
 
 }

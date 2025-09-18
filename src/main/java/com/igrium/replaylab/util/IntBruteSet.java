@@ -13,6 +13,7 @@ import java.util.NoSuchElementException;
  * If you put a really high integer in, it will start to eat a lot of memory.
  * @apiNote Does not support negative values.
  */
+@Deprecated
 public class IntBruteSet extends AbstractIntSet {
 
     private boolean[] array;

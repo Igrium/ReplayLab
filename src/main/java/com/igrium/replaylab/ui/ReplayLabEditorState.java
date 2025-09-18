@@ -76,25 +76,24 @@ public class ReplayLabEditorState {
 
     public ReplayLabEditorState() {
         scene.setExceptionCallback(this::onException);
-        refreshSceneListAsync();
     }
 
-    public CompletableFuture<?> refreshSceneListAsync() {
+    public List<String> refreshSceneListSync() {
         var handler = getReplayHandler();
         if (handler != null) {
-            return ReplayScenes.listScenesAsync(handler.getReplayFile()).whenComplete((res, e) -> {
-                if (res != null) {
-                    scenes.clear();
-                    scenes.addAll(res);
-                } else if (e != null) {
-                    LOGGER.error("Error loading scenes from replay file: ", e);
-                    onException(e);
-                }
-            });
-        } else {
-            LOGGER.error("Unable to load scene list: no replay handler");
-            return CompletableFuture.completedFuture(null);
+            scenes.clear();
+            try {
+                scenes.addAll(ReplayScenes.listScenes(handler.getReplayFile()).toList());
+            } catch (IOException e) {
+                LOGGER.error("Error loading scenes from replay file: ", e);
+                onException(e);
+            }
         }
+        return scenes;
+    }
+
+    public CompletableFuture<List<String>> refreshSceneListAsync() {
+        return CompletableFuture.supplyAsync(this::refreshSceneListSync, Util.getIoWorkerExecutor());
     }
 
     public void setScene(@NotNull ReplayScene scene) {

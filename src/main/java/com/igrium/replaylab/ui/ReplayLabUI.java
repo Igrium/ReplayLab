@@ -56,6 +56,16 @@ public class ReplayLabUI extends DockSpaceApp {
         editorState.setExceptionCallback(exceptionPopup::displayException);
     }
 
+    /**
+     * Called directly after ReplayLab has been opened.
+     */
+    public void afterOpen() {
+        var scenes = editorState.refreshSceneListSync();
+        if (!scenes.isEmpty()) {
+            editorState.loadScene(scenes.getFirst());
+        }
+    }
+
     @Override
     protected void preRender(MinecraftClient client) {
         super.preRender(client);
