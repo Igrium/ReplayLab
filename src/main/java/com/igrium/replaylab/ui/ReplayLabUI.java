@@ -38,7 +38,7 @@ public class ReplayLabUI extends DockSpaceApp {
 
     //    private final DopeSheetOld dopeSheet = new DopeSheetOld();
     private final DopeSheet dopeSheet = new DopeSheet();
-    private final SceneSelector sceneSelector = new SceneSelector();
+    private final SceneBrowser sceneBrowser = new SceneBrowser();
     private boolean wantsJumpTime;
 
     @Getter
@@ -92,7 +92,7 @@ public class ReplayLabUI extends DockSpaceApp {
 
         drawMenuBar();
         exceptionPopup.render();
-        sceneSelector.render(editorState);
+        sceneBrowser.render(editorState);
 
         int bgColor = ImGui.getColorU32(ImGuiCol.WindowBg);
 
@@ -123,7 +123,7 @@ public class ReplayLabUI extends DockSpaceApp {
         if (ImGui.beginMainMenuBar()) {
             if (ImGui.beginMenu("File")) {
                 if (ImGui.menuItem("Open")) {
-                    sceneSelector.open();
+                    sceneBrowser.open();
                 }
                 if (ImGui.menuItem("Save")) {
                     saveScene();

@@ -5,6 +5,7 @@ import com.igrium.replaylab.scene.ReplayScene;
 import com.igrium.replaylab.scene.ReplayScenes;
 import com.replaymod.replay.ReplayHandler;
 import com.replaymod.replay.ReplayModReplay;
+import com.replaymod.replaystudio.replay.ReplayFile;
 import imgui.type.ImInt;
 import lombok.Getter;
 import lombok.NonNull;
@@ -16,7 +17,10 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -109,11 +113,20 @@ public class ReplayLabEditorState {
         setSceneName(sceneName);
     }
 
-    public CompletableFuture<ReplayScene> newScene(String sceneName) {
+    public ReplayScene newScene(String sceneName) {
         ReplayScene scene = new ReplayScene();
         setScene(scene, sceneName);
-        return saveSceneAsync().thenCompose(v -> refreshSceneListAsync()).thenApply(v -> scene);
+        try {
+            saveScene();
+            LOGGER.info("Created new scene: {}", sceneName);
+        } catch (IOException e) {
+            LOGGER.info("Error saving scene.");
+            onException(e);
+        }
+        refreshSceneListSync();
+        return scene;
     }
+
 
     /**
      * Attempt to load a scene from the replay file
@@ -196,7 +209,7 @@ public class ReplayLabEditorState {
         }
 
         ReplayScenes.saveScene(scene, name, getReplayHandlerOrThrow().getReplayFile());
-        refreshSceneListAsync();
+        refreshSceneListSync();
     }
 
 
@@ -210,4 +223,67 @@ public class ReplayLabEditorState {
             }
         }, Util.getIoWorkerExecutor());
     }
+
+    public void renameScene(String oldName, String newName) throws IOException {
+        if (oldName.equals(getSceneName())) {
+            renameCurrentScene(newName);
+            return;
+        }
+        if (newName.equals(getSceneName())) {
+            throw new IllegalArgumentException("Can't rename scene to the current scene name.");
+        }
+
+        ReplayFile file = getReplayHandlerOrThrow().getReplayFile();
+        var opt = file.get(ReplayScenes.getScenePath(oldName));
+        if (!opt.isPresent()) {
+            throw new FileNotFoundException("Unknown scene: " + oldName);
+        }
+
+        // I wish there was a way to simply move the file, but replay mod doesn't expose that.
+        try (InputStream in = opt.get()) {
+            try (OutputStream out = file.write(ReplayScenes.getScenePath(newName))) {
+                in.transferTo(out);
+            }
+        }
+        file.remove(ReplayScenes.getScenePath(oldName));
+    }
+
+    public void tryRenameScene(String oldName, String newName) {
+        try {
+            renameScene(oldName, newName);
+            LOGGER.info("Renamed scene {} to {}.", oldName, newName);
+        } catch (Exception e) {
+            LOGGER.error("Error renaming scene", e);
+            onException(e);
+        }
+        refreshSceneListSync();
+    }
+
+    public void renameCurrentScene(String newName) throws IOException {
+        if (newName.equals(getSceneName())) return;
+        ReplayFile file = getReplayHandlerOrThrow().getReplayFile();
+        String oldName = getSceneName();
+
+        setSceneName(newName);
+        saveScene();
+
+        if (oldName != null) {
+            file.remove(ReplayScenes.getScenePath(oldName));
+        }
+        refreshSceneListSync();
+    }
+
+    public void removeScene(String sceneName) {
+        if (sceneName.equals(getSceneName())) {
+            LOGGER.warn("Deleting current scene from disk. Will get replaced on save.");
+        }
+        try {
+            getReplayHandlerOrThrow().getReplayFile().remove(ReplayScenes.getScenePath(sceneName));
+        } catch (Exception e) {
+            LOGGER.error("Error deleting scene {}", sceneName, e);
+            onException(e);
+        }
+        refreshSceneListSync();
+    }
+
 }
