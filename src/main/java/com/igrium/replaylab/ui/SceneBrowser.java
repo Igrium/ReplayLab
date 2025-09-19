@@ -83,8 +83,8 @@ public class SceneBrowser {
             }
 
             ImGui.beginDisabled(selectedSceneName.equals(editorState.getSceneName()));
-            if (ImGui.button("Remove", ImGui.getContentRegionAvailX(), ImGui.getTextLineHeightWithSpacing())) {
-                ImGui.openPopup("Remove Scene?");
+            if (ImGui.button("Delete", ImGui.getContentRegionAvailX(), ImGui.getTextLineHeightWithSpacing())) {
+                ImGui.openPopup("Delete Scene?");
             }
             ImGui.endDisabled();
             ImGui.endDisabled();
@@ -102,7 +102,7 @@ public class SceneBrowser {
                 ImGui.closeCurrentPopup();
             }
 
-            if (ImGui.beginPopupModal("Remove Scene?", ImGuiWindowFlags.AlwaysAutoResize | ImGuiWindowFlags.NoSavedSettings)) {
+            if (ImGui.beginPopupModal("Delete Scene?", ImGuiWindowFlags.AlwaysAutoResize | ImGuiWindowFlags.NoSavedSettings)) {
                 ImGui.text("The scene may not be recoverable!");
                 ImGui.separator();
 
@@ -151,12 +151,15 @@ public class SceneBrowser {
 
                 ImGui.endDisabled();
                 ImGui.sameLine();
-                if (ImGui.button("Cancel") || renameWantsGlobalClose) {
+                if (ImGui.button("Cancel")) {
                     ImGui.closeCurrentPopup();
                 }
                 ImGui.endPopup();
             }
 
+            if (renameWantsGlobalClose) {
+                ImGui.closeCurrentPopup();
+            }
             ImGui.endPopup();
         }
 

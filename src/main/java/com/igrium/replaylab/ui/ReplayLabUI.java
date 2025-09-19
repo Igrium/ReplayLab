@@ -176,9 +176,13 @@ public class ReplayLabUI extends DockSpaceApp {
 
         ImGui.setNextWindowBgAlpha(1);
         if (ImGui.beginChild("Playback", ImGui.getContentRegionAvailX(), viewportFooterHeight, true, ImGuiWindowFlags.AlwaysAutoResize)) {
+            ImGui.alignTextToFramePadding();
+            ImGui.text("Scene: " + editorState.getSceneName());
+            ImGui.sameLine();
+
             float groupWidth = (buttonSize + ImGui.getStyle().getItemSpacingX()) * 5 - ImGui.getStyle().getItemSpacingX();
 
-            ImGui.setCursorPosX(ImGui.getContentRegionAvailX() / 2 - groupWidth / 2);
+            ImGui.setCursorPosX(ImGui.getContentRegionMaxX() / 2 - groupWidth / 2);
             ImGui.alignTextToFramePadding();
 
             playbackIcon(PlaybackIcons.JUMP_START, "Scene Start", buttonSize);
