@@ -125,17 +125,16 @@ public class ReplayLabUI extends DockSpaceApp {
                 if (ImGui.menuItem("Open")) {
                     sceneBrowser.open();
                 }
-                if (ImGui.menuItem("Save")) {
-                    saveScene();
-                }
                 ImGui.endMenu();
             }
             if (ImGui.beginMenu("Edit")) {
                 if (ImGui.menuItem("Undo", "Ctrl+Z")) {
                     editorState.getScene().undo();
+                    editorState.saveSceneAsync();
                 }
                 if (ImGui.menuItem("Redo", "Ctrl+Shift+Z")) {
                     editorState.getScene().redo();
+                    editorState.saveSceneAsync();
                 }
 
                 ImGui.endMenu();
@@ -223,6 +222,7 @@ public class ReplayLabUI extends DockSpaceApp {
             dopeSheet.drawDopeSheet(editorState.getScene(), selected, 20 * 1000, editorState.getPlayheadRef(), 0);
             if (!dopeSheet.getUpdatedObjects().isEmpty()) {
                 editorState.getScene().applyOperator(new ModifyObjectsOperator(dopeSheet.getUpdatedObjects()));
+                editorState.saveSceneAsync();
             }
         }
         ImGui.end();
@@ -253,6 +253,7 @@ public class ReplayLabUI extends DockSpaceApp {
             } else {
                 if (selected.drawPropertiesPanel()) {
                     editorState.getScene().applyOperator(new ModifyObjectOperator(selId));
+                    editorState.saveSceneAsync();
                 }
             }
         }

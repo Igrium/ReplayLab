@@ -134,6 +134,8 @@ public class ReplayLabEditorState {
      * @return The loaded scene, or <code>null</code> if the scene failed to load.
      */
     public @Nullable ReplayScene loadScene(String sceneName) {
+        // We assume we're saving after every operation,
+        // so don't attempt to save because it will mark the replay file as "updated"
         try {
             var scene = ReplayScenes.readScene(sceneName, getReplayHandlerOrThrow().getReplayFile(), this::onException);
             setScene(scene, sceneName);
@@ -211,10 +213,12 @@ public class ReplayLabEditorState {
         ReplayScenes.saveScene(scene, name, getReplayHandlerOrThrow().getReplayFile());
         refreshSceneListSync();
     }
-
-
     public CompletableFuture<?> saveSceneAsync() {
         return CompletableFuture.runAsync(() -> {
+            if (getSceneName() == null) {
+                LOGGER.warn("Scene does not have a name. Skipping save...");
+                return;
+            }
             try {
                 saveScene();
             } catch (Exception e) {
@@ -234,17 +238,20 @@ public class ReplayLabEditorState {
         }
 
         ReplayFile file = getReplayHandlerOrThrow().getReplayFile();
-        var opt = file.get(ReplayScenes.getScenePath(oldName));
-        if (!opt.isPresent()) {
-            throw new FileNotFoundException("Unknown scene: " + oldName);
-        }
+        synchronized (file) {
+            var opt = file.get(ReplayScenes.getScenePath(oldName));
+            if (!opt.isPresent()) {
+                throw new FileNotFoundException("Unknown scene: " + oldName);
+            }
 
-        // I wish there was a way to simply move the file, but replay mod doesn't expose that.
-        try (InputStream in = opt.get()) {
-            try (OutputStream out = file.write(ReplayScenes.getScenePath(newName))) {
-                in.transferTo(out);
+            // I wish there was a way to simply move the file, but replay mod doesn't expose that.
+            try (InputStream in = opt.get()) {
+                try (OutputStream out = file.write(ReplayScenes.getScenePath(newName))) {
+                    in.transferTo(out);
+                }
             }
         }
+
         file.remove(ReplayScenes.getScenePath(oldName));
     }
 
@@ -265,12 +272,14 @@ public class ReplayLabEditorState {
         String oldName = getSceneName();
 
         setSceneName(newName);
-        saveScene();
+        synchronized (file) {
+            saveScene();
 
-        if (oldName != null) {
-            file.remove(ReplayScenes.getScenePath(oldName));
+            if (oldName != null) {
+                file.remove(ReplayScenes.getScenePath(oldName));
+            }
+            refreshSceneListSync();
         }
-        refreshSceneListSync();
     }
 
     public void removeScene(String sceneName) {
@@ -278,12 +287,18 @@ public class ReplayLabEditorState {
             LOGGER.warn("Deleting current scene from disk. Will get replaced on save.");
         }
         try {
-            getReplayHandlerOrThrow().getReplayFile().remove(ReplayScenes.getScenePath(sceneName));
+            removeScene(getReplayHandlerOrThrow().getReplayFile(), sceneName);
         } catch (Exception e) {
             LOGGER.error("Error deleting scene {}", sceneName, e);
             onException(e);
         }
         refreshSceneListSync();
+    }
+
+    private static void removeScene(ReplayFile file, String sceneName) throws IOException {
+        synchronized (file) {
+            file.remove(ReplayScenes.getSceneName(sceneName));
+        }
     }
 
 }

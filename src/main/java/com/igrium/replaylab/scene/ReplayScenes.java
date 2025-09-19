@@ -65,19 +65,23 @@ public final class ReplayScenes {
     public static ReplayScene readScene(String name, ReplayFile replayFile, @Nullable Consumer<Exception> exceptionCallback)
             throws FileNotFoundException, IOException {
         String path = getScenePath(name);
-        var opt = replayFile.get(path);
-        if (!opt.isPresent()) {
-            throw new FileNotFoundException("Tried to load non-existent scene: " + path);
+
+        Map<String, SerializedReplayObject> serialized;
+        synchronized (replayFile) {
+            var opt = replayFile.get(path);
+            if (!opt.isPresent()) {
+                throw new FileNotFoundException("Tried to load non-existent scene: " + path);
+            }
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(opt.get()))) {
+                serialized = GSON.fromJson(reader, serializedType);
+            }
         }
 
-        try (BufferedReader reader = new BufferedReader(new InputStreamReader(opt.get()))) {
-            var serialized = GSON.fromJson(reader, serializedType);
-            ReplayScene scene = new ReplayScene();
-            scene.setExceptionCallback(exceptionCallback);
-            scene.readSerializedObjects(serialized);
-            LOGGER.info("Loaded scene from {}", path);
-            return scene;
-        }
+        ReplayScene scene = new ReplayScene();
+        scene.setExceptionCallback(exceptionCallback);
+        scene.readSerializedObjects(serialized);
+        LOGGER.info("Loaded scene from {}", path);
+        return scene;
     }
 
     /**
@@ -91,10 +95,14 @@ public final class ReplayScenes {
     public static void saveScene(ReplayScene scene, String name, ReplayFile replayFile) throws IOException {
         String path = getScenePath(name);
 
-        try (BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(replayFile.write(path)))) {
-            GSON.toJson(scene.getSavedObjects(), writer);
+        // Yeah I know sync on a parameter isn't best practice, but RM does this so I have no choice.
+        synchronized (replayFile) {
+            try (BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(replayFile.write(path)))) {
+                GSON.toJson(scene.getSavedObjects(), writer);
+            }
         }
-        LOGGER.info("Saved scene to {}", path);
+
+        LOGGER.debug("Saved scene to {}", path);
     }
 
     /**
@@ -104,9 +112,11 @@ public final class ReplayScenes {
      * @throws IOException If an IO exception occurs trying to read the file.
      */
     public static Stream<String> listScenes(ReplayFile file) throws IOException {
-        Map<String, InputStream> entries = file.getAll(PATTERN_SCENE);
-        entries.values().forEach(ReplayScenes::closeQuietly);
-
+        Map<String, InputStream> entries;
+        synchronized (file) {
+            entries = file.getAll(PATTERN_SCENE);
+            entries.values().forEach(ReplayScenes::closeQuietly);
+        }
         return entries.keySet().stream().map(ReplayScenes::getSceneName);
     }
 
