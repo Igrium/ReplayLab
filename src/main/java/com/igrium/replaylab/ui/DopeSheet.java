@@ -17,7 +17,6 @@ import imgui.type.ImInt;
 import it.unimi.dsi.fastutil.ints.Int2IntAVLTreeMap;
 import it.unimi.dsi.fastutil.ints.Int2IntMap;
 import lombok.Getter;
-import lombok.Setter;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
@@ -76,6 +75,11 @@ public class DopeSheet {
         }
         this.zoomFactor = zoomFactor;
     }
+
+    /**
+     * When zooming with the scroll wheel, delay by one frame to fix jitter.
+     */
+    private float nextZoomFactor = Float.NaN;
 
     /**
      * A map of keys being dragged with their time before the drag.
@@ -155,6 +159,11 @@ public class DopeSheet {
         }
         // Compute tick intervals
         float em = ImGui.getFontSize();
+        if (!Float.isNaN(nextZoomFactor)) {
+            setZoomFactor(nextZoomFactor);
+            nextZoomFactor = Float.NaN;
+        }
+
         float zoomFactor = getZoomFactor(); // pixels per tick
         float emPerSecond = (zoomFactor * TICKS_PER_SECOND) / em;
         float majorInterval = computeMajorTimeSpacing(emPerSecond, 8, 10);
@@ -222,10 +231,19 @@ public class DopeSheet {
         // Handle scroll wheel zoom
         float mWheel = ImGui.getIO().getMouseWheel();
         if (mWheel != 0 && ImGui.isWindowHovered()) {
+            ImGui.setCursorPosX(headerCursorX);
+
             float factor = (float) Math.pow(2, mWheel * .125f);
             float newZoom = zoomFactor * factor;
-            setZoomFactor(newZoom);
+            nextZoomFactor = newZoom;
             mWheel = 0;
+
+            // The position relative to the KeyList which we zoom around;
+            float screenPivot = ImGui.getContentRegionAvailX() * 0.5f;
+
+            // TODO: make this center around the playhead rather than the left of the screen
+            ImGui.setScrollX(ImGui.getScrollX() * newZoom / zoomFactor);
+
             // TODO: SetItemKeyOwner once it's added to the bindings
         }
 
@@ -297,6 +315,7 @@ public class DopeSheet {
         drawList.pushClipRect(cursorX, cursorY, cursorX + width, cursorY + headerHeight);
 
         ImGui.invisibleButton("#header", width, headerHeight);
+
 
         float em = ImGui.getFontSize();
         float zoomFactor = getZoomFactor(); // pixels per tick
