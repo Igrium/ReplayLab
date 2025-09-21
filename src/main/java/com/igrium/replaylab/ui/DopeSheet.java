@@ -30,7 +30,7 @@ public class DopeSheet {
     public static final int READONLY = 1;
 
     /**
-     * If set, snap keyframes to increments of 1 while editing.
+     * If set, snap keyframes to nearest header increment while dragging
      */
     public static final int SNAP_KEYS = 2;
 
@@ -77,31 +77,12 @@ public class DopeSheet {
         this.zoomFactor = zoomFactor;
     }
 
-    @Getter @Setter
-    private float startFrame;
-
-    @Getter
-    private float size = 512;
-
-    public void setSize(float size) {
-        if (size < 0) {
-            throw new IllegalArgumentException("Size may not be negative");
-        }
-        this.size = size;
-    }
-
     /**
      * A map of keys being dragged with their time before the drag.
      */
     @Getter
     private final Map<KeyReference, Integer> keyDragOffsets = new HashMap<>();
 
-    /**
-     * <code>true</code> if any keyframes are currently being dragged.
-     */
-    public boolean isDraggingKeys() {
-        return !keyDragOffsets.isEmpty();
-    }
 
     private boolean mouseWasDragging;
     /** true if the mouse started dragging this frame */
@@ -172,6 +153,21 @@ public class DopeSheet {
             }
             draggingPlayhead = false;
         }
+        // Compute tick intervals
+        float em = ImGui.getFontSize();
+        float zoomFactor = getZoomFactor(); // pixels per tick
+        float emPerSecond = (zoomFactor * TICKS_PER_SECOND) / em;
+        float majorInterval = computeMajorTimeSpacing(emPerSecond, 8, 10);
+
+        float minorInterval = majorInterval / 2;
+        float tinyInterval = majorInterval / 4;
+
+        int snapTargetMs;
+        if (tinyInterval * TICKS_PER_SECOND * zoomFactor > em * 1.2) {
+            snapTargetMs = (int) (tinyInterval * TICKS_PER_SECOND);
+        } else {
+            snapTargetMs = (int) (minorInterval * TICKS_PER_SECOND);
+        }
 
         float headerCursorX = 0;
         float headerCursorY = 0;
@@ -188,7 +184,8 @@ public class DopeSheet {
         }
 
 
-        ImGui.beginChild("Dope Sheet Data", ImGui.getContentRegionAvailX(), ImGui.getContentRegionAvailY(), false);
+        ImGui.beginChild("Dope Sheet Data", ImGui.getContentRegionAvailX(), ImGui.getContentRegionAvailY(),
+                false, ImGuiWindowFlags.NoScrollWithMouse);
 
         drawChannelList(scene, openCategories);
         float catGroupWidth = ImGui.getItemRectSizeX() + ImGui.getStyle().getItemSpacingX();
@@ -203,15 +200,15 @@ public class DopeSheet {
         // Handle dragging
         if (!keyDragOffsets.isEmpty()) {
             if (ImGui.isMouseDragging(0, 0)) {
-                float dx = ImGui.getMouseDragDeltaX() / zoomFactor;
+                int dx = (int) (ImGui.getMouseDragDeltaX() / zoomFactor);
                 for (var entry : keyDragOffsets.entrySet()) {
                     var key = scene.getKeyframe(entry.getKey());
                     if (key != null) {
-                        float tPrime = entry.getValue() + dx;
+                        int tPrime = entry.getValue() + dx;
                         if (hasFlag(SNAP_KEYS, flags)) {
-                            tPrime = Math.round(tPrime);
+                            tPrime = snapTargetMs * Math.round((float) tPrime / snapTargetMs);
                         }
-                        key.setTime((int) tPrime);
+                        key.setTime(tPrime);
                     }
                 }
             } else {
@@ -226,14 +223,27 @@ public class DopeSheet {
         float mWheel = ImGui.getIO().getMouseWheel();
         if (mWheel != 0 && ImGui.isWindowHovered()) {
             float factor = (float) Math.pow(2, mWheel * .125f);
-            zoomFactor *= factor;
+            float newZoom = zoomFactor * factor;
+            setZoomFactor(newZoom);
+            mWheel = 0;
             // TODO: SetItemKeyOwner once it's added to the bindings
         }
 
         float timelineScrollAmount = ImGui.getScrollX();
 
-        ImGui.endChild();
-        ImGui.endChild();
+        ImGui.endChild(); // KeyList
+
+        // Custom scroll handling so keyList can disable it
+        if (ImGui.isWindowHovered() && mWheel != 0) {
+            float curScrollY = ImGui.getScrollY();
+            float newScrollY = curScrollY - mWheel * 24;
+
+            newScrollY = Math.clamp(newScrollY, 0, ImGui.getScrollMaxY());
+            ImGui.setScrollY(newScrollY);
+            ImGui.getIO().setMouseWheel(0);
+        }
+
+        ImGui.endChild(); // Dope Sheet Data
 
         ImGui.popStyleVar();
         ImGui.popStyleVar();
@@ -241,17 +251,26 @@ public class DopeSheet {
         if (!hasFlag(NO_HEADER, flags)) {
             ImGui.setCursorPosX(headerCursorX + catGroupWidth);
             ImGui.setCursorPosY(headerCursorY);
-            drawHeader(headerHeight, timelineScrollAmount, length, playhead, catGroupHeight, flags);
+            drawHeader(headerHeight, timelineScrollAmount, length, majorInterval, playhead, catGroupHeight, flags);
         }
 
     }
 
+    /**
+     * Compute the distance between each major interval.
+     *
+     * @param emPerSecond      The number of text units per second (based on the zoom factor)
+     * @param targetEmInterval Target number of text units between each major interval.
+     * @param multiple         Only use multiples of this number.
+     * @return The number of seconds between each major interval.
+     */
     private static float computeMajorTimeSpacing(float emPerSecond, int targetEmInterval, int multiple) {
         double idealSeconds = targetEmInterval / emPerSecond;
         double log2 = Math.log(idealSeconds) / Math.log(multiple);
         double roundedPower = Math.round(log2);
         return (float) Math.pow(multiple, roundedPower);
     }
+
 
 
     /**
@@ -264,7 +283,7 @@ public class DopeSheet {
      * @param channelsHeight Total height of the channel list. Used for drawing the playhead line.
      * @param flags          Render flags
      */
-    private void drawHeader(float headerHeight, float scrollAmount, int length,
+    private void drawHeader(float headerHeight, float scrollAmount, int length, float majorInterval,
                             @Nullable ImInt playhead, float channelsHeight, int flags) {
 
         float width = ImGui.getContentRegionAvailX();
@@ -283,11 +302,20 @@ public class DopeSheet {
         float zoomFactor = getZoomFactor(); // pixels per tick
         float emPerSecond = (zoomFactor * TICKS_PER_SECOND) / em; // em per second
 
-        float majorInterval = computeMajorTimeSpacing(emPerSecond, 8, 10);
 
         // TODO: only render intervals that are present in frame
 
         int outSecond = Math.ceilDiv(length, TICKS_PER_SECOND);
+
+        float minorInterval = majorInterval / 2;
+        float tinyInterval = majorInterval / 4;
+
+        int snapTargetMs;
+        if (tinyInterval * TICKS_PER_SECOND * zoomFactor > em * 1.2) {
+            snapTargetMs = (int) (tinyInterval * TICKS_PER_SECOND);
+        } else {
+            snapTargetMs = (int) (minorInterval * TICKS_PER_SECOND);
+        }
 
         if (!hasFlag(NO_TICKS, flags)) {
             // Major Intervals
@@ -309,14 +337,12 @@ public class DopeSheet {
             }
 
             // Minor ticks
-            float minorInterval = majorInterval / 2;
             for (float sec = 0; sec <= outSecond; sec += minorInterval) {
                 float pos = sec * TICKS_PER_SECOND * zoomFactor - scrollAmount;
                 drawList.addLine(cursorX + pos, cursorY + headerHeight / 1.4f, cursorX + pos, cursorY + headerHeight, 0xAAAAAAAA);
             }
 
             // Don't bother drawing tiny ticks if they're too small
-            float tinyInterval = majorInterval / 4;
             if (tinyInterval * TICKS_PER_SECOND * zoomFactor > em * 1.2) {
                 for (float sec = 0; sec <= outSecond; sec += tinyInterval) {
                     float pos = sec * TICKS_PER_SECOND * zoomFactor - scrollAmount;
@@ -342,6 +368,10 @@ public class DopeSheet {
                     newPlayhead = 0;
                 else if (newPlayhead > length)
                     newPlayhead = length;
+
+                if (hasFlag(SNAP_PLAYHEAD, flags)) {
+                    newPlayhead = snapTargetMs * Math.round((float) newPlayhead / snapTargetMs);
+                }
 
                 playhead.set(newPlayhead);
             }

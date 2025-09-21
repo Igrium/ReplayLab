@@ -219,7 +219,7 @@ public class ReplayLabUI extends DockSpaceApp {
 
     private void drawDopeSheet() {
         if (ImGui.begin("Dope Sheet")) {
-            dopeSheet.drawDopeSheet(editorState.getScene(), selected, 20 * 1000, editorState.getPlayheadRef(), 0);
+            dopeSheet.drawDopeSheet(editorState.getScene(), selected, 20 * 1000, editorState.getPlayheadRef(), DopeSheet.SNAP_KEYS);
             if (!dopeSheet.getUpdatedObjects().isEmpty()) {
                 editorState.getScene().applyOperator(new ModifyObjectsOperator(dopeSheet.getUpdatedObjects()));
                 editorState.saveSceneAsync();
