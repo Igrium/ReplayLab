@@ -1,5 +1,6 @@
 package com.igrium.replaylab.ui;
 
+import com.igrium.replaylab.operator.ReplayOperator;
 import com.igrium.replaylab.playback.RealtimeScenePlayer;
 import com.igrium.replaylab.scene.ReplayScene;
 import com.igrium.replaylab.scene.ReplayScenes;
@@ -47,7 +48,6 @@ public class ReplayLabEditorState {
         }
         return handler;
     }
-
 
     @Getter
     private final ImInt playheadRef = new ImInt(0);
@@ -197,6 +197,30 @@ public class ReplayLabEditorState {
         }
 
         scenePlayer.stop();
+    }
+
+    public boolean applyOperator(ReplayOperator operator) {
+        if (scene.applyOperator(operator)) {
+            saveSceneAsync();
+            return true;
+        }
+        return false;
+    }
+
+    public boolean undo() {
+        if (scene.undo()) {
+            saveSceneAsync();
+            return true;
+        }
+        return false;
+    }
+
+    public boolean redo() {
+        if (scene.redo()) {
+            saveSceneAsync();
+            return true;
+        }
+        return false;
     }
 
     /**

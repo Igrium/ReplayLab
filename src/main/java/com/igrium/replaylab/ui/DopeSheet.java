@@ -238,9 +238,6 @@ public class DopeSheet {
             nextZoomFactor = newZoom;
             mWheel = 0;
 
-            // The position relative to the KeyList which we zoom around;
-            float screenPivot = ImGui.getContentRegionAvailX() * 0.5f;
-
             // TODO: make this center around the playhead rather than the left of the screen
             ImGui.setScrollX(ImGui.getScrollX() * newZoom / zoomFactor);
 

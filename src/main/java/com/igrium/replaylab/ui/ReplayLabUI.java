@@ -129,12 +129,10 @@ public class ReplayLabUI extends DockSpaceApp {
             }
             if (ImGui.beginMenu("Edit")) {
                 if (ImGui.menuItem("Undo", "Ctrl+Z")) {
-                    editorState.getScene().undo();
-                    editorState.saveSceneAsync();
+                    editorState.undo();
                 }
                 if (ImGui.menuItem("Redo", "Ctrl+Shift+Z")) {
-                    editorState.getScene().redo();
-                    editorState.saveSceneAsync();
+                    editorState.redo();
                 }
 
                 ImGui.endMenu();
@@ -252,8 +250,7 @@ public class ReplayLabUI extends DockSpaceApp {
                 ImGui.text("No selected object.");
             } else {
                 if (selected.drawPropertiesPanel()) {
-                    editorState.getScene().applyOperator(new ModifyObjectOperator(selId));
-                    editorState.saveSceneAsync();
+                    editorState.applyOperator(new ModifyObjectOperator(selId));
                 }
             }
         }

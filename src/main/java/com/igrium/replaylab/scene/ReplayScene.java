@@ -10,6 +10,7 @@ import com.igrium.replaylab.scene.obj.ReplayObject;
 import com.igrium.replaylab.scene.obj.ReplayObjects;
 import com.igrium.replaylab.scene.obj.objs.ScenePropsObject;
 import com.igrium.replaylab.scene.obj.SerializedReplayObject;
+import lombok.Getter;
 import lombok.Setter;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
@@ -51,8 +52,10 @@ public class ReplayScene {
     /**
      * A map of serialized versions of each object. Used for undo/redo.
      */
-    private final BiMap<String, SerializedReplayObject> savedObjects = HashBiMap.create();
-    private final BiMap<String, SerializedReplayObject> savedObjectsUnmod = Maps.unmodifiableBiMap(savedObjects);
+    @Getter
+    private final SerializedObjectHolder savedObjects = new SerializedObjectHolder();
+//    private final BiMap<String, SerializedReplayObject> savedObjects = Maps.synchronizedBiMap(HashBiMap.create());
+//    private final BiMap<String, SerializedReplayObject> savedObjectsUnmod = Maps.unmodifiableBiMap(savedObjects);
 
     private final Deque<ReplayOperator> undoStack = new ArrayDeque<>();
     private final Deque<ReplayOperator> redoStack = new ArrayDeque<>();
@@ -188,14 +191,6 @@ public class ReplayScene {
         savedObjects.remove(id);
     }
 
-    /**
-     * Return a map of all the serialized objects in this scene.
-     * @return Unmodifiable view of serialized objects.
-     * @apiNote Will not include uncommitted changes.
-     */
-    public BiMap<String, SerializedReplayObject> getSavedObjects() {
-        return savedObjectsUnmod;
-    }
 
     public @Nullable SerializedReplayObject getSavedObject(String id) {
         return savedObjects.get(id);
@@ -331,12 +326,10 @@ public class ReplayScene {
      * @param serialized Serialized objects.
      */
     public void readSerializedObjects(Map<? extends String, ? extends SerializedReplayObject> serialized) {
-        savedObjects.clear();
         objects.clear();
+        savedObjects.replaceContents(serialized);
 
-        savedObjects.putAll(serialized);
-
-        for (var entry : savedObjects.entrySet()) {
+        for (var entry : serialized.entrySet()) {
             try {
                 objects.put(entry.getKey(), ReplayObjects.deserialize(entry.getValue(), this));
             } catch (Exception e) {

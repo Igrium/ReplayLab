@@ -3,7 +3,6 @@ package com.igrium.replaylab.scene;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import com.igrium.replaylab.scene.obj.SerializedReplayObject;
-import com.replaymod.replaystudio.data.ReplayAssetEntry;
 import com.replaymod.replaystudio.replay.ReplayFile;
 import lombok.experimental.UtilityClass;
 import net.minecraft.util.Util;
@@ -14,7 +13,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.*;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -95,10 +93,10 @@ public final class ReplayScenes {
     public static void saveScene(ReplayScene scene, String name, ReplayFile replayFile) throws IOException {
         String path = getScenePath(name);
 
-        // Yeah I know sync on a parameter isn't best practice, but RM does this so I have no choice.
+        // Yeah I know sync on a parameter isn't best practice, but RM does this, so I have no choice.
         synchronized (replayFile) {
             try (BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(replayFile.write(path)))) {
-                GSON.toJson(scene.getSavedObjects(), writer);
+                GSON.toJson(scene.getSavedObjects().getAll(), writer);
             }
         }
 
