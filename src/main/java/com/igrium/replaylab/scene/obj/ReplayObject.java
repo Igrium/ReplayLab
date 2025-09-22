@@ -58,6 +58,11 @@ public abstract class ReplayObject {
         this.scene = scene;
     }
 
+    /**
+     * Called when the user has pressed the "insert keyframe" keybind with this object selected.
+     */
+    public void insertKey() {
+    }
 
     protected final void addProperty(String name, DoubleSupplier getter, DoubleConsumer setter) {
         getProperties().put(name, MutableDouble.of(getter, setter));
@@ -157,7 +162,7 @@ public abstract class ReplayObject {
             channels.put(entry.getKey(), entry.getValue().copy());
         }
 
-        return new SerializedReplayObject(type.getId(), Map.copyOf(channels), attributes);
+        return new SerializedReplayObject(type.getId(), ImmutableMap.copyOf(channels), attributes);
     }
 
     /**
@@ -171,5 +176,11 @@ public abstract class ReplayObject {
         for (var entry : serialized.getChannels().entrySet()) {
             channels.put(entry.getKey(), entry.getValue().copy());
         }
+    }
+
+    public ReplayObject copy() {
+        ReplayObject other = type.create(getScene());
+        other.parse(this.save());
+        return other;
     }
 }
