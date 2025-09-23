@@ -2,6 +2,7 @@ package com.igrium.replaylab.ui;
 
 
 import com.igrium.craftui.app.DockSpaceApp;
+import com.igrium.replaylab.operator.InsertKeyframeOperator;
 import com.igrium.replaylab.operator.ModifyObjectOperator;
 import com.igrium.replaylab.operator.ModifyObjectsOperator;
 import com.igrium.replaylab.scene.ReplayScene;
@@ -45,6 +46,11 @@ public class ReplayLabUI extends DockSpaceApp {
     private final ExceptionPopup exceptionPopup = new ExceptionPopup();
 
     /**
+     * Hacky fix for the fact that exceptionPopup seems to crash the game if shown on the first frame.
+     */
+    private boolean firstFrame;
+
+    /**
      * The height of the viewport footer on the previous frame. Used when adjusting the viewport bounds.
      */
     private float viewportFooterHeight;
@@ -60,9 +66,12 @@ public class ReplayLabUI extends DockSpaceApp {
      * Called directly after ReplayLab has been opened.
      */
     public void afterOpen() {
+        firstFrame = true;
         var scenes = editorState.refreshSceneListSync();
         if (!scenes.isEmpty()) {
             editorState.loadScene(scenes.getFirst());
+        } else {
+            editorState.setSceneName("Scene");
         }
     }
 
@@ -91,8 +100,6 @@ public class ReplayLabUI extends DockSpaceApp {
         super.render(client);
 
         drawMenuBar();
-        exceptionPopup.render();
-        sceneBrowser.render(editorState);
 
         int bgColor = ImGui.getColorU32(ImGuiCol.WindowBg);
 
@@ -113,10 +120,16 @@ public class ReplayLabUI extends DockSpaceApp {
         drawOutliner();
         drawInspector();
 
+        if (!firstFrame) {
+            exceptionPopup.render();
+            sceneBrowser.render(editorState);
+        }
+
         var io = ImGui.getIO();
         if (io.getWantCaptureKeyboard() && !io.getWantTextInput()) {
-            processHotkeys();
+            processGlobalHotkeys();
         }
+        firstFrame = false;
     }
 
     private void drawMenuBar() {
@@ -134,6 +147,9 @@ public class ReplayLabUI extends DockSpaceApp {
                 if (ImGui.menuItem("Redo", "Ctrl+Shift+Z")) {
                     editorState.redo();
                 }
+                if (ImGui.menuItem("Insert Keyframe", "I")) {
+                    insertKeyframe();
+                }
 
                 ImGui.endMenu();
             }
@@ -143,13 +159,22 @@ public class ReplayLabUI extends DockSpaceApp {
 
     }
 
-    private void processHotkeys() {
+    private void processGlobalHotkeys() {
         var io = ImGui.getIO();
+        if (io.getWantTextInput()) {
+            return;
+        }
+
         if (isCtrlPressed() && ImGui.isKeyPressed(GLFW.GLFW_KEY_Z)) {
             editorState.getScene().undo();
         }
+
         if (isCtrlPressed() && io.getKeyShift() && ImGui.isKeyPressed(GLFW.GLFW_KEY_Z)) {
             editorState.getScene().redo();
+        }
+
+        if (ImGui.isKeyPressed(GLFW.GLFW_KEY_I)) {
+            insertKeyframe();
         }
     }
 
@@ -158,6 +183,13 @@ public class ReplayLabUI extends DockSpaceApp {
             editorState.setSceneName("scene");
         }
         editorState.saveSceneAsync();
+    }
+
+    private void insertKeyframe() {
+        String selected = editorState.getSelectedObject();
+        if (selected != null) {
+            editorState.applyOperator(new InsertKeyframeOperator(selected, editorState.getPlayhead()));
+        }
     }
 
     // Testing variables

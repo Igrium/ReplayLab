@@ -483,8 +483,8 @@ public class DopeSheet {
                 String chName = chEntry.getKey();
                 KeyChannel channel = chEntry.getValue();
 
-                for (int keyIndex = 0; keyIndex < channel.getKeys().size(); keyIndex++) {
-                    int keyTime = channel.getKeys().get(keyIndex).getTime();
+                for (int keyIndex = 0; keyIndex < channel.getKeyframes().size(); keyIndex++) {
+                    int keyTime = channel.getKeyframes().get(keyIndex).getTime();
                     int categoryIndex;
                     Set<ChannelKeyRef> keyRefs;
                     if (keyIndexCache.containsKey(keyTime)) {
@@ -532,7 +532,7 @@ public class DopeSheet {
                     KeyChannel channel = chEntry.getValue();
 
                     ImGui.setNextItemWidth(length * zoomFactor);
-                    if (drawKeyChannel(channel.getKeys(), rowIndex,
+                    if (drawKeyChannel(channel.getKeyframes(), rowIndex,
                             keyIndex -> selected.contains(new KeyReference(categoryId, chEntry.getKey(), keyIndex)),
                             keyIndex -> {
                                 if (!ImGui.getIO().getKeyCtrl()) {

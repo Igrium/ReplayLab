@@ -2,7 +2,6 @@ package com.igrium.replaylab.scene.obj;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.gson.*;
-import com.google.gson.reflect.TypeToken;
 import com.igrium.replaylab.scene.ReplayScene;
 import com.igrium.replaylab.scene.key.KeyChannel;
 import com.igrium.replaylab.util.GsonSerializationContext;
@@ -60,8 +59,19 @@ public abstract class ReplayObject {
 
     /**
      * Called when the user has pressed the "insert keyframe" keybind with this object selected.
+     * @param timestamp The current playback timestamp.
+     * @return If the keyframe was created and an undo step should be created.
      */
-    public void insertKey() {
+    public boolean insertKey(int timestamp) {
+        return false;
+    }
+
+    public final KeyChannel getOrCreateChannel(String name) {
+        return channels.computeIfAbsent(name, n -> new KeyChannel());
+    }
+
+    public final void removeEmptyChannels() {
+        channels.values().removeIf(ch -> ch.getKeyframes().isEmpty());
     }
 
     protected final void addProperty(String name, DoubleSupplier getter, DoubleConsumer setter) {
@@ -72,30 +82,27 @@ public abstract class ReplayObject {
         return properties.containsKey(name);
     }
 
-    public double getProperty(String propName) throws UnknownPropertyException {
-        MutableDouble prop = properties.get(propName);
-        if (prop == null) {
-            throw new UnknownPropertyException(propName);
+    public final double getPropertyOrThrow(String propName) throws UnknownPropertyException {
+        Double val = getProperty(propName);
+        if (val != null) {
+            return val;
         } else {
-            return prop.getDoubleValue();
+            throw new UnknownPropertyException(propName);
         }
     }
 
-    public @Nullable Double tryGetProperty(String propName) {
+    public @Nullable Double getProperty(String propName) {
         MutableDouble prop = properties.get(propName);
         return prop != null ? prop.getDoubleValue() : null;
     }
 
-    public void setProperty(String propName, double value) throws UnknownPropertyException {
-        MutableDouble prop = properties.get(propName);
-        if (prop == null) {
+    public final void setPropertyOrThrow(String propName, double value) throws UnknownPropertyException {
+        if (!setProperty(propName, value)) {
             throw new UnknownPropertyException(propName);
-        } else {
-            prop.setDoubleValue(value);
         }
     }
 
-    public boolean trySetProperty(String propName, double value) {
+    public boolean setProperty(String propName, double value) {
         MutableDouble prop = properties.get(propName);
         if (prop != null) {
             prop.setDoubleValue(value);
@@ -104,6 +111,7 @@ public abstract class ReplayObject {
             return false;
         }
     }
+
 
     /**
      * Save this object's attributes into a Json object.
@@ -133,7 +141,7 @@ public abstract class ReplayObject {
     public void sampleAndApply(int timestamp) {
         for (var entry : channels.entrySet()) {
             double val = entry.getValue().sample(timestamp);
-            trySetProperty(entry.getKey(), val);
+            setProperty(entry.getKey(), val);
         }
         apply(timestamp);
     }

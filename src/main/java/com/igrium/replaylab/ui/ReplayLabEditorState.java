@@ -172,6 +172,7 @@ public class ReplayLabEditorState {
         replayTime = Math.min(replayTime, getReplayHandlerOrThrow().getReplayDuration());
         getReplayHandlerOrThrow().doJump(replayTime, true);
 
+        scene.applyToGame(getPlayhead());
     }
 
     public boolean isPlaying() {

@@ -106,9 +106,9 @@ public class ReplayScene {
         if (obj == null) return null;
 
         KeyChannel ch = obj.getChannels().get(channel);
-        if (ch == null || keyframe >= ch.getKeys().size()) return null;
+        if (ch == null || keyframe >= ch.getKeyframes().size()) return null;
 
-        return ch.getKeys().get(keyframe);
+        return ch.getKeyframes().get(keyframe);
     }
 
     public @Nullable Keyframe getKeyframe(KeyReference ref) {
@@ -317,7 +317,7 @@ public class ReplayScene {
      */
     public void applyToGame(int timestamp) {
         for (var obj : getObjects().values()) {
-            obj.apply(timestamp);
+            obj.sampleAndApply(timestamp);
         }
     }
 

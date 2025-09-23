@@ -2,6 +2,10 @@ package com.igrium.replaylab.scene.key;
 
 import com.google.gson.*;
 import com.google.gson.annotations.JsonAdapter;
+import it.unimi.dsi.fastutil.ints.IntAVLTreeSet;
+import it.unimi.dsi.fastutil.ints.IntArrayList;
+import it.unimi.dsi.fastutil.ints.IntList;
+import it.unimi.dsi.fastutil.ints.IntSet;
 import lombok.Getter;
 import net.minecraft.util.math.MathHelper;
 
@@ -19,14 +23,56 @@ import java.util.stream.IntStream;
 public class KeyChannel {
 
     @Getter
-    private final List<Keyframe> keys;
+    private final List<Keyframe> keyframes;
 
     public KeyChannel() {
         this(new ArrayList<>());
     }
 
     protected KeyChannel(List<Keyframe> keyframes) {
-        this.keys = keyframes;
+        this.keyframes = keyframes;
+    }
+
+    /**
+     * Add a keyframe to this channel.
+     * If there is already a keyframe at that timestamp, replace its value with the new value.
+     * @param timestamp Timestamp to add at.
+     * @param value Value to give the new keyframe.
+     * @return A reference to the added keyframe. Use to adjust interpolation, etc.
+     */
+    public Keyframe addKeyframe(int timestamp, double value) {
+        for (var key : keyframes) {
+            if (key.getTime() == timestamp) {
+                key.setValue(value);
+                return key;
+            }
+        }
+        var key = new Keyframe(timestamp, value);
+        keyframes.add(key);
+        return key;
+    }
+
+    /**
+     * Remove all keyframes with duplicate timestamps.
+     * All keyframe references should be considered invalid if this method returns true.
+     * @return If any duplicates were found.
+     */
+    public boolean removeDuplicates() {
+        IntSet occupied = new IntAVLTreeSet();
+        boolean success = false;
+
+        var iter = keyframes.iterator();
+        while (iter.hasNext()) {
+            Keyframe key = iter.next();
+
+            if (occupied.contains(key.getTime())) {
+                iter.remove();
+                success = true;
+            } else {
+                occupied.add(key.getTime());
+            }
+        }
+        return success;
     }
 
     /**
@@ -34,13 +80,13 @@ public class KeyChannel {
      * @return an array such that <code>result[newIndex] = oldIndex</code> for every keyframe in the channel.
      */
     public int[] sortKeys() {
-        int[] sortedIndices = IntStream.range(0, keys.size()).boxed()
-                .sorted(Comparator.comparing(keys::get))
+        int[] sortedIndices = IntStream.range(0, keyframes.size()).boxed()
+                .sorted(Comparator.comparing(keyframes::get))
                 .mapToInt(Integer::intValue).toArray();
 
-        Keyframe[] prev = keys.toArray(Keyframe[]::new);
+        Keyframe[] prev = keyframes.toArray(Keyframe[]::new);
         for (int i = 0; i < prev.length; i++) {
-            keys.set(i, prev[sortedIndices[i]]);
+            keyframes.set(i, prev[sortedIndices[i]]);
         }
 
         return sortedIndices;
@@ -54,7 +100,7 @@ public class KeyChannel {
     public double sample(int timestamp) {
         // Because of how selections are handled, we need to ensure the keyframe list is sorted each frame (boo)
         // Optimizations in the dope sheet should ensure that they're usually pre-sorted, so we just need to check.
-        Keyframe[] keys = this.keys.toArray(Keyframe[]::new);
+        Keyframe[] keys = this.keyframes.toArray(Keyframe[]::new);
         if (keys.length == 0)
             return 0;
         else if (keys.length == 1)
@@ -131,8 +177,8 @@ public class KeyChannel {
      * Make a deep copy of this channel.
      */
     public KeyChannel copy() {
-        List<Keyframe> copied = new ArrayList<>(keys.size());
-        for (Keyframe key : keys) {
+        List<Keyframe> copied = new ArrayList<>(keyframes.size());
+        for (Keyframe key : keyframes) {
             copied.add(new Keyframe(key));
         }
         return new KeyChannel(copied);
@@ -155,7 +201,7 @@ class KeyChannelSerializer implements JsonSerializer<KeyChannel>, JsonDeserializ
 
     @Override
     public JsonElement serialize(KeyChannel src, Type typeOfSrc, JsonSerializationContext context) {
-        return context.serialize(src.getKeys());
+        return context.serialize(src.getKeyframes());
     }
 }
 
