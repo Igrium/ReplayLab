@@ -58,8 +58,15 @@ public class DopeSheet {
      */
     public static final int NO_TICKS = 64;
 
-    public static final int DRAW_IN_POINT = 128;
-    public static final int DRAW_OUT_POINT = 256;
+    /**
+     * If unset, merge any keyframes with duplicate timestamps while dragging.
+     */
+    public static final int ALLOW_DUPLICATE_KEYS = 128;
+
+    public static final int DRAW_IN_POINT = 256;
+    public static final int DRAW_OUT_POINT = 512;
+
+
 
     private static final int TICKS_PER_SECOND = 1000;
 
@@ -215,13 +222,26 @@ public class DopeSheet {
                     if (key != null) {
                         int tPrime = entry.getValue() + dx;
                         if (hasFlag(SNAP_KEYS, flags)) {
-                            tPrime = snapTargetMs * Math.round((float) tPrime / snapTargetMs);
+                            int dragSnapTarget = snapTargetMs / 2;
+                            tPrime = dragSnapTarget * Math.round((float) tPrime / dragSnapTarget);
                         }
                         key.setTime(tPrime);
                     }
                 }
             } else {
+                // Drag dropped
+
+                if (!hasFlag(ALLOW_DUPLICATE_KEYS, flags)) {
+                    // Merge duplicates
+                    keyDragOffsets.keySet().stream()
+                            .map(scene::getChannel)
+                            .filter(Objects::nonNull)
+                            .distinct()
+                            .forEach(KeyChannel::removeDuplicates);
+                }
+
                 updatedObjects.addAll(keyDragOffsets.keySet().stream().map(KeyReference::object).toList());
+
                 keyDragOffsets.clear();
             }
         } else if (wantStartDragging && !hasFlag(READONLY, flags)) {

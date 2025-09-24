@@ -3,8 +3,8 @@ package com.igrium.replaylab.ui;
 
 import com.igrium.craftui.app.DockSpaceApp;
 import com.igrium.replaylab.operator.InsertKeyframeOperator;
-import com.igrium.replaylab.operator.ModifyObjectOperator;
-import com.igrium.replaylab.operator.ModifyObjectsOperator;
+import com.igrium.replaylab.operator.CommitObjectUpdateOperator;
+import com.igrium.replaylab.operator.RemoveKeyframesOperator;
 import com.igrium.replaylab.scene.ReplayScene;
 import com.igrium.replaylab.scene.obj.ReplayObject;
 import com.igrium.replaylab.ui.util.ExceptionPopup;
@@ -12,6 +12,7 @@ import com.replaymod.replay.ReplayHandler;
 import com.replaymod.replay.ReplayModReplay;
 import imgui.ImGui;
 import imgui.flag.ImGuiCol;
+import imgui.flag.ImGuiFocusedFlags;
 import imgui.flag.ImGuiStyleVar;
 import imgui.flag.ImGuiWindowFlags;
 import lombok.Getter;
@@ -119,6 +120,7 @@ public class ReplayLabUI extends DockSpaceApp {
         drawDopeSheet();
         drawOutliner();
         drawInspector();
+        drawSceneProperties();
 
         if (!firstFrame) {
             exceptionPopup.render();
@@ -166,11 +168,11 @@ public class ReplayLabUI extends DockSpaceApp {
         }
 
         if (isCtrlPressed() && ImGui.isKeyPressed(GLFW.GLFW_KEY_Z)) {
-            editorState.getScene().undo();
+            editorState.undo();
         }
 
         if (isCtrlPressed() && io.getKeyShift() && ImGui.isKeyPressed(GLFW.GLFW_KEY_Z)) {
-            editorState.getScene().redo();
+            editorState.redo();
         }
 
         if (ImGui.isKeyPressed(GLFW.GLFW_KEY_I)) {
@@ -193,7 +195,7 @@ public class ReplayLabUI extends DockSpaceApp {
     }
 
     // Testing variables
-    private final Set<ReplayScene.KeyReference> selected = new HashSet<>();
+    private final Set<ReplayScene.KeyReference> selectedKeys = new HashSet<>();
 
     private void drawPlaybackControls() {
         ImGui.pushFont(PlaybackIcons.playbackIcons());
@@ -249,10 +251,16 @@ public class ReplayLabUI extends DockSpaceApp {
 
     private void drawDopeSheet() {
         if (ImGui.begin("Dope Sheet")) {
-            dopeSheet.drawDopeSheet(editorState.getScene(), selected, 20 * 1000, editorState.getPlayheadRef(), DopeSheet.SNAP_KEYS);
+            dopeSheet.drawDopeSheet(editorState.getScene(), selectedKeys, 20 * 1000, editorState.getPlayheadRef(), DopeSheet.SNAP_KEYS);
             if (!dopeSheet.getUpdatedObjects().isEmpty()) {
-                editorState.getScene().applyOperator(new ModifyObjectsOperator(dopeSheet.getUpdatedObjects()));
+                editorState.getScene().applyOperator(new CommitObjectUpdateOperator(dopeSheet.getUpdatedObjects()));
                 editorState.saveSceneAsync();
+            }
+
+            if (ImGui.isWindowFocused(ImGuiFocusedFlags.ChildWindows)
+                    && !ImGui.getIO().getWantTextInput()
+                    && ImGui.isKeyPressed(GLFW.GLFW_KEY_DELETE)) {
+                editorState.applyOperator(new RemoveKeyframesOperator(selectedKeys));
             }
         }
         ImGui.end();
@@ -282,8 +290,17 @@ public class ReplayLabUI extends DockSpaceApp {
                 ImGui.text("No selected object.");
             } else {
                 if (selected.drawPropertiesPanel()) {
-                    editorState.applyOperator(new ModifyObjectOperator(selId));
+                    editorState.applyOperator(new CommitObjectUpdateOperator(selId));
                 }
+            }
+        }
+        ImGui.end();
+    }
+
+    private void drawSceneProperties() {
+        if (ImGui.begin("Scene Properties")) {
+            if (editorState.getScene().getSceneProps().drawPropertiesPanel()) {
+                editorState.applyOperator(new CommitObjectUpdateOperator(ReplayScene.SCENE_PROPS));
             }
         }
         ImGui.end();

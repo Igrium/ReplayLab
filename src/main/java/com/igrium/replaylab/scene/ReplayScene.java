@@ -99,6 +99,15 @@ public class ReplayScene {
         return sceneTimestamp + getStartTime();
     }
 
+    public @Nullable KeyChannel getChannel(String object, String channel) {
+        ReplayObject obj = getObject(object);
+        return obj != null ? obj.getChannels().get(channel) : null;
+    }
+
+    public @Nullable KeyChannel getChannel(KeyReference ref) {
+        return getChannel(ref.object(), ref.channel());
+    }
+
     public @Nullable Keyframe getKeyframe(String object, String channel, int keyframe) {
         if (keyframe < 0) return null;
 

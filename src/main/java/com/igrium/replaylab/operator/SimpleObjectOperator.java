@@ -3,7 +3,6 @@ package com.igrium.replaylab.operator;
 import com.igrium.replaylab.scene.ReplayScene;
 import com.igrium.replaylab.scene.obj.ReplayObject;
 import com.igrium.replaylab.scene.obj.SerializedReplayObject;
-import com.igrium.replaylab.ui.ReplayLabEditorState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -33,7 +32,11 @@ public abstract class SimpleObjectOperator implements ReplayOperator {
             return false;
         }
 
-        pre = scene.saveObject(objectId);
+        pre = scene.getSavedObject(objectId);
+        if (pre == null) {
+            LOGGER.warn("No saved object for {}", objectId);
+            pre = scene.saveObject(objectId);
+        }
         if (execute(scene, obj)) {
             post = scene.saveObject(objectId);
             return true;

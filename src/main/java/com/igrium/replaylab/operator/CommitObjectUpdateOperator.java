@@ -5,16 +5,22 @@ import com.igrium.replaylab.scene.obj.SerializedReplayObject;
 
 import java.util.*;
 
-public class ModifyObjectsOperator implements ReplayOperator {
-    private final List<String> ids;
+/**
+ * Called after an object has been updated from the UI to add said operation to the undo stack.
+ */
+public class CommitObjectUpdateOperator implements ReplayOperator {
+    private final String[] ids;
 
     private Map<String, SerializedReplayObject> pre;
     private Map<String, SerializedReplayObject> post;
 
-    public ModifyObjectsOperator(Collection<? extends String> ids) {
-        this.ids = List.copyOf(ids);
+    public CommitObjectUpdateOperator(Collection<? extends String> ids) {
+        this.ids = ids.toArray(String[]::new);
     }
 
+    public CommitObjectUpdateOperator(String... ids) {
+        this.ids = ids.clone();
+    }
 
     @Override
     public boolean execute(ReplayScene scene) {

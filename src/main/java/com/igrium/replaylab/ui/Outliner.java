@@ -14,6 +14,9 @@ public class Outliner {
             ImGui.setNextItemWidth(ImGui.getContentRegionAvailX());
             if (ImGui.beginListBox("##objects")) {
                 for (String id : editorState.getScene().getObjects().keySet()) {
+                    if (id.equals("scene")) {
+                        continue; // Don't show the scene object
+                    }
                     boolean isSelected = id.equals(editorState.getSelectedObject());
                     if (ImGui.selectable(id, isSelected)) {
                         editorState.setSelectedObject(id);
