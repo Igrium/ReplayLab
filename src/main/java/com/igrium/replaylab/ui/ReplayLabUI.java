@@ -17,6 +17,8 @@ import imgui.flag.ImGuiStyleVar;
 import imgui.flag.ImGuiWindowFlags;
 import lombok.Getter;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.util.Identifier;
+import org.jetbrains.annotations.Nullable;
 import org.lwjgl.glfw.GLFW;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,6 +33,8 @@ import java.util.Set;
 public class ReplayLabUI extends DockSpaceApp {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ReplayLabUI.class);
+
+    private static final Identifier LAYOUT = Identifier.of("replaylab:replaylab");
 
     private static ReplayHandler getReplayHandler() {
         return ReplayModReplay.instance.getReplayHandler();
@@ -68,12 +72,7 @@ public class ReplayLabUI extends DockSpaceApp {
      */
     public void afterOpen() {
         firstFrame = true;
-        var scenes = editorState.refreshSceneListSync();
-        if (!scenes.isEmpty()) {
-            editorState.loadScene(scenes.getFirst());
-        } else {
-            editorState.setSceneName("Scene");
-        }
+        editorState.afterOpen();
     }
 
     @Override
@@ -312,6 +311,12 @@ public class ReplayLabUI extends DockSpaceApp {
         if (bounds == null) return null; // Shouldn't happen
 
         return new ViewportBounds(bounds.x(), bounds.y() + (int) viewportFooterHeight, bounds.width(), bounds.height() - (int) viewportFooterHeight);
+    }
+
+
+    @Override
+    protected @Nullable Identifier getLayoutPreset() {
+        return LAYOUT;
     }
 
     @Override

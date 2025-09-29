@@ -74,7 +74,7 @@ public class DopeSheet {
      * The number of pixels per tick
      */
     @Getter
-    private float zoomFactor = 1;
+    private float zoomFactor = 0.1f;
 
     public void setZoomFactor(float zoomFactor) {
         if (zoomFactor <= 0) {

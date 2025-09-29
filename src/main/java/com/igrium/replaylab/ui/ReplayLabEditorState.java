@@ -11,6 +11,7 @@ import imgui.type.ImInt;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.Setter;
+import net.minecraft.client.MinecraftClient;
 import net.minecraft.util.Util;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.jetbrains.annotations.NotNull;
@@ -81,6 +82,21 @@ public class ReplayLabEditorState {
     public ReplayLabEditorState() {
         scene.setExceptionCallback(this::onException);
     }
+
+    public void afterOpen() {
+        var scenes = refreshSceneListSync();
+        if (!scenes.isEmpty()) {
+            loadScene(scenes.getFirst());
+        } else {
+            setSceneName("Scene");
+        }
+
+        // Delay for a tick to avoid apparent deadlock
+        MinecraftClient.getInstance().send(() -> {
+            startPlaying(0);
+        });
+    }
+
 
     public List<String> refreshSceneListSync() {
         var handler = getReplayHandler();
@@ -170,6 +186,9 @@ public class ReplayLabEditorState {
 
         int replayTime = scene.sceneToReplayTime(getPlayhead());
         replayTime = Math.min(replayTime, getReplayHandlerOrThrow().getReplayDuration());
+        if (replayTime < 0)
+            replayTime = 0;
+
         getReplayHandlerOrThrow().doJump(replayTime, true);
 
         scene.applyToGame(getPlayhead());
