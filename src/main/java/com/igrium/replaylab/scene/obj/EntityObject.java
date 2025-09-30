@@ -12,7 +12,7 @@ import org.joml.Vector3d;
 /**
  * A replay object that spawns a virtual "entity" in the scene. Used for cameras and display elements
  */
-public abstract class EntityObject<T extends Entity> extends ReplayObject3D {
+public abstract class EntityObject<T extends Entity> extends ReplayObject3D implements CameraProvider {
     public EntityObject(ReplayObjectType<?> type, ReplayScene scene) {
         super(type, scene);
     }
@@ -32,6 +32,18 @@ public abstract class EntityObject<T extends Entity> extends ReplayObject3D {
             entity = createEntity(world);
         }
         return entity;
+    }
+
+    /**
+     * Get or create the entity instance using the client's current world.
+     * @return The entity, or <code>null</code> if the client's not in a world.
+     */
+    public final @Nullable T getOrCreateEntity() {
+        ClientWorld world = MinecraftClient.getInstance().world;
+        if (world == null)
+            return null;
+
+        return getOrCreateEntity(world);
     }
 
 
@@ -110,4 +122,9 @@ public abstract class EntityObject<T extends Entity> extends ReplayObject3D {
      * @return The new entity instance
      */
     protected abstract T createEntity(ClientWorld world);
+
+    @Override
+    public @Nullable Entity getCameraEntity() {
+        return getOrCreateEntity();
+    }
 }

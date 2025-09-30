@@ -1,6 +1,7 @@
 package com.igrium.replaylab.scene.obj;
 
 import com.igrium.replaylab.scene.ReplayScene;
+import net.minecraft.util.Identifier;
 
 
 public class ReplayObjectType<T extends ReplayObject> {
@@ -26,4 +27,8 @@ public class ReplayObjectType<T extends ReplayObject> {
         return id;
     }
 
+    public String getTranslationKey() {
+        String id = getId();
+        return "replayobject." + id;
+    }
 }

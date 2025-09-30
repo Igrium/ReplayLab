@@ -18,6 +18,7 @@ import imgui.flag.ImGuiWindowFlags;
 import lombok.Getter;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.util.Identifier;
+import net.minecraft.util.Language;
 import org.jetbrains.annotations.Nullable;
 import org.lwjgl.glfw.GLFW;
 import org.slf4j.Logger;
@@ -299,6 +300,9 @@ public class ReplayLabUI extends DockSpaceApp {
             if (selected == null) {
                 ImGui.text("No selected object.");
             } else {
+                String typeName = Language.getInstance().get(selected.getType().getTranslationKey());
+                ImGui.text(selId + " (" + typeName + ")");
+                ImGui.separator();
                 if (selected.drawPropertiesPanel()) {
                     editorState.applyOperator(new CommitObjectUpdateOperator(selId));
                 }

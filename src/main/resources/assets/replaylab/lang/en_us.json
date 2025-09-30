@@ -1,3 +1,7 @@
 {
-  "replaylab.gui.viewer.openReplayLab": "Open in ReplayLab"
+  "replaylab.gui.viewer.openReplayLab": "Open in ReplayLab",
+
+  "replayobject.dummy": "Dummy",
+  "replayobject.blockDisplay": "Block Display",
+  "replayobject.camera": "Camera"
 }
