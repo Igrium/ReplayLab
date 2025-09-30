@@ -12,6 +12,9 @@
   "entrypoints": {
     "main": [
       "com.igrium.replaylab.ReplayLab"
+    ],
+    "client": [
+      "com.igrium.replaylab.ReplayLab"
     ]
   },
   "mixins": [
