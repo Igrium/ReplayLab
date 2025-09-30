@@ -46,6 +46,7 @@ public class ReplayLabUI extends DockSpaceApp {
     private final DopeSheet dopeSheet = new DopeSheet();
     private final SceneBrowser sceneBrowser = new SceneBrowser();
     private boolean wantsJumpTime;
+    private boolean wantsApplyToGame;
 
     @Getter
     private final ExceptionPopup exceptionPopup = new ExceptionPopup();
@@ -82,6 +83,9 @@ public class ReplayLabUI extends DockSpaceApp {
         if (wantsJumpTime) {
             editorState.doTimeJump();
             wantsJumpTime = false;
+        } else if (wantsApplyToGame) {
+            editorState.applyToGame();
+            wantsApplyToGame = false;
         }
 
         editorState.onPreRender();
@@ -256,6 +260,11 @@ public class ReplayLabUI extends DockSpaceApp {
                 editorState.saveSceneAsync();
             }
 
+            // Always apply if we're dragging
+            if (!dopeSheet.getKeyDragOffsets().isEmpty()) {
+                wantsApplyToGame = true;
+            }
+
             if (ImGui.isWindowFocused(ImGuiFocusedFlags.ChildWindows)
                     && !ImGui.getIO().getWantTextInput()
                     && ImGui.isKeyPressed(GLFW.GLFW_KEY_DELETE)) {
@@ -269,6 +278,8 @@ public class ReplayLabUI extends DockSpaceApp {
         if (dopeSheet.isFinishedDraggingPlayhead() ||
                 (dopeSheet.isDraggingPlayhead() && replayTime >= getReplayHandler().getReplaySender().currentTimeStamp())) {
             wantsJumpTime = true;
+        } else if (dopeSheet.isDraggingPlayhead()) {
+            wantsApplyToGame = true;
         }
 
     }

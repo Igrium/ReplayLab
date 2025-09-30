@@ -5,6 +5,7 @@ import com.google.gson.JsonDeserializationContext;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonSerializationContext;
 import com.igrium.replaylab.scene.ReplayScene;
+import imgui.ImGui;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.Setter;
@@ -19,6 +20,18 @@ import java.util.Set;
  * An object with a 3-dimensional transform
  */
 public abstract class ReplayObject3D extends ReplayObject implements TransformProvider {
+
+    private static final String POS_X = "posX";
+    private static final String POS_Y = "posY";
+    private static final String POS_Z = "posZ";
+
+    private static final String ROT_X = "rotX";
+    private static final String ROT_Y = "rotY";
+    private static final String ROT_Z = "rotZ";
+
+    private static final String SCALE_X = "scaleX";
+    private static final String SCALE_Y = "scaleY";
+    private static final String SCALE_Z = "scaleZ";
 
     /**
      * The global position of this object (mutable).
@@ -63,17 +76,17 @@ public abstract class ReplayObject3D extends ReplayObject implements TransformPr
     public ReplayObject3D(ReplayObjectType<?> type, ReplayScene scene) {
         super(type, scene);
 
-        addProperty("posX",  position::x, v -> position.x = v);
-        addProperty("posY",  position::y, v -> position.y = v);
-        addProperty("posZ",  position::z, v -> position.z = v);
+        addProperty(POS_X,  position::x, v -> position.x = v);
+        addProperty(POS_Y,  position::y, v -> position.y = v);
+        addProperty(POS_Z,  position::z, v -> position.z = v);
 
-        addProperty("rotX",  rotation::x, v -> rotation.x = v);
-        addProperty("rotY",  rotation::y, v -> rotation.y = v);
-        addProperty("rotZ",  rotation::z, v -> rotation.z = v);
+        addProperty(ROT_X,  rotation::x, v -> rotation.x = v);
+        addProperty(ROT_Y,  rotation::y, v -> rotation.y = v);
+        addProperty(ROT_Z,  rotation::z, v -> rotation.z = v);
 
-        addProperty("scaleX", scale::x,    v -> scale.x = v);
-        addProperty("scaleY", scale::y,    v -> scale.y = v);
-        addProperty("scaleZ", scale::z,    v -> scale.z = v);
+        addProperty(SCALE_X, scale::x,    v -> scale.x = v);
+        addProperty(SCALE_Y, scale::y,    v -> scale.y = v);
+        addProperty(SCALE_Z, scale::z,    v -> scale.z = v);
     }
 
     protected abstract boolean hasPosition();
@@ -186,5 +199,74 @@ public abstract class ReplayObject3D extends ReplayObject implements TransformPr
         dest.y = arr.get(1).getAsDouble();
         dest.z = arr.get(2).getAsDouble();
     }
+
+    public void addPositionKeyframe(int timestamp, Vector3dc value) {
+        getOrCreateChannel(POS_X).addKeyframe(timestamp, value.x());
+        getOrCreateChannel(POS_Y).addKeyframe(timestamp, value.y());
+        getOrCreateChannel(POS_Z).addKeyframe(timestamp, value.z());
+    }
+
+    public void addRotationKeyframe(int timestamp, Vector3dc value) {
+        getOrCreateChannel(ROT_X).addKeyframe(timestamp, value.x());
+        getOrCreateChannel(ROT_Y).addKeyframe(timestamp, value.y());
+        getOrCreateChannel(ROT_Z).addKeyframe(timestamp, value.z());
+    }
+
+    public void addScaleKeyframe(int timestamp, Vector3dc value) {
+        getOrCreateChannel(SCALE_X).addKeyframe(timestamp, value.x());
+        getOrCreateChannel(SCALE_Y).addKeyframe(timestamp, value.y());
+        getOrCreateChannel(SCALE_Z).addKeyframe(timestamp, value.z());
+    }
+
+    @Override
+    public boolean insertKey(int timestamp) {
+        boolean success = false;
+        if (hasPosition()) {
+            addPositionKeyframe(timestamp, getPosition());
+            success = true;
+        }
+
+        if (hasRotation()) {
+            addRotationKeyframe(timestamp, getRotation());
+            success = true;
+        }
+
+        if (hasScale()) {
+            addScaleKeyframe(timestamp, getScale());
+            success = true;
+        }
+
+        return success;
+    }
+
+    @Override
+    public boolean drawPropertiesPanel() {
+        boolean modified = hasPosition() && inputVec3("Position", position);
+
+        if (hasRotation() && inputVec3("Rotation", rotation)) {
+            modified = true;
+        }
+
+        if (hasScale() && inputVec3("Scale", scale)) {
+            modified = true;
+        }
+
+        return modified;
+    }
+
+    private static final float[] vecCache = new float[3];
+
+    private static boolean inputVec3(String label, Vector3d vec){
+        vecCache[0] = (float) vec.x;
+        vecCache[1] = (float) vec.y;
+        vecCache[2] = (float) vec.z;
+
+        if (ImGui.inputFloat3(label, vecCache)) {
+            vec.set(vecCache);
+            return true;
+        }
+        return false;
+    }
+
 
 }

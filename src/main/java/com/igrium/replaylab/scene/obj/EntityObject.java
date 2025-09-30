@@ -73,13 +73,21 @@ public abstract class EntityObject<T extends Entity> extends ReplayObject3D {
     protected void applyEntityTransform(T entity, int timestamp) {
         getCombinedTransform(globalPos, globalRot, null);
         entity.setPos(globalPos.x(), globalPos.y(), globalPos.z());
+        entity.prevX = globalPos.x;
+        entity.prevY = globalPos.y;
+        entity.prevZ = globalPos.z;
+
         // TODO: double-check that this transform setup is compatible with entities
         entity.setYaw((float) globalRot.y());
         entity.setPitch((float) globalRot.x());
+
+        entity.prevYaw = (float) globalRot.y;
+        entity.prevPitch = (float) globalRot.x;
+
     }
 
     /**
-     * Create a new instance of the entity.
+     * Create a new instance of the entity. <em>Make sure to add it to the world!</em>
      *
      * @param world World to put the entity in
      * @return The new entity instance

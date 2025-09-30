@@ -191,7 +191,16 @@ public class ReplayLabEditorState {
 
         getReplayHandlerOrThrow().doJump(replayTime, true);
 
-        scene.applyToGame(getPlayhead());
+        // Delay scene update by one frame so it gets applied on the new world
+        MinecraftClient.getInstance().send(this::applyToGame);
+
+    }
+
+    /**
+     * Apply all animated properties to the game.
+     */
+    public void applyToGame() {
+        getScene().applyToGame(getPlayhead());
     }
 
     public boolean isPlaying() {
