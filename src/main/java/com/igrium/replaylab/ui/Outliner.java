@@ -31,7 +31,7 @@ public class Outliner {
 
     private static void addObject(ReplayLabEditorState editorState) {
         var scene = editorState.getScene();
-        var obj = ReplayObjects.BLOCK_DISPLAY.create(scene);
-        scene.addObject("blockDisplay", obj);
+        var obj = ReplayObjects.CAMERA.create(scene);
+        scene.addObject("camera", obj);
     }
 }

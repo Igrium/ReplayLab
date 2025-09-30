@@ -4,6 +4,7 @@ import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.igrium.replaylab.scene.ReplayScene;
 import com.igrium.replaylab.scene.obj.objs.BlockDisplayObject;
+import com.igrium.replaylab.scene.obj.objs.CameraObject;
 import com.igrium.replaylab.scene.obj.objs.DummyReplayObject;
 import com.igrium.replaylab.scene.obj.objs.ScenePropsObject;
 import org.slf4j.Logger;
@@ -16,8 +17,10 @@ public class ReplayObjects {
     public static final BiMap<String, ReplayObjectType<?>> REGISTRY = HashBiMap.create();
 
     public static final ReplayObjectType<ScenePropsObject> SCENE_PROPS = register("sceneProps", ScenePropsObject::new);
+
     public static final ReplayObjectType<DummyReplayObject> DUMMY = register("dummy", DummyReplayObject::new);
     public static final ReplayObjectType<BlockDisplayObject> BLOCK_DISPLAY = register("blockDisplay", BlockDisplayObject::new);
+    public static final ReplayObjectType<CameraObject> CAMERA = register("camera", CameraObject::new);
 
     /**
      * Create a new replay object from a type ID.

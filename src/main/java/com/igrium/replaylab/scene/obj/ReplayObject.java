@@ -58,6 +58,16 @@ public abstract class ReplayObject {
     }
 
     /**
+     * Called when the object is added to the scene
+     */
+    public void onAdded() {}
+
+    /**
+     * Called when the object is removed from the scene
+     */
+    public void onRemoved() {}
+
+    /**
      * Called when the user has pressed the "insert keyframe" keybind with this object selected.
      * @param timestamp The current playback timestamp.
      * @return If the keyframe was created and an undo step should be created.

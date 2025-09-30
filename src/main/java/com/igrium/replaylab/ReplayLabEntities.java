@@ -1,6 +1,6 @@
 package com.igrium.replaylab;
 
-import com.igrium.replaylab.camera.AnimCameraEntity;
+import com.igrium.replaylab.camera.AnimatedCameraEntity;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.SpawnGroup;
@@ -11,8 +11,8 @@ import net.minecraft.registry.RegistryKeys;
 import net.minecraft.util.Identifier;
 
 public class ReplayLabEntities {
-    public static final EntityType<AnimCameraEntity> CAMERA = registerEntity(
-            "replaylab:camera", EntityType.Builder.create(AnimCameraEntity::new, SpawnGroup.MISC)
+    public static final EntityType<AnimatedCameraEntity> CAMERA = registerEntity(
+            "replaylab:camera", EntityType.Builder.create(AnimatedCameraEntity::new, SpawnGroup.MISC)
                     .dimensions(.75f, .75f)
                     .eyeHeight(0)
                     .disableSummon());

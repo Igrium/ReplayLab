@@ -16,12 +16,12 @@ import net.minecraft.world.World;
  * A camera entity designed to be used for fully-animated cameras (not entity spectating)
  * In ReplayLab, RM's CameraEntity has been relegated to the work camera only/
  */
-public class AnimCameraEntity extends Entity implements RollProvider, FovProvider {
+public class AnimatedCameraEntity extends Entity implements RollProvider, FovProvider {
 
     private double fov;
     private float roll;
 
-    public AnimCameraEntity(EntityType<?> type, World world) {
+    public AnimatedCameraEntity(EntityType<?> type, World world) {
         super(type, world);
         if (!world.isClient) {
             throw new IllegalStateException("Animated camera should never be spawned on the server!");

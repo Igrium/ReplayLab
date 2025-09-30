@@ -60,6 +60,23 @@ public abstract class EntityObject<T extends Entity> extends ReplayObject3D {
         applyEntityTransform(ent, timestamp);
     }
 
+    @Override
+    public void onAdded() {
+        var world = MinecraftClient.getInstance().world;
+        if (world == null)
+            return;
+
+        getOrCreateEntity(world);
+    }
+
+    @Override
+    public void onRemoved() {
+        var ent = getEntity();
+        if (ent != null) {
+            ent.remove(Entity.RemovalReason.KILLED);
+        }
+    }
+
     // Cache so we're not re-allocating every frame
     private final Vector3d globalPos = new Vector3d();
     private final Vector3d globalRot = new Vector3d();

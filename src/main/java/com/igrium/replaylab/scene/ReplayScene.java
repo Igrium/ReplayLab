@@ -192,11 +192,13 @@ public class ReplayScene {
     }
 
     private void onAddObject(String id, ReplayObject obj) {
+        obj.onAdded();
         SerializedReplayObject s = obj.save();
         savedObjects.put(id, s);
     }
 
     private void onRemoveObject(String id, ReplayObject obj) {
+        obj.onRemoved();
         savedObjects.remove(id);
     }
 
