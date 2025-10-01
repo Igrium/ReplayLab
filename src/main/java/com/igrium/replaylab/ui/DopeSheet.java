@@ -248,18 +248,28 @@ public class DopeSheet {
             startDragging(selected, scene);
         }
 
-        // Handle scroll wheel zoom
+
         float mWheel = ImGui.getIO().getMouseWheel();
         if (mWheel != 0 && ImGui.isWindowHovered()) {
             ImGui.setCursorPosX(headerCursorX);
+
+            float oldScroll = ImGui.getScrollX();
 
             float factor = (float) Math.pow(2, mWheel * .125f);
             float newZoom = zoomFactor * factor;
             nextZoomFactor = newZoom;
             mWheel = 0;
 
-            // TODO: make this center around the playhead rather than the left of the screen
-            ImGui.setScrollX(ImGui.getScrollX() * newZoom / zoomFactor);
+            if (playhead != null) {
+                float playMs = (float) playhead.get();
+                float playPxOld = playMs * zoomFactor;
+                float playPxNew = playMs * newZoom;
+
+                float newScroll = oldScroll + (playPxNew - playPxOld);
+                ImGui.setScrollX(newScroll);
+            } else {
+                ImGui.setScrollX(oldScroll * newZoom / zoomFactor);
+            }
 
             // TODO: SetItemKeyOwner once it's added to the bindings
         }
