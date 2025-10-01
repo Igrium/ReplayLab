@@ -17,9 +17,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayDeque;
+import java.util.Collection;
 import java.util.Deque;
 import java.util.Map;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 
 /**
  * Keeps track of all the runtime stuff regarding a scene.
@@ -271,7 +273,7 @@ public class ReplayScene {
         if (result) {
             undoStack.push(operator);
             redoStack.clear();
-            
+
         }
         return result;
     }
@@ -324,12 +326,28 @@ public class ReplayScene {
 
     /**
      * Sample and apply all animated values from the scene into the game
+     *
      * @param timestamp Timestamp to apply.
      * @apiNote Does not apply game packets, only directly animated values like camera moves.
      */
     public void applyToGame(int timestamp) {
+        applyToGame(e -> true, timestamp);
+    }
+
+    /**
+     * Apply all animated values from the scene into the game.
+     *
+     * @param shouldSample <code>true</code> if a given object should be sampled as it's applied.
+     * @param timestamp    Timestamp to apply.
+     * @apiNote Does not apply game packets, only directly animated values like camera moves.
+     */
+    public void applyToGame(Predicate<? super ReplayObject> shouldSample, int timestamp) {
         for (var obj : getObjects().values()) {
-            obj.sampleAndApply(timestamp);
+            if (shouldSample.test(obj)) {
+                obj.sampleAndApply(timestamp);
+            } else {
+                obj.apply(timestamp);
+            }
         }
     }
 

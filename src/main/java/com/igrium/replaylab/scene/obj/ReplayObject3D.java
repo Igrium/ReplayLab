@@ -239,29 +239,62 @@ public abstract class ReplayObject3D extends ReplayObject implements TransformPr
         return success;
     }
 
+//    boolean wasDragging = false;
+    boolean startedDragging = false;
+
     @Override
     public PropertiesPanelState drawPropertiesPanel() {
-        boolean modified = hasPosition() && inputVec3("Position", position);
+        boolean modified = hasPosition() && inputVec3("Position", position, .125f);
 
-        if (hasRotation() && inputVec3("Rotation", rotation)) {
+        if (hasRotation() && inputVec3("Rotation", rotation, 1)) {
             modified = true;
         }
 
-        if (hasScale() && inputVec3("Scale", scale)) {
+        if (hasScale() && inputVec3("Scale", scale, .25f)) {
             modified = true;
         }
 
-        return modified ? PropertiesPanelState.COMMIT : PropertiesPanelState.NONE;
+        if (modified || (startedDragging && ImGui.isMouseDown(0))) {
+            startedDragging = true;
+            return PropertiesPanelState.DRAGGING;
+        } else if (startedDragging) {
+            startedDragging = false;
+            return PropertiesPanelState.COMMIT;
+        } else {
+            return PropertiesPanelState.NONE;
+        }
+
+//
+//        if (modified) {
+//            wasDragging = true;
+//            return PropertiesPanelState.DRAGGING;
+//        } else if (wasDragging) {
+//            wasDragging = false;
+//            return PropertiesPanelState.COMMIT;
+//        } else {
+//            return PropertiesPanelState.NONE;
+//        }
+
+//        if (modified) {
+//            wasDragging = true;
+//        }
+//        if (!modified && wasDragging) {
+//            return PropertiesPanelState.DRAGGING;
+//        } else if (modified) {
+//            return PropertiesPanelState.COMMIT;
+//        } else {
+//            return PropertiesPanelState.NONE;
+//        }
     }
 
     private static final float[] vecCache = new float[3];
 
-    private static boolean inputVec3(String label, Vector3d vec){
+    private static boolean inputVec3(String label, Vector3d vec, float speed){
         vecCache[0] = (float) vec.x;
         vecCache[1] = (float) vec.y;
         vecCache[2] = (float) vec.z;
 
-        if (ImGui.inputFloat3(label, vecCache)) {
+        if (ImGui.dragFloat3(label, vecCache, speed)) {
             vec.set(vecCache);
             return true;
         }

@@ -26,10 +26,12 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 
 /**
  * Manages replay lab editor state. Implemented to try to separate editor global logic from UI for code cleanliness.
@@ -313,10 +315,18 @@ public class ReplayLabEditorState {
     // ===== Game Integration =====
 
     /**
-     * Apply all animated properties to the game.
+     * Sample and all animated properties to the game.
      */
     public void applyToGame() {
         getScene().applyToGame(getPlayhead());
+    }
+
+    /**
+     * Apply all animated properties to the game.
+     * @param shouldSample <code>true</code> if a given object should be sampled as it's applied.
+     */
+    public void applyToGame(Predicate<? super ReplayObject> shouldSample) {
+        getScene().applyToGame(shouldSample, getPlayhead());
     }
 
     private void spectateCamera() {
@@ -347,9 +357,15 @@ public class ReplayLabEditorState {
     // ===== Operators & Undo/Redo =====
 
     public boolean applyOperator(ReplayOperator operator) {
+        return applyOperator(operator, true);
+    }
+
+    public boolean applyOperator(ReplayOperator operator, boolean applyToGame) {
         if (scene.applyOperator(operator)) {
             saveSceneAsync();
-            applyToGame();
+            if (applyToGame) {
+                applyToGame();
+            }
             return true;
         }
         return false;

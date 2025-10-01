@@ -8,6 +8,7 @@ import com.igrium.replaylab.scene.key.Keyframe;
 import com.igrium.replaylab.scene.obj.ReplayObject;
 import com.igrium.replaylab.scene.obj.ReplayObjectType;
 import imgui.ImGui;
+import imgui.flag.ImGuiDataType;
 import imgui.type.ImDouble;
 import lombok.Getter;
 import lombok.Setter;
@@ -36,7 +37,7 @@ public class DummyReplayObject extends ReplayObject {
     @Override
     protected void readJson(JsonObject json, JsonDeserializationContext context) {
         if (json.has("dummyValue")) {
-            this.dummyValue = json.getAsJsonPrimitive("dummyValue").getAsDouble();
+            setDummyValue(json.getAsJsonPrimitive("dummyValue").getAsDouble());
         }
     }
 
@@ -47,12 +48,15 @@ public class DummyReplayObject extends ReplayObject {
         boolean modified = false;
 
         dummyValInput.set(dummyValue);
-        if (ImGui.inputDouble("Dummy Value", dummyValInput)) {
+        if (ImGui.dragScalar("Dummy Value", ImGuiDataType.Double, dummyValInput,1)) {
             modified = true;
         }
+//        if (ImGui.inputDouble("Dummy Value", dummyValInput)) {
+//            modified = true;
+//        }
         dummyValue = dummyValInput.get();
 
-        return modified ? PropertiesPanelState.COMMIT : PropertiesPanelState.NONE;
+        return modified ? PropertiesPanelState.DRAGGING : PropertiesPanelState.NONE;
     }
 
     @Override

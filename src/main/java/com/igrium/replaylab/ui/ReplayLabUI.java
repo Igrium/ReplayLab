@@ -337,10 +337,11 @@ public class ReplayLabUI extends DockSpaceApp {
         ReplayObject.PropertiesPanelState state = object.drawPropertiesPanel();
         String objId;
         if (state == ReplayObject.PropertiesPanelState.COMMIT && (objId = object.getId()) != null) {
-            editorState.applyOperator(new CommitObjectUpdateOperator(objId));
+            editorState.applyOperator(new CommitObjectUpdateOperator(objId), false);
         }
         if (state == ReplayObject.PropertiesPanelState.COMMIT || state == ReplayObject.PropertiesPanelState.DRAGGING) {
-            editorState.applyToGame();
+            // Don't attempt to re-sample object's own properties (allows dragging)
+            editorState.applyToGame(o -> o != object);
         }
     }
 
