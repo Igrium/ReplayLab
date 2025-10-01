@@ -77,7 +77,7 @@ public final class ScenePropsObject extends ReplayObject {
     private final ImInt lengthInput = new ImInt();
 
     @Override
-    public boolean drawPropertiesPanel() {
+    public PropertiesPanelState drawPropertiesPanel() {
 
         boolean modified = false;
 
@@ -104,6 +104,6 @@ public final class ScenePropsObject extends ReplayObject {
         if (length < 0)
             length = 0;
 
-        return modified;
+        return modified ? PropertiesPanelState.COMMIT : PropertiesPanelState.NONE;
     }
 }

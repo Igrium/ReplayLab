@@ -271,6 +271,7 @@ public class ReplayScene {
         if (result) {
             undoStack.push(operator);
             redoStack.clear();
+            
         }
         return result;
     }

@@ -33,6 +33,24 @@ public abstract class ReplayObject {
         }
     }
 
+    /**
+     * A "return value" from the properties panel UI draw code. Used to trigger undo steps and scene updates.
+     */
+    public enum PropertiesPanelState {
+        /**
+         * Nothing changed in the properties panel.
+         */
+        NONE,
+        /**
+         * Something is being dragged or actively updated. Update the scene but don't create an undo step.
+         */
+        DRAGGING,
+        /**
+         * There was an update. Update the scene and create an undo step.
+         */
+        COMMIT
+    }
+
     @Getter
     private final ReplayObjectType<?> type;
 
@@ -160,11 +178,11 @@ public abstract class ReplayObject {
 
     /**
      * Called during the ImGui render process to draw the object's configurable properties.
-     * @return If a property was updated this frame, triggering an undo step to be created.
+     * @return The state of the properties panel after drawing.
      */
-    public boolean drawPropertiesPanel() {
+    public PropertiesPanelState drawPropertiesPanel() {
         ImGui.text("This object has no editable properties.");
-        return false;
+        return PropertiesPanelState.NONE;
     }
 
     private final GsonSerializationContext gsonContext = new GsonSerializationContext(new Gson());
@@ -196,6 +214,14 @@ public abstract class ReplayObject {
         for (var entry : serialized.getChannels().entrySet()) {
             channels.put(entry.getKey(), entry.getValue().copy());
         }
+    }
+
+    /**
+     * Get this object's ID in the scene.
+     * @return Object ID, or <code>null</code> if it's not currently in the scene.
+     */
+    public @Nullable String getId() {
+        return getScene().getObjects().inverse().get(this);
     }
 
     public ReplayObject copy() {

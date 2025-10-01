@@ -273,7 +273,7 @@ public class ReplayLabUI extends DockSpaceApp {
         if (ImGui.begin("Dope Sheet")) {
             dopeSheet.drawDopeSheet(editorState.getScene(), selectedKeys, 20 * 1000, editorState.getPlayheadRef(), DopeSheet.SNAP_KEYS);
             if (!dopeSheet.getUpdatedObjects().isEmpty()) {
-                editorState.getScene().applyOperator(new CommitObjectUpdateOperator(dopeSheet.getUpdatedObjects()));
+                editorState.applyOperator(new CommitObjectUpdateOperator(dopeSheet.getUpdatedObjects()));
                 editorState.saveSceneAsync();
             }
 
@@ -319,9 +319,7 @@ public class ReplayLabUI extends DockSpaceApp {
                 String typeName = Language.getInstance().get(selected.getType().getTranslationKey());
                 ImGui.text(selId + " (" + typeName + ")");
                 ImGui.separator();
-                if (selected.drawPropertiesPanel()) {
-                    editorState.applyOperator(new CommitObjectUpdateOperator(selId));
-                }
+                drawObjectProperties(selected);
             }
         }
         ImGui.end();
@@ -329,11 +327,21 @@ public class ReplayLabUI extends DockSpaceApp {
 
     private void drawSceneProperties() {
         if (ImGui.begin("Scene Properties")) {
-            if (editorState.getScene().getSceneProps().drawPropertiesPanel()) {
-                editorState.applyOperator(new CommitObjectUpdateOperator(ReplayScene.SCENE_PROPS));
-            }
+            drawObjectProperties(editorState.getScene().getSceneProps());
+
         }
         ImGui.end();
+    }
+
+    private void drawObjectProperties(ReplayObject object) {
+        ReplayObject.PropertiesPanelState state = object.drawPropertiesPanel();
+        String objId;
+        if (state == ReplayObject.PropertiesPanelState.COMMIT && (objId = object.getId()) != null) {
+            editorState.applyOperator(new CommitObjectUpdateOperator(objId));
+        }
+        if (state == ReplayObject.PropertiesPanelState.COMMIT || state == ReplayObject.PropertiesPanelState.DRAGGING) {
+            editorState.applyToGame();
+        }
     }
 
     @Override

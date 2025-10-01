@@ -43,7 +43,7 @@ public class DummyReplayObject extends ReplayObject {
     private final ImDouble dummyValInput = new ImDouble();
 
     @Override
-    public boolean drawPropertiesPanel() {
+    public PropertiesPanelState drawPropertiesPanel() {
         boolean modified = false;
 
         dummyValInput.set(dummyValue);
@@ -52,7 +52,7 @@ public class DummyReplayObject extends ReplayObject {
         }
         dummyValue = dummyValInput.get();
 
-        return modified;
+        return modified ? PropertiesPanelState.COMMIT : PropertiesPanelState.NONE;
     }
 
     @Override

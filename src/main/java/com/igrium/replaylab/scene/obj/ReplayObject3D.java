@@ -240,7 +240,7 @@ public abstract class ReplayObject3D extends ReplayObject implements TransformPr
     }
 
     @Override
-    public boolean drawPropertiesPanel() {
+    public PropertiesPanelState drawPropertiesPanel() {
         boolean modified = hasPosition() && inputVec3("Position", position);
 
         if (hasRotation() && inputVec3("Rotation", rotation)) {
@@ -251,7 +251,7 @@ public abstract class ReplayObject3D extends ReplayObject implements TransformPr
             modified = true;
         }
 
-        return modified;
+        return modified ? PropertiesPanelState.COMMIT : PropertiesPanelState.NONE;
     }
 
     private static final float[] vecCache = new float[3];

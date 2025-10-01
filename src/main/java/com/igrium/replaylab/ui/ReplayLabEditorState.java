@@ -349,6 +349,7 @@ public class ReplayLabEditorState {
     public boolean applyOperator(ReplayOperator operator) {
         if (scene.applyOperator(operator)) {
             saveSceneAsync();
+            applyToGame();
             return true;
         }
         return false;
@@ -357,6 +358,7 @@ public class ReplayLabEditorState {
     public boolean undo() {
         if (scene.undo()) {
             saveSceneAsync();
+            applyToGame();
             return true;
         }
         return false;
@@ -365,6 +367,7 @@ public class ReplayLabEditorState {
     public boolean redo() {
         if (scene.redo()) {
             saveSceneAsync();
+            applyToGame();
             return true;
         }
         return false;
