@@ -259,7 +259,7 @@ public abstract class ReplayObject3D extends ReplayObject implements TransformPr
             return PropertiesPanelState.DRAGGING;
         } else if (startedDragging) {
             startedDragging = false;
-            return PropertiesPanelState.COMMIT;
+            return PropertiesPanelState.COMMIT_KEYFRAME;
         } else {
             return PropertiesPanelState.NONE;
         }

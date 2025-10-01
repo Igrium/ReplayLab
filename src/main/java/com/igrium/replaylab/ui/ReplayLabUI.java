@@ -335,12 +335,13 @@ public class ReplayLabUI extends DockSpaceApp {
 
     private void drawObjectProperties(ReplayObject object) {
         ReplayObject.PropertiesPanelState state = object.drawPropertiesPanel();
-        String objId;
-        if (state == ReplayObject.PropertiesPanelState.COMMIT && (objId = object.getId()) != null) {
-            editorState.applyOperator(new CommitObjectUpdateOperator(objId), false);
+        if (state.wantsInsertKeyframe()) {
+            object.insertKey(editorState.getPlayhead());
         }
-        if (state == ReplayObject.PropertiesPanelState.COMMIT || state == ReplayObject.PropertiesPanelState.DRAGGING) {
-            // Don't attempt to re-sample object's own properties (allows dragging)
+        if (state.wantsUndoStep()) {
+            editorState.applyOperator(new CommitObjectUpdateOperator(object.getId()), false);
+        }
+        if (state.wantsUpdateScene()) {
             editorState.applyToGame(o -> o != object);
         }
     }

@@ -8,6 +8,7 @@ import com.igrium.replaylab.util.GsonSerializationContext;
 import com.igrium.replaylab.util.MutableDouble;
 import imgui.ImGui;
 import lombok.Getter;
+import lombok.experimental.Accessors;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.HashMap;
@@ -36,19 +37,39 @@ public abstract class ReplayObject {
     /**
      * A "return value" from the properties panel UI draw code. Used to trigger undo steps and scene updates.
      */
+    @Accessors(fluent = true)
     public enum PropertiesPanelState {
         /**
          * Nothing changed in the properties panel.
          */
-        NONE,
+        NONE(false, false, false),
         /**
          * Something is being dragged or actively updated. Update the scene but don't create an undo step.
          */
-        DRAGGING,
+        DRAGGING(true, false, false),
         /**
          * There was an update. Update the scene and create an undo step.
          */
-        COMMIT
+        COMMIT(true, true, false),
+        /**
+         * There was an update that warrants the insertion of a keyframe if auto-key is enabled.
+         */
+        COMMIT_KEYFRAME(true, true, true);
+
+        @Getter
+        private final boolean wantsUpdateScene;
+
+        @Getter
+        private final boolean wantsUndoStep;
+
+        @Getter
+        private final boolean wantsInsertKeyframe;
+
+        PropertiesPanelState(boolean wantsUpdateScene, boolean wantsUndoStep, boolean wantsInsertKeyframe) {
+            this.wantsUpdateScene = wantsUpdateScene;
+            this.wantsUndoStep = wantsUndoStep;
+            this.wantsInsertKeyframe = wantsInsertKeyframe;
+        }
     }
 
     @Getter
