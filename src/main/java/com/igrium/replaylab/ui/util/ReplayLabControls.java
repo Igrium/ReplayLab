@@ -2,6 +2,7 @@ package com.igrium.replaylab.ui.util;
 
 import com.igrium.replaylab.scene.obj.ReplayObject;
 import imgui.ImGui;
+import imgui.flag.ImGuiCol;
 import imgui.type.ImBoolean;
 import lombok.NonNull;
 import org.apache.commons.lang3.mutable.Mutable;
@@ -61,4 +62,26 @@ public class ReplayLabControls {
                 .iterator());
     }
 
+    public static boolean toggleButton(String label, ImBoolean pressed) {
+        int activeColor = ImGui.getColorU32(ImGuiCol.ButtonActive);
+        ImGui.pushStyleColor(ImGuiCol.ButtonActive, ImGui.getColorU32(ImGuiCol.ButtonHovered));
+        boolean wasPressed = pressed.get();
+
+        if (wasPressed) {
+            ImGui.pushStyleColor(ImGuiCol.Button, activeColor);
+        }
+
+        boolean changed = false;
+        if (ImGui.button(label)) {
+            changed = true;
+            pressed.set(!wasPressed);
+        }
+
+        if (wasPressed) {
+            ImGui.popStyleColor();
+        }
+        ImGui.popStyleColor();
+
+        return changed;
+    }
 }

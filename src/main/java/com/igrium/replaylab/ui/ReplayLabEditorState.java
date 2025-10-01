@@ -4,6 +4,8 @@ import com.igrium.replaylab.operator.ReplayOperator;
 import com.igrium.replaylab.playback.RealtimeScenePlayer;
 import com.igrium.replaylab.scene.ReplayScene;
 import com.igrium.replaylab.scene.ReplayScenes;
+import com.igrium.replaylab.scene.obj.CameraProvider;
+import com.igrium.replaylab.scene.obj.ReplayObject;
 import com.replaymod.replay.ReplayHandler;
 import com.replaymod.replay.ReplayModReplay;
 import com.replaymod.replaystudio.replay.ReplayFile;
@@ -12,8 +14,8 @@ import lombok.Getter;
 import lombok.NonNull;
 import lombok.Setter;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.entity.Entity;
 import net.minecraft.util.Util;
-import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
@@ -35,8 +37,8 @@ import java.util.function.Consumer;
  */
 public class ReplayLabEditorState {
 
+    // ===== Static Members =====
     private static final Logger LOGGER = LoggerFactory.getLogger(ReplayLabEditorState.class);
-
 
     private static @Nullable ReplayHandler getReplayHandler() {
         return ReplayModReplay.instance.getReplayHandler();
@@ -50,16 +52,16 @@ public class ReplayLabEditorState {
         return handler;
     }
 
+    private static void removeScene(ReplayFile file, String sceneName) throws IOException {
+        synchronized (file) {
+            file.remove(ReplayScenes.getSceneName(sceneName));
+        }
+    }
+
+    // ===== Fields =====
+
     @Getter
     private final ImInt playheadRef = new ImInt(0);
-
-    public final int getPlayhead() {
-        return playheadRef.get();
-    }
-
-    public final void setPlayhead(int playhead) {
-        playheadRef.set(playhead);
-    }
 
     @Getter @NonNull
     private ReplayScene scene = new ReplayScene();
@@ -73,30 +75,91 @@ public class ReplayLabEditorState {
     @Setter @Nullable
     private Consumer<? super Throwable> exceptionCallback;
 
-    /**
-     * All the scenes in the current replay file.
-     */
+    @Nullable
+    private RealtimeScenePlayer scenePlayer;
+
     @Getter
     private final List<String> scenes = Collections.synchronizedList(new ArrayList<>());
 
+    /**
+     * Whether the viewport is currently displaying the camera view
+     */
+    @Getter
+    private boolean cameraView;
+
+    // ===== Constructors =====
     public ReplayLabEditorState() {
         scene.setExceptionCallback(this::onException);
     }
 
-    public void afterOpen() {
-        var scenes = refreshSceneListSync();
-        if (!scenes.isEmpty()) {
-            loadScene(scenes.getFirst());
-        } else {
-            setSceneName("Scene");
-        }
+    // ===== Getters/Setters =====
 
-        // Delay for a tick to avoid apparent deadlock
-        MinecraftClient.getInstance().send(() -> {
-            startPlaying(0);
-        });
+    public final int getPlayhead() {
+        return playheadRef.get();
     }
 
+    public final void setPlayhead(int playhead) {
+        playheadRef.set(playhead);
+    }
+
+    public void setScene(@NotNull ReplayScene scene) {
+        if (this.scene == scene) return;
+
+        this.scene.setExceptionCallback(null);
+        this.scene = scene;
+        this.scene.setExceptionCallback(this::onException);
+    }
+
+    public void setScene(@NonNull ReplayScene scene, String sceneName) {
+        setScene(scene);
+        setSceneName(sceneName);
+    }
+
+    /**
+     * Set whether the viewport is currently displaying the camera view
+     */
+    public void setCameraView(boolean cameraView) {
+        if (cameraView == this.cameraView) return;
+        this.cameraView = cameraView;
+        if (cameraView) {
+            spectateCamera();
+        } else {
+            MinecraftClient.getInstance().setCameraEntity(MinecraftClient.getInstance().player);
+        }
+    }
+
+    // ===== Scene Management =====
+
+    public ReplayScene newScene(String sceneName) {
+        ReplayScene scene = new ReplayScene();
+        setScene(scene, sceneName);
+        try {
+            saveScene();
+            LOGGER.info("Created new scene: {}", sceneName);
+        } catch (IOException e) {
+            LOGGER.info("Error saving scene.");
+            onException(e);
+        }
+        refreshSceneListSync();
+        return scene;
+    }
+
+    /**
+     * Attempt to load a scene from the replay file
+     * @param sceneName Scene to load.
+     * @return The loaded scene, or <code>null</code> if the scene failed to load.
+     */
+    public @Nullable ReplayScene loadScene(String sceneName) {
+        try {
+            var scene = ReplayScenes.readScene(sceneName, getReplayHandlerOrThrow().getReplayFile(), this::onException);
+            setScene(scene, sceneName);
+            return scene;
+        } catch (Exception e) {
+            LOGGER.error("Error loading scene {}: ", sceneName, e);
+            onException(e);
+            return null;
+        }
+    }
 
     public List<String> refreshSceneListSync() {
         var handler = getReplayHandler();
@@ -116,171 +179,6 @@ public class ReplayLabEditorState {
         return CompletableFuture.supplyAsync(this::refreshSceneListSync, Util.getIoWorkerExecutor());
     }
 
-    public void setScene(@NotNull ReplayScene scene) {
-        if (this.scene == scene) return;
-
-        this.scene.setExceptionCallback(null);
-        this.scene = scene;
-        this.scene.setExceptionCallback(this::onException);
-    }
-
-    public void setScene(@NonNull ReplayScene scene, String sceneName) {
-        setScene(scene);
-        setSceneName(sceneName);
-    }
-
-    public ReplayScene newScene(String sceneName) {
-        ReplayScene scene = new ReplayScene();
-        setScene(scene, sceneName);
-        try {
-            saveScene();
-            LOGGER.info("Created new scene: {}", sceneName);
-        } catch (IOException e) {
-            LOGGER.info("Error saving scene.");
-            onException(e);
-        }
-        refreshSceneListSync();
-        return scene;
-    }
-
-
-    /**
-     * Attempt to load a scene from the replay file
-     * @param sceneName Scene to load.
-     * @return The loaded scene, or <code>null</code> if the scene failed to load.
-     */
-    public @Nullable ReplayScene loadScene(String sceneName) {
-        // We assume we're saving after every operation,
-        // so don't attempt to save because it will mark the replay file as "updated"
-        try {
-            var scene = ReplayScenes.readScene(sceneName, getReplayHandlerOrThrow().getReplayFile(), this::onException);
-            setScene(scene, sceneName);
-            return scene;
-        } catch (Exception e) {
-            LOGGER.error("Error loading scene {}: ", sceneName, e);
-            onException(e);
-            return null;
-        }
-    }
-
-    private void onException(Throwable e) {
-        if (exceptionCallback != null) {
-            exceptionCallback.accept(e);
-        }
-    }
-
-
-    @Nullable
-    private RealtimeScenePlayer scenePlayer;
-
-    public void onPreRender() {
-        if (scenePlayer != null && scenePlayer.isActive()) {
-            setPlayhead(scenePlayer.getTimePassed());
-        }
-    }
-
-    public void doTimeJump() {
-        if (isPlaying()) {
-            stopPlaying();
-        }
-
-        int replayTime = scene.sceneToReplayTime(getPlayhead());
-        replayTime = Math.min(replayTime, getReplayHandlerOrThrow().getReplayDuration());
-        if (replayTime < 0)
-            replayTime = 0;
-
-        getReplayHandlerOrThrow().doJump(replayTime, true);
-
-        // Delay scene update by one frame so it gets applied on the new world
-        MinecraftClient.getInstance().send(this::applyToGame);
-
-    }
-
-    /**
-     * Apply all animated properties to the game.
-     */
-    public void applyToGame() {
-        getScene().applyToGame(getPlayhead());
-    }
-
-    public boolean isPlaying() {
-        return scenePlayer != null && scenePlayer.isActive();
-    }
-
-    public void startPlaying(int startTimestamp) {
-        if (isPlaying()) {
-            LOGGER.warn("Replay is already playing!");
-            return;
-        }
-
-        scenePlayer = new RealtimeScenePlayer(getReplayHandlerOrThrow());
-        scenePlayer.setStartTimestamp(startTimestamp);
-
-        scenePlayer.start(scene);
-    }
-
-    public void stopPlaying() {
-        if (scenePlayer == null || !scenePlayer.isActive()) {
-            LOGGER.warn("Replay is not playing!");
-            return;
-        }
-
-        scenePlayer.stop();
-    }
-
-    public boolean applyOperator(ReplayOperator operator) {
-        if (scene.applyOperator(operator)) {
-            saveSceneAsync();
-            return true;
-        }
-        return false;
-    }
-
-    public boolean undo() {
-        if (scene.undo()) {
-            saveSceneAsync();
-            return true;
-        }
-        return false;
-    }
-
-    public boolean redo() {
-        if (scene.redo()) {
-            saveSceneAsync();
-            return true;
-        }
-        return false;
-    }
-
-    /**
-     * Save the active scene to file.
-     * @throws IllegalStateException If the current scene doesn't have a name.
-     * @throws IOException If an IO exception occurs saving the scene.
-     */
-    public void saveScene() throws IllegalStateException, IOException  {
-        String name = getSceneName();
-        if (name == null) {
-            throw new IllegalStateException("Scene does not have a name!");
-        }
-
-        ReplayScenes.saveScene(scene, name, getReplayHandlerOrThrow().getReplayFile());
-        refreshSceneListSync();
-    }
-    public CompletableFuture<?> saveSceneAsync() {
-        return CompletableFuture.runAsync(() -> {
-            if (getSceneName() == null) {
-                LOGGER.warn("Scene does not have a name. Skipping save...");
-                return;
-            }
-            try {
-                saveScene();
-            } catch (Exception e) {
-                LOGGER.error("Error saving scene {}", sceneName, e);
-                onException(e);
-            }
-        }, Util.getIoWorkerExecutor());
-    }
-
     public void renameScene(String oldName, String newName) throws IOException {
         if (oldName.equals(getSceneName())) {
             renameCurrentScene(newName);
@@ -297,7 +195,6 @@ public class ReplayLabEditorState {
                 throw new FileNotFoundException("Unknown scene: " + oldName);
             }
 
-            // I wish there was a way to simply move the file, but replay mod doesn't expose that.
             try (InputStream in = opt.get()) {
                 try (OutputStream out = file.write(ReplayScenes.getScenePath(newName))) {
                     in.transferTo(out);
@@ -348,9 +245,168 @@ public class ReplayLabEditorState {
         refreshSceneListSync();
     }
 
-    private static void removeScene(ReplayFile file, String sceneName) throws IOException {
-        synchronized (file) {
-            file.remove(ReplayScenes.getSceneName(sceneName));
+    // ===== Playback =====
+
+    public boolean isPlaying() {
+        return scenePlayer != null && scenePlayer.isActive();
+    }
+
+    public void startPlaying(int startTimestamp) {
+        if (isPlaying()) {
+            LOGGER.warn("Replay is already playing!");
+            return;
+        }
+
+        scenePlayer = new RealtimeScenePlayer(getReplayHandlerOrThrow());
+        scenePlayer.setStartTimestamp(startTimestamp);
+
+        scenePlayer.start(scene);
+    }
+
+    public void stopPlaying() {
+        if (scenePlayer == null || !scenePlayer.isActive()) {
+            LOGGER.warn("Replay is not playing!");
+            return;
+        }
+
+        scenePlayer.stop();
+    }
+
+    public void afterOpen() {
+        var scenes = refreshSceneListSync();
+        if (!scenes.isEmpty()) {
+            loadScene(scenes.getFirst());
+        } else {
+            setSceneName("Scene");
+        }
+
+        MinecraftClient.getInstance().send(() -> {
+            startPlaying(0);
+        });
+    }
+
+    public void onPreRender() {
+        if (scenePlayer != null && scenePlayer.isActive()) {
+            setPlayhead(scenePlayer.getTimePassed());
+        }
+        if (isCameraView()) {
+            spectateCamera();
+        }
+    }
+
+    public void doTimeJump() {
+        if (isPlaying()) {
+            stopPlaying();
+        }
+
+        int replayTime = scene.sceneToReplayTime(getPlayhead());
+        replayTime = Math.min(replayTime, getReplayHandlerOrThrow().getReplayDuration());
+        if (replayTime < 0)
+            replayTime = 0;
+
+        getReplayHandlerOrThrow().doJump(replayTime, true);
+
+        MinecraftClient.getInstance().send(this::applyToGame);
+
+    }
+
+    // ===== Game Integration =====
+
+    /**
+     * Apply all animated properties to the game.
+     */
+    public void applyToGame() {
+        getScene().applyToGame(getPlayhead());
+    }
+
+    private void spectateCamera() {
+        Entity cam = getSceneCamera(getPlayhead());
+        if (cam != null) {
+            MinecraftClient.getInstance().setCameraEntity(cam);
+        }
+    }
+
+    /**
+     * Get the entity responsible for providing the camera view on a given frame.
+     * @param timestamp Timestamp to use.
+     * @return The scene camera entity. if there is any at that timestamp.
+     */
+    public @Nullable Entity getSceneCamera(int timestamp) {
+        String objName = scene.getSceneProps().getCameraObject();
+        if (objName == null)
+            return null;
+
+        ReplayObject obj = scene.getObject(objName);
+        if (obj instanceof CameraProvider prov) {
+            return prov.getCameraEntity();
+        } else {
+            return null;
+        }
+    }
+
+    // ===== Operators & Undo/Redo =====
+
+    public boolean applyOperator(ReplayOperator operator) {
+        if (scene.applyOperator(operator)) {
+            saveSceneAsync();
+            return true;
+        }
+        return false;
+    }
+
+    public boolean undo() {
+        if (scene.undo()) {
+            saveSceneAsync();
+            return true;
+        }
+        return false;
+    }
+
+    public boolean redo() {
+        if (scene.redo()) {
+            saveSceneAsync();
+            return true;
+        }
+        return false;
+    }
+
+    // ===== Saving =====
+
+    /**
+     * Save the active scene to file.
+     * @throws IllegalStateException If the current scene doesn't have a name.
+     * @throws IOException If an IO exception occurs saving the scene.
+     */
+    public void saveScene() throws IllegalStateException, IOException  {
+        String name = getSceneName();
+        if (name == null) {
+            throw new IllegalStateException("Scene does not have a name!");
+        }
+
+        ReplayScenes.saveScene(scene, name, getReplayHandlerOrThrow().getReplayFile());
+        refreshSceneListSync();
+    }
+
+    public CompletableFuture<?> saveSceneAsync() {
+        return CompletableFuture.runAsync(() -> {
+            if (getSceneName() == null) {
+                LOGGER.warn("Scene does not have a name. Skipping save...");
+                return;
+            }
+            try {
+                saveScene();
+            } catch (Exception e) {
+                LOGGER.error("Error saving scene {}", sceneName, e);
+                onException(e);
+            }
+        }, Util.getIoWorkerExecutor());
+    }
+
+    // ===== Error Handling =====
+
+    private void onException(Throwable e) {
+        if (exceptionCallback != null) {
+            exceptionCallback.accept(e);
         }
     }
 

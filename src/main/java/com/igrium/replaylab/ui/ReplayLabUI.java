@@ -15,6 +15,7 @@ import imgui.flag.ImGuiCol;
 import imgui.flag.ImGuiFocusedFlags;
 import imgui.flag.ImGuiStyleVar;
 import imgui.flag.ImGuiWindowFlags;
+import imgui.type.ImBoolean;
 import lombok.Getter;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.util.Identifier;
@@ -201,6 +202,10 @@ public class ReplayLabUI extends DockSpaceApp {
     // Testing variables
     private final Set<ReplayScene.KeyReference> selectedKeys = new HashSet<>();
 
+    private final ImBoolean cameraViewInput = new ImBoolean();
+
+    private float prevCameraControlsGroupWidth = 0;
+
     private void drawPlaybackControls() {
         ImGui.pushFont(PlaybackIcons.playbackIcons());
         float buttonSize = ImGui.getTextLineHeightWithSpacing() * 1.25f;
@@ -222,12 +227,23 @@ public class ReplayLabUI extends DockSpaceApp {
 
             playbackIcon(PlaybackIcons.JUMP_START, "Scene Start", buttonSize);
             playbackIcon(PlaybackIcons.PREV_KEYFRAME, "Previous Keyframe", buttonSize);
-            if (playbackIcon(PlaybackIcons.PLAY, "Play/Pause", buttonSize)) {
+            String playPauseIcon = editorState.isPlaying() ? PlaybackIcons.PAUSE : PlaybackIcons.PLAY;
+            if (playbackIcon(playPauseIcon, "Play/Pause", buttonSize)) {
                 onPlayPauseClicked();
             }
 
             playbackIcon(PlaybackIcons.NEXT_KEYFRAME, "Next Keyframe", buttonSize);
             playbackIcon(PlaybackIcons.JUMP_END, "Scene End", buttonSize);
+
+            ImGui.setCursorPosX(ImGui.getContentRegionMaxX() - prevCameraControlsGroupWidth);
+
+            ImGui.beginGroup();
+            cameraViewInput.set(editorState.isCameraView());
+            ImGui.checkbox("Camera View", cameraViewInput);
+            editorState.setCameraView(cameraViewInput.get());
+            ImGui.endGroup();
+
+            prevCameraControlsGroupWidth = ImGui.getItemRectSizeX();
         }
         ImGui.endChild();
     }
