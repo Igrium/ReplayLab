@@ -12,6 +12,7 @@ import com.igrium.replaylab.scene.obj.objs.ScenePropsObject;
 import com.igrium.replaylab.scene.obj.SerializedReplayObject;
 import com.igrium.replaylab.util.NameUtils;
 import lombok.Getter;
+import lombok.NonNull;
 import lombok.Setter;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
@@ -206,6 +207,30 @@ public class ReplayScene {
         savedObjects.remove(id);
     }
 
+    /**
+     * Attempt to rename an object.
+     *
+     * @param oldName The original object name.
+     * @param newName The new name to assign it.
+     * @return <code>true</code> if the object was renamed successfully.
+     * <code>false</code> if the object could not be found or there was a conflict with the new name.
+     */
+    public boolean renameObject(String oldName, @NonNull String newName) {
+        if (!objects.containsKey(oldName) || objects.containsKey(newName)) {
+            return false;
+        }
+        var object = objects.remove(oldName);
+        var saved = savedObjects.remove(oldName);
+
+        objects.put(newName, object);
+        savedObjects.put(newName, saved);
+
+        for (var obj : objects.values()) {
+            obj.remapReferences(oldName, newName);
+        }
+
+        return true;
+    }
 
     public @Nullable SerializedReplayObject getSavedObject(String id) {
         return savedObjects.get(id);

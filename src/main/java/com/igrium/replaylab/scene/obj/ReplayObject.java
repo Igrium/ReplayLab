@@ -4,7 +4,6 @@ import com.google.common.collect.ImmutableMap;
 import com.google.gson.*;
 import com.igrium.replaylab.scene.ReplayScene;
 import com.igrium.replaylab.scene.key.KeyChannel;
-import com.igrium.replaylab.ui.ReplayLabEditorState;
 import com.igrium.replaylab.util.GsonSerializationContext;
 import com.igrium.replaylab.util.MutableDouble;
 import imgui.ImGui;
@@ -113,6 +112,13 @@ public abstract class ReplayObject {
     public void onCreated() {}
 
     /**
+     * Remap any property that references an object.
+     * @param oldName Old name of the object.
+     * @param newName New name of the object.
+     */
+    public void remapReferences(String oldName, String newName) {}
+
+    /**
      * Called when the user has pressed the "insert keyframe" keybind with this object selected.
      * @param timestamp The current playback timestamp.
      * @return If the keyframe was created and an undo step should be created.
@@ -202,6 +208,7 @@ public abstract class ReplayObject {
         }
         apply(timestamp);
     }
+
 
     /**
      * Called during the ImGui render process to draw the object's configurable properties.

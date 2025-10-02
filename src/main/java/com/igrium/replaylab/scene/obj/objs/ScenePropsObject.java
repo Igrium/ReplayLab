@@ -27,15 +27,19 @@ public final class ScenePropsObject extends ReplayObject {
     @Getter
     private int startTime;
 
+    @Getter
+    private int length = 10000; // 10 seconds default
+
+    public ScenePropsObject(ReplayObjectType<?> type, ReplayScene scene) {
+        super(type, scene);
+    }
+
     public void setStartTime(int startTime) {
         if (startTime < 0) {
             throw new IllegalArgumentException("startTime may not be negative.");
         }
         this.startTime = startTime;
     }
-
-    @Getter
-    private int length = 10000; // 10 seconds default
 
     public void setLength(int length) {
         if (length < 0) {
@@ -44,12 +48,16 @@ public final class ScenePropsObject extends ReplayObject {
         this.length = length;
     }
 
-    public ScenePropsObject(ReplayObjectType<?> type, ReplayScene scene) {
-        super(type, scene);
+    @Override
+    public void apply(int timestamp) {
     }
 
     @Override
-    public void apply(int timestamp) {
+    public void remapReferences(String oldName, String newName) {
+        super.remapReferences(oldName, newName);
+        if (oldName.equals(getCameraObject())) {
+            setCameraObject(newName);
+        }
     }
 
     @Override

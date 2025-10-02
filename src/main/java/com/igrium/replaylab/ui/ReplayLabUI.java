@@ -5,9 +5,11 @@ import com.igrium.craftui.app.DockSpaceApp;
 import com.igrium.replaylab.operator.InsertKeyframeOperator;
 import com.igrium.replaylab.operator.CommitObjectUpdateOperator;
 import com.igrium.replaylab.operator.RemoveKeyframesOperator;
+import com.igrium.replaylab.operator.RemoveObjectOperator;
 import com.igrium.replaylab.scene.ReplayScene;
 import com.igrium.replaylab.scene.obj.ReplayObject;
 import com.igrium.replaylab.ui.util.ExceptionPopup;
+import com.replaymod.core.ReplayMod;
 import com.replaymod.replay.ReplayHandler;
 import com.replaymod.replay.ReplayModReplay;
 import imgui.ImGui;
@@ -47,8 +49,10 @@ public class ReplayLabUI extends DockSpaceApp {
     //    private final DopeSheetOld dopeSheet = new DopeSheetOld();
     private final DopeSheet dopeSheet = new DopeSheet();
     private final SceneBrowser sceneBrowser = new SceneBrowser();
+    private final Outliner outliner = new Outliner();
     private boolean wantsJumpTime;
     private boolean wantsApplyToGame;
+    private boolean wantsExit;
 
     @Getter
     private final ExceptionPopup exceptionPopup = new ExceptionPopup();
@@ -82,7 +86,23 @@ public class ReplayLabUI extends DockSpaceApp {
     protected void preRender(MinecraftClient client) {
         super.preRender(client);
 
-        if (wantsJumpTime) {
+        if (getReplayHandler() == null) {
+            close(); // Close the app if we have no replay open.
+            return;
+        }
+
+        if (wantsExit) {
+            wantsExit = false;
+            try {
+                getReplayHandler().endReplay();
+            } catch (Exception e) {
+                LOGGER.error("Error saving replay: ", e);
+                ReplayModReplay.instance.forcefullyStopReplay();
+                MinecraftClient.getInstance().disconnect();
+                MinecraftClient.getInstance().setScreen(null);
+            }
+
+        } if (wantsJumpTime) {
             editorState.doTimeJump();
             wantsJumpTime = false;
         } else if (wantsApplyToGame) {
@@ -118,6 +138,7 @@ public class ReplayLabUI extends DockSpaceApp {
             ImGui.pushStyleColor(ImGuiCol.ChildBg, bgColor);
             drawPlaybackControls();
             ImGui.popStyleColor();
+            testDeleteHotkey();
         }
 
         ImGui.end();
@@ -142,8 +163,12 @@ public class ReplayLabUI extends DockSpaceApp {
     private void drawMenuBar() {
         if (ImGui.beginMainMenuBar()) {
             if (ImGui.beginMenu("File")) {
-                if (ImGui.menuItem("Open")) {
+                if (ImGui.menuItem("Open Scene")) {
                     sceneBrowser.open();
+                }
+
+                if (ImGui.menuItem("Exit")) {
+                    wantsExit = true;
                 }
                 ImGui.endMenu();
             }
@@ -154,6 +179,15 @@ public class ReplayLabUI extends DockSpaceApp {
                 if (ImGui.menuItem("Redo", "Ctrl+Shift+Z")) {
                     editorState.redo();
                 }
+
+                ImGui.separator();
+
+                ImGui.beginDisabled(editorState.getSelectedObject() == null);
+                if (ImGui.menuItem("Delete Selected", "Del")) {
+                    deleteObject();
+                }
+                ImGui.endDisabled();
+
                 if (ImGui.menuItem("Insert Keyframe", "I")) {
                     insertKeyframe();
                 }
@@ -185,6 +219,16 @@ public class ReplayLabUI extends DockSpaceApp {
         }
     }
 
+    /**
+     * Delete the selected object if the delete button is pressed over this window
+     */
+    private void testDeleteHotkey() {
+        var io = ImGui.getIO();
+        if (ImGui.isWindowFocused(ImGuiFocusedFlags.ChildWindows) && !io.getWantTextInput() && ImGui.isKeyPressed(GLFW.GLFW_KEY_DELETE)) {
+            deleteObject();
+        }
+    }
+
     private void saveScene() {
         if (editorState.getSceneName() == null) {
             editorState.setSceneName("scene");
@@ -196,6 +240,13 @@ public class ReplayLabUI extends DockSpaceApp {
         String selected = editorState.getSelectedObject();
         if (selected != null) {
             editorState.applyOperator(new InsertKeyframeOperator(selected, editorState.getPlayhead()));
+        }
+    }
+
+    private void deleteObject() {
+        String selected = editorState.getSelectedObject();
+        if (selected != null) {
+            editorState.applyOperator(new RemoveObjectOperator(selected));
         }
     }
 
@@ -303,7 +354,8 @@ public class ReplayLabUI extends DockSpaceApp {
 
     private void drawOutliner() {
         if (ImGui.begin("Outliner")) {
-            Outliner.drawOutliner(editorState);
+            outliner.drawOutliner(editorState);
+            testDeleteHotkey();
         }
         ImGui.end();
     }

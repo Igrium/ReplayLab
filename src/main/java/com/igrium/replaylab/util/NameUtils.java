@@ -19,10 +19,18 @@ public final class NameUtils {
             return original;
         }
 
+        int dotIdx = original.lastIndexOf('.');
         int idx = 1;
+        if (dotIdx >= 0 && dotIdx < original.length() - 1) {
+            try {
+                idx = Integer.parseInt(original.substring(dotIdx + 1));
+                original = original.substring(0, dotIdx);
+            } catch (NumberFormatException ignored) {}
+        }
+
         String updated;
         do {
-            updated = original + "." + idx;
+            updated = original + "." + String.format("%03d", idx);
             idx++;
         } while (inUse.test(updated));
 
