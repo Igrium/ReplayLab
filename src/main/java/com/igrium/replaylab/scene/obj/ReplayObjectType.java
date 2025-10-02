@@ -1,19 +1,28 @@
 package com.igrium.replaylab.scene.obj;
 
 import com.igrium.replaylab.scene.ReplayScene;
+import lombok.Getter;
 import net.minecraft.util.Identifier;
 
 
 public class ReplayObjectType<T extends ReplayObject> {
-    public ReplayObjectType(Factory<T> factory) {
-        this.factory = factory;
-    }
 
     public interface Factory<T extends ReplayObject> {
         T create(ReplayObjectType<T> type, ReplayScene scene);
     }
 
     private final Factory<T> factory;
+    @Getter
+    private final boolean noManualSpawn;
+
+    public ReplayObjectType(Factory<T> factory, boolean noManualSpawn) {
+        this.factory = factory;
+        this.noManualSpawn = noManualSpawn;
+    }
+
+    public ReplayObjectType(Factory<T> factory) {
+        this(factory, false);
+    }
 
     public T create(ReplayScene scene) {
         return factory.create(this, scene);

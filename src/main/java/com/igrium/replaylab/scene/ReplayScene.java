@@ -10,6 +10,7 @@ import com.igrium.replaylab.scene.obj.ReplayObject;
 import com.igrium.replaylab.scene.obj.ReplayObjects;
 import com.igrium.replaylab.scene.obj.objs.ScenePropsObject;
 import com.igrium.replaylab.scene.obj.SerializedReplayObject;
+import com.igrium.replaylab.util.NameUtils;
 import lombok.Getter;
 import lombok.Setter;
 import org.jetbrains.annotations.Nullable;
@@ -180,6 +181,7 @@ public class ReplayScene {
         return false;
     }
 
+
     /**
      * Remove a replay object from the scene.
      * @param id ID of the object to remove.
@@ -249,6 +251,15 @@ public class ReplayScene {
         }
 
         obj.parse(serialized);
+    }
+
+    /**
+     * Make a given object name unique so it doesn't conflict with anything else in the scene.
+     * @param original Original object name.
+     * @return The unique object name.
+     */
+    public String makeNameUnique(String original) {
+        return NameUtils.makeNameUnique(original, objects::containsKey);
     }
 
     /**

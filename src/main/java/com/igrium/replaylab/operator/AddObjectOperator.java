@@ -3,6 +3,9 @@ package com.igrium.replaylab.operator;
 import com.igrium.replaylab.scene.ReplayScene;
 import com.igrium.replaylab.scene.obj.ReplayObject;
 
+/**
+ * Add a new object to the scene, calling <code>onCreated</code> in the process.
+ */
 public class AddObjectOperator implements ReplayOperator {
 
     private final String objectId;
@@ -15,7 +18,11 @@ public class AddObjectOperator implements ReplayOperator {
 
     @Override
     public boolean execute(ReplayScene scene) {
-        return scene.addObjectIfAbsent(objectId, object);
+        if (scene.addObjectIfAbsent(objectId, object)) {
+            object.onCreated();
+            return true;
+        }
+        return false;
     }
 
     @Override

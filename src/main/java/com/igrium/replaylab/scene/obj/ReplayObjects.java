@@ -10,13 +10,15 @@ import com.igrium.replaylab.scene.obj.objs.ScenePropsObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.stream.Stream;
+
 public class ReplayObjects {
     private static final Logger LOGGER = LoggerFactory.getLogger("ReplayLab/ReplayObjects");
 
 
     public static final BiMap<String, ReplayObjectType<?>> REGISTRY = HashBiMap.create();
 
-    public static final ReplayObjectType<ScenePropsObject> SCENE_PROPS = register("sceneProps", ScenePropsObject::new);
+    public static final ReplayObjectType<ScenePropsObject> SCENE_PROPS = register("sceneProps", ScenePropsObject::new, true);
 
     public static final ReplayObjectType<DummyReplayObject> DUMMY = register("dummy", DummyReplayObject::new);
     public static final ReplayObjectType<BlockDisplayObject> BLOCK_DISPLAY = register("blockDisplay", BlockDisplayObject::new);
@@ -36,12 +38,16 @@ public class ReplayObjects {
         return type.create(scene);
     }
 
-    public static <T extends ReplayObject> ReplayObjectType<T> register(String id, ReplayObjectType.Factory<T> factory) {
-        var type = new ReplayObjectType<>(factory);
+    public static <T extends ReplayObject> ReplayObjectType<T> register(String id, ReplayObjectType.Factory<T> factory, boolean noManualSpawn) {
+        var type = new ReplayObjectType<>(factory, noManualSpawn);
         if (REGISTRY.put(id, type) != null) {
             LOGGER.warn("Duplicate replay object type: {}", id);
         }
         return type;
+    }
+
+    public static <T extends ReplayObject> ReplayObjectType<T> register(String id, ReplayObjectType.Factory<T> factory) {
+        return register(id, factory, false);
     }
 
     /**
@@ -54,5 +60,9 @@ public class ReplayObjects {
         ReplayObject obj = create(saved.getType(), scene);
         obj.parse(saved);
         return obj;
+    }
+
+    public static Stream<ReplayObjectType<?>> getSpawnableTypes() {
+        return REGISTRY.values().stream().filter(t -> !t.isNoManualSpawn());
     }
 }

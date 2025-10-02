@@ -4,11 +4,11 @@ import com.google.common.collect.ImmutableMap;
 import com.google.gson.*;
 import com.igrium.replaylab.scene.ReplayScene;
 import com.igrium.replaylab.scene.key.KeyChannel;
+import com.igrium.replaylab.ui.ReplayLabEditorState;
 import com.igrium.replaylab.util.GsonSerializationContext;
 import com.igrium.replaylab.util.MutableDouble;
 import imgui.ImGui;
 import lombok.Getter;
-import lombok.experimental.Accessors;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.HashMap;
@@ -37,38 +37,38 @@ public abstract class ReplayObject {
     /**
      * A "return value" from the properties panel UI draw code. Used to trigger undo steps and scene updates.
      */
-    @Accessors(fluent = true)
     public enum PropertiesPanelState {
         /**
          * Nothing changed in the properties panel.
          */
-        NONE(false, false, false),
+        NONE,
         /**
          * Something is being dragged or actively updated. Update the scene but don't create an undo step.
          */
-        DRAGGING(true, false, false),
+        DRAGGING,
         /**
          * There was an update. Update the scene and create an undo step.
          */
-        COMMIT(true, true, false),
+        COMMIT,
         /**
          * There was an update that warrants the insertion of a keyframe if auto-key is enabled.
          */
-        COMMIT_KEYFRAME(true, true, true);
+        COMMIT_KEYFRAME;
 
-        @Getter
-        private final boolean wantsUpdateScene;
+        public boolean wantsUpdateScene() {
+            return ordinal() >= 1;
+        }
 
-        @Getter
-        private final boolean wantsUndoStep;
+        public boolean wantsUndoStep() {
+            return ordinal() >= 2;
+        }
 
-        @Getter
-        private final boolean wantsInsertKeyframe;
+        public boolean wantsInsertKeyframe() {
+            return ordinal() >= 3;
+        }
 
-        PropertiesPanelState(boolean wantsUpdateScene, boolean wantsUndoStep, boolean wantsInsertKeyframe) {
-            this.wantsUpdateScene = wantsUpdateScene;
-            this.wantsUndoStep = wantsUndoStep;
-            this.wantsInsertKeyframe = wantsInsertKeyframe;
+        public static PropertiesPanelState max(PropertiesPanelState a, PropertiesPanelState b) {
+            return PropertiesPanelState.values()[Math.max(a.ordinal(), b.ordinal())];
         }
     }
 
@@ -105,6 +105,12 @@ public abstract class ReplayObject {
      * Called when the object is removed from the scene
      */
     public void onRemoved() {}
+
+    /**
+     * Called when the object is added to the scene for the first time.
+     * Does not include undo, redo, or deserialization
+     */
+    public void onCreated() {}
 
     /**
      * Called when the user has pressed the "insert keyframe" keybind with this object selected.

@@ -9,6 +9,8 @@ import imgui.ImGui;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.Setter;
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.util.math.Vec3d;
 import org.jetbrains.annotations.Nullable;
 import org.joml.*;
 import org.joml.Math;
@@ -146,6 +148,22 @@ public abstract class ReplayObject3D extends ReplayObject implements TransformPr
     }
 
     @Override
+    public void onCreated() {
+        // Place in front of the player for convenience
+        var camera = MinecraftClient.getInstance().cameraEntity;
+        if (camera == null) {
+            return;
+        }
+
+        Vec3d pos = camera.getCameraPosVec(0);
+        Vec3d normal = camera.getRotationVec(0);
+
+        Vec3d spawnPos = pos.add(normal.multiply(5));
+
+        position.set(spawnPos.x, spawnPos.y, spawnPos.z);
+    }
+
+    @Override
     protected void writeJson(JsonObject json, JsonSerializationContext context) {
         if (hasPosition()) {
             json.add("position", writeJsonVec(position));
@@ -263,28 +281,6 @@ public abstract class ReplayObject3D extends ReplayObject implements TransformPr
         } else {
             return PropertiesPanelState.NONE;
         }
-
-//
-//        if (modified) {
-//            wasDragging = true;
-//            return PropertiesPanelState.DRAGGING;
-//        } else if (wasDragging) {
-//            wasDragging = false;
-//            return PropertiesPanelState.COMMIT;
-//        } else {
-//            return PropertiesPanelState.NONE;
-//        }
-
-//        if (modified) {
-//            wasDragging = true;
-//        }
-//        if (!modified && wasDragging) {
-//            return PropertiesPanelState.DRAGGING;
-//        } else if (modified) {
-//            return PropertiesPanelState.COMMIT;
-//        } else {
-//            return PropertiesPanelState.NONE;
-//        }
     }
 
     private static final float[] vecCache = new float[3];
