@@ -1,6 +1,7 @@
 package com.igrium.replaylab.ui;
 
 import com.igrium.replaylab.operator.AddObjectOperator;
+import com.igrium.replaylab.operator.RemoveObjectOperator;
 import com.igrium.replaylab.scene.obj.ReplayObjectType;
 import com.igrium.replaylab.scene.obj.ReplayObjects;
 import imgui.ImGui;
@@ -12,7 +13,11 @@ public class Outliner {
 //            addObject(editorState);
 //            editorState.setSelectedObject("testObj");
 //        }
+
+        // HEADER
         drawAddObjectButton(editorState);
+        ImGui.sameLine();
+        drawRemoveObjectButton(editorState);
 
         if (ImGui.beginChild("objects")) {
             ImGui.setNextItemWidth(ImGui.getContentRegionAvailX());
@@ -50,5 +55,14 @@ public class Outliner {
         }
     }
 
+    private static void drawRemoveObjectButton(ReplayLabEditorState editorState) {
+        String selected = editorState.getSelectedObject();
+        ImGui.beginDisabled(selected == null);
 
+        if (ImGui.button("-") && selected != null) {
+            editorState.applyOperator(new RemoveObjectOperator(selected));
+        }
+
+        ImGui.endDisabled();
+    }
 }
