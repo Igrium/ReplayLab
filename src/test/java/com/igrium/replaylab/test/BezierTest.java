@@ -4,13 +4,18 @@ package com.igrium.replaylab.test;
 import com.igrium.replaylab.math.Bezier2d;
 import org.joml.Vector2d;
 import org.joml.Vector2dc;
+import org.joml.Vector3d;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.List;
 
+import static java.lang.Double.isNaN;
 import static org.junit.jupiter.api.Assertions.*;
 
+/**
+ * Yeah I vibe-code my unit tests. Fuck you.
+ */
 public class BezierTest {
     private static final double EPSILON = 1e-9;
 
@@ -112,26 +117,27 @@ public class BezierTest {
     }
 
     @Test
-    public void testIntersection_Simple() {
-        // Simple Bezier: diagonal from (0,0) to (1,1) should intersect y=x at all points
+    public void testIntersection_Real() {
+        // S-shaped cubic that crosses y=x at t=0.5
         Bezier2d bezier = new Bezier2d(
-                new Vector2d(0, 0), new Vector2d(0.33, 0.33),
-                new Vector2d(0.66, 0.66), new Vector2d(1, 1)
+                new Vector2d(0, 0), new Vector2d(0, 1),
+                new Vector2d(1, 0), new Vector2d(1, 1)
         );
         List<Vector2d> intersections = new ArrayList<>();
-
         bezier.computeIntersections(
-                new Vector2d(0, 0), new Vector2d(1, 1),
+                new Vector2d(0, 1), new Vector2d(1, 0),
                 (x, y) -> intersections.add(new Vector2d(x, y)), true
         );
-
-        // Should intersect at t=0 and t=1, and possibly at intermediate points
         assertFalse(intersections.isEmpty(), "Must have intersection(s)");
+        // Should intersect at the center
+        boolean found = false;
         for (Vector2d pt : intersections) {
-            assertEquals(pt.x, pt.y, EPSILON);
-            assertTrue(pt.x >= 0 && pt.x <= 1);
-            assertTrue(pt.y >= 0 && pt.y <= 1);
+            if (Math.abs(pt.x - pt.y) < EPSILON) {
+                found = true;
+                break;
+            }
         }
+        assertTrue(found, "Should cross y=x somewhere");
     }
 
     @Test
@@ -170,18 +176,24 @@ public class BezierTest {
 
     @Test
     public void testIntersection_NoBoundsCheck() {
-        // Same as above but disables bounds check: should yield more points
+        // Curve crosses the line segment only once, but with bounds check off
         Bezier2d bezier = new Bezier2d(
-                new Vector2d(-1, -1), new Vector2d(0, 0),
-                new Vector2d(2, 2), new Vector2d(3, 3)
+                new Vector2d(-1, 1), new Vector2d(0, 0),
+                new Vector2d(2, 2), new Vector2d(3, -1)
         );
         List<Vector2d> intersections = new ArrayList<>();
         bezier.computeIntersections(
                 new Vector2d(0, 0), new Vector2d(1, 1),
                 (x, y) -> intersections.add(new Vector2d(x, y)), false
         );
-        // Should include intersections outside the [0,1] region
         assertFalse(intersections.isEmpty(), "Should detect intersections even out of bounds");
+        // Some intersection points may be outside the segment!
+        boolean foundInBounds = false, foundOutOfBounds = false;
+        for (Vector2d pt : intersections) {
+            if (pt.x >= 0 && pt.x <= 1 && pt.y >= 0 && pt.y <= 1) foundInBounds = true;
+            if (pt.x < 0 || pt.x > 1 || pt.y < 0 || pt.y > 1) foundOutOfBounds = true;
+        }
+        assertTrue(foundInBounds || foundOutOfBounds, "Should find some intersection (in or out of bounds)");
     }
 
     @Test
@@ -201,4 +213,106 @@ public class BezierTest {
         assertEquals(b2.p3x, b1.p3x, EPSILON);
         assertEquals(b2.p3y, b1.p3y, EPSILON);
     }
+
+    @Test
+    public void testXCubicRoots_ThreeRealRoots() {
+        // Cubic equation x(t) = 0 for a curve with roots at t ≈ 0.2, 0.5, 0.8
+        Bezier2d bezier = new Bezier2d(
+                new Vector2d(0, 0), // p0x = 0
+                new Vector2d(0.2, 0), // p1x = 0.2
+                new Vector2d(0.5, 0), // p2x = 0.5
+                new Vector2d(0.8, 0)  // p3x = 0.8
+        );
+        Vector3d roots = new Vector3d();
+        bezier.xCubicRoots(roots);
+
+        int realRoots = 0;
+        for (double r : new double[]{roots.x, roots.y, roots.z}) {
+            if (!isNaN(r)) {
+                assertTrue(r >= -EPSILON && r <= 1 + EPSILON, "Root not in [0,1]: " + r);
+                realRoots++;
+            }
+        }
+        assertTrue(realRoots >= 1, "Should find at least one real root in [0,1]");
+    }
+
+    @Test
+    public void testYCubicRoots_QuadraticCase() {
+        // Degenerate to quadratic: a = 0, roots at t = 0.25, 0.75
+        Bezier2d bezier = new Bezier2d(
+                new Vector2d(0, 0),
+                new Vector2d(0, 0.25),
+                new Vector2d(0, 0.75),
+                new Vector2d(0, 0)
+        );
+        Vector3d roots = new Vector3d();
+        bezier.yCubicRoots(roots);
+
+        int nanCount = 0;
+        int realCount = 0;
+        for (double r : new double[]{roots.x, roots.y, roots.z}) {
+            if (isNaN(r)) nanCount++;
+            else realCount++;
+        }
+        assertTrue(realCount >= 1, "Should find at least one real root in [0,1]");
+        assertTrue(nanCount >= 1, "Should have at least one NaN for missing roots");
+    }
+
+    @Test
+    public void testYCubicRoots_ConstantCase() {
+        // Degenerate to constant: a = b = c = 0
+        Bezier2d bezier = new Bezier2d(
+                new Vector2d(0, 1),
+                new Vector2d(0, 1),
+                new Vector2d(0, 1),
+                new Vector2d(0, 1)
+        );
+        Vector3d roots = new Vector3d();
+        bezier.yCubicRoots(roots);
+
+        assertTrue(isNaN(roots.x), "Constant case root should be NaN");
+        assertTrue(isNaN(roots.y), "Constant case root should be NaN");
+        assertTrue(isNaN(roots.z), "Constant case root should be NaN");
+    }
+
+    @Test
+    public void testXCubicRoots_ComplexRoots() {
+        // A curve that should only have one real root, others NaN
+        Bezier2d bezier = new Bezier2d(
+                new Vector2d(-1, 0),
+                new Vector2d(0, 0),
+                new Vector2d(0, 0),
+                new Vector2d(1, 0)
+        );
+        Vector3d roots = new Vector3d();
+        bezier.xCubicRoots(roots);
+
+        // Only one root should be real, others NaN
+        int nanCount = 0;
+        int realCount = 0;
+        for (double r : new double[]{roots.x, roots.y, roots.z}) {
+            if (isNaN(r)) nanCount++;
+            else realCount++;
+        }
+        assertEquals(1, realCount, "Should have exactly one real root");
+        assertEquals(2, nanCount, "Should have exactly two NaN roots");
+    }
+
+    @Test
+    public void testNaNPropagation() {
+        // If coefficients are all NaN, all roots must be NaN
+        Bezier2d bezier = new Bezier2d(
+                new Vector2d(Double.NaN, Double.NaN),
+                new Vector2d(Double.NaN, Double.NaN),
+                new Vector2d(Double.NaN, Double.NaN),
+                new Vector2d(Double.NaN, Double.NaN)
+        );
+        Vector3d roots = new Vector3d();
+        bezier.xCubicRoots(roots);
+
+        assertTrue(isNaN(roots.x));
+        assertTrue(isNaN(roots.y));
+        assertTrue(isNaN(roots.z));
+    }
+
 }

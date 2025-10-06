@@ -3,9 +3,12 @@ package com.igrium.replaylab.math;
 import org.joml.*;
 
 import java.lang.Math;
-import java.util.function.Consumer;
 
-public class Bezier2d implements Bezier2dc {
+/**
+ * A basic implementation cubic Bézier curve polynomial form
+ * @implNote Doesn't play very well with linear curves.
+ */
+public final class Bezier2d implements Bezier2dc {
     private static final double EPSILON = 1e-9;
 
     public double p0x;
@@ -221,20 +224,9 @@ public class Bezier2d implements Bezier2dc {
         return -3 * p0 + 3 * p1;
     }
 
-    public interface IntersectionConsumer {
-        void accept(double x, double y);
-    }
+    // adapted from https://www.particleincell.com/2013/cubic-line-intersection/
 
-
-    /**
-     * Find all the points where this bezier intersects with a given line segment.
-     *
-     * @param lineStart   Start point of the segment.
-     * @param lineEnd     End point of the segment.
-     * @param consumer    A consumer that gets called for every intersection. Presumably to be added to a list.
-     * @param checkBounds If <code>true</code>, ensure that the point is actually on the segment.
-     *                    Otherwise, all points on the line are accepted, regardless of whether they're in-bounds.
-     */
+    @Override
     public void computeIntersections(Vector2dc lineStart, Vector2dc lineEnd, IntersectionConsumer consumer, boolean checkBounds) {
         double A = lineEnd.y() - lineStart.y(); //A=y2-y1
         double B = lineStart.x() - lineEnd.x(); //B=x1-x2
@@ -283,7 +275,26 @@ public class Bezier2d implements Bezier2dc {
         }
     }
 
-    // adapted from https://www.particleincell.com/2013/cubic-line-intersection/
+    @Override
+    public Vector3d xCubicRoots(Vector3d dest) {
+        return cubicRoots(
+                aCoef(p0x, p1x, p2x, p3x),
+                bCoef(p0x, p1x, p2x),
+                cCoef(p0x, p1x),
+                p0x, dest
+        );
+    }
+
+    @Override
+    public Vector3d yCubicRoots(Vector3d dest) {
+        return cubicRoots(
+                aCoef(p0y, p1y, p2y, p3y),
+                bCoef(p0y, p1y, p2y),
+                cCoef(p0y, p1y),
+                p0y, dest
+        );
+    }
+
 
     private static final double SQRT_3 = Math.sqrt(3);
 
