@@ -137,8 +137,8 @@ public class KeyChannel {
         bezier.p1x = key.getHandleB().x + key.getCenter().x;
         bezier.p1y = key.getHandleB().y + key.getCenter().y;
 
-        bezier.p2x = next.getHandleA().x + key.getCenter().x;
-        bezier.p2y = next.getHandleA().y + key.getCenter().y;
+        bezier.p2x = next.getHandleA().x + next.getCenter().x;
+        bezier.p2y = next.getHandleA().y + next.getCenter().y;
 
         Vector3d tCandidates = bezier.intersectX(timestamp, new Vector3d());
 
