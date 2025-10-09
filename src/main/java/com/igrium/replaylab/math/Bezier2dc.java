@@ -2,7 +2,6 @@ package com.igrium.replaylab.math;
 
 import org.joml.Vector2d;
 import org.joml.Vector2dc;
-import org.joml.Vector2fc;
 import org.joml.Vector3d;
 
 /**
@@ -30,6 +29,20 @@ public interface Bezier2dc {
      * @return <code>dest</code>
      */
     Vector2d sample(double t, Vector2d dest);
+
+    /**
+     * Sample only the X value at a given T.
+     * @param T T to sample at.
+     * @return X value of the sampled point.
+     */
+    double sampleX(double t);
+
+    /**
+     * Sample only the Y value at a given T.
+     * @param T T to sample at.
+     * @return Y value of the sampled point.
+     */
+    double sampleY(double t);
 
     /**
      * Derive the curve at a given T value.
@@ -81,7 +94,7 @@ public interface Bezier2dc {
      * @param dest Vector to store the results in. Any non-existent root will be NaN.
      * @return <code>dest</code>
      */
-    Vector3d sampleX(double x, Vector3d dest);
+    Vector3d intersectX(double x, Vector3d dest);
 
     /**
      * Sample all <code>T</code> points at which the curve passes the given Y position.
@@ -90,7 +103,7 @@ public interface Bezier2dc {
      * @param dest Vector to store the results in. Any non-existent root will be NaN.
      * @return <code>dest</code>
      */
-    Vector3d sampleY(double y, Vector3d dest);
+    Vector3d intersectY(double y, Vector3d dest);
 
     interface IntersectionConsumer {
         void accept(double x, double y);

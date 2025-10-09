@@ -170,6 +170,16 @@ public final class Bezier2d implements Bezier2dc {
     }
 
     @Override
+    public double sampleX(double t) {
+        return sample(t, p0x, p1x, p2x, p3x);
+    }
+
+    @Override
+    public double sampleY(double t) {
+        return sample(t, p0y, p1y, p2y, p3y);
+    }
+
+    @Override
     public Vector2d derive(double t, Vector2d dest) {
         dest.x = derive(t, p0x, p1x, p2x, p3x);
         dest.y = derive(t, p0y, p1y, p2y, p3y);
@@ -277,7 +287,7 @@ public final class Bezier2d implements Bezier2dc {
     }
 
     @Override
-    public Vector3d sampleX(double x, Vector3d dest) {
+    public Vector3d intersectX(double x, Vector3d dest) {
         double p0 = p0x - x;
         double p1 = p1x - x;
         double p2 = p2x - x;
@@ -292,7 +302,7 @@ public final class Bezier2d implements Bezier2dc {
     }
 
     @Override
-    public Vector3d sampleY(double y, Vector3d dest) {
+    public Vector3d intersectY(double y, Vector3d dest) {
         double p0 = p0y - y;
         double p1 = p1y - y;
         double p2 = p2y - y;

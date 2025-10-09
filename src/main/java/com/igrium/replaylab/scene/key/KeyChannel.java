@@ -2,12 +2,11 @@ package com.igrium.replaylab.scene.key;
 
 import com.google.gson.*;
 import com.google.gson.annotations.JsonAdapter;
+import com.igrium.replaylab.math.Bezier2d;
 import it.unimi.dsi.fastutil.ints.IntAVLTreeSet;
-import it.unimi.dsi.fastutil.ints.IntArrayList;
-import it.unimi.dsi.fastutil.ints.IntList;
 import it.unimi.dsi.fastutil.ints.IntSet;
 import lombok.Getter;
-import net.minecraft.util.math.MathHelper;
+import org.joml.Vector3d;
 
 import java.lang.reflect.Type;
 import java.util.ArrayList;
@@ -130,15 +129,32 @@ public class KeyChannel {
         Keyframe key = keys[keyIndex];
         Keyframe next = keys[nextIndex];
 
-        int dt = next.getTime() - key.getTime();
-        if (dt == 0) {
-            return key.getValue();
+        Bezier2d bezier = new Bezier2d();
+
+        bezier.setP0(key.getCenter());
+        bezier.setP3(next.getCenter());
+
+        bezier.p1x = key.getHandleB().x + key.getCenter().x;
+        bezier.p1y = key.getHandleB().y + key.getCenter().y;
+
+        bezier.p2x = next.getHandleA().x + key.getCenter().x;
+        bezier.p2y = next.getHandleA().y + key.getCenter().y;
+
+        Vector3d tCandidates = bezier.intersectX(timestamp, new Vector3d());
+
+        double t;
+        if (Double.isFinite(tCandidates.x)) {
+            t = tCandidates.x;
+        } else if (Double.isFinite(tCandidates.y)) {
+            t = tCandidates.y;
+        } else if (Double.isFinite(tCandidates.z)) {
+            t = tCandidates.z;
+        } else {
+            assert false : "No T candidates found while sampling timeline at " + timestamp;
+            return 0;
         }
 
-        double percent = (double) (timestamp - key.getTime()) / dt;
-
-        // TODO: implement non-linear interpolation
-        return MathHelper.lerp(percent, key.getValue(), next.getValue());
+        return bezier.sampleY(t);
     }
 
     /**
