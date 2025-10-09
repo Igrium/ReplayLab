@@ -315,4 +315,133 @@ public class BezierTest {
         assertTrue(isNaN(roots.z));
     }
 
+    private int countNaN(Vector3d v) {
+        int count = 0;
+        if (Double.isNaN(v.x)) count++;
+        if (Double.isNaN(v.y)) count++;
+        if (Double.isNaN(v.z)) count++;
+        return count;
+    }
+
+    private int countReal(Vector3d v) {
+        int count = 0;
+        if (!Double.isNaN(v.x)) count++;
+        if (!Double.isNaN(v.y)) count++;
+        if (!Double.isNaN(v.z)) count++;
+        return count;
+    }
+
+    @Test
+    public void test_xCubicRoots_one_real_root_monotonic() {
+        // Monotonic cubic: only one root at t=0.
+        Bezier2d bezier = new Bezier2d(
+                new Vector2d(0, 0), new Vector2d(0.5, 0),
+                new Vector2d(1.0, 0), new Vector2d(1.5, 0)
+        );
+        Vector3d roots = new Vector3d();
+        bezier.xCubicRoots(roots);
+
+        // Only one root should be real and at t=0
+        assertEquals(1, countReal(roots), "Should have one real root in [0,1]");
+        assertEquals(0.0, roots.x, EPSILON);
+        assertTrue(Double.isNaN(roots.y));
+        assertTrue(Double.isNaN(roots.z));
+    }
+
+    @Test
+    public void test_xCubicRoots_three_real_roots_inflecting() {
+        // Cubic Bezier with control points designed to cross x=0 three times in [0,1].
+        // Example: (-1,0), (1,0), (-1,0), (1,0) (oscillates around x=0)
+        Bezier2d bezier = new Bezier2d(
+                new Vector2d(-1, 0), new Vector2d(1, 0),
+                new Vector2d(-1, 0), new Vector2d(1, 0)
+        );
+        Vector3d roots = new Vector3d();
+        bezier.xCubicRoots(roots);
+
+        // Should have three real roots in [0,1]
+        int realRoots = countReal(roots);
+        assertTrue(realRoots >= 2, "Should have at least two real roots in [0,1]");
+        // We can't predict the exact values, but all should be within [0,1]
+        for(double r : new double[] {roots.x, roots.y, roots.z}) {
+            if (!Double.isNaN(r)) {
+                assertTrue(r >= -EPSILON && r <= 1 + EPSILON, "Root not in [0,1]: " + r);
+            }
+        }
+    }
+
+    @Test
+    public void test_xCubicRoots_linear_case() {
+        // All x values are identical and not zero: no roots for x(t) = 0
+        Bezier2d bezier = new Bezier2d(
+                new Vector2d(0.5, 0), new Vector2d(0.5, 0),
+                new Vector2d(0.5, 0), new Vector2d(0.5, 0)
+        );
+        Vector3d roots = new Vector3d();
+        bezier.xCubicRoots(roots);
+        // All roots should be NaN
+        assertEquals(3, countNaN(roots), "All roots should be NaN for x(t) != 0 everywhere");
+    }
+
+    @Test
+    public void test_yCubicRoots_quadratic_case() {
+        // Degenerate to quadratic: (0,0), (0,1), (0,2), (0,3), roots at t=0 (y=0)
+        Bezier2d bezier = new Bezier2d(
+                new Vector2d(0, 0), new Vector2d(0, 1),
+                new Vector2d(0, 2), new Vector2d(0, 3)
+        );
+        Vector3d roots = new Vector3d();
+        bezier.yCubicRoots(roots);
+
+        // Only one root should be real and at t=0
+        assertEquals(1, countReal(roots), "Should have one real root");
+        assertEquals(0.0, roots.x, EPSILON);
+        assertTrue(Double.isNaN(roots.y));
+        assertTrue(Double.isNaN(roots.z));
+    }
+
+    @Test
+    public void test_xCubicRoots_constant_case() {
+        // All x values are 1, so x(t) - 0 = 1, no roots for x(t) = 0
+        Bezier2d bezier = new Bezier2d(
+                new Vector2d(1, 0), new Vector2d(1, 0),
+                new Vector2d(1, 0), new Vector2d(1, 0)
+        );
+        Vector3d roots = new Vector3d();
+        bezier.xCubicRoots(roots);
+        // All roots must be NaN
+        assertEquals(3, countNaN(roots), "Constant case: all roots should be NaN");
+    }
+
+    @Test
+    public void test_xCubicRoots_complex_roots() {
+        // Cubic with one real root: x^3 + x + 1 = 0
+        // Approximate with control points (-1,0), (0,0), (0,0), (1,0)
+        Bezier2d bezier = new Bezier2d(
+                new Vector2d(-1, 0), new Vector2d(0, 0),
+                new Vector2d(0, 0), new Vector2d(1, 0)
+        );
+        Vector3d roots = new Vector3d();
+        bezier.xCubicRoots(roots);
+
+        int realCount = countReal(roots);
+        int nanCount = countNaN(roots);
+        assertEquals(1, realCount, "Should have one real root");
+        assertEquals(2, nanCount, "Should have two NaN roots");
+    }
+
+    @Test
+    public void test_xCubicRoots_nan_propagation() {
+        // All control points are NaN, so all roots must be NaN
+        Bezier2d bezier = new Bezier2d(
+                new Vector2d(Double.NaN, Double.NaN),
+                new Vector2d(Double.NaN, Double.NaN),
+                new Vector2d(Double.NaN, Double.NaN),
+                new Vector2d(Double.NaN, Double.NaN)
+        );
+        Vector3d roots = new Vector3d();
+        bezier.xCubicRoots(roots);
+
+        assertEquals(3, countNaN(roots), "All roots must be NaN (NaN propagation)");
+    }
 }

@@ -60,6 +60,7 @@ public interface Bezier2dc {
 
     /**
      * Compute the cubic roots for this bezier on the X axis.
+     *
      * @param dest A vector to store the results in. Any non-existent root will be NaN.
      * @return <code>dest</code>
      */
@@ -67,10 +68,29 @@ public interface Bezier2dc {
 
     /**
      * Compute the cubic roots for this bezier on the Y axis.
+     *
      * @param dest A vector to store the results in. Any non-existent root will be NaN.
      * @return <code>dest</code>
      */
     Vector3d yCubicRoots(Vector3d dest);
+
+    /**
+     * Sample all <code>T</code> points at which the curve passes the given X position.
+     *
+     * @param x    X position to sample.
+     * @param dest Vector to store the results in. Any non-existent root will be NaN.
+     * @return <code>dest</code>
+     */
+    Vector3d sampleX(double x, Vector3d dest);
+
+    /**
+     * Sample all <code>T</code> points at which the curve passes the given Y position.
+     *
+     * @param y    Y position to sample.
+     * @param dest Vector to store the results in. Any non-existent root will be NaN.
+     * @return <code>dest</code>
+     */
+    Vector3d sampleY(double y, Vector3d dest);
 
     interface IntersectionConsumer {
         void accept(double x, double y);

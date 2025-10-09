@@ -9,6 +9,7 @@ import java.lang.Math;
  * @implNote Doesn't play very well with linear curves.
  */
 public final class Bezier2d implements Bezier2dc {
+    // I guarantee that by the next time I touch this code I'll have no idea how it works
     private static final double EPSILON = 1e-9;
 
     public double p0x;
@@ -276,6 +277,36 @@ public final class Bezier2d implements Bezier2dc {
     }
 
     @Override
+    public Vector3d sampleX(double x, Vector3d dest) {
+        double p0 = p0x - x;
+        double p1 = p1x - x;
+        double p2 = p2x - x;
+        double p3 = p3x - x;
+
+        return cubicRoots(
+                aCoef(p0, p1, p2, p3),
+                bCoef(p0, p1, p2),
+                cCoef(p0, p1),
+                p0, dest
+        );
+    }
+
+    @Override
+    public Vector3d sampleY(double y, Vector3d dest) {
+        double p0 = p0y - y;
+        double p1 = p1y - y;
+        double p2 = p2y - y;
+        double p3 = p3y - y;
+
+        return cubicRoots(
+                aCoef(p0, p1, p2, p3),
+                bCoef(p0, p1, p2),
+                cCoef(p0, p1),
+                p0, dest
+        );
+    }
+
+    @Override
     public Vector3d xCubicRoots(Vector3d dest) {
         return cubicRoots(
                 aCoef(p0x, p1x, p2x, p3x),
@@ -365,10 +396,9 @@ public final class Bezier2d implements Bezier2dc {
         }
 
         // discard out of spec roots
-        final double ROOT_EPSILON = 1e-9;
         for (var i = 0; i < 3; i++) {
             double val = getVecIdx(dest, i);
-            if (val < -ROOT_EPSILON || val > 1 + ROOT_EPSILON || Double.isNaN(val)) {
+            if (val < -EPSILON || val > 1 + EPSILON || Double.isNaN(val)) {
                 setVecIdx(dest, i, Double.NaN);
             }
         }
