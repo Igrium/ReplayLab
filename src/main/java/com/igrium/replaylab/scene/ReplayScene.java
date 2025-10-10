@@ -36,7 +36,6 @@ public class ReplayScene {
     public static final String SCENE_PROPS = "scene";
 
     /**
-     *
      * Contains a "reference" to a particular keyframe within the manifest.
      * If the manifest gets re-initialized for any reason, this reference should remain.
      *
@@ -45,6 +44,24 @@ public class ReplayScene {
      * @param keyframe Keyframe index within the channel.
      */
     public record KeyReference(String object, String channel, int keyframe) {
+    }
+
+    /**
+     * Contains a "reference" to a particular keyframe handle within the scene.
+     *
+     * @param object   Object name
+     * @param channel  Channel name
+     * @param keyframe Keyframe index within the channel.
+     * @param handle   Handle index of the keyframe. 0 = center, 1 = left, 2 = right
+     */
+    public record KeyHandleReference(String object, String channel, int keyframe, int handle) {
+        public KeyHandleReference(KeyReference keyRef, int handle) {
+            this(keyRef.object(), keyRef.channel(), keyRef.keyframe(), handle);
+        }
+
+        public KeyReference toKeyReference() {
+            return new KeyReference(object, channel, keyframe);
+        }
     }
 
     /**
@@ -125,6 +142,10 @@ public class ReplayScene {
     }
 
     public @Nullable Keyframe getKeyframe(KeyReference ref) {
+        return getKeyframe(ref.object(), ref.channel(), ref.keyframe());
+    }
+
+    public @Nullable Keyframe getKeyframe(KeyHandleReference ref) {
         return getKeyframe(ref.object(), ref.channel(), ref.keyframe());
     }
 

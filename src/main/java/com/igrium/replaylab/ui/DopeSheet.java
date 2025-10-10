@@ -26,41 +26,49 @@ public class DopeSheet {
     /**
      * Don't allow editing
      */
+    @Deprecated
     public static final int READONLY = 1;
 
     /**
      * If set, snap keyframes to nearest header increment while dragging
      */
+    @Deprecated
     public static final int SNAP_KEYS = 2;
 
     /**
      * Don't draw the header
      */
+    @Deprecated
     public static final int NO_HEADER = 4;
 
     /**
      * Don't draw the playhead
      */
+    @Deprecated
     public static final int NO_PLAYHEAD = 8;
 
     /**
      * Do not allow the playhead to be moved manually by the user
      */
+    @Deprecated
     public static final int READONLY_PLAYHEAD = 16;
 
     /**
      * Snap the playhead to increments of 1 while scrubbing
      */
+    @Deprecated
     public static final int SNAP_PLAYHEAD = 32;
 
     /**
      * Don't draw ticks
      */
+    @Deprecated
     public static final int NO_TICKS = 64;
 
     /**
      * If unset, merge any keyframes with duplicate timestamps while dragging.
      */
+    @Deprecated
     public static final int ALLOW_DUPLICATE_KEYS = 128;
 
     public static final int DRAW_IN_POINT = 256;
@@ -365,7 +373,7 @@ public class DopeSheet {
 
         if (!hasFlag(NO_TICKS, flags)) {
             // Major Intervals
-            for (float sec = 0; sec <= outSecond; sec += majorInterval) {
+            for (float sec = 0; sec <= outSecond; sec += majorInterval ) {
                 float pos = sec * TICKS_PER_SECOND * zoomFactor - scrollAmount;
 
                 String str;
