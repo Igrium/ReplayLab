@@ -6,6 +6,7 @@ import com.igrium.replaylab.math.Bezier2d;
 import it.unimi.dsi.fastutil.ints.IntAVLTreeSet;
 import it.unimi.dsi.fastutil.ints.IntSet;
 import lombok.Getter;
+import lombok.Setter;
 import org.joml.Vector3d;
 
 import java.lang.reflect.Type;
@@ -23,6 +24,12 @@ public class KeyChannel {
 
     @Getter
     private final List<Keyframe> keyframes;
+
+    /**
+     * Prevent this channel from being modified. Not serialized or included in the undo/redo stack
+     */
+    @Getter @Setter
+    private transient boolean locked;
 
     public KeyChannel() {
         this(new ArrayList<>());
@@ -197,7 +204,9 @@ public class KeyChannel {
         for (Keyframe key : keyframes) {
             copied.add(new Keyframe(key));
         }
-        return new KeyChannel(copied);
+        var ch = new KeyChannel(copied);
+        ch.locked = locked;
+        return ch;
     }
 }
 

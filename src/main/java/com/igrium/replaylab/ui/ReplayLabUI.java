@@ -9,6 +9,7 @@ import com.igrium.replaylab.operator.RemoveObjectOperator;
 import com.igrium.replaylab.scene.ReplayScene;
 import com.igrium.replaylab.scene.obj.ReplayObject;
 import com.igrium.replaylab.ui.util.ExceptionPopup;
+import com.igrium.replaylab.ui.util.TimelineFlags;
 import com.replaymod.core.ReplayMod;
 import com.replaymod.replay.ReplayHandler;
 import com.replaymod.replay.ReplayModReplay;
@@ -28,6 +29,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -48,6 +51,7 @@ public class ReplayLabUI extends DockSpaceApp {
 
     //    private final DopeSheetOld dopeSheet = new DopeSheetOld();
     private final DopeSheet dopeSheet = new DopeSheet();
+    private final CurveEditor curveEditor = new CurveEditor();
     private final SceneBrowser sceneBrowser = new SceneBrowser();
     private final Outliner outliner = new Outliner();
     private boolean wantsJumpTime;
@@ -144,6 +148,7 @@ public class ReplayLabUI extends DockSpaceApp {
         ImGui.end();
 
         drawDopeSheet();
+        drawCurveEditor();
         drawOutliner();
         drawInspector();
         drawSceneProperties();
@@ -350,6 +355,24 @@ public class ReplayLabUI extends DockSpaceApp {
             wantsApplyToGame = true;
         }
 
+    }
+
+    private void drawCurveEditor() {
+        if (ImGui.begin("Curve Editor")) {
+            curveEditor.drawCurveEditor(editorState.getScene(), null, Collections.emptySet(),
+                    editorState.getPlayheadRef(), TimelineFlags.SNAP_KEYS);
+
+            long replayTime = editorState.getScene().sceneToReplayTime(editorState.getPlayhead());
+
+            // If we dropped the playhead, always jump. Otherwise, only jump of we moved forward.
+            if (curveEditor.stoppedScrubbing() ||
+                    (curveEditor.isScrubbing() && replayTime > getReplayHandler().getReplaySender().currentTimeStamp())) {
+                wantsJumpTime = true;
+            } else if (curveEditor.isScrubbing()) {
+                wantsApplyToGame = true;
+            }
+        }
+        ImGui.end();
     }
 
     private void drawOutliner() {

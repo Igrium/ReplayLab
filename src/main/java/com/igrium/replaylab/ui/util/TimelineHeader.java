@@ -13,7 +13,7 @@ import org.jetbrains.annotations.Nullable;
 
 public class TimelineHeader {
 
-    private static final int TICK_MULTIPLE = 10000;
+    private static final int TICK_MULTIPLE = 1000;
 
     /**
      * Compute the distance between each major interval in a timeline header.
