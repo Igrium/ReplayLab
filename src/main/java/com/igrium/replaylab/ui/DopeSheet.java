@@ -482,7 +482,7 @@ public class DopeSheet {
         }
 
 
-        ImGui.dummy(128, 0); //force width
+        ImGui.dummy(128, 0); // force width
         ImGui.endGroup();
         ImGui.popID();
     }

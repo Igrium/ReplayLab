@@ -7,7 +7,7 @@ public class TimelineFlags {
     public static final int READONLY = 1;
 
     /**
-     * If set, snap keyframes to nearest header increment while dragging
+     * If set, snap keyframes to other keyframes while editing
      */
     public static final int SNAP_KEYS = 2;
 
@@ -36,8 +36,4 @@ public class TimelineFlags {
      */
     public static final int NO_TICKS = 64;
 
-    /**
-     * If unset, merge any keyframes with duplicate timestamps while dragging.
-     */
-    public static final int ALLOW_DUPLICATE_KEYS = 128;
 }

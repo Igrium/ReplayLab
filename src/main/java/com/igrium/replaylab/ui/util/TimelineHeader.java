@@ -179,7 +179,7 @@ public class TimelineHeader {
             if (playheadX > cursorX) {
                 drawList2.addRectFilled(playheadX - radius, cursorY + headerHeight / 2, playheadX + radius, cursorY + headerHeight, color);
                 if (windowHeight > 0) {
-                    drawList2.addRectFilled(playheadX - radius, cursorY + headerHeight / 2, playheadX + radius, cursorY + headerHeight, color);
+                    drawList2.addLine(playheadX, cursorY + headerHeight, playheadX, cursorY + headerHeight + windowHeight, color);
                 }
             }
 

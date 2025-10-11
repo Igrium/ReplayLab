@@ -1,13 +1,19 @@
 package com.igrium.replaylab.ui;
 
+import com.google.common.base.Objects;
+import com.igrium.replaylab.math.Bezier2d;
 import com.igrium.replaylab.scene.ReplayScene;
 import com.igrium.replaylab.scene.ReplayScene.KeyHandleReference;
 
+import com.igrium.replaylab.scene.key.Keyframe;
 import com.igrium.replaylab.scene.obj.ReplayObject;
 import com.igrium.replaylab.ui.util.TimelineFlags;
 import com.igrium.replaylab.ui.util.TimelineHeader;
+import imgui.ImColor;
 import imgui.ImDrawList;
 import imgui.ImGui;
+import imgui.extension.implot.flag.ImPlotCol;
+import imgui.extension.implot.flag.ImPlotColormap;
 import imgui.flag.ImGuiCol;
 import imgui.type.ImBoolean;
 import imgui.type.ImInt;
@@ -15,11 +21,31 @@ import lombok.Getter;
 import lombok.Setter;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 
 public class CurveEditor {
+
+    /**
+     * Get a channel's hue based on its object and index
+     *
+     * @param objNameHash The hash code of the object name
+     * @param chNameHash  The hash code of the channel name
+     * @return The hue of the channel as a float from 0-1
+     */
+    private static float getChannelHue(int objNameHash, int chNameHash) {
+        int x = objNameHash * 32 + chNameHash;
+
+        x ^= x << 13;
+        x ^= x >>> 17;
+        x ^= x << 5;
+
+        // Map to 0-1 range by clamping to 2^24 and dividing
+        int top24 = x >>> 8;
+        return top24 / (float)(1 << 24);
+    }
 
     /**
      * The X pan amount in milliseconds
@@ -106,7 +132,7 @@ public class CurveEditor {
 
         Collection<String> objs = selectedObjects != null ? selectedObjects : scene.getObjects().keySet();
 
-        // === CHANNEL LIST ===
+        /// === CHANNEL LIST ===
 
         ImGui.pushID("channels");
         ImGui.beginGroup();
@@ -141,7 +167,7 @@ public class CurveEditor {
         float headerCursorX = ImGui.getCursorPosX();
         float graphHeight = ImGui.getContentRegionAvailY();
 
-        // === GRAPH ===
+        /// === GRAPH ===
 
         if (ImGui.beginChild("keygraph", ImGui.getContentRegionAvailX(), graphHeight, false)) {
             // === SCROLL ===
@@ -166,7 +192,7 @@ public class CurveEditor {
 
             ImDrawList drawList = ImGui.getWindowDrawList();
 
-            // === BACKGROUND ===
+            /// === BACKGROUND ===
             drawList.addRectFilled(graphX, graphY, graphX + gWidth, graphY + gHeight, ImGui.getColorU32(ImGuiCol.FrameBg));
 
             // Amount of milliseconds the graph is wide
@@ -195,6 +221,83 @@ public class CurveEditor {
                 float yPos = valueToPixelY(value) + graphY;
                 int color = value % majorIntervalY == 0 ? colMajor : colMinor;
                 drawList.addLine(graphX, yPos, graphX + gWidth, yPos, color);
+            }
+
+
+
+            /// === GRAPH CONTENTS ===
+            for (String objName : objs) {
+                ReplayObject obj = scene.getObject(objName);
+                if (obj == null)
+                    continue;
+
+                int objHash = objName.hashCode();
+
+                // For each channel
+                for (var chEntry : obj.getChannels().entrySet()) {
+                    int chHash = chEntry.getKey().hashCode();
+                    int chColor = ImColor.hsl(getChannelHue(objHash, chHash), 1f, 1f);
+
+                    // Should be pre-sorted, but we should check
+                    Keyframe[] keyArray = chEntry.getValue().getKeyframes().toArray(new Keyframe[0]);
+
+                    // Draw keyframes
+                    for (int keyIdx = 0; keyIdx < keyArray.length; keyIdx++) {
+                        Keyframe key = keyArray[keyIdx];
+                        // I don't like that this is allocating every frame
+                        boolean selected = selectedKeys.contains(new KeyHandleReference(objName, chEntry.getKey(), keyIdx, 0));
+
+                        int color = selected ? ImGui.getColorU32(ImGuiCol.Text) : ImGui.getColorU32(ImGuiCol.TextDisabled);
+
+                        float keyX = msToPixelX((float) key.getCenter().x()) + graphX;
+                        float keyY = valueToPixelY(key.getCenter().y()) + graphY;
+
+                        drawList.addCircleFilled(keyX, keyY, 3f, color);
+
+                        float handleAX = keyX + (float) key.getHandleA().x() * zoomFactorX;
+                        float handleAY = keyY + (float) key.getHandleB().y() * zoomFactorY;
+
+                        drawList.addCircle(handleAX, handleAY, 3f, color);
+
+                        float handleBX = keyX + (float) key.getHandleB().x() * zoomFactorX;
+                        float handleBY = keyY + (float) key.getHandleB().y() * zoomFactorY;
+
+                        drawList.addCircle(handleBX, handleBY, 3f, color);
+
+                        // TODO: Shouldn't this be defined in the theme somehow?
+//                        int lineColor = 0xFFD1798E;
+                        int lineColor = 0xFF8E79D1;
+
+                        drawList.addLine(handleAX, handleAY, keyX, keyY, lineColor);
+                        drawList.addLine(handleBX, handleBY, keyX, keyY, lineColor);
+                    }
+
+                    // Lines
+                    if (keyArray.length <= 1)
+                        continue;
+
+                    Arrays.sort(keyArray);
+
+                    for (int i = 0; i < keyArray.length - 1; i++) {
+                        Keyframe key = keyArray[i];
+                        Keyframe next = keyArray[i + 1];
+
+                        float keyX = msToPixelX((float) key.getCenter().x()) + graphX;
+                        float keyY = valueToPixelY(key.getCenter().y()) + graphY;
+
+                        float keyHandleX = keyX + (float) key.getHandleB().x() * zoomFactorX;
+                        float keyHandleY = keyY + (float) key.getHandleB().y() * zoomFactorY;
+
+                        float nextX = msToPixelX((float) next.getCenter().x()) + graphX;
+                        float nextY = valueToPixelY(next.getCenter().y()) + graphY;
+
+                        float nextHandleX = nextX + (float) next.getHandleA().x() * zoomFactorX;
+                        float nextHandleY = nextY + (float) next.getHandleB().y() * zoomFactorY;
+
+                        drawList.addBezierCubic(keyX, keyY, keyHandleX, keyHandleY, nextHandleX, nextHandleY, nextX, nextY, chColor, 2);
+                    }
+
+                }
             }
         }
         ImGui.endChild();
