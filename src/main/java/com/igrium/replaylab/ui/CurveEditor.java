@@ -1,10 +1,7 @@
 package com.igrium.replaylab.ui;
 
-import com.google.common.base.Objects;
-import com.igrium.replaylab.math.Bezier2d;
 import com.igrium.replaylab.scene.ReplayScene;
 import com.igrium.replaylab.scene.ReplayScene.KeyHandleReference;
-
 import com.igrium.replaylab.scene.key.Keyframe;
 import com.igrium.replaylab.scene.obj.ReplayObject;
 import com.igrium.replaylab.ui.util.TimelineFlags;
@@ -12,8 +9,6 @@ import com.igrium.replaylab.ui.util.TimelineHeader;
 import imgui.ImColor;
 import imgui.ImDrawList;
 import imgui.ImGui;
-import imgui.extension.implot.flag.ImPlotCol;
-import imgui.extension.implot.flag.ImPlotColormap;
 import imgui.flag.ImGuiCol;
 import imgui.type.ImBoolean;
 import imgui.type.ImInt;
@@ -45,6 +40,14 @@ public class CurveEditor {
         // Map to 0-1 range by clamping to 2^24 and dividing
         int top24 = x >>> 8;
         return top24 / (float)(1 << 24);
+    }
+
+    private static int[] curveColors = new int[16];
+
+    static {
+        for (int i = 0; i < 16; i++) {
+            curveColors[i] = ImColor.hsl(i / 16f, 1f, .5f);
+        }
     }
 
     /**
@@ -224,7 +227,7 @@ public class CurveEditor {
             }
 
 
-
+            int chIndex = 0;
             /// === GRAPH CONTENTS ===
             for (String objName : objs) {
                 ReplayObject obj = scene.getObject(objName);
@@ -236,7 +239,7 @@ public class CurveEditor {
                 // For each channel
                 for (var chEntry : obj.getChannels().entrySet()) {
                     int chHash = chEntry.getKey().hashCode();
-                    int chColor = ImColor.hsl(getChannelHue(objHash, chHash), 1f, 1f);
+                    int chColor = curveColors[chIndex % 16];
 
                     // Should be pre-sorted, but we should check
                     Keyframe[] keyArray = chEntry.getValue().getKeyframes().toArray(new Keyframe[0]);
@@ -296,7 +299,7 @@ public class CurveEditor {
 
                         drawList.addBezierCubic(keyX, keyY, keyHandleX, keyHandleY, nextHandleX, nextHandleY, nextX, nextY, chColor, 2);
                     }
-
+                    chIndex++;
                 }
             }
         }
