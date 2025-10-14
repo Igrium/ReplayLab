@@ -1,7 +1,8 @@
 package com.igrium.replaylab.ui;
 
+import com.igrium.replaylab.editor.KeySelectionSet;
+import com.igrium.replaylab.editor.KeySelectionSet.KeyHandleReference;
 import com.igrium.replaylab.scene.ReplayScene;
-import com.igrium.replaylab.scene.ReplayScene.KeyHandleReference;
 import com.igrium.replaylab.scene.key.Keyframe;
 import com.igrium.replaylab.scene.obj.ReplayObject;
 import com.igrium.replaylab.ui.util.TimelineFlags;
@@ -9,17 +10,17 @@ import com.igrium.replaylab.ui.util.TimelineHeader;
 import imgui.ImColor;
 import imgui.ImDrawList;
 import imgui.ImGui;
+import imgui.ImVec2;
 import imgui.flag.ImGuiCol;
 import imgui.type.ImBoolean;
 import imgui.type.ImInt;
 import lombok.Getter;
 import lombok.Setter;
 import org.jetbrains.annotations.Nullable;
+import org.joml.Vector2d;
+import org.joml.Vector2dc;
 
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.*;
 
 public class CurveEditor {
 
@@ -42,7 +43,7 @@ public class CurveEditor {
         return top24 / (float)(1 << 24);
     }
 
-    private static int[] curveColors = new int[16];
+    private static final int[] curveColors = new int[16];
 
     static {
         for (int i = 0; i < 16; i++) {
@@ -95,6 +96,8 @@ public class CurveEditor {
     @Getter
     private final Set<String> updatedObjects = new HashSet<>();
 
+    private final Map<KeyHandleReference, Vector2dc> keyDragOffsets = new HashMap<>();
+
     private final TimelineHeader header = new TimelineHeader();
 
     public boolean isScrubbing() {
@@ -103,6 +106,10 @@ public class CurveEditor {
 
     public boolean stoppedScrubbing() {
         return header.stoppedScrubbing();
+    }
+
+    public boolean isDragging() {
+        return !keyDragOffsets.isEmpty();
     }
 
     /**
@@ -116,7 +123,7 @@ public class CurveEditor {
      * @param flags           Render flags.
      */
     public void drawCurveEditor(ReplayScene scene, @Nullable Collection<String> selectedObjects,
-                                Set<KeyHandleReference> selectedKeys, @Nullable ImInt playhead, int flags) {
+                                KeySelectionSet selectedKeys, @Nullable ImInt playhead, int flags) {
         updatedObjects.clear();
 
 
@@ -195,6 +202,8 @@ public class CurveEditor {
 
             ImDrawList drawList = ImGui.getWindowDrawList();
 
+            ImGui.invisibleButton("##curveGraph", gWidth, gHeight);
+
             /// === BACKGROUND ===
             drawList.addRectFilled(graphX, graphY, graphX + gWidth, graphY + gHeight, ImGui.getColorU32(ImGuiCol.FrameBg));
 
@@ -227,18 +236,20 @@ public class CurveEditor {
             }
 
 
-            int chIndex = 0;
             /// === GRAPH CONTENTS ===
+            KeyHandleReference clickedOn = null;
+            float mouseX = ImGui.getMousePosX();
+            float mouseY = ImGui.getMousePosY();
+            boolean mouseClicked = ImGui.isMouseClicked(0);
+
+            int chIndex = 0;
             for (String objName : objs) {
                 ReplayObject obj = scene.getObject(objName);
                 if (obj == null)
                     continue;
 
-                int objHash = objName.hashCode();
-
                 // For each channel
                 for (var chEntry : obj.getChannels().entrySet()) {
-                    int chHash = chEntry.getKey().hashCode();
                     int chColor = curveColors[chIndex % 16];
 
                     // Should be pre-sorted, but we should check
@@ -247,8 +258,7 @@ public class CurveEditor {
                     // Draw keyframes
                     for (int keyIdx = 0; keyIdx < keyArray.length; keyIdx++) {
                         Keyframe key = keyArray[keyIdx];
-                        // I don't like that this is allocating every frame
-                        boolean selected = selectedKeys.contains(new KeyHandleReference(objName, chEntry.getKey(), keyIdx, 0));
+                        boolean selected = selectedKeys.isKeyframeSelected(objName, chEntry.getKey(), keyIdx);
 
                         int color = selected ? ImGui.getColorU32(ImGuiCol.Text) : ImGui.getColorU32(ImGuiCol.TextDisabled);
 
@@ -268,11 +278,20 @@ public class CurveEditor {
                         drawList.addCircle(handleBX, handleBY, 3f, color);
 
                         // TODO: Shouldn't this be defined in the theme somehow?
-//                        int lineColor = 0xFFD1798E;
                         int lineColor = 0xFF8E79D1;
 
                         drawList.addLine(handleAX, handleAY, keyX, keyY, lineColor);
                         drawList.addLine(handleBX, handleBY, keyX, keyY, lineColor);
+
+                        if (mouseClicked && clickedOn == null) {
+                            if (keyHovered(keyX, keyY, mouseX, mouseY)) {
+                                clickedOn = new KeyHandleReference(objName, chEntry.getKey(), keyIdx, 0);
+                            } else if (keyHovered(handleAX, handleAY, mouseX, mouseY)) {
+                                clickedOn = new KeyHandleReference(objName, chEntry.getKey(), keyIdx, 1);
+                            } else if (keyHovered(handleBX, handleBY, mouseX, mouseY)) {
+                                clickedOn = new KeyHandleReference(objName, chEntry.getKey(), keyIdx, 2);
+                            }
+                        }
                     }
 
                     // Lines
@@ -301,6 +320,13 @@ public class CurveEditor {
                     }
                     chIndex++;
                 }
+            }
+
+            if (clickedOn != null) {
+                if (!ImGui.getIO().getKeyShift()) {
+                    selectedKeys.deselectAll();
+                }
+                selectedKeys.selectHandle(clickedOn);
             }
         }
         ImGui.endChild();
@@ -337,5 +363,11 @@ public class CurveEditor {
     private static int replaceAlpha(int colorArgb, int newAlpha) {
         newAlpha &= 0xFF;
         return (colorArgb & 0x00FFFFFF) | (newAlpha << 24);
+    }
+
+    private static boolean keyHovered(float keyX, float keyY, float mouseX, float mouseY) {
+        float RADIUS = 8f;
+        return (keyX - RADIUS <= mouseX && mouseX <= keyX + RADIUS)
+                && (keyY - RADIUS <= mouseY && mouseY < keyY + RADIUS);
     }
 }

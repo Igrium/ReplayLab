@@ -1,6 +1,6 @@
 package com.igrium.replaylab.test;
 
-import com.igrium.replaylab.ui.KeySelectionSet;
+import com.igrium.replaylab.editor.KeySelectionSet;
 import org.junit.jupiter.api.*;
 import static org.junit.jupiter.api.Assertions.*;
 

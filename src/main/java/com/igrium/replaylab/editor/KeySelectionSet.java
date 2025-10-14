@@ -1,8 +1,6 @@
-package com.igrium.replaylab.ui;
+package com.igrium.replaylab.editor;
 
-import com.igrium.replaylab.scene.key.KeyChannel;
 import it.unimi.dsi.fastutil.ints.*;
-import org.apache.commons.lang3.function.TriConsumer;
 
 import java.util.*;
 import java.util.function.BiConsumer;
@@ -28,8 +26,6 @@ public class KeySelectionSet {
             return channelRef.channelName();
         }
     }
-
-    ;
 
     public record KeyHandleReference(KeyframeReference keyRef, int handleIndex) {
         public KeyHandleReference(String objName, String channelName, int keyIndex, int handleIndex) {
@@ -57,7 +53,15 @@ public class KeySelectionSet {
         void accept(String objectName, String channelName, int keyIndex, int handleIndex);
     }
 
-    private final Map<String, Map<String, Int2ObjectMap<IntSet>>> selected = new HashMap<>();
+    private final Map<String, Map<String, Int2ObjectMap<IntSet>>> selected;
+
+    public KeySelectionSet() {
+        this.selected = new HashMap<>();
+    }
+
+    private KeySelectionSet(KeySelectionSet contents) {
+        this.selected = deepCopy(contents.selected);
+    }
 
     /**
      * Iterate over every object with a selected element.
@@ -505,5 +509,31 @@ public class KeySelectionSet {
      */
     public boolean deselectObject(String objName) {
         return selected.remove(objName) != null;
+    }
+
+    /**
+     * Deselect the entire selection.
+     * @return If there was
+     */
+    public boolean deselectAll() {
+        boolean success = !selected.isEmpty();
+        selected.clear();
+        return success;
+    }
+
+    private static Map<String, Map<String, Int2ObjectMap<IntSet>>> deepCopy(Map<String, Map<String, Int2ObjectMap<IntSet>>> src) {
+        Map<String, Map<String, Int2ObjectMap<IntSet>>> dest = new HashMap<>(src.size());
+        for (var objEntry : src.entrySet()) {
+            Map<String, Int2ObjectMap<IntSet>> object = new HashMap<>(objEntry.getValue().size());
+            for (var chEntry : objEntry.getValue().entrySet()) {
+                Int2ObjectMap<IntSet> ch = new Int2ObjectAVLTreeMap<>();
+                for (var keyEntry : chEntry.getValue().int2ObjectEntrySet()) {
+                    ch.put(keyEntry.getIntKey(), new IntArraySet(keyEntry.getValue()));
+                }
+                object.put(chEntry.getKey(), ch);
+            }
+            dest.put(objEntry.getKey(), object);
+        }
+        return dest;
     }
 }

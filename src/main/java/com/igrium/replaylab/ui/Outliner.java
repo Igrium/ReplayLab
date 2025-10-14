@@ -1,19 +1,15 @@
 package com.igrium.replaylab.ui;
 
+import com.igrium.replaylab.editor.ReplayLabEditorState;
 import com.igrium.replaylab.operator.AddObjectOperator;
 import com.igrium.replaylab.operator.RemoveObjectOperator;
 import com.igrium.replaylab.operator.RenameObjectOperator;
-import com.igrium.replaylab.scene.obj.ReplayObjectType;
 import com.igrium.replaylab.scene.obj.ReplayObjects;
 import imgui.ImGui;
 import imgui.type.ImString;
 import net.minecraft.util.Language;
 import org.jetbrains.annotations.Nullable;
 import org.lwjgl.glfw.GLFW;
-import org.slf4j.LoggerFactory;
-
-import java.util.Collections;
-import java.util.List;
 
 public class Outliner {
 

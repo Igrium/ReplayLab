@@ -1,4 +1,4 @@
-package com.igrium.replaylab.ui;
+package com.igrium.replaylab.editor;
 
 import com.igrium.replaylab.operator.ReplayOperator;
 import com.igrium.replaylab.playback.RealtimeScenePlayer;
@@ -26,7 +26,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -88,6 +87,12 @@ public class ReplayLabEditorState {
      */
     @Getter
     private boolean cameraView;
+
+    /**
+     * All keyframe (handles) which are currently selected
+     */
+    @Getter
+    private final KeySelectionSet keySelection = new KeySelectionSet();
 
     // ===== Constructors =====
     public ReplayLabEditorState() {

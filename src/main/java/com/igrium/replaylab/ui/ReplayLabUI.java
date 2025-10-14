@@ -2,6 +2,7 @@ package com.igrium.replaylab.ui;
 
 
 import com.igrium.craftui.app.DockSpaceApp;
+import com.igrium.replaylab.editor.ReplayLabEditorState;
 import com.igrium.replaylab.operator.InsertKeyframeOperator;
 import com.igrium.replaylab.operator.CommitObjectUpdateOperator;
 import com.igrium.replaylab.operator.RemoveKeyframesOperator;
@@ -10,7 +11,6 @@ import com.igrium.replaylab.scene.ReplayScene;
 import com.igrium.replaylab.scene.obj.ReplayObject;
 import com.igrium.replaylab.ui.util.ExceptionPopup;
 import com.igrium.replaylab.ui.util.TimelineFlags;
-import com.replaymod.core.ReplayMod;
 import com.replaymod.replay.ReplayHandler;
 import com.replaymod.replay.ReplayModReplay;
 import imgui.ImGui;
@@ -29,7 +29,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
@@ -359,7 +358,7 @@ public class ReplayLabUI extends DockSpaceApp {
 
     private void drawCurveEditor() {
         if (ImGui.begin("Curve Editor")) {
-            curveEditor.drawCurveEditor(editorState.getScene(), null, Collections.emptySet(),
+            curveEditor.drawCurveEditor(editorState.getScene(), null, editorState.getKeySelection(),
                     editorState.getPlayheadRef(), TimelineFlags.SNAP_KEYS);
 
             long replayTime = editorState.getScene().sceneToReplayTime(editorState.getPlayhead());
