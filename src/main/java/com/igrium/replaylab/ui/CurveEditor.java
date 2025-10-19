@@ -10,14 +10,12 @@ import com.igrium.replaylab.ui.util.TimelineHeader;
 import imgui.ImColor;
 import imgui.ImDrawList;
 import imgui.ImGui;
-import imgui.ImVec2;
 import imgui.flag.ImGuiCol;
 import imgui.type.ImBoolean;
 import imgui.type.ImInt;
 import lombok.Getter;
 import lombok.Setter;
 import org.jetbrains.annotations.Nullable;
-import org.joml.Vector2d;
 import org.joml.Vector2dc;
 
 import java.util.*;
@@ -47,7 +45,7 @@ public class CurveEditor {
 
     static {
         for (int i = 0; i < 16; i++) {
-            curveColors[i] = ImColor.hsl(i / 16f, 1f, .5f);
+            curveColors[i] = ImColor.hsla(i / 16f, 1f, .5f, .75f);
         }
     }
 
@@ -251,6 +249,10 @@ public class CurveEditor {
                 // For each channel
                 for (var chEntry : obj.getChannels().entrySet()) {
                     int chColor = curveColors[chIndex % 16];
+                    boolean chSelected = selectedKeys.isChannelSelected(objName, chEntry.getKey());
+                    if (!chSelected) {
+                        chColor = replaceAlpha(chColor, 64);
+                    }
 
                     // Should be pre-sorted, but we should check
                     Keyframe[] keyArray = chEntry.getValue().getKeyframes().toArray(new Keyframe[0]);
@@ -258,38 +260,48 @@ public class CurveEditor {
                     // Draw keyframes
                     for (int keyIdx = 0; keyIdx < keyArray.length; keyIdx++) {
                         Keyframe key = keyArray[keyIdx];
-                        boolean selected = selectedKeys.isKeyframeSelected(objName, chEntry.getKey(), keyIdx);
+                        boolean cSelected = selectedKeys.isHandleSelected(objName, chEntry.getKey(), keyIdx, 0);
+                        boolean lSelected = selectedKeys.isHandleSelected(objName, chEntry.getKey(), keyIdx, 1);
+                        boolean rSelected = selectedKeys.isHandleSelected(objName, chEntry.getKey(), keyIdx, 2);
 
-                        int color = selected ? ImGui.getColorU32(ImGuiCol.Text) : ImGui.getColorU32(ImGuiCol.TextDisabled);
+                        int color = 0xFF000000;
+                        int selColor = ImGui.getColorU32(ImGuiCol.Text);
 
                         float keyX = msToPixelX((float) key.getCenter().x()) + graphX;
                         float keyY = valueToPixelY(key.getCenter().y()) + graphY;
 
-                        drawList.addCircleFilled(keyX, keyY, 3f, color);
+                        drawList.addCircleFilled(keyX, keyY, 3f, cSelected ? selColor : color);
 
                         float handleAX = keyX + (float) key.getHandleA().x() * zoomFactorX;
                         float handleAY = keyY + (float) key.getHandleB().y() * zoomFactorY;
 
-                        drawList.addCircle(handleAX, handleAY, 3f, color);
+                        drawList.addCircle(handleAX, handleAY, 3f, lSelected ? selColor : color);
 
                         float handleBX = keyX + (float) key.getHandleB().x() * zoomFactorX;
                         float handleBY = keyY + (float) key.getHandleB().y() * zoomFactorY;
 
-                        drawList.addCircle(handleBX, handleBY, 3f, color);
+                        drawList.addCircle(handleBX, handleBY, 3f, rSelected ? selColor : color);
 
                         // TODO: Shouldn't this be defined in the theme somehow?
                         int lineColor = 0xFF8E79D1;
+                        int lineColorSel = 0xFF93B4FF;
 
-                        drawList.addLine(handleAX, handleAY, keyX, keyY, lineColor);
-                        drawList.addLine(handleBX, handleBY, keyX, keyY, lineColor);
+                        drawList.addLine(handleAX, handleAY, keyX, keyY, lSelected || cSelected ? lineColorSel : lineColor);
+                        drawList.addLine(handleBX, handleBY, keyX, keyY, rSelected || cSelected ? lineColorSel : lineColor);
 
-                        if (mouseClicked && clickedOn == null) {
-                            if (keyHovered(keyX, keyY, mouseX, mouseY)) {
-                                clickedOn = new KeyHandleReference(objName, chEntry.getKey(), keyIdx, 0);
-                            } else if (keyHovered(handleAX, handleAY, mouseX, mouseY)) {
-                                clickedOn = new KeyHandleReference(objName, chEntry.getKey(), keyIdx, 1);
-                            } else if (keyHovered(handleBX, handleBY, mouseX, mouseY)) {
-                                clickedOn = new KeyHandleReference(objName, chEntry.getKey(), keyIdx, 2);
+                        // Prioritize clicking on the selected channel unless the keyframe being clicked is already selected.
+                        // In that case, don't let it be selected again so we can select overlapping keys.
+                        if (mouseClicked && (selectedKeys.isChannelSelected(objName, chEntry.getKey()) || clickedOn == null)) {
+                            KeyHandleReference handle0Ref = new KeyHandleReference(objName, chEntry.getKey(), keyIdx, 0);
+                            KeyHandleReference handle1Ref = new KeyHandleReference(objName, chEntry.getKey(), keyIdx, 1);
+                            KeyHandleReference handle2Ref = new KeyHandleReference(objName, chEntry.getKey(), keyIdx, 2);
+
+                            if (keyHovered(keyX, keyY, mouseX, mouseY) && !selectedKeys.isHandleSelected(handle0Ref)) {
+                                clickedOn = handle0Ref;
+                            } else if (keyHovered(handleAX, handleAY, mouseX, mouseY) && !selectedKeys.isHandleSelected(handle1Ref)) {
+                                clickedOn = handle1Ref;
+                            } else if (keyHovered(handleBX, handleBY, mouseX, mouseY) && !selectedKeys.isHandleSelected(handle2Ref)) {
+                                clickedOn = handle2Ref;
                             }
                         }
                     }
@@ -316,7 +328,8 @@ public class CurveEditor {
                         float nextHandleX = nextX + (float) next.getHandleA().x() * zoomFactorX;
                         float nextHandleY = nextY + (float) next.getHandleB().y() * zoomFactorY;
 
-                        drawList.addBezierCubic(keyX, keyY, keyHandleX, keyHandleY, nextHandleX, nextHandleY, nextX, nextY, chColor, 2);
+                        drawList.addBezierCubic(keyX, keyY, keyHandleX, keyHandleY, nextHandleX, nextHandleY, nextX, nextY,
+                                chColor, chSelected ? 2 : 1);
                     }
                     chIndex++;
                 }
