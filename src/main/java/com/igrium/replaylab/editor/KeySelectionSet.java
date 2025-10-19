@@ -1,6 +1,12 @@
 package com.igrium.replaylab.editor;
 
+import com.igrium.replaylab.scene.ReplayScene;
+import com.igrium.replaylab.scene.key.KeyChannel;
+import com.igrium.replaylab.scene.key.Keyframe;
+import com.igrium.replaylab.scene.obj.ReplayObject;
 import it.unimi.dsi.fastutil.ints.*;
+import org.jetbrains.annotations.Nullable;
+import org.joml.Vector2dc;
 
 import java.util.*;
 import java.util.function.BiConsumer;
@@ -11,6 +17,10 @@ import java.util.function.Consumer;
  */
 public class KeySelectionSet {
     public record ChannelReference(String objectName, String channelName) {
+        public @Nullable KeyChannel get(Map<? extends String, ? extends ReplayObject> objects) {
+            var obj = objects.get(objectName);
+            return obj != null ? obj.getChannels().get(channelName) : null;
+        }
     }
 
     public record KeyframeReference(ChannelReference channelRef, int keyIndex) {
@@ -24,6 +34,13 @@ public class KeySelectionSet {
 
         public String channelName() {
             return channelRef.channelName();
+        }
+
+        public @Nullable Keyframe get(Map<? extends String, ? extends ReplayObject> objects) {
+            var ch = channelRef.get(objects);
+            if (ch == null) return null;
+            List<Keyframe> keys = ch.getKeyframes();
+            return (0 <= keyIndex && keyIndex < keys.size()) ? keys.get(keyIndex) : null;
         }
     }
 
@@ -42,6 +59,18 @@ public class KeySelectionSet {
 
         public int keyIndex() {
             return keyRef.keyIndex();
+        }
+
+        public @Nullable Vector2dc get(Map<? extends String, ? extends ReplayObject> objects) {
+            var key = keyRef.get(objects);
+            if (key == null) return null;
+            
+            return switch (handleIndex) {
+                case 0 -> key.getCenter();
+                case 1 -> key.getHandleA();
+                case 2 -> key.getHandleB();
+                default -> null;
+            };
         }
     }
 

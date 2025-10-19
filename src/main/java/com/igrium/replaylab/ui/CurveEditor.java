@@ -16,7 +16,8 @@ import imgui.type.ImInt;
 import lombok.Getter;
 import lombok.Setter;
 import org.jetbrains.annotations.Nullable;
-import org.joml.Vector2dc;
+import org.joml.Vector2f;
+import org.joml.Vector2fc;
 
 import java.util.*;
 
@@ -74,14 +75,14 @@ public class CurveEditor {
     private float zoomFactorY = 0.1f;
 
     public void setZoomFactorX(float zoomFactorX) {
-        if (zoomFactorX < 0) {
+        if (zoomFactorX <= 0) {
             throw new IllegalArgumentException("Zoom factor must be greater than 0");
         }
         this.zoomFactorX = zoomFactorX;
     }
 
     public void setZoomFactorY(float zoomFactorY) {
-        if (zoomFactorY < 0) {
+        if (zoomFactorY <= 0) {
             throw new IllegalArgumentException("Zoom factor must be greater than 0");
         }
         this.zoomFactorY = zoomFactorY;
@@ -94,7 +95,10 @@ public class CurveEditor {
     @Getter
     private final Set<String> updatedObjects = new HashSet<>();
 
-    private final Map<KeyHandleReference, Vector2dc> keyDragOffsets = new HashMap<>();
+    /**
+     * The amount of pixels offset from the mouse that each key being dragged is.
+     */
+    private final Map<KeyHandleReference, Vector2fc> keyDragOffsets = new HashMap<>();
 
     private final TimelineHeader header = new TimelineHeader();
 
@@ -123,7 +127,6 @@ public class CurveEditor {
     public void drawCurveEditor(ReplayScene scene, @Nullable Collection<String> selectedObjects,
                                 KeySelectionSet selectedKeys, @Nullable ImInt playhead, int flags) {
         updatedObjects.clear();
-
 
         int majorIntervalX = (int) TimelineHeader.computeMajorInterval(zoomFactorX);
         int minorIntervalX = majorIntervalX / 2;
@@ -234,11 +237,15 @@ public class CurveEditor {
             }
 
 
-            /// === GRAPH CONTENTS ===
+            /// === Keyframes ===
             KeyHandleReference clickedOn = null;
             float mouseX = ImGui.getMousePosX();
             float mouseY = ImGui.getMousePosY();
             boolean mouseClicked = ImGui.isMouseClicked(0);
+
+            // If we're overing any key, with some leeway for drag threshold
+            boolean hoveringAnyKey = false;
+            float keyHoverRadius = 8f + ImGui.getIO().getMouseDragThreshold() * 2;
 
             int chIndex = 0;
             for (String objName : objs) {
@@ -251,7 +258,7 @@ public class CurveEditor {
                     int chColor = curveColors[chIndex % 16];
                     boolean chSelected = selectedKeys.isChannelSelected(objName, chEntry.getKey());
                     if (!chSelected) {
-                        chColor = replaceAlpha(chColor, 64);
+                        chColor = replaceAlpha(chColor, 128);
                     }
 
                     // Should be pre-sorted, but we should check
@@ -273,7 +280,7 @@ public class CurveEditor {
                         drawList.addCircleFilled(keyX, keyY, 3f, cSelected ? selColor : color);
 
                         float handleAX = keyX + (float) key.getHandleA().x() * zoomFactorX;
-                        float handleAY = keyY + (float) key.getHandleB().y() * zoomFactorY;
+                        float handleAY = keyY + (float) key.getHandleA().y() * zoomFactorY;
 
                         drawList.addCircle(handleAX, handleAY, 3f, lSelected ? selColor : color);
 
@@ -283,7 +290,7 @@ public class CurveEditor {
                         drawList.addCircle(handleBX, handleBY, 3f, rSelected ? selColor : color);
 
                         // TODO: Shouldn't this be defined in the theme somehow?
-                        int lineColor = 0xFF8E79D1;
+                        int lineColor = 0x808E79D1;
                         int lineColorSel = 0xFF93B4FF;
 
                         drawList.addLine(handleAX, handleAY, keyX, keyY, lSelected || cSelected ? lineColorSel : lineColor);
@@ -303,6 +310,12 @@ public class CurveEditor {
                             } else if (keyHovered(handleBX, handleBY, mouseX, mouseY) && !selectedKeys.isHandleSelected(handle2Ref)) {
                                 clickedOn = handle2Ref;
                             }
+                        }
+
+                        if (!hoveringAnyKey && keyHovered(keyX, keyY, mouseX, mouseY, keyHoverRadius)
+                                || keyHovered(handleAX, handleAY, mouseX, mouseY, keyHoverRadius)
+                                || keyHovered(handleBX, handleBY, mouseX, mouseY, keyHoverRadius)) {
+                            hoveringAnyKey = true;
                         }
                     }
 
@@ -326,7 +339,7 @@ public class CurveEditor {
                         float nextY = valueToPixelY(next.getCenter().y()) + graphY;
 
                         float nextHandleX = nextX + (float) next.getHandleA().x() * zoomFactorX;
-                        float nextHandleY = nextY + (float) next.getHandleB().y() * zoomFactorY;
+                        float nextHandleY = nextY + (float) next.getHandleA().y() * zoomFactorY;
 
                         drawList.addBezierCubic(keyX, keyY, keyHandleX, keyHandleY, nextHandleX, nextHandleY, nextX, nextY,
                                 chColor, chSelected ? 2 : 1);
@@ -335,11 +348,77 @@ public class CurveEditor {
                 }
             }
 
+            ///  === DRAGGING & SELECTION ===
             if (clickedOn != null) {
                 if (!ImGui.getIO().getKeyShift()) {
                     selectedKeys.deselectAll();
                 }
                 selectedKeys.selectHandle(clickedOn);
+            }
+
+            if (isDragging() && !ImGui.isMouseDragging(0)) {
+                // Stop dragging
+                for (var ref : keyDragOffsets.keySet()) {
+                    updatedObjects.add(ref.objectName());
+                }
+                keyDragOffsets.clear();
+
+            } else if (!isDragging() && ImGui.isMouseDragging(0)
+                    && hoveringAnyKey && !isScrubbing()) {
+                // Start Dragging
+                selectedKeys.forSelectedKeyframes(keyRef -> {
+                    Keyframe key = keyRef.get(scene.getObjects());
+                    if (key == null) return;
+
+                    float keyX = msToPixelX((float) key.getCenter().x()) + graphX;
+                    float keyY = valueToPixelY(key.getCenter().y()) + graphY;
+
+                    // If the center is selected, only begin dragging it because the handles are parented to it.
+                    KeyHandleReference centerRef = new KeyHandleReference(keyRef, 0);
+                    if (selectedKeys.isHandleSelected(centerRef)) {
+                        keyDragOffsets.put(centerRef, new Vector2f(keyX - mouseX, keyY - mouseY));
+                    } else {
+                        float handleAX = keyX + (float) key.getHandleA().x() * zoomFactorX;
+                        float handleAY = keyY + (float) key.getHandleA().y() * zoomFactorY;
+
+                        float handleBX = keyX + (float) key.getHandleB().x() * zoomFactorX;
+                        float handleBY = keyY + (float) key.getHandleB().y() * zoomFactorY;
+
+                        KeyHandleReference aRef = new KeyHandleReference(keyRef, 1);
+                        if (selectedKeys.isHandleSelected(aRef)) {
+                            keyDragOffsets.put(aRef, new Vector2f(handleAX - mouseX, handleAY - mouseY));
+                        }
+
+                        KeyHandleReference bRef = new KeyHandleReference(keyRef, 2);
+                        if (selectedKeys.isHandleSelected(bRef)) {
+                            keyDragOffsets.put(bRef, new Vector2f(handleBX - mouseX, handleBY - mouseY));
+                        }
+                    }
+                });
+            } else {
+                // Currently dragging
+                for (var entry : keyDragOffsets.entrySet()) {
+                    KeyHandleReference hRef = entry.getKey();
+                    Vector2fc offset = entry.getValue();
+                    Keyframe key = hRef.keyRef().get(scene.getObjects());
+                    if (key == null) continue;
+
+                    float newGlobalTime = pixelXToMs(mouseX + offset.x() - graphX);
+                    double newGlobalValue = pixelYToValue(mouseY + offset.y() - graphY);
+
+                    switch (hRef.handleIndex()) {
+                        case 0 -> {
+                            key.setTime((int) newGlobalTime);
+                            key.setValue(newGlobalValue);
+                        } case 1 -> {
+                            key.getHandleA().x = newGlobalTime - key.getCenter().x;
+                            key.getHandleA().y = newGlobalValue - key.getCenter().y;
+                        } case 2 -> {
+                            key.getHandleB().x = newGlobalTime - key.getCenter().x;
+                            key.getHandleB().y = newGlobalValue - key.getCenter().y;
+                        }
+                    }
+                }
             }
         }
         ImGui.endChild();
@@ -378,9 +457,12 @@ public class CurveEditor {
         return (colorArgb & 0x00FFFFFF) | (newAlpha << 24);
     }
 
+    private static boolean keyHovered(float keyX, float keyY, float mouseX, float mouseY, float radius) {
+        return (keyX - radius <= mouseX && mouseX <= keyX + radius)
+                && (keyY - radius <= mouseY && mouseY < keyY + radius);
+    }
+
     private static boolean keyHovered(float keyX, float keyY, float mouseX, float mouseY) {
-        float RADIUS = 8f;
-        return (keyX - RADIUS <= mouseX && mouseX <= keyX + RADIUS)
-                && (keyY - RADIUS <= mouseY && mouseY < keyY + RADIUS);
+        return keyHovered(keyX, keyY, mouseX, mouseY, 8f);
     }
 }

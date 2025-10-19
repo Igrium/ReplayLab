@@ -370,6 +370,13 @@ public class ReplayLabUI extends DockSpaceApp {
             } else if (curveEditor.isScrubbing()) {
                 wantsApplyToGame = true;
             }
+
+            if (!curveEditor.getUpdatedObjects().isEmpty()) {
+                editorState.applyOperator(new CommitObjectUpdateOperator(curveEditor.getUpdatedObjects()));
+            } else if (curveEditor.isDragging()) {
+                // Always apply to game if we're dragging
+                editorState.applyToGame();
+            }
         }
         ImGui.end();
     }
