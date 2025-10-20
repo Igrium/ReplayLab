@@ -25,7 +25,7 @@
     "minecraft": "~1.21.4",
     "java": ">=21",
     "fabric-api": "*",
-    "craftui": ">=0.2.0",
+    "craftui": ">=0.4.1",
     "replaymod": "*"
   },
   "suggests": {

@@ -262,7 +262,7 @@ public class ReplayLabUI extends DockSpaceApp {
     private float prevCameraControlsGroupWidth = 0;
 
     private void drawPlaybackControls() {
-        ImGui.pushFont(PlaybackIcons.playbackIcons());
+        ImGui.pushFont(ReplayLabIcons.getFont());
         float buttonSize = ImGui.getTextLineHeightWithSpacing() * 1.25f;
         viewportFooterHeight = buttonSize + ImGui.getStyle().getWindowPaddingY() * 2;
         ImGui.popFont();
@@ -280,15 +280,15 @@ public class ReplayLabUI extends DockSpaceApp {
             ImGui.setCursorPosX(ImGui.getContentRegionMaxX() / 2 - groupWidth / 2);
             ImGui.alignTextToFramePadding();
 
-            playbackIcon(PlaybackIcons.JUMP_START, "Scene Start", buttonSize);
-            playbackIcon(PlaybackIcons.PREV_KEYFRAME, "Previous Keyframe", buttonSize);
-            String playPauseIcon = editorState.isPlaying() ? PlaybackIcons.PAUSE : PlaybackIcons.PLAY;
+            playbackIcon(ReplayLabIcons.ICON_TO_START_ALT, "Scene Start", buttonSize);
+            playbackIcon(ReplayLabIcons.ICON_TO_START, "Previous Keyframe", buttonSize);
+            char playPauseIcon = editorState.isPlaying() ? ReplayLabIcons.ICON_PAUSE: ReplayLabIcons.ICON_PLAY;
             if (playbackIcon(playPauseIcon, "Play/Pause", buttonSize)) {
                 onPlayPauseClicked();
             }
 
-            playbackIcon(PlaybackIcons.NEXT_KEYFRAME, "Next Keyframe", buttonSize);
-            playbackIcon(PlaybackIcons.JUMP_END, "Scene End", buttonSize);
+            playbackIcon(ReplayLabIcons.ICON_TO_END, "Next Keyframe", buttonSize);
+            playbackIcon(ReplayLabIcons.ICON_TO_END_ALT, "Scene End", buttonSize);
 
             ImGui.setCursorPosX(ImGui.getContentRegionMaxX() - prevCameraControlsGroupWidth);
 
@@ -311,9 +311,10 @@ public class ReplayLabUI extends DockSpaceApp {
         }
     }
 
-    private boolean playbackIcon(String icon, String tooltip, float buttonSize) {
-        ImGui.pushFont(PlaybackIcons.playbackIcons());
-        boolean res = ImGui.button(icon, buttonSize, buttonSize);
+
+    private boolean playbackIcon(char icon, String tooltip, float buttonSize) {
+        ImGui.pushFont(ReplayLabIcons.getFont());
+        boolean res = ImGui.button(String.valueOf(icon), buttonSize, buttonSize);
         ImGui.popFont();
 
         if (ImGui.isItemHovered()) {
