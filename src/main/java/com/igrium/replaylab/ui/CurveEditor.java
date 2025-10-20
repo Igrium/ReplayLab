@@ -10,14 +10,18 @@ import com.igrium.replaylab.ui.util.TimelineHeader;
 import imgui.ImColor;
 import imgui.ImDrawList;
 import imgui.ImGui;
+import imgui.ImVec2;
 import imgui.flag.ImGuiCol;
+import imgui.flag.ImGuiHoveredFlags;
 import imgui.type.ImBoolean;
 import imgui.type.ImInt;
 import lombok.Getter;
 import lombok.Setter;
 import org.jetbrains.annotations.Nullable;
+import org.joml.Vector2d;
 import org.joml.Vector2f;
 import org.joml.Vector2fc;
+import org.joml.Vector3d;
 
 import java.util.*;
 
@@ -101,6 +105,9 @@ public class CurveEditor {
     private final Map<KeyHandleReference, Vector2fc> keyDragOffsets = new HashMap<>();
 
     private final TimelineHeader header = new TimelineHeader();
+
+    // Not null if currently panning
+    private @Nullable Vector2d panStartPos;
 
     public boolean isScrubbing() {
         return header.isScrubbing();
@@ -245,7 +252,7 @@ public class CurveEditor {
 
             // If we're overing any key, with some leeway for drag threshold
             boolean hoveringAnyKey = false;
-            float keyHoverRadius = 8f + ImGui.getIO().getMouseDragThreshold() * 2;
+            float keyHoverRadius = 12f + ImGui.getIO().getMouseDragThreshold() * 2;
 
             int chIndex = 0;
             for (String objName : objs) {
@@ -350,7 +357,7 @@ public class CurveEditor {
 
             ///  === DRAGGING & SELECTION ===
             if (clickedOn != null) {
-                if (!ImGui.getIO().getKeyShift()) {
+                if (!ImGui.getIO().getKeyCtrl()) {
                     selectedKeys.deselectAll();
                 }
                 selectedKeys.selectHandle(clickedOn);
@@ -420,6 +427,25 @@ public class CurveEditor {
                     }
                 }
             }
+
+            /// === PANNING ===
+            if (ImGui.isMouseDragging(2)) {
+                if (panStartPos == null && ImGui.isWindowHovered(ImGuiHoveredFlags.ChildWindows)) {
+                    panStartPos = new Vector2d(offsetX, offsetY);
+                }
+
+                if (panStartPos != null) {
+                    double dx = ImGui.getMouseDragDeltaX(2) / zoomFactorX;
+                    double dy = ImGui.getMouseDragDeltaY(2) / zoomFactorY;
+
+                    offsetX = panStartPos.x() - dx;
+                    offsetY = panStartPos.y() - dy;
+                }
+            } else {
+                panStartPos = null;
+            }
+
+
         }
         ImGui.endChild();
 

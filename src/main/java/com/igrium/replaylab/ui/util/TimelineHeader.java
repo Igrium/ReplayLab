@@ -8,6 +8,7 @@ import imgui.flag.ImGuiWindowFlags;
 import imgui.type.ImInt;
 import it.unimi.dsi.fastutil.floats.FloatUnaryOperator;
 import lombok.Getter;
+import lombok.Value;
 import lombok.experimental.Accessors;
 import org.jetbrains.annotations.Nullable;
 
@@ -100,41 +101,89 @@ public class TimelineHeader {
             float widthMs = width / zoomFactor;
 
             // Round the first tick to draw down
+
             int headerStartTick = Math.floorDiv((int) offsetX, TICK_MULTIPLE) * TICK_MULTIPLE;
 
             // Round the last tick to draw up
             int headerEndTick = Math.floorDiv((int) (offsetX + widthMs), TICK_MULTIPLE) * TICK_MULTIPLE;
 
-            // Major intervals
-            for (int ms = headerStartTick; ms <= headerEndTick; ms += majorInterval) {
-                float pos = msToPixel.apply(ms);
-                float sec = ms / 1000f;
+            int startTick = Math.floorDiv((int) offsetX, majorInterval) * majorInterval;
+            int endTick = Math.ceilDiv((int) (offsetX + widthMs), majorInterval) * majorInterval;
 
-                // Number
-                String str = majorInterval < 1000 ? String.format("%.2f", sec) : Integer.toString(Math.round(sec));
-                ImVec2 strLen = ImGui.calcTextSize(str);
-                drawList.addText(cursorX + (pos - strLen.x / 2f), cursorY, ImGui.getColorU32(ImGuiCol.Text), str);
+//            for (int ms = startTick; ms <= endTick; ms+= minorInterval) {
+//                float pos = msToPixel.apply(ms) + cursorX;
+//
+//                boolean isMajor = ms % majorInterval == 0;
+//                if (isMajor) {
+//                    // Number
+//                    float sec = ms / 1000f;
+//                    String str = majorInterval < 1000 ? String.format("%.2f", sec) : Integer.toString(Math.round(sec));
+//                    ImVec2 strLen = ImGui.calcTextSize(str);
+//                    drawList.addText(pos - strLen.x / 2f, cursorY, ImGui.getColorU32(ImGuiCol.Text), str);
+//                }
+//
+//                // Tick
+//                drawList.addLine(pos, cursorY + headerHeight / (isMajor ? 1.8f : 1.4f),
+//                        pos, cursorY + headerHeight, 0xAAAAAAAA);
+//
+//            }
 
-                // Tick
-                drawList.addLine(cursorX + pos, cursorY + headerHeight / 1.8f,
-                        cursorX + pos, cursorY + headerHeight, 0xAAAAAAAA);
-            }
+            ImVec2 strLength = new ImVec2();
+            for (int ms = startTick; ms <= endTick; ms += tinyInterval) {
+                float pos = msToPixel.apply(ms) + cursorX;
 
-            // Minor ticks
-            for (int ms = headerStartTick; ms <= headerEndTick; ms += minorInterval) {
-                float pos = msToPixel.apply(ms);
-                drawList.addLine(cursorX + pos, cursorY + headerHeight / 1.4f,
-                        cursorX + pos, cursorY + headerHeight, 0xAAAAAAAA);
-            }
+                boolean isMajor = ms % majorInterval == 0;
+                boolean isMinor = ms % minorInterval == 0;
 
-            // Don't bother drawing tiny ticks if they're too small
-            if (tinyInterval * zoomFactor > em * 1.2) {
-                for (float ms = 0; ms <= headerEndTick; ms += tinyInterval) {
-                    float pos = msToPixel.apply(ms);
-                    drawList.addLine(cursorX + pos, cursorY + headerHeight / 1.2f,
-                            cursorX + pos, cursorY + headerHeight, 0xAAAAAAAA);
+                if (isMajor) {
+                    // Number
+                    float sec = ms / 1000f;
+                    String str = majorInterval < 1000 ? String.format("%.2f", sec) : Integer.toString(Math.round(sec));
+                    ImGui.calcTextSize(strLength, str);
+                    drawList.addText(pos - strLength.x / 2f, cursorY, ImGui.getColorU32(ImGuiCol.Text), str);
+
+                    // Tick
+                    drawList.addLine(pos, cursorY + headerHeight / 1.8f, pos, cursorY + headerHeight, 0xAAAAAAAA);
+
+                } else if (isMinor) {
+                    drawList.addLine(pos, cursorY + headerHeight / 1.4f, pos, cursorY + headerHeight, 0xAAAAAAAA);
+
+                } else if (tinyInterval * zoomFactor > em * 1.2f) {
+                    // Don't bother drawing tiny ticks if they're too small
+                    drawList.addLine(pos, cursorY + headerHeight / 1.2f, pos, cursorY + headerHeight, 0xAAAAAAAA);
                 }
             }
+
+            // Major intervals
+//            for (int ms = Math.floorDiv(headerStartTick, majorInterval); ms <= headerEndTick; ms += majorInterval) {
+//                float pos = msToPixel.apply(ms);
+//                float sec = ms / 1000f;
+//
+//                // Number
+//                String str = majorInterval < 1000 ? String.format("%.2f", sec) : Integer.toString(Math.round(sec));
+//                ImVec2 strLen = ImGui.calcTextSize(str);
+//                drawList.addText(cursorX + (pos - strLen.x / 2f), cursorY, ImGui.getColorU32(ImGuiCol.Text), str);
+//
+//                // Tick
+//                drawList.addLine(cursorX + pos, cursorY + headerHeight / 1.8f,
+//                        cursorX + pos, cursorY + headerHeight, 0xAAAAAAAA);
+//            }
+//
+//            // Minor ticks
+//            for (int ms = Math.floorDiv(headerStartTick, minorInterval); ms <= headerEndTick; ms += minorInterval) {
+//                float pos = msToPixel.apply(ms);
+//                drawList.addLine(cursorX + pos, cursorY + headerHeight / 1.4f,
+//                        cursorX + pos, cursorY + headerHeight, 0xAAAAAAAA);
+//            }
+//
+//            // Don't bother drawing tiny ticks if they're too small
+//            if (tinyInterval * zoomFactor > em * 1.2) {
+//                for (float ms = Math.floorDiv(headerEndTick, tinyInterval); ms <= headerEndTick; ms += tinyInterval) {
+//                    float pos = msToPixel.apply(ms);
+//                    drawList.addLine(cursorX + pos, cursorY + headerHeight / 1.2f,
+//                            cursorX + pos, cursorY + headerHeight, 0xAAAAAAAA);
+//                }
+//            }
 
             drawList.popClipRect();
         }
