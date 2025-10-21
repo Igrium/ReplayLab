@@ -6,7 +6,6 @@ import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonWriter;
 import lombok.Getter;
 import lombok.NonNull;
-import lombok.Setter;
 import org.jetbrains.annotations.NotNull;
 import org.joml.Vector2d;
 
@@ -59,6 +58,14 @@ public final class Keyframe implements Comparable<Keyframe> {
 
     public void setValue(double value) {
         center.y = value;
+    }
+
+    public Vector2d getGlobalA(Vector2d dest) {
+        return center.add(handleA, dest);
+    }
+
+    public Vector2d getGlobalB(Vector2d dest) {
+        return center.add(handleB, dest);
     }
 
     public void copyFrom(Keyframe other) {

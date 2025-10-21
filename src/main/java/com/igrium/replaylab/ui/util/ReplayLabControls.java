@@ -1,11 +1,13 @@
 package com.igrium.replaylab.ui.util;
 
 import com.igrium.replaylab.scene.obj.ReplayObject;
+import com.igrium.replaylab.ui.ReplayLabIcons;
 import imgui.ImGui;
 import imgui.flag.ImGuiCol;
 import imgui.type.ImBoolean;
 import lombok.NonNull;
 import org.apache.commons.lang3.mutable.Mutable;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.Map;
 import java.util.Objects;
@@ -63,12 +65,14 @@ public class ReplayLabControls {
     }
 
     public static boolean toggleButton(String label, ImBoolean pressed) {
-        int activeColor = ImGui.getColorU32(ImGuiCol.ButtonActive);
-        ImGui.pushStyleColor(ImGuiCol.ButtonActive, ImGui.getColorU32(ImGuiCol.ButtonHovered));
+        int activeColor = ImGui.getColorU32(ImGuiCol.ButtonHovered);
         boolean wasPressed = pressed.get();
 
         if (wasPressed) {
             ImGui.pushStyleColor(ImGuiCol.Button, activeColor);
+            ImGui.pushStyleColor(ImGuiCol.ButtonHovered, activeColor);
+        } else {
+            ImGui.pushStyleColor(ImGuiCol.ButtonHovered, ImGui.getColorU32(ImGuiCol.Button));
         }
 
         boolean changed = false;
@@ -83,5 +87,16 @@ public class ReplayLabControls {
         ImGui.popStyleColor();
 
         return changed;
+    }
+
+    public static boolean toggleButton(char icon, @Nullable String tooltip, ImBoolean pressed) {
+        ImGui.pushFont(ReplayLabIcons.getFont());
+        boolean result = toggleButton(String.valueOf(icon), pressed);
+        ImGui.popFont();
+
+        if (tooltip != null && ImGui.isItemHovered()) {
+            ImGui.setTooltip(tooltip);
+        }
+        return result;
     }
 }

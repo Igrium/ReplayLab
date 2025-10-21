@@ -5,12 +5,12 @@ import com.igrium.replaylab.editor.KeySelectionSet.KeyHandleReference;
 import com.igrium.replaylab.scene.ReplayScene;
 import com.igrium.replaylab.scene.key.Keyframe;
 import com.igrium.replaylab.scene.obj.ReplayObject;
+import com.igrium.replaylab.ui.util.ReplayLabControls;
 import com.igrium.replaylab.ui.util.TimelineFlags;
 import com.igrium.replaylab.ui.util.TimelineHeader;
 import imgui.ImColor;
 import imgui.ImDrawList;
 import imgui.ImGui;
-import imgui.ImVec2;
 import imgui.flag.ImGuiCol;
 import imgui.flag.ImGuiHoveredFlags;
 import imgui.type.ImBoolean;
@@ -18,12 +18,11 @@ import imgui.type.ImInt;
 import lombok.Getter;
 import lombok.Setter;
 import org.jetbrains.annotations.Nullable;
-import org.joml.Vector2d;
-import org.joml.Vector2f;
-import org.joml.Vector2fc;
-import org.joml.Vector3d;
+import org.joml.*;
 
+import java.lang.Math;
 import java.util.*;
+import java.util.function.*;
 
 public class CurveEditor {
 
@@ -100,14 +99,28 @@ public class CurveEditor {
     private final Set<String> updatedObjects = new HashSet<>();
 
     /**
-     * The amount of pixels offset from the mouse that each key being dragged is.
+     * The amount of ms / value units offset from the mouse that each key being dragged has.
      */
-    private final Map<KeyHandleReference, Vector2fc> keyDragOffsets = new HashMap<>();
+    private final Map<KeyHandleReference, Vector2dc> keyDragOffsets = new HashMap<>();
+
+    private record KeyOffsetPair(KeyHandleReference ref, Vector2dc offset) {};
+
+    /**
+     * The key drag offset that's closest to the mouse
+     */
+    private @Nullable KeyOffsetPair smallestKeyDragOffset;
+
+    /**
+     * The global location of the smallest key drag offset at the time of drag start
+     */
+    private final Vector2d dragStartPos = new Vector2d();
 
     private final TimelineHeader header = new TimelineHeader();
 
     // Not null if currently panning
     private @Nullable Vector2d panStartPos;
+
+    private final ImBoolean snapKeyframes = new ImBoolean();
 
     public boolean isScrubbing() {
         return header.isScrubbing();
@@ -133,7 +146,11 @@ public class CurveEditor {
      */
     public void drawCurveEditor(ReplayScene scene, @Nullable Collection<String> selectedObjects,
                                 KeySelectionSet selectedKeys, @Nullable ImInt playhead, int flags) {
+
+
         updatedObjects.clear();
+        Collection<String> objs = selectedObjects != null ? selectedObjects : scene.getObjects().keySet();
+        Iterable<ReplayObject> selectedObjStream = () -> objs.stream().map(scene::getObject).iterator();
 
         int majorIntervalX = (int) TimelineHeader.computeMajorInterval(zoomFactorX);
         int minorIntervalX = majorIntervalX / 2;
@@ -144,17 +161,18 @@ public class CurveEditor {
         float headerCursorY = ImGui.getCursorPosY();
         float headerHeight = ImGui.getTextLineHeight() * 2f;
 
-        if (!hasFlag(TimelineFlags.NO_HEADER, flags)) {
-            ImGui.dummy(0, headerHeight);
-        }
+        ImGui.dummy(0, headerHeight);
+        ImGui.sameLine();
 
-        Collection<String> objs = selectedObjects != null ? selectedObjects : scene.getObjects().keySet();
+        /// === BUTTONS ===
+        ReplayLabControls.toggleButton(ReplayLabIcons.ICON_MAGNET, "Snap Keyframes", snapKeyframes);
+
 
         /// === CHANNEL LIST ===
 
         ImGui.pushID("channels");
         ImGui.beginGroup();
-
+        ImGui.separator();
         ImBoolean locked = new ImBoolean();
         for (var name : objs) {
             ReplayObject obj = scene.getObject(name);
@@ -184,6 +202,7 @@ public class CurveEditor {
         ImGui.sameLine();
         float headerCursorX = ImGui.getCursorPosX();
         float graphHeight = ImGui.getContentRegionAvailY();
+
 
         /// === GRAPH ===
 
@@ -369,10 +388,15 @@ public class CurveEditor {
                     updatedObjects.add(ref.objectName());
                 }
                 keyDragOffsets.clear();
+                smallestKeyDragOffset = null;
 
             } else if (!isDragging() && ImGui.isMouseDragging(0)
                     && hoveringAnyKey && !isScrubbing()) {
+
                 // Start Dragging
+                float mouseXMs = pixelXToMs(mouseX - graphX);
+                double mouseYValue = pixelYToValue(mouseY - graphY);
+
                 selectedKeys.forSelectedKeyframes(keyRef -> {
                     Keyframe key = keyRef.get(scene.getObjects());
                     if (key == null) return;
@@ -380,38 +404,116 @@ public class CurveEditor {
                     float keyX = msToPixelX((float) key.getCenter().x()) + graphX;
                     float keyY = valueToPixelY(key.getCenter().y()) + graphY;
 
-                    // If the center is selected, only begin dragging it because the handles are parented to it.
+                    // If the center is selected, only begin dragging the center because the handles are parented to it.
+
                     KeyHandleReference centerRef = new KeyHandleReference(keyRef, 0);
                     if (selectedKeys.isHandleSelected(centerRef)) {
-                        keyDragOffsets.put(centerRef, new Vector2f(keyX - mouseX, keyY - mouseY));
+                        Vector2d offset = key.getCenter().sub(mouseXMs, mouseYValue, new Vector2d());
+                        keyDragOffsets.put(centerRef, offset);
+
+                        if (isSmaller(offset, smallestKeyDragOffset)) {
+                            smallestKeyDragOffset = new KeyOffsetPair(centerRef, offset);
+                            dragStartPos.set(key.getCenter());
+                        }
+
                     } else {
-                        float handleAX = keyX + (float) key.getHandleA().x() * zoomFactorX;
-                        float handleAY = keyY + (float) key.getHandleA().y() * zoomFactorY;
-
-                        float handleBX = keyX + (float) key.getHandleB().x() * zoomFactorX;
-                        float handleBY = keyY + (float) key.getHandleB().y() * zoomFactorY;
-
                         KeyHandleReference aRef = new KeyHandleReference(keyRef, 1);
                         if (selectedKeys.isHandleSelected(aRef)) {
-                            keyDragOffsets.put(aRef, new Vector2f(handleAX - mouseX, handleAY - mouseY));
+                            Vector2d offset = key.getCenter().add(key.getHandleA(), new Vector2d()).sub(mouseXMs, mouseYValue);
+                            keyDragOffsets.put(aRef, offset);
+
+                            if (isSmaller(offset, smallestKeyDragOffset)) {
+                                smallestKeyDragOffset = new KeyOffsetPair(aRef, offset);
+                                key.getGlobalA(dragStartPos);
+                            }
                         }
 
                         KeyHandleReference bRef = new KeyHandleReference(keyRef, 2);
                         if (selectedKeys.isHandleSelected(bRef)) {
-                            keyDragOffsets.put(bRef, new Vector2f(handleBX - mouseX, handleBY - mouseY));
+                            Vector2d offset = key.getCenter().add(key.getHandleB(), new Vector2d()).sub(mouseXMs, mouseYValue);
+                            keyDragOffsets.put(bRef, offset);
+
+                            if (isSmaller(offset, smallestKeyDragOffset)) {
+                                smallestKeyDragOffset = new KeyOffsetPair(bRef, offset);
+                                key.getGlobalB(dragStartPos);
+                            }
                         }
                     }
+
+//                    if (offset != null && (!lowestKeyDragOffset.isFinite() || offset.lengthSquared() < lowestKeyDragOffset.lengthSquared())) {
+//                        lowestKeyDragOffset.set(offset);
+//                    }
                 });
             } else {
                 // Currently dragging
+                boolean snap;
+                if (snapKeyframes.get()) {
+                    snap = !ImGui.getIO().getKeyCtrl();
+                } else {
+                    snap = ImGui.getIO().getKeyCtrl();
+                }
+
+                double mouseXMs = pixelXToMs(mouseX - graphX);
+                double mouseYValue = pixelYToValue(mouseY - graphY);
+
+                // Snapping
+                if (snap && smallestKeyDragOffset != null) {
+                    float thresholdX = 16f / zoomFactorX;
+                    float thresholdY = 16f / zoomFactorY;
+
+                    double smallestOffsetGlobalX = mouseXMs + smallestKeyDragOffset.offset().x();
+                    double smallestOffsetGlobalY = mouseYValue + smallestKeyDragOffset.offset().y();
+
+                    // Yeah we're allocating a lot here, but I don't give a shit
+                    final Vector2d snapTarget = new Vector2d(Double.NaN);
+                    Iterable<Map.Entry<String, ReplayObject>> selObjs = selectedObjects != null ? () -> scene.getObjects().entrySet()
+                            .stream()
+                            .filter(e -> selectedObjects.contains(e.getKey()))
+                            .iterator() : scene.getObjects().entrySet();
+
+                    Predicate<Vector2dc> canSnap = vec ->
+                            Math.abs(vec.x() - smallestOffsetGlobalX) < thresholdX && Math.abs(vec.y() - smallestOffsetGlobalY) < thresholdY;
+
+                    KeyHandleReference smRef = smallestKeyDragOffset.ref(); // Just to shorten code
+                    Vector2d tmpVec = new Vector2d();
+                    for (var objName : objs) {
+                        ReplayObject obj = scene.getObject(objName);
+                        if (obj == null) continue;
+                        for (var chEntry : obj.getChannels().entrySet()) {
+                            int keyIdx = 0;
+                            for (var key : chEntry.getValue().getKeyframes()) {
+                                if (!smRef.equals(objName, chEntry.getKey(), keyIdx, 0) && canSnap.test(key.getCenter())) {
+                                    snapTarget.set(key.getCenter());
+                                } else if (!smRef.equals(objName, chEntry.getKey(), keyIdx, 1) && canSnap.test(key.getGlobalA(tmpVec))) {
+                                    snapTarget.set(tmpVec);
+                                } else if (!smRef.equals(objName, chEntry.getKey(), keyIdx, 2) && canSnap.test(key.getGlobalB(tmpVec))) {
+                                    snapTarget.set(tmpVec);
+                                }
+                                keyIdx++;
+                            }
+                        }
+
+                        // Also test the original location
+                        if (canSnap.test(dragStartPos)) {
+                            snapTarget.set(dragStartPos);
+                        }
+                    }
+
+                    if (snapTarget.isFinite()) {
+                        mouseXMs = snapTarget.x - smallestKeyDragOffset.offset.x();
+                        mouseYValue = snapTarget.y - smallestKeyDragOffset.offset.y();
+                    }
+                }
+
                 for (var entry : keyDragOffsets.entrySet()) {
                     KeyHandleReference hRef = entry.getKey();
-                    Vector2fc offset = entry.getValue();
+                    Vector2dc offset = entry.getValue();
                     Keyframe key = hRef.keyRef().get(scene.getObjects());
                     if (key == null) continue;
 
-                    float newGlobalTime = pixelXToMs(mouseX + offset.x() - graphX);
-                    double newGlobalValue = pixelYToValue(mouseY + offset.y() - graphY);
+                    double newGlobalTime = mouseXMs + offset.x();
+                    double newGlobalValue = mouseYValue + offset.y();
+
 
                     switch (hRef.handleIndex()) {
                         case 0 -> {
@@ -449,7 +551,7 @@ public class CurveEditor {
         }
         ImGui.endChild();
 
-        // === HEADER ===
+        /// === HEADER ===
         if (!hasFlag(TimelineFlags.NO_HEADER, flags)) {
             ImGui.setCursorPosX(headerCursorX);
             ImGui.setCursorPosY(headerCursorY);
@@ -490,5 +592,40 @@ public class CurveEditor {
 
     private static boolean keyHovered(float keyX, float keyY, float mouseX, float mouseY) {
         return keyHovered(keyX, keyY, mouseX, mouseY, 8f);
+    }
+
+    // Move externally to reduce code overhead
+    private static boolean isSmaller(Vector2dc vec, @Nullable KeyOffsetPair smallest) {
+        return smallest == null || (vec.lengthSquared() < smallest.offset().lengthSquared());
+    }
+
+    private void forAllHandles(Iterable<Map.Entry<String, ReplayObject>> objects, Vector2d dest,
+                               BiConsumer<KeyHandleReference, Vector2d> consumer) {
+        for (var objEntry : objects) {
+            for (var chEntry : objEntry.getValue().getChannels().entrySet()) {
+                var chRef = new KeySelectionSet.ChannelReference(objEntry.getKey(), chEntry.getKey());
+                int keyIdx = 0;
+                for (var key : chEntry.getValue().getKeyframes()) {
+                    var keyRef = new KeySelectionSet.KeyframeReference(chRef, keyIdx);
+
+                    dest.set(key.getCenter());
+                    consumer.accept(new KeyHandleReference(keyRef, 0), dest);
+
+                    key.getCenter().add(key.getHandleA(), dest);
+                    consumer.accept(new KeyHandleReference(keyRef, 1), dest);
+
+                    key.getCenter().add(key.getHandleB(), dest);
+                    consumer.accept(new KeyHandleReference(keyRef, 2), dest);
+
+                    keyIdx++;
+
+                }
+            }
+        }
+    }
+
+    private void forAllHandles(Map<? extends String, ? extends ReplayObject> objects, Vector2d dest, Predicate<String> objPredicate,
+                               BiFunction<KeyHandleReference, Vector2d, Boolean> consumer) {
+
     }
 }

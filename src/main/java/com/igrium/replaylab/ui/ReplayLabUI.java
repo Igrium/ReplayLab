@@ -10,6 +10,7 @@ import com.igrium.replaylab.operator.RemoveObjectOperator;
 import com.igrium.replaylab.scene.ReplayScene;
 import com.igrium.replaylab.scene.obj.ReplayObject;
 import com.igrium.replaylab.ui.util.ExceptionPopup;
+import com.igrium.replaylab.ui.util.ReplayLabControls;
 import com.igrium.replaylab.ui.util.TimelineFlags;
 import com.replaymod.replay.ReplayHandler;
 import com.replaymod.replay.ReplayModReplay;
@@ -254,10 +255,10 @@ public class ReplayLabUI extends DockSpaceApp {
         }
     }
 
-    // Testing variables
     private final Set<ReplayScene.KeyReference> selectedKeys = new HashSet<>();
 
     private final ImBoolean cameraViewInput = new ImBoolean();
+    private final ImBoolean snapKeysInput = new ImBoolean();
 
     private float prevCameraControlsGroupWidth = 0;
 
@@ -292,12 +293,13 @@ public class ReplayLabUI extends DockSpaceApp {
 
             ImGui.setCursorPosX(ImGui.getContentRegionMaxX() - prevCameraControlsGroupWidth);
 
+            /// Editor buttons
             ImGui.beginGroup();
             cameraViewInput.set(editorState.isCameraView());
-            ImGui.checkbox("Camera View", cameraViewInput);
-            editorState.setCameraView(cameraViewInput.get());
+            if (ReplayLabControls.toggleButton(ReplayLabIcons.ICON_VIDEOCAM, "Toggle Camera View", cameraViewInput)) {
+                editorState.setCameraView(cameraViewInput.get());
+            }
             ImGui.endGroup();
-
             prevCameraControlsGroupWidth = ImGui.getItemRectSizeX();
         }
         ImGui.endChild();
@@ -311,7 +313,6 @@ public class ReplayLabUI extends DockSpaceApp {
         }
     }
 
-
     private boolean playbackIcon(char icon, String tooltip, float buttonSize) {
         ImGui.pushFont(ReplayLabIcons.getFont());
         boolean res = ImGui.button(String.valueOf(icon), buttonSize, buttonSize);
@@ -324,6 +325,16 @@ public class ReplayLabUI extends DockSpaceApp {
         return res;
     }
 
+    private boolean toggleButton(char icon, @Nullable String tooltip, ImBoolean value) {
+        ImGui.pushFont(ReplayLabIcons.getFont());
+        boolean result = ReplayLabControls.toggleButton(String.valueOf(icon), value);
+        ImGui.popFont();
+
+        if (ImGui.isItemHovered() && tooltip != null) {
+            ImGui.setTooltip(tooltip);
+        }
+        return result;
+    }
 
     private void drawDopeSheet() {
         if (ImGui.begin("Dope Sheet")) {
@@ -359,8 +370,9 @@ public class ReplayLabUI extends DockSpaceApp {
 
     private void drawCurveEditor() {
         if (ImGui.begin("Curve Editor")) {
+
             curveEditor.drawCurveEditor(editorState.getScene(), null, editorState.getKeySelection(),
-                    editorState.getPlayheadRef(), TimelineFlags.SNAP_KEYS);
+                    editorState.getPlayheadRef(), 0);
 
             long replayTime = editorState.getScene().sceneToReplayTime(editorState.getPlayhead());
 

@@ -21,6 +21,10 @@ public class KeySelectionSet {
             var obj = objects.get(objectName);
             return obj != null ? obj.getChannels().get(channelName) : null;
         }
+
+        public boolean equals(String objectName, String channelName) {
+            return Objects.equals(this.objectName, objectName) && Objects.equals(this.channelName, channelName);
+        }
     }
 
     public record KeyframeReference(ChannelReference channelRef, int keyIndex) {
@@ -41,6 +45,10 @@ public class KeySelectionSet {
             if (ch == null) return null;
             List<Keyframe> keys = ch.getKeyframes();
             return (0 <= keyIndex && keyIndex < keys.size()) ? keys.get(keyIndex) : null;
+        }
+
+        public boolean equals(String objName, String channelName, int keyIndex) {
+            return channelRef.equals(objName, channelName) && this.keyIndex == keyIndex;
         }
     }
 
@@ -71,6 +79,14 @@ public class KeySelectionSet {
                 case 2 -> key.getHandleB();
                 default -> null;
             };
+        }
+
+        public boolean equals(String objName, String channelName, int keyIndex, int handleIndex) {
+            return keyRef.equals(objName, channelName, keyIndex) && this.handleIndex == handleIndex;
+        }
+
+        public boolean equals(KeyframeReference keyRef, int handleIndex) {
+            return Objects.equals(this.keyRef, keyRef) && this.handleIndex == handleIndex;
         }
     }
 
