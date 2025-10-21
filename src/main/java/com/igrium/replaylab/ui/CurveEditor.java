@@ -134,6 +134,28 @@ public class CurveEditor {
         return !keyDragOffsets.isEmpty();
     }
 
+
+    /**
+     * Modify the zoom of the editor on the X axis, centering it around a supplied point.
+     * @param targetZoom New zoom factor.
+     * @param center Point to center around (ms)
+     */
+    public void setZoomFactorX(float targetZoom, double center) {
+        if (targetZoom == this.zoomFactorX) return;
+
+        double newOffsetX = center - (center - offsetX) * (this.zoomFactorX / targetZoom);
+        this.zoomFactorX = targetZoom;
+        this.offsetX = newOffsetX;
+    }
+
+    public void setZoomFactorY(float targetZoom, double center) {
+        if (targetZoom == this.zoomFactorY) return;
+
+        double newOffsetY = center - (center - offsetY) * (this.zoomFactorY / targetZoom);
+        this.zoomFactorY = targetZoom;
+        this.offsetY = newOffsetY;
+    }
+
     /**
      * Draw the curve editor.
      *
@@ -203,29 +225,41 @@ public class CurveEditor {
         float headerCursorX = ImGui.getCursorPosX();
         float graphHeight = ImGui.getContentRegionAvailY();
 
+        float mouseX = ImGui.getMousePosX();
+        float mouseY = ImGui.getMousePosY();
 
         /// === GRAPH ===
 
         if (ImGui.beginChild("keygraph", ImGui.getContentRegionAvailX(), graphHeight, false)) {
-            // === SCROLL ===
-            if (ImGui.isWindowHovered()) {
-                float mWheel = ImGui.getIO().getMouseWheel();
-                if (mWheel != 0) {
-                    float factor = (float) Math.pow(2, mWheel * .125);
-
-                    if (ImGui.getIO().getKeyCtrl()) {
-                        zoomFactorY *= factor;
-                    } else {
-                        zoomFactorX *= factor;
-                    }
-                }
-            }
-
             float graphX = ImGui.getCursorScreenPosX();
             float graphY = ImGui.getCursorScreenPosY();
 
             float gWidth = ImGui.getContentRegionAvailX();
             float gHeight = ImGui.getContentRegionAvailY();
+
+
+
+            /// === SCROLL ZOOM ===
+            {
+                if (ImGui.isWindowHovered()) {
+                    double mouseXMs = pixelXToMs(mouseX - graphX);
+                    double mouseYValue = pixelYToValue(mouseY - graphY);
+
+                    float mWheel = ImGui.getIO().getMouseWheel();
+                    if (mWheel != 0) {
+                        float factor = (float) Math.pow(2, mWheel * .125);
+
+                        if (!ImGui.getIO().getKeyShift()) {
+                            setZoomFactorX(zoomFactorX * factor, mouseXMs);
+                        }
+                        if (!ImGui.getIO().getKeyCtrl()) {
+                            setZoomFactorY(zoomFactorY * factor, mouseYValue);
+                        }
+
+                    }
+                }
+            }
+
 
             ImDrawList drawList = ImGui.getWindowDrawList();
 
@@ -265,8 +299,7 @@ public class CurveEditor {
 
             /// === Keyframes ===
             KeyHandleReference clickedOn = null;
-            float mouseX = ImGui.getMousePosX();
-            float mouseY = ImGui.getMousePosY();
+
             boolean mouseClicked = ImGui.isMouseClicked(0);
 
             // If we're overing any key, with some leeway for drag threshold
