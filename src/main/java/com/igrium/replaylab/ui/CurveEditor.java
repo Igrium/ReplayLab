@@ -440,9 +440,6 @@ public class CurveEditor {
                         }
                     }
 
-//                    if (offset != null && (!lowestKeyDragOffset.isFinite() || offset.lengthSquared() < lowestKeyDragOffset.lengthSquared())) {
-//                        lowestKeyDragOffset.set(offset);
-//                    }
                 });
             } else {
                 // Currently dragging
@@ -458,21 +455,25 @@ public class CurveEditor {
 
                 // Snapping
                 if (snap && smallestKeyDragOffset != null) {
-                    float thresholdX = 16f / zoomFactorX;
-                    float thresholdY = 16f / zoomFactorY;
+                    float thresholdX = 8f / zoomFactorX;
+                    float thresholdY = 8f / zoomFactorY;
 
                     double smallestOffsetGlobalX = mouseXMs + smallestKeyDragOffset.offset().x();
                     double smallestOffsetGlobalY = mouseYValue + smallestKeyDragOffset.offset().y();
 
                     // Yeah we're allocating a lot here, but I don't give a shit
                     final Vector2d snapTarget = new Vector2d(Double.NaN);
+                    double snapTargetX = Double.NaN;
+                    double snapTargetY = Double.NaN;
+
                     Iterable<Map.Entry<String, ReplayObject>> selObjs = selectedObjects != null ? () -> scene.getObjects().entrySet()
                             .stream()
                             .filter(e -> selectedObjects.contains(e.getKey()))
                             .iterator() : scene.getObjects().entrySet();
 
-                    Predicate<Vector2dc> canSnap = vec ->
-                            Math.abs(vec.x() - smallestOffsetGlobalX) < thresholdX && Math.abs(vec.y() - smallestOffsetGlobalY) < thresholdY;
+
+                    DoublePredicate canSnapX = x -> Math.abs(x - smallestOffsetGlobalX) < thresholdX;
+                    DoublePredicate canSnapY = y -> Math.abs(y - smallestOffsetGlobalY) < thresholdY;
 
                     KeyHandleReference smRef = smallestKeyDragOffset.ref(); // Just to shorten code
                     Vector2d tmpVec = new Vector2d();
@@ -482,26 +483,49 @@ public class CurveEditor {
                         for (var chEntry : obj.getChannels().entrySet()) {
                             int keyIdx = 0;
                             for (var key : chEntry.getValue().getKeyframes()) {
-                                if (!smRef.equals(objName, chEntry.getKey(), keyIdx, 0) && canSnap.test(key.getCenter())) {
-                                    snapTarget.set(key.getCenter());
-                                } else if (!smRef.equals(objName, chEntry.getKey(), keyIdx, 1) && canSnap.test(key.getGlobalA(tmpVec))) {
-                                    snapTarget.set(tmpVec);
-                                } else if (!smRef.equals(objName, chEntry.getKey(), keyIdx, 2) && canSnap.test(key.getGlobalB(tmpVec))) {
-                                    snapTarget.set(tmpVec);
+                                if (!smRef.keyRef().equals(objName, chEntry.getKey(), keyIdx)) {
+                                    if (canSnapX.test(key.getCenter().x())) {
+                                        snapTargetX = key.getCenter().x();
+                                    }
+                                    if (canSnapY.test(key.getCenter().y())) {
+                                        snapTargetY = key.getCenter().y();
+                                    }
+
+                                    key.getGlobalA(tmpVec);
+                                    if (canSnapX.test(tmpVec.x)) {
+                                        snapTargetX = tmpVec.x;
+                                    }
+                                    if (canSnapY.test(tmpVec.y)) {
+                                        snapTargetY = tmpVec.y;
+                                    }
+
+                                    key.getGlobalB(tmpVec);
+                                    if (canSnapX.test(tmpVec.x)) {
+                                        snapTargetX = tmpVec.x;
+                                    }
+                                    if (canSnapY.test(tmpVec.y)) {
+                                        snapTargetY = tmpVec.y;
+                                    }
                                 }
                                 keyIdx++;
                             }
                         }
 
                         // Also test the original location
-                        if (canSnap.test(dragStartPos)) {
-                            snapTarget.set(dragStartPos);
+                        if (canSnapX.test(dragStartPos.x)) {
+                            snapTargetX = dragStartPos.x;
+                        }
+
+                        if (canSnapY.test(dragStartPos.y)) {
+                            snapTargetY = dragStartPos.y;
                         }
                     }
 
-                    if (snapTarget.isFinite()) {
-                        mouseXMs = snapTarget.x - smallestKeyDragOffset.offset.x();
-                        mouseYValue = snapTarget.y - smallestKeyDragOffset.offset.y();
+                    if (Double.isFinite(snapTargetX)) {
+                        mouseXMs = snapTargetX - smallestKeyDragOffset.offset().x();
+                    }
+                    if (Double.isFinite(snapTargetY)) {
+                        mouseYValue = snapTargetY - smallestKeyDragOffset.offset().y();
                     }
                 }
 
