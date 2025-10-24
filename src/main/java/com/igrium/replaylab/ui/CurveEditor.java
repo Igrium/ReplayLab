@@ -11,13 +11,14 @@ import com.igrium.replaylab.ui.util.TimelineHeader;
 import imgui.ImColor;
 import imgui.ImDrawList;
 import imgui.ImGui;
+import imgui.ImVec2;
 import imgui.flag.ImGuiCol;
 import imgui.flag.ImGuiHoveredFlags;
+import imgui.flag.ImGuiWindowFlags;
 import imgui.type.ImBoolean;
 import imgui.type.ImInt;
 import lombok.Getter;
 import lombok.Setter;
-import org.apache.commons.lang3.mutable.MutableBoolean;
 import org.jetbrains.annotations.Nullable;
 import org.joml.*;
 
@@ -111,6 +112,11 @@ public class CurveEditor {
 
     private boolean doneInitialFit = false;
 
+    /**
+     * The global pixel position of a selection box start position
+     */
+    private @Nullable ImVec2 boxSelectStart;
+
     public boolean isScrubbing() {
         return header.isScrubbing();
     }
@@ -121,6 +127,10 @@ public class CurveEditor {
 
     public boolean isDragging() {
         return !keyDragOffsets.isEmpty();
+    }
+
+    public boolean isBoxSelecting() {
+        return boxSelectStart != null;
     }
 
     public void setZoomFactorX(float zoomFactorX) {
@@ -241,8 +251,8 @@ public class CurveEditor {
         float headerCursorX = ImGui.getCursorPosX();
         float graphHeight = ImGui.getContentRegionAvailY();
 
-        float mouseX = ImGui.getMousePosX();
-        float mouseY = ImGui.getMousePosY();
+        float mouseGlobalX = ImGui.getMousePosX();
+        float mouseGlobalY = ImGui.getMousePosY();
 
         /// === GRAPH ===
 
@@ -276,13 +286,14 @@ public class CurveEditor {
                 doneInitialFit = true;
             }
 
-            boolean graphHovered = ImGui.isWindowHovered(ImGuiHoveredFlags.ChildWindows);
+            ImGui.invisibleButton("##curveGraph", gWidth, gHeight);
+            boolean graphHovered = ImGui.isItemHovered();
 
             /// === SCROLL ZOOM ===
             {
                 if (graphHovered) {
-                    double mouseXMs = pixelXToMs(mouseX - graphX);
-                    double mouseYValue = pixelYToValue(mouseY - graphY);
+                    double mouseXMs = pixelXToMs(mouseGlobalX - graphX);
+                    double mouseYValue = pixelYToValue(mouseGlobalY - graphY);
 
                     float mWheel = ImGui.getIO().getMouseWheel();
                     if (mWheel != 0) {
@@ -301,8 +312,6 @@ public class CurveEditor {
 
 
             ImDrawList drawList = ImGui.getWindowDrawList();
-
-            ImGui.invisibleButton("##curveGraph", gWidth, gHeight);
 
             /// === BACKGROUND ===
             drawList.addRectFilled(graphX, graphY, graphX + gWidth, graphY + gHeight, ImGui.getColorU32(ImGuiCol.FrameBg));
@@ -338,7 +347,7 @@ public class CurveEditor {
             /// === Keyframes ===
             KeyHandleReference clickedOn = null;
 
-            boolean mouseClicked = ImGui.isMouseClicked(0) && graphHovered;
+            boolean mouseClicked = ImGui.isItemClicked();
 
             // If we're overing any key, with some leeway for drag threshold
             boolean hoveringAnyKey = false;
@@ -400,18 +409,18 @@ public class CurveEditor {
                             KeyHandleReference handle1Ref = new KeyHandleReference(objName, chEntry.getKey(), keyIdx, 1);
                             KeyHandleReference handle2Ref = new KeyHandleReference(objName, chEntry.getKey(), keyIdx, 2);
 
-                            if (keyHovered(keyX, keyY, mouseX, mouseY) && !selectedKeys.isHandleSelected(handle0Ref)) {
+                            if (keyHovered(keyX, keyY, mouseGlobalX, mouseGlobalY) && !selectedKeys.isHandleSelected(handle0Ref)) {
                                 clickedOn = handle0Ref;
-                            } else if (keyHovered(handleAX, handleAY, mouseX, mouseY) && !selectedKeys.isHandleSelected(handle1Ref)) {
+                            } else if (keyHovered(handleAX, handleAY, mouseGlobalX, mouseGlobalY) && !selectedKeys.isHandleSelected(handle1Ref)) {
                                 clickedOn = handle1Ref;
-                            } else if (keyHovered(handleBX, handleBY, mouseX, mouseY) && !selectedKeys.isHandleSelected(handle2Ref)) {
+                            } else if (keyHovered(handleBX, handleBY, mouseGlobalX, mouseGlobalY) && !selectedKeys.isHandleSelected(handle2Ref)) {
                                 clickedOn = handle2Ref;
                             }
                         }
 
-                        if (!hoveringAnyKey && keyHovered(keyX, keyY, mouseX, mouseY, keyHoverRadius)
-                                || keyHovered(handleAX, handleAY, mouseX, mouseY, keyHoverRadius)
-                                || keyHovered(handleBX, handleBY, mouseX, mouseY, keyHoverRadius)) {
+                        if (!hoveringAnyKey && (keyHovered(keyX, keyY, mouseGlobalX, mouseGlobalY, keyHoverRadius)
+                                || keyHovered(handleAX, handleAY, mouseGlobalX, mouseGlobalY, keyHoverRadius)
+                                || keyHovered(handleBX, handleBY, mouseGlobalX, mouseGlobalY, keyHoverRadius))) {
                             hoveringAnyKey = true;
                         }
                     }
@@ -445,37 +454,102 @@ public class CurveEditor {
                 }
             }
 
-            ///  === DRAGGING & SELECTION ===
+            ///  === SELECTION ===
             if (clickedOn != null) {
                 if (!ImGui.getIO().getKeyCtrl()) {
                     selectedKeys.deselectAll();
                 }
                 selectedKeys.selectHandle(clickedOn);
-            } else if (mouseClicked && !ImGui.getIO().getKeyCtrl()) {
+            } else if (mouseClicked && !ImGui.getIO().getKeyCtrl() && !hoveringAnyKey) {
                 selectedKeys.deselectAll();
             }
 
+            /// Box selection start/stop
+            if (!isBoxSelecting() && !isDragging() && !isScrubbing() && !hoveringAnyKey
+                    && graphHovered && ImGui.isMouseDown(0)) {
+                // Start box selecting
+                boxSelectStart = ImGui.getMousePos();
+                if (!ImGui.getIO().getKeyCtrl()) {
+                    selectedKeys.deselectAll();
+                }
+            } else if (isBoxSelecting() && !ImGui.isMouseDown(0)) {
+                // Stop box selecting
+                boxSelectStart = null;
+            }
+
+            /// Currently box selecting
+            if (boxSelectStart != null) {
+                float boxMinX = Math.min(boxSelectStart.x, mouseGlobalX) - graphX;
+                float boxMinY = Math.min(boxSelectStart.y, mouseGlobalY) - graphY;
+
+                float boxMaxX = Math.max(boxSelectStart.x, mouseGlobalX) - graphX;
+                float boxMaxY = Math.max(boxSelectStart.y, mouseGlobalY) - graphY;
+
+                ImDrawList dl = ImGui.getForegroundDrawList();
+
+                int rectColor = replaceAlpha(ImGui.getColorU32(ImGuiCol.HeaderActive), 25);
+                dl.addRectFilled(boxSelectStart.x, boxSelectStart.y, mouseGlobalX, mouseGlobalY, rectColor);
+                dl.addRect(boxSelectStart.x, boxSelectStart.y, mouseGlobalX, mouseGlobalY, ImGui.getColorU32(ImGuiCol.HeaderActive));
+
+                for (String objName : objs) {
+                    ReplayObject obj = scene.getObject(objName);
+                    if (obj == null)
+                        continue;
+
+                    for (var chEntry : obj.getChannels().entrySet()) {
+                        int keyIdx = 0;
+                        for (Keyframe key : chEntry.getValue().getKeyframes()) {
+
+                            float centerX = msToPixelX(key.getCenter().x);
+                            float centerY = valueToPixelY(key.getCenter().y);
+
+                            if (boxMinX < centerX && centerX < boxMaxX
+                                    && boxMinY < centerY && centerY < boxMaxY) {
+                                selectedKeys.selectHandle(objName, chEntry.getKey(), keyIdx, 0);
+                            }
+
+                            float handleAX = msToPixelX(key.getGlobalAX());
+                            float handleAY = valueToPixelY(key.getGlobalAY());
+
+                            if (boxMinX < handleAX && handleAX < boxMaxX
+                                    && boxMinY < handleAY && handleAY < boxMaxY) {
+                                selectedKeys.selectHandle(objName, chEntry.getKey(), keyIdx, 1);
+                            }
+
+                            float handleBX = msToPixelX(key.getGlobalBX());
+                            float handleBY = valueToPixelY(key.getGlobalBY());
+
+                            if (boxMinX < handleBX && handleBX < boxMaxX
+                                    && boxMinY < handleBY && handleBY < boxMaxY) {
+                                selectedKeys.selectHandle(objName, chEntry.getKey(), keyIdx, 2);
+                            }
+
+                            keyIdx++;
+                        }
+                    }
+                }
+            }
+
+
+            /// ==== DRAGGING ===
             if (isDragging() && !ImGui.isMouseDragging(0)) {
-                // Stop dragging
+                /// Stop dragging
                 for (var ref : keyDragOffsets.keySet()) {
                     updatedObjects.add(ref.objectName());
                 }
                 keyDragOffsets.clear();
                 smallestKeyDragOffset = null;
 
-            } else if (!isDragging() && ImGui.isMouseDragging(0)
+            } else if (!isDragging() && !isBoxSelecting() && ImGui.isMouseDragging(0)
                     && hoveringAnyKey && !isScrubbing()) {
 
-                // Start Dragging
-                float mouseXMs = pixelXToMs(mouseX - graphX);
-                double mouseYValue = pixelYToValue(mouseY - graphY);
+                /// Start Dragging
+                float mouseXMs = pixelXToMs(mouseGlobalX - graphX);
+                double mouseYValue = pixelYToValue(mouseGlobalY - graphY);
 
                 selectedKeys.forSelectedKeyframes(keyRef -> {
                     Keyframe key = keyRef.get(scene.getObjects());
                     if (key == null) return;
-
-                    float keyX = msToPixelX((float) key.getCenter().x()) + graphX;
-                    float keyY = valueToPixelY(key.getCenter().y()) + graphY;
 
                     // If the center is selected, only begin dragging the center because the handles are parented to it.
 
@@ -515,7 +589,7 @@ public class CurveEditor {
 
                 });
             } else {
-                // Currently dragging
+                /// Currently dragging
                 boolean snap;
                 if (snapKeyframes.get()) {
                     snap = !ImGui.getIO().getKeyCtrl();
@@ -523,8 +597,8 @@ public class CurveEditor {
                     snap = ImGui.getIO().getKeyCtrl();
                 }
 
-                double mouseXMs = pixelXToMs(mouseX - graphX);
-                double mouseYValue = pixelYToValue(mouseY - graphY);
+                double mouseXMs = pixelXToMs(mouseGlobalX - graphX);
+                double mouseYValue = pixelYToValue(mouseGlobalY - graphY);
 
                 // Snapping
                 if (snap && smallestKeyDragOffset != null) {
@@ -657,7 +731,7 @@ public class CurveEditor {
 
     }
 
-    private float msToPixelX(float ms) {
+    private float msToPixelX(double ms) {
         return (float) ((ms - offsetX) * zoomFactorX);
     }
 

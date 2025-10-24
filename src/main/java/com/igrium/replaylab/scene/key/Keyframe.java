@@ -64,9 +64,26 @@ public final class Keyframe implements Comparable<Keyframe> {
         return center.add(handleA, dest);
     }
 
+    public double getGlobalAX() {
+        return center.x + handleA.x;
+    }
+
+    public double getGlobalAY() {
+        return center.y + handleA.y;
+    }
+
     public Vector2d getGlobalB(Vector2d dest) {
         return center.add(handleB, dest);
     }
+
+    public double getGlobalBX() {
+        return center.x + handleB.x;
+    }
+
+    public double getGlobalBY() {
+        return center.y + handleB.y;
+    }
+
 
     public void copyFrom(Keyframe other) {
         this.center.set(other.center);
