@@ -6,6 +6,8 @@ import imgui.ImGui;
 import imgui.flag.ImGuiCol;
 import imgui.type.ImBoolean;
 import lombok.NonNull;
+import net.minecraft.util.Language;
+import org.apache.commons.codec.language.bm.Lang;
 import org.apache.commons.lang3.mutable.Mutable;
 import org.jetbrains.annotations.Nullable;
 
@@ -95,7 +97,18 @@ public class ReplayLabControls {
         ImGui.popFont();
 
         if (tooltip != null && ImGui.isItemHovered()) {
-            ImGui.setTooltip(tooltip);
+            ImGui.setTooltip(Language.getInstance().get(tooltip));
+        }
+        return result;
+    }
+
+    public static boolean iconButton(char icon, @Nullable String tooltip) {
+        ImGui.pushFont(ReplayLabIcons.getFont());
+        boolean result = ImGui.button(String.valueOf(icon));
+        ImGui.popFont();
+
+        if (tooltip != null && ImGui.isItemHovered()) {
+            ImGui.setTooltip(Language.getInstance().get(tooltip));
         }
         return result;
     }

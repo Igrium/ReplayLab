@@ -1,11 +1,11 @@
 package com.igrium.replaylab.editor;
 
-import com.igrium.replaylab.scene.ReplayScene;
 import com.igrium.replaylab.scene.key.KeyChannel;
 import com.igrium.replaylab.scene.key.Keyframe;
 import com.igrium.replaylab.scene.obj.ReplayObject;
 import it.unimi.dsi.fastutil.ints.*;
 import org.jetbrains.annotations.Nullable;
+import org.joml.Vector2d;
 import org.joml.Vector2dc;
 
 import java.util.*;
@@ -69,7 +69,7 @@ public class KeySelectionSet {
             return keyRef.keyIndex();
         }
 
-        public @Nullable Vector2dc get(Map<? extends String, ? extends ReplayObject> objects) {
+        public @Nullable Vector2dc getLocal(Map<? extends String, ? extends ReplayObject> objects) {
             var key = keyRef.get(objects);
             if (key == null) return null;
             
@@ -79,6 +79,26 @@ public class KeySelectionSet {
                 case 2 -> key.getHandleB();
                 default -> null;
             };
+        }
+
+        public @Nullable Vector2d get(Map<? extends String, ? extends ReplayObject> objects) {
+            Vector2d dest = new Vector2d();
+            return get(objects, dest) ? dest : null;
+        }
+
+        public boolean get(Map<? extends String, ? extends ReplayObject> objects, Vector2d dest) {
+            var key = keyRef.get(objects);
+            if (key == null) return false;
+
+            switch(handleIndex) {
+                case 0 -> dest.set(key.getCenter());
+                case 1 -> key.getGlobalA(dest);
+                case 2 -> key.getGlobalB(dest);
+                default -> {
+                    return false;
+                }
+            }
+            return true;
         }
 
         public boolean equals(String objName, String channelName, int keyIndex, int handleIndex) {
@@ -244,6 +264,10 @@ public class KeySelectionSet {
         Set<KeyHandleReference> dest = new HashSet<>();
         forSelectedHandles(dest::add);
         return dest;
+    }
+
+    public boolean isEmpty() {
+        return selected.isEmpty();
     }
 
     /**

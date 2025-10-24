@@ -17,6 +17,7 @@ import imgui.type.ImBoolean;
 import imgui.type.ImInt;
 import lombok.Getter;
 import lombok.Setter;
+import org.apache.commons.lang3.mutable.MutableBoolean;
 import org.jetbrains.annotations.Nullable;
 import org.joml.*;
 
@@ -77,20 +78,6 @@ public class CurveEditor {
     @Getter
     private float zoomFactorY = 0.1f;
 
-    public void setZoomFactorX(float zoomFactorX) {
-        if (zoomFactorX <= 0) {
-            throw new IllegalArgumentException("Zoom factor must be greater than 0");
-        }
-        this.zoomFactorX = zoomFactorX;
-    }
-
-    public void setZoomFactorY(float zoomFactorY) {
-        if (zoomFactorY <= 0) {
-            throw new IllegalArgumentException("Zoom factor must be greater than 0");
-        }
-        this.zoomFactorY = zoomFactorY;
-    }
-
     /**
      * All the replay objects that have had an update <em>committed</em> this frame.
      * Does not include keyframes being dragged.
@@ -122,6 +109,8 @@ public class CurveEditor {
 
     private final ImBoolean snapKeyframes = new ImBoolean();
 
+    private boolean doneInitialFit = false;
+
     public boolean isScrubbing() {
         return header.isScrubbing();
     }
@@ -134,6 +123,19 @@ public class CurveEditor {
         return !keyDragOffsets.isEmpty();
     }
 
+    public void setZoomFactorX(float zoomFactorX) {
+        if (zoomFactorX <= 0) {
+            throw new IllegalArgumentException("Zoom factor must be greater than 0");
+        }
+        this.zoomFactorX = zoomFactorX;
+    }
+
+    public void setZoomFactorY(float zoomFactorY) {
+        if (zoomFactorY <= 0) {
+            throw new IllegalArgumentException("Zoom factor must be greater than 0");
+        }
+        this.zoomFactorY = zoomFactorY;
+    }
 
     /**
      * Modify the zoom of the editor on the X axis, centering it around a supplied point.
@@ -156,6 +158,21 @@ public class CurveEditor {
         this.offsetY = newOffsetY;
     }
 
+    public void fitBounds(Iterable<? extends ReplayObject> objs, float graphWidthPx, float graphHeightPx) {
+        Vector2d boundsMin = new Vector2d();
+        Vector2d boundsMax = new Vector2d();
+        computeBoundingBox(objs, boundsMin, boundsMax);
+
+        setOffsetX(boundsMin.x);
+        setOffsetY(boundsMin.y);
+
+        if (boundsMin.x != boundsMax.x)
+            setZoomFactorX((float) (graphWidthPx / (boundsMax.x - boundsMin.x)));
+
+        if (boundsMin.y != boundsMax.x)
+            setZoomFactorY((float) (graphHeightPx / (boundsMax.y - boundsMin.y)));
+    }
+
     /**
      * Draw the curve editor.
      *
@@ -169,10 +186,8 @@ public class CurveEditor {
     public void drawCurveEditor(ReplayScene scene, @Nullable Collection<String> selectedObjects,
                                 KeySelectionSet selectedKeys, @Nullable ImInt playhead, int flags) {
 
-
         updatedObjects.clear();
         Collection<String> objs = selectedObjects != null ? selectedObjects : scene.getObjects().keySet();
-        Iterable<ReplayObject> selectedObjStream = () -> objs.stream().map(scene::getObject).iterator();
 
         int majorIntervalX = (int) TimelineHeader.computeMajorInterval(zoomFactorX);
         int minorIntervalX = majorIntervalX / 2;
@@ -188,7 +203,8 @@ public class CurveEditor {
 
         /// === BUTTONS ===
         ReplayLabControls.toggleButton(ReplayLabIcons.ICON_MAGNET, "Snap Keyframes", snapKeyframes);
-
+        ImGui.sameLine();
+        boolean wantsFit = ReplayLabControls.iconButton(ReplayLabIcons.ICON_RESIZE_FULL_ALT, "Fit to Selected");
 
         /// === CHANNEL LIST ===
 
@@ -237,11 +253,34 @@ public class CurveEditor {
             float gWidth = ImGui.getContentRegionAvailX();
             float gHeight = ImGui.getContentRegionAvailY();
 
+            /// === FITTING ===
+            if ((wantsFit || !doneInitialFit) && !objs.isEmpty()) {
+                Vector2d boundsMin = new Vector2d();
+                Vector2d boundsMax = new Vector2d();
 
+                if (!doneInitialFit || selectedKeys.isEmpty()) {
+                    computeBoundingBox(scene.getObjects().values(), boundsMin, boundsMax);
+                } else {
+                    computeBoundingBox(selectedKeys, scene, boundsMin, boundsMax);
+                }
+
+                if (boundsMin.x != boundsMax.x)
+                    setZoomFactorX((float) (gWidth / (boundsMax.x - boundsMin.x)));
+
+                if (boundsMin.y != boundsMax.x)
+                    setZoomFactorY((float) (gHeight / (boundsMax.y - boundsMin.y)));
+
+                setOffsetX(boundsMin.x);
+                setOffsetY(boundsMin.y);
+
+                doneInitialFit = true;
+            }
+
+            boolean graphHovered = ImGui.isWindowHovered(ImGuiHoveredFlags.ChildWindows);
 
             /// === SCROLL ZOOM ===
             {
-                if (ImGui.isWindowHovered()) {
+                if (graphHovered) {
                     double mouseXMs = pixelXToMs(mouseX - graphX);
                     double mouseYValue = pixelYToValue(mouseY - graphY);
 
@@ -296,11 +335,10 @@ public class CurveEditor {
                 drawList.addLine(graphX, yPos, graphX + gWidth, yPos, color);
             }
 
-
             /// === Keyframes ===
             KeyHandleReference clickedOn = null;
 
-            boolean mouseClicked = ImGui.isMouseClicked(0);
+            boolean mouseClicked = ImGui.isMouseClicked(0) && graphHovered;
 
             // If we're overing any key, with some leeway for drag threshold
             boolean hoveringAnyKey = false;
@@ -413,6 +451,8 @@ public class CurveEditor {
                     selectedKeys.deselectAll();
                 }
                 selectedKeys.selectHandle(clickedOn);
+            } else if (mouseClicked && !ImGui.getIO().getKeyCtrl()) {
+                selectedKeys.deselectAll();
             }
 
             if (isDragging() && !ImGui.isMouseDragging(0)) {
@@ -656,33 +696,57 @@ public class CurveEditor {
         return smallest == null || (vec.lengthSquared() < smallest.offset().lengthSquared());
     }
 
-    private void forAllHandles(Iterable<Map.Entry<String, ReplayObject>> objects, Vector2d dest,
-                               BiConsumer<KeyHandleReference, Vector2d> consumer) {
-        for (var objEntry : objects) {
-            for (var chEntry : objEntry.getValue().getChannels().entrySet()) {
-                var chRef = new KeySelectionSet.ChannelReference(objEntry.getKey(), chEntry.getKey());
-                int keyIdx = 0;
-                for (var key : chEntry.getValue().getKeyframes()) {
-                    var keyRef = new KeySelectionSet.KeyframeReference(chRef, keyIdx);
+    /**
+     * Compute a bounding box of all the curves in a set of replay objects.
+     * @param objects Objects to compute curves of.
+     * @param dest1 Min corner of the bbox
+     * @param dest2 Max corner of the bbox
+     * @implNote Doesn't compute the <em>tightest</em> bounding box according to the beziers; only the bounds of all the handles.
+     */
+    private static void computeBoundingBox(Iterable<? extends ReplayObject> objects, Vector2d dest1, Vector2d dest2) {
+        boolean hasInit = false;
 
-                    dest.set(key.getCenter());
-                    consumer.accept(new KeyHandleReference(keyRef, 0), dest);
+        Vector2d tmpVec = new Vector2d();
 
-                    key.getCenter().add(key.getHandleA(), dest);
-                    consumer.accept(new KeyHandleReference(keyRef, 1), dest);
+        for (var obj : objects) {
+            for (var ch : obj.getChannels().values()) {
+                for (var key : ch.getKeyframes()) {
+                    Vector2dc center = key.getCenter();
 
-                    key.getCenter().add(key.getHandleB(), dest);
-                    consumer.accept(new KeyHandleReference(keyRef, 2), dest);
+                    if (!hasInit) {
+                        dest1.set(center);
+                        dest2.set(center);
+                        hasInit = true;
+                    } else {
+                        dest1.min(center);
+                        dest2.max(center);
+                    }
 
-                    keyIdx++;
+                    key.getGlobalA(tmpVec);
+                    dest1.min(tmpVec);
 
+                    key.getGlobalB(tmpVec);
+                    dest2.max(tmpVec);
                 }
             }
         }
     }
 
-    private void forAllHandles(Map<? extends String, ? extends ReplayObject> objects, Vector2d dest, Predicate<String> objPredicate,
-                               BiFunction<KeyHandleReference, Vector2d, Boolean> consumer) {
+    private static void computeBoundingBox(KeySelectionSet selected, ReplayScene scene, Vector2d dest1, Vector2d dest2) {
+        Vector2d tmpVec = new Vector2d(Double.NaN);
+        selected.forSelectedHandles(ref -> {
+            boolean hasInit = tmpVec.isFinite();
+            boolean found = ref.get(scene.getObjects(), tmpVec);
 
+            if (!found) return;
+
+            if (hasInit) {
+                dest1.min(tmpVec);
+                dest2.max(tmpVec);
+            } else {
+                dest1.set(tmpVec);
+                dest2.set(tmpVec);
+            }
+        });
     }
 }
