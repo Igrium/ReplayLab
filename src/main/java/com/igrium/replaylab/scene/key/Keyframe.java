@@ -84,6 +84,23 @@ public final class Keyframe implements Comparable<Keyframe> {
         return center.y + handleB.y;
     }
 
+    public double getHandleX(int handle) {
+        return switch(handle) {
+            case 0 -> center.x;
+            case 1 -> getGlobalAX();
+            case 2 -> getGlobalBX();
+            default -> throw new IndexOutOfBoundsException(handle);
+        };
+    }
+
+    public double getHandleY(int handle) {
+        return switch(handle) {
+            case 0 -> center.y;
+            case 1 -> getGlobalAY();
+            case 2 -> getGlobalBY();
+            default -> throw new IndexOutOfBoundsException(handle);
+        };
+    }
 
     public void copyFrom(Keyframe other) {
         this.center.set(other.center);

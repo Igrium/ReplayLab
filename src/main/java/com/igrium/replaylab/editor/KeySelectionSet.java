@@ -1,5 +1,6 @@
 package com.igrium.replaylab.editor;
 
+import com.google.common.collect.AbstractIterator;
 import com.igrium.replaylab.scene.key.KeyChannel;
 import com.igrium.replaylab.scene.key.Keyframe;
 import com.igrium.replaylab.scene.obj.ReplayObject;
@@ -228,18 +229,59 @@ public class KeySelectionSet {
         return dest;
     }
 
+//    private class HandleRefIterator extends AbstractIterator<KeyHandleReference> {
+//        Iterator<Map.Entry<String, Map<String, Int2ObjectMap<IntSet>>>> objsIterator = selected.entrySet().iterator();
+//        Map.Entry<String, Map<String, Int2ObjectMap<IntSet>>> objEntry;
+//
+//        Iterator<Map.Entry<String, Int2ObjectMap<IntSet>>> chansIterator;
+//        Map.Entry<String, Int2ObjectMap<IntSet>> chanEntry;
+//
+//        Iterator<Int2ObjectMap.Entry<IntSet>> keysIterator;
+//        Int2ObjectMap.Entry<IntSet> keyEntry;
+//
+//        IntIterator handlesIterator;
+//
+//
+//        @Override
+//        protected @Nullable KeyHandleReference computeNext() {
+//            if ((chansIterator == null || !chansIterator.hasNext())) {
+//                if (objsIterator.hasNext()) {
+//                    objEntry = objsIterator.next();
+//                    chansIterator = objEntry.getValue().entrySet().iterator();
+//                } else {
+//                    return endOfData();
+//                }
+//            }
+//
+//
+//            return null;
+//        }
+//    }
+
     /**
      * Iterate over all selected handles in the scene.
      *
      * @param c Consumer
      */
     public void forSelectedHandles(HandleRefConsumer c) {
+        forSelectedHandles(c, false);
+    }
+
+
+    public void forSelectedHandles(HandleRefConsumer c, boolean includeChildren) {
         for (var objEntry : selected.entrySet()) {
             for (var chEntry : objEntry.getValue().entrySet()) {
                 for (var keyEntry : chEntry.getValue().int2ObjectEntrySet()) {
-                    IntIterator iter = keyEntry.getValue().intIterator();
-                    while (iter.hasNext()) {
-                        c.accept(objEntry.getKey(), chEntry.getKey(), keyEntry.getIntKey(), iter.nextInt());
+                    // If this is the center and we're including children, return everything.
+                    if (includeChildren && keyEntry.getValue().contains(0)) {
+                        c.accept(objEntry.getKey(), chEntry.getKey(), keyEntry.getIntKey(), 0);
+                        c.accept(objEntry.getKey(), chEntry.getKey(), keyEntry.getIntKey(), 1);
+                        c.accept(objEntry.getKey(), chEntry.getKey(), keyEntry.getIntKey(), 2);
+                    } else {
+                        IntIterator iter = keyEntry.getValue().intIterator();
+                        while (iter.hasNext()) {
+                            c.accept(objEntry.getKey(), chEntry.getKey(), keyEntry.getIntKey(), iter.nextInt());
+                        }
                     }
                 }
             }
@@ -253,6 +295,10 @@ public class KeySelectionSet {
      */
     public void forSelectedHandles(Consumer<KeyHandleReference> c) {
         forSelectedHandles((obj, ch, key, handle) -> c.accept(new KeyHandleReference(obj, ch, key, handle)));
+    }
+
+    public void forSelectedHandles(Consumer<KeyHandleReference> c, boolean includeChildren) {
+        forSelectedHandles((obj, ch, key, handle) -> c.accept(new KeyHandleReference(obj, ch, key, handle)), true);
     }
 
     /**

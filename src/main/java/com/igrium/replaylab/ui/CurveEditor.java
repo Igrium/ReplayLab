@@ -3,6 +3,7 @@ package com.igrium.replaylab.ui;
 import com.igrium.replaylab.editor.KeySelectionSet;
 import com.igrium.replaylab.editor.KeySelectionSet.KeyHandleReference;
 import com.igrium.replaylab.scene.ReplayScene;
+import com.igrium.replaylab.scene.key.KeyChannel;
 import com.igrium.replaylab.scene.key.Keyframe;
 import com.igrium.replaylab.scene.obj.ReplayObject;
 import com.igrium.replaylab.ui.util.ReplayLabControls;
@@ -547,47 +548,18 @@ public class CurveEditor {
                 float mouseXMs = pixelXToMs(mouseGlobalX - graphX);
                 double mouseYValue = pixelYToValue(mouseGlobalY - graphY);
 
-                selectedKeys.forSelectedKeyframes(keyRef -> {
-                    Keyframe key = keyRef.get(scene.getObjects());
-                    if (key == null) return;
+                selectedKeys.forSelectedHandles(hRef -> {
+                    Vector2d pos = hRef.get(scene.getObjects());
+                    if (pos == null) return;
+                    Vector2d offset = pos.sub(mouseXMs, mouseYValue, new Vector2d());
+                    keyDragOffsets.put(hRef, offset);
 
-                    // If the center is selected, only begin dragging the center because the handles are parented to it.
-
-                    KeyHandleReference centerRef = new KeyHandleReference(keyRef, 0);
-                    if (selectedKeys.isHandleSelected(centerRef)) {
-                        Vector2d offset = key.getCenter().sub(mouseXMs, mouseYValue, new Vector2d());
-                        keyDragOffsets.put(centerRef, offset);
-
-                        if (isSmaller(offset, smallestKeyDragOffset)) {
-                            smallestKeyDragOffset = new KeyOffsetPair(centerRef, offset);
-                            dragStartPos.set(key.getCenter());
-                        }
-
-                    } else {
-                        KeyHandleReference aRef = new KeyHandleReference(keyRef, 1);
-                        if (selectedKeys.isHandleSelected(aRef)) {
-                            Vector2d offset = key.getCenter().add(key.getHandleA(), new Vector2d()).sub(mouseXMs, mouseYValue);
-                            keyDragOffsets.put(aRef, offset);
-
-                            if (isSmaller(offset, smallestKeyDragOffset)) {
-                                smallestKeyDragOffset = new KeyOffsetPair(aRef, offset);
-                                key.getGlobalA(dragStartPos);
-                            }
-                        }
-
-                        KeyHandleReference bRef = new KeyHandleReference(keyRef, 2);
-                        if (selectedKeys.isHandleSelected(bRef)) {
-                            Vector2d offset = key.getCenter().add(key.getHandleB(), new Vector2d()).sub(mouseXMs, mouseYValue);
-                            keyDragOffsets.put(bRef, offset);
-
-                            if (isSmaller(offset, smallestKeyDragOffset)) {
-                                smallestKeyDragOffset = new KeyOffsetPair(bRef, offset);
-                                key.getGlobalB(dragStartPos);
-                            }
-                        }
+                    if (isSmaller(offset, smallestKeyDragOffset)) {
+                        smallestKeyDragOffset = new KeyOffsetPair(hRef, offset);
+                        dragStartPos.set(pos);
                     }
+                }, true);
 
-                });
             } else {
                 /// Currently dragging
                 boolean snap;
@@ -605,76 +577,145 @@ public class CurveEditor {
                     float thresholdX = 8f / zoomFactorX;
                     float thresholdY = 8f / zoomFactorY;
 
-                    double smallestOffsetGlobalX = mouseXMs + smallestKeyDragOffset.offset().x();
-                    double smallestOffsetGlobalY = mouseYValue + smallestKeyDragOffset.offset().y();
+                    // The position of the closest dragged keyframe to the mouse.
+                    double smallestOffsetX = smallestKeyDragOffset.offset().x();
+                    double closestKeyX = mouseXMs + smallestOffsetX;
 
-                    // Yeah we're allocating a lot here, but I don't give a shit
-                    final Vector2d snapTarget = new Vector2d(Double.NaN);
+                    double smallestOffsetY = smallestKeyDragOffset.offset().y();
+                    double closestKeyY = mouseYValue + smallestKeyDragOffset.offset().y();
+
                     double snapTargetX = Double.NaN;
+                    double snapTargetXDist = Double.NaN;
+
                     double snapTargetY = Double.NaN;
+                    double snapTargetYDist = Double.NaN;
 
-                    Iterable<Map.Entry<String, ReplayObject>> selObjs = selectedObjects != null ? () -> scene.getObjects().entrySet()
-                            .stream()
-                            .filter(e -> selectedObjects.contains(e.getKey()))
-                            .iterator() : scene.getObjects().entrySet();
-
-
-                    DoublePredicate canSnapX = x -> Math.abs(x - smallestOffsetGlobalX) < thresholdX;
-                    DoublePredicate canSnapY = y -> Math.abs(y - smallestOffsetGlobalY) < thresholdY;
-
-                    KeyHandleReference smRef = smallestKeyDragOffset.ref(); // Just to shorten code
-                    Vector2d tmpVec = new Vector2d();
-                    for (var objName : objs) {
+                    for (String objName : objs) {
                         ReplayObject obj = scene.getObject(objName);
                         if (obj == null) continue;
+
                         for (var chEntry : obj.getChannels().entrySet()) {
                             int keyIdx = 0;
-                            for (var key : chEntry.getValue().getKeyframes()) {
-                                if (!smRef.keyRef().equals(objName, chEntry.getKey(), keyIdx)) {
-                                    if (canSnapX.test(key.getCenter().x())) {
-                                        snapTargetX = key.getCenter().x();
-                                    }
-                                    if (canSnapY.test(key.getCenter().y())) {
-                                        snapTargetY = key.getCenter().y();
+                            for (Keyframe key : chEntry.getValue().getKeyframes()) {
+                                for (int i = 0; i < 3; i++) {
+
+                                    // Don't attempt to lock to something we're also dragging
+                                    // Don't like that we're allocating, but whatever
+                                    if (keyDragOffsets.containsKey(new KeyHandleReference(objName, chEntry.getKey(), keyIdx, i)))
+                                        continue;
+
+                                    double handleX = key.getHandleX(i);
+                                    double handleY = key.getHandleY(i);
+
+                                    double distX = Math.abs(closestKeyX - handleX);
+                                    double distY = Math.abs(closestKeyY - handleY);
+
+                                    if (!Double.isFinite(snapTargetXDist) || distX < snapTargetXDist) {
+                                        snapTargetXDist = distX;
+                                        snapTargetX = handleX;
                                     }
 
-                                    key.getGlobalA(tmpVec);
-                                    if (canSnapX.test(tmpVec.x)) {
-                                        snapTargetX = tmpVec.x;
-                                    }
-                                    if (canSnapY.test(tmpVec.y)) {
-                                        snapTargetY = tmpVec.y;
-                                    }
-
-                                    key.getGlobalB(tmpVec);
-                                    if (canSnapX.test(tmpVec.x)) {
-                                        snapTargetX = tmpVec.x;
-                                    }
-                                    if (canSnapY.test(tmpVec.y)) {
-                                        snapTargetY = tmpVec.y;
+                                    if (!Double.isFinite(snapTargetYDist) || distY < snapTargetYDist) {
+                                        snapTargetYDist = distY;
+                                        snapTargetY = handleY;
                                     }
                                 }
                                 keyIdx++;
                             }
                         }
-
-                        // Also test the original location
-                        if (canSnapX.test(dragStartPos.x)) {
-                            snapTargetX = dragStartPos.x;
-                        }
-
-                        if (canSnapY.test(dragStartPos.y)) {
-                            snapTargetY = dragStartPos.y;
-                        }
                     }
 
-                    if (Double.isFinite(snapTargetX)) {
-                        mouseXMs = snapTargetX - smallestKeyDragOffset.offset().x();
+                    if (Double.isFinite(snapTargetXDist) && snapTargetXDist < thresholdX) {
+//                        System.out.println(snapTargetXDist);
+                        mouseXMs = snapTargetX - smallestOffsetX;
+
+                        float snapPixelX = msToPixelX(snapTargetX) + graphX;
+                        drawList.addLine(snapPixelX, graphY, snapPixelX, graphY + graphHeight, 0xFF000000);
                     }
-                    if (Double.isFinite(snapTargetY)) {
-                        mouseYValue = snapTargetY - smallestKeyDragOffset.offset().y();
+
+                    if (Double.isFinite(snapTargetYDist) && snapTargetYDist < thresholdY) {
+                        mouseYValue = snapTargetY - smallestOffsetY;
+
+                        float snapPixelY = valueToPixelY(snapTargetY) + graphY;
+                        drawList.addLine(graphX, snapPixelY, graphX + gWidth, snapPixelY, 0xFF000000);
                     }
                 }
+
+                // Snapping
+//                if (snap && smallestKeyDragOffset != null) {
+//                    float thresholdX = 8f / zoomFactorX;
+//                    float thresholdY = 8f / zoomFactorY;
+//
+//                    double smallestOffsetGlobalX = mouseXMs + smallestKeyDragOffset.offset().x();
+//                    double smallestOffsetGlobalY = mouseYValue + smallestKeyDragOffset.offset().y();
+//
+//                    // Yeah we're allocating a lot here, but I don't give a shit
+//                    final Vector2d snapTarget = new Vector2d(Double.NaN);
+//                    double snapTargetX = Double.NaN;
+//                    double snapTargetY = Double.NaN;
+//
+//                    Iterable<Map.Entry<String, ReplayObject>> selObjs = selectedObjects != null ? () -> scene.getObjects().entrySet()
+//                            .stream()
+//                            .filter(e -> selectedObjects.contains(e.getKey()))
+//                            .iterator() : scene.getObjects().entrySet();
+//
+//
+//                    DoublePredicate canSnapX = x -> Math.abs(x - smallestOffsetGlobalX) < thresholdX;
+//                    DoublePredicate canSnapY = y -> Math.abs(y - smallestOffsetGlobalY) < thresholdY;
+//
+//                    KeyHandleReference smRef = smallestKeyDragOffset.ref(); // Just to shorten code
+//                    Vector2d tmpVec = new Vector2d();
+//                    for (var objName : objs) {
+//                        ReplayObject obj = scene.getObject(objName);
+//                        if (obj == null) continue;
+//                        for (var chEntry : obj.getChannels().entrySet()) {
+//                            int keyIdx = 0;
+//                            for (var key : chEntry.getValue().getKeyframes()) {
+//                                if (!smRef.keyRef().equals(objName, chEntry.getKey(), keyIdx)) {
+//                                    if (canSnapX.test(key.getCenter().x())) {
+//                                        snapTargetX = key.getCenter().x();
+//                                    }
+//                                    if (canSnapY.test(key.getCenter().y())) {
+//                                        snapTargetY = key.getCenter().y();
+//                                    }
+//
+//                                    key.getGlobalA(tmpVec);
+//                                    if (canSnapX.test(tmpVec.x)) {
+//                                        snapTargetX = tmpVec.x;
+//                                    }
+//                                    if (canSnapY.test(tmpVec.y)) {
+//                                        snapTargetY = tmpVec.y;
+//                                    }
+//
+//                                    key.getGlobalB(tmpVec);
+//                                    if (canSnapX.test(tmpVec.x)) {
+//                                        snapTargetX = tmpVec.x;
+//                                    }
+//                                    if (canSnapY.test(tmpVec.y)) {
+//                                        snapTargetY = tmpVec.y;
+//                                    }
+//                                }
+//                                keyIdx++;
+//                            }
+//                        }
+//
+//                        // Also test the original location
+//                        if (canSnapX.test(dragStartPos.x)) {
+//                            snapTargetX = dragStartPos.x;
+//                        }
+//
+//                        if (canSnapY.test(dragStartPos.y)) {
+//                            snapTargetY = dragStartPos.y;
+//                        }
+//                    }
+//
+//                    if (Double.isFinite(snapTargetX)) {
+//                        mouseXMs = snapTargetX - smallestKeyDragOffset.offset().x();
+//                    }
+//                    if (Double.isFinite(snapTargetY)) {
+//                        mouseYValue = snapTargetY - smallestKeyDragOffset.offset().y();
+//                    }
+//                }
 
                 for (var entry : keyDragOffsets.entrySet()) {
                     KeyHandleReference hRef = entry.getKey();
