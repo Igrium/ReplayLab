@@ -556,6 +556,19 @@ public class CurveEditor {
                         drawList.addBezierCubic(keyX, keyY, keyHandleX, keyHandleY, nextHandleX, nextHandleY, nextX, nextY,
                                 chColor, chSelected ? 2 : 1);
                     }
+
+                    // Continue lines to edge of screen
+                    if (keyArray.length > 0) {
+                        float startX = msToPixelX(keyArray[0].getCenter().x()) + graphX;
+                        float startY = valueToPixelY(keyArray[0].getCenter().y()) + graphY;
+                        drawList.addLine(graphX, startY, startX, startY, chColor);
+
+                        Keyframe endKey = keyArray[keyArray.length - 1];
+                        float endX = msToPixelX(endKey.getCenter().x()) + graphX;
+                        float endY = valueToPixelY(endKey.getCenter().y()) + graphY;
+                        drawList.addLine(endX, endY, graphX + gWidth, endY, chColor);
+                    }
+
                     chIndex++;
                 }
             }
