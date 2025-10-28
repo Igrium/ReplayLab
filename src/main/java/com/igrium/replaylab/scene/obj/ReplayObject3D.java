@@ -297,5 +297,21 @@ public abstract class ReplayObject3D extends ReplayObject implements TransformPr
         return false;
     }
 
+    @Override
+    public int getChannelColor(String chName) {
+        int RED = 0xFF0000FF;
+        int GREEN = 0xFF00FF00;
+        int BLUE = 0xFFFF6600;
 
+//        int RED = 0xFFFF0000;
+//        int GREEN = 0xFF00FF00;
+//        int BLUE = 0xFF00AAFF;
+
+        return switch(chName) {
+            case POS_X, ROT_X, SCALE_X -> RED;
+            case POS_Y, ROT_Y, SCALE_Y -> GREEN;
+            case POS_Z, ROT_Z, SCALE_Z -> BLUE;
+            default -> super.getChannelColor(chName);
+        };
+    }
 }

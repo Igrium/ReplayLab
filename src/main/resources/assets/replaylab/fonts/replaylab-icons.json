@@ -1,3 +1,5 @@
 {
-    "glyphRanges": ["0xe800", "0xf1fb"]
+    "glyphRanges": ["0xe800", "0xf1fb"],
+    "glyphMinAdvanceX": 16,
+    "glyphMaxAdvanceX": 16
 }

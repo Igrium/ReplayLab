@@ -28,6 +28,8 @@ public class ReplayLabIcons {
     public static final char ICON_RESIZE_SMALL = 0xe80c;
     public static final char ICON_RESIZE_FULL = 0xe80d;
     public static final char ICON_MAGNET = 0xe80e;
+    public static final char ICON_EYE_OFF = 0xe80f;
+    public static final char ICON_EYE = 0xe810;
     public static final char ICON_RESIZE_FULL_ALT = 0xf0b2;
     public static final char ICON_EYEDROPPER = 0xf1fb;
 

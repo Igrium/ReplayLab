@@ -102,9 +102,9 @@ public class ReplayLabControls {
         return result;
     }
 
-    public static boolean iconButton(char icon, @Nullable String tooltip) {
+    public static boolean iconButton(char icon, String id, @Nullable String tooltip) {
         ImGui.pushFont(ReplayLabIcons.getFont());
-        boolean result = ImGui.button(String.valueOf(icon));
+        boolean result = ImGui.button(icon + "##" + id);
         ImGui.popFont();
 
         if (tooltip != null && ImGui.isItemHovered()) {

@@ -15,6 +15,7 @@ import imgui.ImGui;
 import imgui.ImVec2;
 import imgui.flag.ImGuiCol;
 import imgui.flag.ImGuiHoveredFlags;
+import imgui.flag.ImGuiStyleVar;
 import imgui.flag.ImGuiWindowFlags;
 import imgui.type.ImBoolean;
 import imgui.type.ImInt;
@@ -184,6 +185,8 @@ public class CurveEditor {
             setZoomFactorY((float) (graphHeightPx / (boundsMax.y - boundsMin.y)));
     }
 
+    private float prevHideButtonWidth;
+
     /**
      * Draw the curve editor.
      *
@@ -215,38 +218,135 @@ public class CurveEditor {
         /// === BUTTONS ===
         ReplayLabControls.toggleButton(ReplayLabIcons.ICON_MAGNET, "Snap Keyframes", snapKeyframes);
         ImGui.sameLine();
-        boolean wantsFit = ReplayLabControls.iconButton(ReplayLabIcons.ICON_RESIZE_FULL_ALT, "Fit to Selected");
+        boolean wantsFit = ReplayLabControls.iconButton(ReplayLabIcons.ICON_RESIZE_FULL_ALT, "", "Fit to Selected");
 
         /// === CHANNEL LIST ===
-
-        ImGui.pushID("channels");
-        ImGui.beginGroup();
         ImGui.separator();
-        ImBoolean locked = new ImBoolean();
-        for (var name : objs) {
-            ReplayObject obj = scene.getObject(name);
-            if (obj == null)
-                continue;
+        ImGui.beginChild("channels", 192, -1, false, ImGuiWindowFlags.NoScrollbar);
+        {
 
-            if (ImGui.treeNodeEx(name)) {
-                for (var entry : obj.getChannels().entrySet()) {
-                    ImGui.text(entry.getKey());
-                    ImGui.sameLine();
-                    boolean wasLocked = entry.getValue().isLocked();
-                    locked.set(wasLocked);
 
-                    ImGui.checkbox("##" + entry.getKey() + "_lock", locked);
-                    if (locked.get() != wasLocked) {
-                        entry.getValue().setLocked(locked.get());
+            for (var name : objs) {
+                ReplayObject obj = scene.getObject(name);
+                if (obj == null)
+                    continue;
+
+                Boolean setAllLocked = null;
+                Boolean setAllHidden = null;
+
+                boolean anyUnlocked = false;
+                for (KeyChannel channel : obj.getChannels().values()) {
+                    if (!channel.isLocked()) {
+                        anyUnlocked = true;
+                        break;
                     }
                 }
-                ImGui.treePop();
-            }
-        }
 
-        ImGui.dummy(128, 0); // force width
-        ImGui.endGroup();
-        ImGui.popID();
+                boolean anyVisible = false;
+                for (KeyChannel channel : obj.getChannels().values()) {
+                    if (!channel.isHidden()) {
+                        anyVisible = true;
+                        break;
+                    }
+                }
+
+                boolean renderObjDisabled = !anyVisible || !anyUnlocked;
+
+                if (renderObjDisabled) {
+                    ImGui.pushStyleColor(ImGuiCol.Text, ImGui.getColorU32(ImGuiCol.TextDisabled));
+                }
+                boolean open = ImGui.treeNodeEx(name);
+                if (renderObjDisabled) {
+                    ImGui.popStyleColor();
+                }
+
+                // Global object toggles
+                ImGui.pushStyleColor(ImGuiCol.Button, 0);
+                ImGui.pushStyleVar(ImGuiStyleVar.ItemSpacing, 0f, 0f);
+
+                ImGui.sameLine();
+                ImGui.setCursorPosX(ImGui.getContentRegionMaxX() - ImGui.getFontSize() * 3.5f);
+                boolean toggleObjVisible = ReplayLabControls.iconButton(anyVisible ? ReplayLabIcons.ICON_EYE : ReplayLabIcons.ICON_EYE_OFF,
+                        name + "hide", null);
+
+                if (toggleObjVisible) {
+                    setAllHidden = anyVisible;
+                }
+
+                ImGui.sameLine();
+                boolean toggleObjLock = ReplayLabControls.iconButton(anyUnlocked ? ReplayLabIcons.ICON_LOCK_OPEN : ReplayLabIcons.ICON_LOCK,
+                        name + "hide", null);
+
+                if (toggleObjLock) {
+                    setAllLocked = anyUnlocked;
+                }
+
+                ImGui.popStyleColor();
+                ImGui.popStyleVar();
+
+
+                if (open) {
+                    for (var entry : obj.getChannels().entrySet()) {
+                        boolean disable = entry.getValue().isHidden() || entry.getValue().isLocked();
+
+                        if (disable) {
+                            ImGui.beginDisabled();
+                        }
+                        ImGui.text(entry.getKey());
+                        ImGui.sameLine();
+                        if (disable) {
+                            ImGui.endDisabled();
+                        }
+
+                        ImGui.setCursorPosX(ImGui.getContentRegionMaxX() - ImGui.getFontSize() * 3.5f);
+
+                        boolean ctrlPressed = ImGui.getIO().getKeyCtrl();
+
+                        ImGui.pushStyleVar(ImGuiStyleVar.ItemSpacing, 0f, 0f);
+                        ImGui.pushStyleColor(ImGuiCol.Button, 0);
+                        boolean wasHidden = entry.getValue().isHidden();
+                        boolean toggleHidden = ReplayLabControls.iconButton(wasHidden ? ReplayLabIcons.ICON_EYE_OFF : ReplayLabIcons.ICON_EYE,
+                                name + entry.getKey() + "hide", null);
+
+                        if (toggleHidden) {
+                            if (ctrlPressed) {
+                                setAllHidden = !wasHidden;
+                            } else {
+                                entry.getValue().setHidden(!wasHidden);
+                            }
+                        }
+                        ImGui.sameLine();
+
+                        boolean wasLocked = entry.getValue().isLocked();
+                        boolean toggleLock = ReplayLabControls.iconButton(wasLocked ? ReplayLabIcons.ICON_LOCK : ReplayLabIcons.ICON_LOCK_OPEN,
+                                name + entry.getKey() + "lock", null);
+                        if (toggleLock) {
+                            if (ctrlPressed) {
+                                setAllLocked = !wasLocked;
+                            } else {
+                                entry.getValue().setLocked(!wasLocked);
+                            }
+                        }
+                        ImGui.popStyleVar();
+                        ImGui.popStyleColor();
+                    }
+                    ImGui.treePop();
+                }
+
+                if (setAllLocked != null || setAllHidden != null) {
+                    for (var ch : obj.getChannels().values()) {
+                        if (setAllLocked != null) {
+                            ch.setLocked(setAllLocked);
+                        }
+                        if (setAllHidden != null) {
+                            ch.setHidden(setAllHidden);
+                        }
+                    }
+                }
+            }
+
+            ImGui.endChild();
+        }
 
         ImGui.sameLine();
         float headerCursorX = ImGui.getCursorPosX();
@@ -362,7 +462,10 @@ public class CurveEditor {
 
                 // For each channel
                 for (var chEntry : obj.getChannels().entrySet()) {
-                    int chColor = curveColors[chIndex % 16];
+                    if (chEntry.getValue().isHidden())
+                        continue;
+
+                    int chColor = obj.getChannelColor(chEntry.getKey());
                     boolean chSelected = selectedKeys.isChannelSelected(objName, chEntry.getKey());
                     if (!chSelected) {
                         chColor = replaceAlpha(chColor, 128);
@@ -372,57 +475,59 @@ public class CurveEditor {
                     Keyframe[] keyArray = chEntry.getValue().getKeyframes().toArray(new Keyframe[0]);
 
                     // Draw keyframes
-                    for (int keyIdx = 0; keyIdx < keyArray.length; keyIdx++) {
-                        Keyframe key = keyArray[keyIdx];
-                        boolean cSelected = selectedKeys.isHandleSelected(objName, chEntry.getKey(), keyIdx, 0);
-                        boolean lSelected = selectedKeys.isHandleSelected(objName, chEntry.getKey(), keyIdx, 1);
-                        boolean rSelected = selectedKeys.isHandleSelected(objName, chEntry.getKey(), keyIdx, 2);
+                    if (!chEntry.getValue().isLocked()) {
+                        for (int keyIdx = 0; keyIdx < keyArray.length; keyIdx++) {
+                            Keyframe key = keyArray[keyIdx];
+                            boolean cSelected = selectedKeys.isHandleSelected(objName, chEntry.getKey(), keyIdx, 0);
+                            boolean lSelected = selectedKeys.isHandleSelected(objName, chEntry.getKey(), keyIdx, 1);
+                            boolean rSelected = selectedKeys.isHandleSelected(objName, chEntry.getKey(), keyIdx, 2);
 
-                        int color = 0xFF000000;
-                        int selColor = ImGui.getColorU32(ImGuiCol.Text);
+                            int color = 0xFF000000;
+                            int selColor = ImGui.getColorU32(ImGuiCol.Text);
 
-                        float keyX = msToPixelX((float) key.getCenter().x()) + graphX;
-                        float keyY = valueToPixelY(key.getCenter().y()) + graphY;
+                            float keyX = msToPixelX((float) key.getCenter().x()) + graphX;
+                            float keyY = valueToPixelY(key.getCenter().y()) + graphY;
 
-                        drawList.addCircleFilled(keyX, keyY, 3f, cSelected ? selColor : color);
+                            drawList.addCircleFilled(keyX, keyY, 3f, cSelected ? selColor : color);
 
-                        float handleAX = keyX + (float) key.getHandleA().x() * zoomFactorX;
-                        float handleAY = keyY + (float) key.getHandleA().y() * zoomFactorY;
+                            float handleAX = keyX + (float) key.getHandleA().x() * zoomFactorX;
+                            float handleAY = keyY + (float) key.getHandleA().y() * zoomFactorY;
 
-                        drawList.addCircle(handleAX, handleAY, 3f, lSelected ? selColor : color);
+                            drawList.addCircle(handleAX, handleAY, 3f, lSelected ? selColor : color);
 
-                        float handleBX = keyX + (float) key.getHandleB().x() * zoomFactorX;
-                        float handleBY = keyY + (float) key.getHandleB().y() * zoomFactorY;
+                            float handleBX = keyX + (float) key.getHandleB().x() * zoomFactorX;
+                            float handleBY = keyY + (float) key.getHandleB().y() * zoomFactorY;
 
-                        drawList.addCircle(handleBX, handleBY, 3f, rSelected ? selColor : color);
+                            drawList.addCircle(handleBX, handleBY, 3f, rSelected ? selColor : color);
 
-                        // TODO: Shouldn't this be defined in the theme somehow?
-                        int lineColor = 0x808E79D1;
-                        int lineColorSel = 0xFF93B4FF;
+                            // TODO: Shouldn't this be defined in the theme somehow?
+                            int lineColor = 0x808E79D1;
+                            int lineColorSel = 0xFF93B4FF;
 
-                        drawList.addLine(handleAX, handleAY, keyX, keyY, lSelected || cSelected ? lineColorSel : lineColor);
-                        drawList.addLine(handleBX, handleBY, keyX, keyY, rSelected || cSelected ? lineColorSel : lineColor);
+                            drawList.addLine(handleAX, handleAY, keyX, keyY, lSelected || cSelected ? lineColorSel : lineColor);
+                            drawList.addLine(handleBX, handleBY, keyX, keyY, rSelected || cSelected ? lineColorSel : lineColor);
 
-                        // Prioritize clicking on the selected channel unless the keyframe being clicked is already selected.
-                        // In that case, don't let it be selected again so we can select overlapping keys.
-                        if (mouseClicked && (selectedKeys.isChannelSelected(objName, chEntry.getKey()) || clickedOn == null)) {
-                            KeyHandleReference handle0Ref = new KeyHandleReference(objName, chEntry.getKey(), keyIdx, 0);
-                            KeyHandleReference handle1Ref = new KeyHandleReference(objName, chEntry.getKey(), keyIdx, 1);
-                            KeyHandleReference handle2Ref = new KeyHandleReference(objName, chEntry.getKey(), keyIdx, 2);
+                            // Prioritize clicking on the selected channel unless the keyframe being clicked is already selected.
+                            // In that case, don't let it be selected again so we can select overlapping keys.
+                            if (mouseClicked && (selectedKeys.isChannelSelected(objName, chEntry.getKey()) || clickedOn == null)) {
+                                KeyHandleReference handle0Ref = new KeyHandleReference(objName, chEntry.getKey(), keyIdx, 0);
+                                KeyHandleReference handle1Ref = new KeyHandleReference(objName, chEntry.getKey(), keyIdx, 1);
+                                KeyHandleReference handle2Ref = new KeyHandleReference(objName, chEntry.getKey(), keyIdx, 2);
 
-                            if (keyHovered(keyX, keyY, mouseGlobalX, mouseGlobalY) && !selectedKeys.isHandleSelected(handle0Ref)) {
-                                clickedOn = handle0Ref;
-                            } else if (keyHovered(handleAX, handleAY, mouseGlobalX, mouseGlobalY) && !selectedKeys.isHandleSelected(handle1Ref)) {
-                                clickedOn = handle1Ref;
-                            } else if (keyHovered(handleBX, handleBY, mouseGlobalX, mouseGlobalY) && !selectedKeys.isHandleSelected(handle2Ref)) {
-                                clickedOn = handle2Ref;
+                                if (keyHovered(keyX, keyY, mouseGlobalX, mouseGlobalY) && !selectedKeys.isHandleSelected(handle0Ref)) {
+                                    clickedOn = handle0Ref;
+                                } else if (keyHovered(handleAX, handleAY, mouseGlobalX, mouseGlobalY) && !selectedKeys.isHandleSelected(handle1Ref)) {
+                                    clickedOn = handle1Ref;
+                                } else if (keyHovered(handleBX, handleBY, mouseGlobalX, mouseGlobalY) && !selectedKeys.isHandleSelected(handle2Ref)) {
+                                    clickedOn = handle2Ref;
+                                }
                             }
-                        }
 
-                        if (!hoveringAnyKey && (keyHovered(keyX, keyY, mouseGlobalX, mouseGlobalY, keyHoverRadius)
-                                || keyHovered(handleAX, handleAY, mouseGlobalX, mouseGlobalY, keyHoverRadius)
-                                || keyHovered(handleBX, handleBY, mouseGlobalX, mouseGlobalY, keyHoverRadius))) {
-                            hoveringAnyKey = true;
+                            if (!hoveringAnyKey && (keyHovered(keyX, keyY, mouseGlobalX, mouseGlobalY, keyHoverRadius)
+                                    || keyHovered(handleAX, handleAY, mouseGlobalX, mouseGlobalY, keyHoverRadius)
+                                    || keyHovered(handleBX, handleBY, mouseGlobalX, mouseGlobalY, keyHoverRadius))) {
+                                hoveringAnyKey = true;
+                            }
                         }
                     }
 
@@ -498,6 +603,8 @@ public class CurveEditor {
                         continue;
 
                     for (var chEntry : obj.getChannels().entrySet()) {
+                        if (chEntry.getValue().isHidden() || chEntry.getValue().isLocked())
+                            continue;
                         int keyIdx = 0;
                         for (Keyframe key : chEntry.getValue().getKeyframes()) {
 
@@ -549,6 +656,10 @@ public class CurveEditor {
                 double mouseYValue = pixelYToValue(mouseGlobalY - graphY);
 
                 selectedKeys.forSelectedHandles(hRef -> {
+                    KeyChannel ch = hRef.keyRef().channelRef().get(scene.getObjects());
+                    if (ch != null && (ch.isLocked() || ch.isHidden()))
+                        return;
+
                     Vector2d pos = hRef.get(scene.getObjects());
                     if (pos == null) return;
                     Vector2d offset = pos.sub(mouseXMs, mouseYValue, new Vector2d());
@@ -626,7 +737,6 @@ public class CurveEditor {
                     }
 
                     if (Double.isFinite(snapTargetXDist) && snapTargetXDist < thresholdX) {
-//                        System.out.println(snapTargetXDist);
                         mouseXMs = snapTargetX - smallestOffsetX;
 
                         float snapPixelX = msToPixelX(snapTargetX) + graphX;
@@ -640,82 +750,6 @@ public class CurveEditor {
                         drawList.addLine(graphX, snapPixelY, graphX + gWidth, snapPixelY, 0xFF000000);
                     }
                 }
-
-                // Snapping
-//                if (snap && smallestKeyDragOffset != null) {
-//                    float thresholdX = 8f / zoomFactorX;
-//                    float thresholdY = 8f / zoomFactorY;
-//
-//                    double smallestOffsetGlobalX = mouseXMs + smallestKeyDragOffset.offset().x();
-//                    double smallestOffsetGlobalY = mouseYValue + smallestKeyDragOffset.offset().y();
-//
-//                    // Yeah we're allocating a lot here, but I don't give a shit
-//                    final Vector2d snapTarget = new Vector2d(Double.NaN);
-//                    double snapTargetX = Double.NaN;
-//                    double snapTargetY = Double.NaN;
-//
-//                    Iterable<Map.Entry<String, ReplayObject>> selObjs = selectedObjects != null ? () -> scene.getObjects().entrySet()
-//                            .stream()
-//                            .filter(e -> selectedObjects.contains(e.getKey()))
-//                            .iterator() : scene.getObjects().entrySet();
-//
-//
-//                    DoublePredicate canSnapX = x -> Math.abs(x - smallestOffsetGlobalX) < thresholdX;
-//                    DoublePredicate canSnapY = y -> Math.abs(y - smallestOffsetGlobalY) < thresholdY;
-//
-//                    KeyHandleReference smRef = smallestKeyDragOffset.ref(); // Just to shorten code
-//                    Vector2d tmpVec = new Vector2d();
-//                    for (var objName : objs) {
-//                        ReplayObject obj = scene.getObject(objName);
-//                        if (obj == null) continue;
-//                        for (var chEntry : obj.getChannels().entrySet()) {
-//                            int keyIdx = 0;
-//                            for (var key : chEntry.getValue().getKeyframes()) {
-//                                if (!smRef.keyRef().equals(objName, chEntry.getKey(), keyIdx)) {
-//                                    if (canSnapX.test(key.getCenter().x())) {
-//                                        snapTargetX = key.getCenter().x();
-//                                    }
-//                                    if (canSnapY.test(key.getCenter().y())) {
-//                                        snapTargetY = key.getCenter().y();
-//                                    }
-//
-//                                    key.getGlobalA(tmpVec);
-//                                    if (canSnapX.test(tmpVec.x)) {
-//                                        snapTargetX = tmpVec.x;
-//                                    }
-//                                    if (canSnapY.test(tmpVec.y)) {
-//                                        snapTargetY = tmpVec.y;
-//                                    }
-//
-//                                    key.getGlobalB(tmpVec);
-//                                    if (canSnapX.test(tmpVec.x)) {
-//                                        snapTargetX = tmpVec.x;
-//                                    }
-//                                    if (canSnapY.test(tmpVec.y)) {
-//                                        snapTargetY = tmpVec.y;
-//                                    }
-//                                }
-//                                keyIdx++;
-//                            }
-//                        }
-//
-//                        // Also test the original location
-//                        if (canSnapX.test(dragStartPos.x)) {
-//                            snapTargetX = dragStartPos.x;
-//                        }
-//
-//                        if (canSnapY.test(dragStartPos.y)) {
-//                            snapTargetY = dragStartPos.y;
-//                        }
-//                    }
-//
-//                    if (Double.isFinite(snapTargetX)) {
-//                        mouseXMs = snapTargetX - smallestKeyDragOffset.offset().x();
-//                    }
-//                    if (Double.isFinite(snapTargetY)) {
-//                        mouseYValue = snapTargetY - smallestKeyDragOffset.offset().y();
-//                    }
-//                }
 
                 for (var entry : keyDragOffsets.entrySet()) {
                     KeyHandleReference hRef = entry.getKey();

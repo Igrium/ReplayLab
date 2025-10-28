@@ -6,6 +6,7 @@ import com.igrium.replaylab.scene.ReplayScene;
 import com.igrium.replaylab.scene.key.KeyChannel;
 import com.igrium.replaylab.util.GsonSerializationContext;
 import com.igrium.replaylab.util.MutableDouble;
+import imgui.ImColor;
 import imgui.ImGui;
 import lombok.Getter;
 import org.jetbrains.annotations.Nullable;
@@ -262,5 +263,26 @@ public abstract class ReplayObject {
         ReplayObject other = type.create(getScene());
         other.parse(this.save());
         return other;
+    }
+
+    /**
+     * Return the color that the curve editor should use for a channel in this object.
+     * @param chName Name of the channel.
+     * @return ARGB packed int color.
+     */
+    public int getChannelColor(String chName) {
+        // Get random hue from name hash
+        int h = chName.hashCode();
+
+        long z = (h & 0xFFFFFFFFL)
+                + 0x9E3779B97F4A7C15L;
+        z = (z ^ (z >>> 30)) * 0xBF58476D1CE4E5B9L;
+        z = (z ^ (z >>> 27)) * 0x94D049BB133111EBL;
+        z = z ^ (z >>> 31);
+
+        long top53 = z >>> 11; // keep the top 53 bits
+        float hue = (float) (top53 / (double) (1L << 53));
+
+        return ImColor.hsl(hue, .8f, .5f);
     }
 }

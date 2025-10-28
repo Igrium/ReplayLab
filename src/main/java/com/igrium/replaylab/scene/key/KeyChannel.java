@@ -31,6 +31,12 @@ public class KeyChannel {
     @Getter @Setter
     private transient boolean locked;
 
+    /**
+     * Hide this channel in the dope sheet and curve editor. Not serialized or included in the undo/redo stack.
+     */
+    @Getter @Setter
+    private transient boolean hidden;
+
     public KeyChannel() {
         this(new ArrayList<>());
     }
