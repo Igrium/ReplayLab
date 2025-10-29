@@ -26,36 +26,8 @@ import org.joml.*;
 
 import java.lang.Math;
 import java.util.*;
-import java.util.function.*;
 
 public class CurveEditor {
-
-    /**
-     * Get a channel's hue based on its object and index
-     *
-     * @param objNameHash The hash code of the object name
-     * @param chNameHash  The hash code of the channel name
-     * @return The hue of the channel as a float from 0-1
-     */
-    private static float getChannelHue(int objNameHash, int chNameHash) {
-        int x = objNameHash * 32 + chNameHash;
-
-        x ^= x << 13;
-        x ^= x >>> 17;
-        x ^= x << 5;
-
-        // Map to 0-1 range by clamping to 2^24 and dividing
-        int top24 = x >>> 8;
-        return top24 / (float)(1 << 24);
-    }
-
-    private static final int[] curveColors = new int[16];
-
-    static {
-        for (int i = 0; i < 16; i++) {
-            curveColors[i] = ImColor.hsla(i / 16f, 1f, .5f, .75f);
-        }
-    }
 
     /**
      * The X pan amount in milliseconds
@@ -221,10 +193,8 @@ public class CurveEditor {
         boolean wantsFit = ReplayLabControls.iconButton(ReplayLabIcons.ICON_RESIZE_FULL_ALT, "", "Fit to Selected");
 
         /// === CHANNEL LIST ===
-        ImGui.separator();
         ImGui.beginChild("channels", 192, -1, false, ImGuiWindowFlags.NoScrollbar);
         {
-
 
             for (var name : objs) {
                 ReplayObject obj = scene.getObject(name);
@@ -558,18 +528,35 @@ public class CurveEditor {
                     }
 
                     // Continue lines to edge of screen
-                    if (keyArray.length > 0) {
-                        float startX = msToPixelX(keyArray[0].getCenter().x()) + graphX;
-                        float startY = valueToPixelY(keyArray[0].getCenter().y()) + graphY;
-                        drawList.addLine(graphX, startY, startX, startY, chColor);
+                    float startX = msToPixelX(keyArray[0].getCenter().x()) + graphX;
+                    float startY = valueToPixelY(keyArray[0].getCenter().y()) + graphY;
+                    drawList.addLine(graphX, startY, startX, startY, chColor, chSelected ? 2 : 1);
 
-                        Keyframe endKey = keyArray[keyArray.length - 1];
-                        float endX = msToPixelX(endKey.getCenter().x()) + graphX;
-                        float endY = valueToPixelY(endKey.getCenter().y()) + graphY;
-                        drawList.addLine(endX, endY, graphX + gWidth, endY, chColor);
-                    }
+                    Keyframe endKey = keyArray[keyArray.length - 1];
+                    float endX = msToPixelX(endKey.getCenter().x()) + graphX;
+                    float endY = valueToPixelY(endKey.getCenter().y()) + graphY;
+                    drawList.addLine(endX, endY, graphX + gWidth, endY, chColor, chSelected ? 2 : 1);
 
                     chIndex++;
+                }
+            }
+
+            /// === OUT-OF-BOUNDS GRAYOUT
+
+            {
+                float pixelIn = msToPixelX(0);
+                float pixelOut = msToPixelX(scene.getLength());
+
+                if (pixelIn > 0) {
+                    float pixelInGlobal = pixelIn + graphX;
+                    drawList.addLine(pixelInGlobal, graphY, pixelInGlobal, graphY + graphHeight, ImGui.getColorU32(ImGuiCol.Separator));
+                    drawList.addRectFilled(graphX, graphY, pixelInGlobal, graphY + graphHeight, ImGui.getColorU32(ImGuiCol.ModalWindowDimBg));
+                }
+
+                if (pixelOut < gWidth) {
+                    float pixelOutGlobal = pixelOut + graphX;
+                    drawList.addLine(pixelOutGlobal, graphY, pixelOutGlobal, graphY + graphHeight, ImGui.getColorU32(ImGuiCol.Separator));
+                    drawList.addRectFilled(pixelOutGlobal, graphY, graphX + gWidth, graphY + graphHeight, ImGui.getColorU32(ImGuiCol.ModalWindowDimBg));
                 }
             }
 
