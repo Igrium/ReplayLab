@@ -8,7 +8,7 @@ import com.igrium.replaylab.scene.key.KeyChannel;
 import com.igrium.replaylab.scene.key.Keyframe;
 import com.igrium.replaylab.scene.obj.ReplayObject;
 import com.igrium.replaylab.scene.obj.ReplayObjects;
-import com.igrium.replaylab.scene.obj.objs.ScenePropsObject;
+import com.igrium.replaylab.scene.objs.ScenePropsObject;
 import com.igrium.replaylab.scene.obj.SerializedReplayObject;
 import com.igrium.replaylab.util.NameUtils;
 import lombok.Getter;
@@ -19,7 +19,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayDeque;
-import java.util.Collection;
 import java.util.Deque;
 import java.util.Map;
 import java.util.function.Consumer;

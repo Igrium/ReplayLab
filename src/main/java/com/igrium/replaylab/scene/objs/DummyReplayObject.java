@@ -1,4 +1,4 @@
-package com.igrium.replaylab.scene.obj.objs;
+package com.igrium.replaylab.scene.objs;
 
 import com.google.gson.JsonDeserializationContext;
 import com.google.gson.JsonObject;

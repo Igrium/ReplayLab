@@ -1,4 +1,4 @@
-package com.igrium.replaylab.scene.obj.objs;
+package com.igrium.replaylab.scene.objs;
 
 import com.igrium.replaylab.ReplayLabEntities;
 import com.igrium.replaylab.camera.AnimatedCameraEntity;

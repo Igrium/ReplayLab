@@ -3,10 +3,10 @@ package com.igrium.replaylab.scene.obj;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.igrium.replaylab.scene.ReplayScene;
-import com.igrium.replaylab.scene.obj.objs.BlockDisplayObject;
-import com.igrium.replaylab.scene.obj.objs.CameraObject;
-import com.igrium.replaylab.scene.obj.objs.DummyReplayObject;
-import com.igrium.replaylab.scene.obj.objs.ScenePropsObject;
+import com.igrium.replaylab.scene.objs.BlockDisplayObject;
+import com.igrium.replaylab.scene.objs.CameraObject;
+import com.igrium.replaylab.scene.objs.DummyReplayObject;
+import com.igrium.replaylab.scene.objs.ScenePropsObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

@@ -9,6 +9,7 @@ import com.igrium.replaylab.operator.RemoveKeyframesOperator;
 import com.igrium.replaylab.operator.RemoveObjectOperator;
 import com.igrium.replaylab.scene.ReplayScene;
 import com.igrium.replaylab.scene.obj.ReplayObject;
+import com.igrium.replaylab.scene.objs.ScenePropsObject;
 import com.igrium.replaylab.ui.util.ExceptionPopup;
 import com.igrium.replaylab.ui.util.ReplayLabControls;
 import com.igrium.replaylab.ui.util.TimelineFlags;
@@ -455,7 +456,38 @@ public class ReplayLabUI extends DockSpaceApp {
         var bounds = super.getCustomViewportBounds();
         if (bounds == null) return null; // Shouldn't happen
 
-        return new ViewportBounds(bounds.x(), bounds.y() + (int) viewportFooterHeight, bounds.width(), bounds.height() - (int) viewportFooterHeight);
+        int width = bounds.width();
+        int height = bounds.height() - (int) viewportFooterHeight;
+
+        int offsetX = bounds.x();
+        int offsetY = bounds.y() + (int) viewportFooterHeight;
+
+        // Cast to aspect ratio if we're in camera view
+        if (editorState.isCameraView()) {
+            ScenePropsObject props = editorState.getScene().getSceneProps();
+
+            int bx;
+            int by;
+            float targetRatio = (float) props.getResolutionX() / props.getResolutionY();
+            if (((float) width / height) > targetRatio) {
+                bx = (int) (height * targetRatio);
+                by = height;
+            } else {
+                bx = width;
+                by = (int) (width / targetRatio);
+            }
+
+            offsetX += (width - bx) / 2;
+            offsetY += (height - by) / 2;
+
+            width = bx;
+            height = by;
+        }
+
+        if (width < 2) width = 2;
+        if (height < 2) height = 2;
+
+        return new ViewportBounds(offsetX, offsetY, width, height);
     }
 
 
