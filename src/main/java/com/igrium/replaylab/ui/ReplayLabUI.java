@@ -51,6 +51,7 @@ public class ReplayLabUI extends DockSpaceApp {
 
     //    private final DopeSheetOld dopeSheet = new DopeSheetOld();
     private final DopeSheet dopeSheet = new DopeSheet();
+    private final DopeSheetNew dopeSheetNew = new DopeSheetNew();
     private final CurveEditor curveEditor = new CurveEditor();
     private final SceneBrowser sceneBrowser = new SceneBrowser();
     private final Outliner outliner = new Outliner();
@@ -148,6 +149,7 @@ public class ReplayLabUI extends DockSpaceApp {
         ImGui.end();
 
         drawDopeSheet();
+        drawDopeSheetNew();
         drawCurveEditor();
         drawOutliner();
         drawInspector();
@@ -366,6 +368,14 @@ public class ReplayLabUI extends DockSpaceApp {
             wantsApplyToGame = true;
         }
 
+    }
+
+    private void drawDopeSheetNew() {
+        if (ImGui.begin("Dope Sheet (new)")) {
+            dopeSheetNew.drawDopeSheet(editorState.getScene(), null, editorState.getKeySelection(),
+                    editorState.getPlayheadRef(), 0);
+        }
+        ImGui.end();
     }
 
     private void drawCurveEditor() {

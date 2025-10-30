@@ -142,23 +142,6 @@ public class CurveEditor {
         this.offsetY = newOffsetY;
     }
 
-    public void fitBounds(Iterable<? extends ReplayObject> objs, float graphWidthPx, float graphHeightPx) {
-        Vector2d boundsMin = new Vector2d();
-        Vector2d boundsMax = new Vector2d();
-        computeBoundingBox(objs, boundsMin, boundsMax);
-
-        setOffsetX(boundsMin.x);
-        setOffsetY(boundsMin.y);
-
-        if (boundsMin.x != boundsMax.x)
-            setZoomFactorX((float) (graphWidthPx / (boundsMax.x - boundsMin.x)));
-
-        if (boundsMin.y != boundsMax.x)
-            setZoomFactorY((float) (graphHeightPx / (boundsMax.y - boundsMin.y)));
-    }
-
-    private float prevHideButtonWidth;
-
     /**
      * Draw the curve editor.
      *
