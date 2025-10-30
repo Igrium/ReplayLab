@@ -1,13 +1,14 @@
 {
-  "required": true,
-  "package": "com.igrium.replaylab.mixin",
-  "compatibilityLevel": "JAVA_21",
-  "mixins": [
-    "AccessorGuiReplayEntry",
-    "MixinGuiReplayViewer",
-    "MixinKeyBindingRegistry"
-  ],
-  "injectors": {
-    "defaultRequire": 1
-  }
+    "required": true,
+    "package": "com.igrium.replaylab.mixin",
+    "compatibilityLevel": "JAVA_21",
+    "mixins": [
+        "AccessorGuiReplayEntry",
+        "MixinGuiReplayViewer",
+        "MixinKeyBindingRegistry"
+    ],
+    "injectors": {
+        "defaultRequire": 1
+    },
+    "client": ["AccessorCamera", "MixinGameRenderer"]
 }

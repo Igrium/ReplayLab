@@ -153,26 +153,6 @@ public final class ScenePropsObject extends ReplayObject {
             editingRes = false;
         }
 
-//        if (ImGui.inputInt2("Resolution", resInput)) {
-//            if (resInput[0] < 2) {
-//                resInput[0] = 2;
-//            }
-//            if (resInput[1] < 2) {
-//                resInput[1] = 2;
-//            }
-//
-//            resolutionX = resInput[0];
-//            resolutionY = resInput[1];
-//
-//            editingRes = true;
-//        }
-//
-//        if (editingRes && !ImGui.isItemActive()) {
-//            modified = true;
-//            editingRes = false;
-//
-//        }
-
         cameraObjectInput.setValue(cameraObject);
         if (ReplayLabControls.objectSelector("Camera Object", cameraObjectInput,
                 obj -> obj instanceof CameraProvider, getScene().getObjects())) {
