@@ -43,6 +43,7 @@ public class ReplayScene {
      * @param channel  Channel name within the category.
      * @param keyframe Keyframe index within the channel.
      */
+    @Deprecated
     public record KeyReference(String object, String channel, int keyframe) {
     }
 

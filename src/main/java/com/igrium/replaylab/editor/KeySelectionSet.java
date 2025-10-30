@@ -215,7 +215,15 @@ public class KeySelectionSet {
      * @param c Consumer
      */
     public void forSelectedKeyframes(Consumer<? super KeyframeReference> c) {
-        forSelectedKeyframes((obj, ch, key) -> c.accept(new KeyframeReference(obj, ch, key)));
+        for (var objEntry : selected.entrySet()) {
+            for (var chEntry : objEntry.getValue().entrySet()) {
+                ChannelReference chRef = new ChannelReference(objEntry.getKey(), chEntry.getKey());
+                IntIterator iter = chEntry.getValue().keySet().intIterator();
+                while (iter.hasNext()) {
+                    c.accept(new KeyframeReference(chRef, iter.nextInt()));
+                }
+            }
+        }
     }
 
     /**

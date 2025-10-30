@@ -36,4 +36,8 @@ public class TimelineFlags {
      */
     public static final int NO_TICKS = 64;
 
+    /**
+     * Don't attempt to merge overlapping keyframes
+     */
+    public static final int ALLOW_DUPLICATE_KEYS = 128;
 }

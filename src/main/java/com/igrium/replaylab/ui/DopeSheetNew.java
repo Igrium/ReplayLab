@@ -10,9 +10,7 @@ import com.igrium.replaylab.ui.util.TimelineHeader;
 import imgui.ImColor;
 import imgui.ImDrawList;
 import imgui.ImGui;
-import imgui.flag.ImGuiCol;
-import imgui.flag.ImGuiStyleVar;
-import imgui.flag.ImGuiTreeNodeFlags;
+import imgui.flag.*;
 import imgui.type.ImInt;
 import lombok.Getter;
 import lombok.Setter;
@@ -71,6 +69,8 @@ public class DopeSheetNew {
         void call(List<Keyframe> keys, int rowIdx, IntPredicate isSelected);
     }
 
+    private record AggregateKeyRef(String objName, int keyIdx) {};
+
     /**
      * Draw the dope sheet.
      *
@@ -126,6 +126,12 @@ public class DopeSheetNew {
         ImGui.endGroup();
         ImGui.popID(); // channels
 
+        KeyframeReference hoveredKeyframe = null;
+        AggregateKeyRef hoveredAggregate = null;
+
+        /// === AGGREGATE KEYFRAMES ===
+        // Aggregate all keyframes into a single timeline for relevant objects.
+
         /// === Key List ===
         ImGui.sameLine();
         ImGui.beginChild("KeyList", -1, -1, false);
@@ -133,8 +139,6 @@ public class DopeSheetNew {
             float graphX = ImGui.getCursorScreenPosX();
 
             ImDrawList drawList = ImGui.getWindowDrawList();
-            // I hate lambda restrictions.
-            MutableBoolean wantsStartDragging = new MutableBoolean(false);
 
             float graphWidth = ImGui.getContentRegionAvailX();
 
@@ -178,6 +182,8 @@ public class DopeSheetNew {
                 return (centerX - keyRadius - 2 < mouseX && mouseX < centerX + keyRadius + 2);
             };
 
+            float mouseX = ImGui.getMousePosX();
+
             /// === CHANNELS ===
             int rowIdx = 0;
             for (String objName : objs) {
@@ -193,13 +199,46 @@ public class DopeSheetNew {
                 if (openObjects.contains(objName)) {
                     for (var chEntry : obj.getChannels().entrySet()) {
                         ImGui.setNextItemWidth(graphWidth);
-                        drawKeyCh.call(chEntry.getValue().getKeyframes(), rowIdx, v -> false);
+                        drawKeyCh.call(chEntry.getValue().getKeyframes(), rowIdx,
+                                idx -> selectedKeys.isKeyframeSelected(objName, chEntry.getKey(), idx));
                         rowIdx++;
+
+                        // Check hover
+                        if (ImGui.isItemHovered()) {
+                            int keyIdx = 0;
+                            for (Keyframe key : chEntry.getValue().getKeyframes()) {
+                                if (isKeyHovered.test(key.getCenter().x, mouseX)) {
+                                    hoveredKeyframe = new KeyframeReference(objName, chEntry.getKey(), keyIdx);
+                                    break;
+                                }
+                                keyIdx++;
+                            }
+                        }
                     }
                 }
             }
         }
         ImGui.popStyleVar(2);
+
+        /// === SELECTION ===
+        {
+            if (ImGui.isMouseClicked(0) && ImGui.isWindowHovered(ImGuiHoveredFlags.ChildWindows | ImGuiHoveredFlags.AllowWhenBlockedByActiveItem)) {
+                if (ImGui.getIO().getKeyCtrl()) {
+                    if (hoveredKeyframe != null) {
+                        if (selectedKeys.isKeyframeSelected(hoveredKeyframe)) {
+                            selectedKeys.deselectKeyframe(hoveredKeyframe);
+                        } else {
+                            selectedKeys.selectKeyframe(hoveredKeyframe);
+                        }
+                    }
+                } else {
+                    selectedKeys.deselectAll();
+                    if (hoveredKeyframe != null) {
+                        selectedKeys.selectKeyframe(hoveredKeyframe);
+                    }
+                }
+            }
+        }
 
         ImGui.endChild(); // KeyList
         ImGui.endChild(); // content

@@ -436,6 +436,7 @@ public class CurveEditor {
                             boolean rSelected = selectedKeys.isHandleSelected(objName, chEntry.getKey(), keyIdx, 2);
 
                             int color = 0xFF000000;
+                            int handleColor = 0x88000000;
                             int selColor = ImGui.getColorU32(ImGuiCol.Text);
 
                             float keyX = msToPixelX((float) key.getCenter().x()) + graphX;
@@ -446,12 +447,12 @@ public class CurveEditor {
                             float handleAX = keyX + (float) key.getHandleA().x() * zoomFactorX;
                             float handleAY = keyY + (float) key.getHandleA().y() * zoomFactorY;
 
-                            drawList.addCircle(handleAX, handleAY, 3f, lSelected ? selColor : color);
+                            drawList.addCircle(handleAX, handleAY, 3f, lSelected ? selColor : handleColor);
 
                             float handleBX = keyX + (float) key.getHandleB().x() * zoomFactorX;
                             float handleBY = keyY + (float) key.getHandleB().y() * zoomFactorY;
 
-                            drawList.addCircle(handleBX, handleBY, 3f, rSelected ? selColor : color);
+                            drawList.addCircle(handleBX, handleBY, 3f, rSelected ? selColor : handleColor);
 
                             // TODO: Shouldn't this be defined in the theme somehow?
                             int lineColor = 0x808E79D1;

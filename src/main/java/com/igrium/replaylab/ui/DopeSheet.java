@@ -1,10 +1,12 @@
 package com.igrium.replaylab.ui;
 
+import com.igrium.replaylab.editor.KeySelectionSet;
 import com.igrium.replaylab.scene.ReplayScene;
-import com.igrium.replaylab.scene.ReplayScene.KeyReference;
+import com.igrium.replaylab.editor.KeySelectionSet.KeyframeReference;
 import com.igrium.replaylab.scene.key.Keyframe;
 import com.igrium.replaylab.scene.key.KeyChannel;
 import com.igrium.replaylab.scene.obj.ReplayObject;
+import com.igrium.replaylab.ui.util.TimelineFlags;
 import imgui.ImColor;
 import imgui.ImDrawList;
 import imgui.ImGui;
@@ -23,53 +25,6 @@ import java.util.*;
 import java.util.function.*;
 
 public class DopeSheet {
-    /**
-     * Don't allow editing
-     */
-    @Deprecated
-    public static final int READONLY = 1;
-
-    /**
-     * If set, snap keyframes to nearest header increment while dragging
-     */
-    @Deprecated
-    public static final int SNAP_KEYS = 2;
-
-    /**
-     * Don't draw the header
-     */
-    @Deprecated
-    public static final int NO_HEADER = 4;
-
-    /**
-     * Don't draw the playhead
-     */
-    @Deprecated
-    public static final int NO_PLAYHEAD = 8;
-
-    /**
-     * Do not allow the playhead to be moved manually by the user
-     */
-    @Deprecated
-    public static final int READONLY_PLAYHEAD = 16;
-
-    /**
-     * Snap the playhead to increments of 1 while scrubbing
-     */
-    @Deprecated
-    public static final int SNAP_PLAYHEAD = 32;
-
-    /**
-     * Don't draw ticks
-     */
-    @Deprecated
-    public static final int NO_TICKS = 64;
-
-    /**
-     * If unset, merge any keyframes with duplicate timestamps while dragging.
-     */
-    @Deprecated
-    public static final int ALLOW_DUPLICATE_KEYS = 128;
 
     public static final int DRAW_IN_POINT = 256;
     public static final int DRAW_OUT_POINT = 512;
@@ -96,11 +51,15 @@ public class DopeSheet {
      */
     private float nextZoomFactor = Float.NaN;
 
+    private record KeyOffsetPair(KeyframeReference ref, Integer offset) {};
+
     /**
      * A map of keys being dragged with their time before the drag.
      */
     @Getter
-    private final Map<KeyReference, Integer> keyDragOffsets = new HashMap<>();
+    private final Map<KeyframeReference, Integer> keyDragOffsets = new HashMap<>();
+
+    private @Nullable KeyOffsetPair lowestKeyDragOffset;
 
 
     private boolean mouseWasDragging;
@@ -135,14 +94,8 @@ public class DopeSheet {
     @Getter
     private final Set<String> updatedObjects = new HashSet<>();
 
-    private void startDragging(Set<KeyReference> selected, ReplayScene scene) {
-        for (var ref : selected) {
-            Keyframe keyframe = scene.getKeyframe(ref);
-            if (keyframe != null) {
-                keyDragOffsets.put(ref, keyframe.getTime());
-            }
-        }
-        startedDraggingKeys = true;
+    private void startDragging(KeySelectionSet selected, ReplayScene scene) {
+
     }
 
     /**
@@ -155,7 +108,7 @@ public class DopeSheet {
      * @param playhead The current playhead position. Updated as the player scrubs.
      * @param flags    Render flags.
      */
-    public void drawDopeSheet(ReplayScene scene, Set<KeyReference> selected,
+    public void drawDopeSheet(ReplayScene scene, KeySelectionSet selected,
                               int length, @Nullable ImInt playhead, int flags) {
 
         finishedDraggingPlayhead = false;
@@ -201,7 +154,7 @@ public class DopeSheet {
 
         float headerHeight = ImGui.getTextLineHeight() * 2f;
 
-        if (!hasFlag(NO_HEADER, flags)) {
+        if (!hasFlag(TimelineFlags.NO_HEADER, flags)) {
             headerCursorX = ImGui.getCursorPosX();
             headerCursorY = ImGui.getCursorPosY();
             ImGui.dummy(0, headerHeight);
@@ -221,15 +174,15 @@ public class DopeSheet {
         ImGui.pushItemWidth(ImGui.getContentRegionAvailX());
         boolean wantStartDragging = drawKeyframes(scene, openCategories, selected, length, flags);
 
-        // Handle dragging
+        /// === DRAGGING ===
         if (!keyDragOffsets.isEmpty()) {
             if (ImGui.isMouseDragging(0, 0)) {
                 int dx = (int) (ImGui.getMouseDragDeltaX() / zoomFactor);
                 for (var entry : keyDragOffsets.entrySet()) {
-                    var key = scene.getKeyframe(entry.getKey());
+                    var key = entry.getKey().get(scene.getObjects());
                     if (key != null) {
                         int tPrime = entry.getValue() + dx;
-                        if (hasFlag(SNAP_KEYS, flags)) {
+                        if (hasFlag(TimelineFlags.SNAP_KEYS, flags)) {
                             int dragSnapTarget = snapTargetMs / 2;
                             tPrime = dragSnapTarget * Math.round((float) tPrime / dragSnapTarget);
                         }
@@ -239,21 +192,33 @@ public class DopeSheet {
             } else {
                 // Drag dropped
 
-                if (!hasFlag(ALLOW_DUPLICATE_KEYS, flags)) {
+                if (!hasFlag(TimelineFlags.ALLOW_DUPLICATE_KEYS, flags)) {
                     // Merge duplicates
                     keyDragOffsets.keySet().stream()
-                            .map(scene::getChannel)
+                            .map(ref -> ref.channelRef().get(scene.getObjects()))
                             .filter(Objects::nonNull)
                             .distinct()
                             .forEach(KeyChannel::removeDuplicates);
                 }
 
-                updatedObjects.addAll(keyDragOffsets.keySet().stream().map(KeyReference::object).toList());
+//                updatedObjects.addAll(keyDragOffsets.keySet().stream()
+//                        .map(ref -> scene.getObject(ref.objectName()))
+//                        .filter(Objects::nonNull).toList());
+
+                updatedObjects.addAll(keyDragOffsets.keySet().stream()
+                        .map(ref -> ref.channelRef().objectName()).toList());
 
                 keyDragOffsets.clear();
             }
-        } else if (wantStartDragging && !hasFlag(READONLY, flags)) {
-            startDragging(selected, scene);
+        } else if (wantStartDragging && !hasFlag(TimelineFlags.READONLY, flags)) {
+            lowestKeyDragOffset = null;
+            selected.forSelectedKeyframes(ref -> {
+                Keyframe keyframe = ref.get(scene.getObjects());
+                if (keyframe != null) {
+                    keyDragOffsets.put(ref, keyframe.getTime());
+                }
+            });
+            startedDraggingKeys = true;
         }
 
 
@@ -301,7 +266,7 @@ public class DopeSheet {
         ImGui.popStyleVar();
         ImGui.popStyleVar();
 
-        if (!hasFlag(NO_HEADER, flags)) {
+        if (!hasFlag(TimelineFlags.NO_HEADER, flags)) {
             ImGui.setCursorPosX(headerCursorX + catGroupWidth);
             ImGui.setCursorPosY(headerCursorY);
             drawHeader(headerHeight, timelineScrollAmount, length, majorInterval, playhead, catGroupHeight, flags);
@@ -371,7 +336,7 @@ public class DopeSheet {
             snapTargetMs = (int) (minorInterval * TICKS_PER_SECOND);
         }
 
-        if (!hasFlag(NO_TICKS, flags)) {
+        if (!hasFlag(TimelineFlags.NO_TICKS, flags)) {
             // Major Intervals
             for (float sec = 0; sec <= outSecond; sec += majorInterval ) {
                 float pos = sec * TICKS_PER_SECOND * zoomFactor - scrollAmount;
@@ -408,10 +373,10 @@ public class DopeSheet {
 
         // Playhead
 
-        if (playhead != null && !hasFlag(NO_PLAYHEAD, flags)) {
+        if (playhead != null && !hasFlag(TimelineFlags.NO_PLAYHEAD, flags)) {
             int color = ImGui.getColorU32(ImGuiCol.CheckMark) | 0xFF000000;
 
-            if (!hasFlag(READONLY_PLAYHEAD, flags) && ImGui.isItemHovered() && ImGui.isMouseDown(0)) {
+            if (!hasFlag(TimelineFlags.READONLY_PLAYHEAD, flags) && ImGui.isItemHovered() && ImGui.isMouseDown(0)) {
                 draggingPlayhead = true;
             }
 
@@ -423,7 +388,7 @@ public class DopeSheet {
                 else if (newPlayhead > length)
                     newPlayhead = length;
 
-                if (hasFlag(SNAP_PLAYHEAD, flags)) {
+                if (hasFlag(TimelineFlags.SNAP_PLAYHEAD, flags)) {
                     newPlayhead = snapTargetMs * Math.round((float) newPlayhead / snapTargetMs);
                 }
 
@@ -499,7 +464,7 @@ public class DopeSheet {
     // Dummy keyframes used to display category header
     private final List<Keyframe> categoryKeys = new ArrayList<>();
 
-    private boolean drawKeyframes(ReplayScene scene, Set<String> openCategories, Set<KeyReference> selected,
+    private boolean drawKeyframes(ReplayScene scene, Set<String> openCategories, KeySelectionSet selected,
                                   float length, int flags) {
 
         ImDrawList drawList = ImGui.getWindowDrawList();
@@ -544,18 +509,18 @@ public class DopeSheet {
             ImGui.setNextItemWidth(length * zoomFactor);
             if (drawKeyChannel(categoryKeys, rowIndex, keyIndex -> {
                 for (var ref : categoryKeyRefs.get(keyIndex)) {
-                    if (selected.contains(new KeyReference(categoryId, ref.channelId(), ref.keyIndex()))) {
+                    if (selected.isKeyframeSelected(new KeyframeReference(categoryId, ref.channelId(), ref.keyIndex()))) {
                         return true;
                     }
                 }
                 return false;
             }, keyIndex -> {
                 if (!ImGui.getIO().getKeyCtrl()) {
-                    selected.clear();
+                    selected.deselectAll();
                 }
                 if (keyIndex != null) {
                     for (var ref : categoryKeyRefs.get(keyIndex)) {
-                        selected.add(new KeyReference(categoryId, ref.channelId(), ref.keyIndex()));
+                        selected.selectKeyframe(new KeyframeReference(categoryId, ref.channelId(), ref.keyIndex()));
                     }
                 }
             }, drawList, flags)) {
@@ -571,13 +536,13 @@ public class DopeSheet {
 
                     ImGui.setNextItemWidth(length * zoomFactor);
                     if (drawKeyChannel(channel.getKeyframes(), rowIndex,
-                            keyIndex -> selected.contains(new KeyReference(categoryId, chEntry.getKey(), keyIndex)),
+                            keyIdx -> selected.isKeyframeSelected(categoryId, chEntry.getKey(), keyIdx),
                             keyIndex -> {
                                 if (!ImGui.getIO().getKeyCtrl()) {
-                                    selected.clear();
+                                    selected.deselectAll();
                                 }
                                 if (keyIndex != null) {
-                                    selected.add(new KeyReference(categoryId, chEntry.getKey(), keyIndex));
+                                    selected.selectKeyframe(categoryId, chEntry.getKey(), keyIndex);
                                 }
                             }, drawList, flags)) {
                         wantStartDragging = true;
