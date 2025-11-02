@@ -2,6 +2,7 @@ package com.igrium.replaylab.editor;
 
 import com.igrium.replaylab.operator.ReplayOperator;
 import com.igrium.replaylab.playback.RealtimeScenePlayer;
+import com.igrium.replaylab.render.VideoRenderSettings;
 import com.igrium.replaylab.scene.ReplayScene;
 import com.igrium.replaylab.scene.ReplayScenes;
 import com.igrium.replaylab.scene.obj.CameraProvider;
@@ -314,7 +315,6 @@ public class ReplayLabEditorState {
         getReplayHandlerOrThrow().doJump(replayTime, true);
 
         MinecraftClient.getInstance().send(this::applyToGame);
-
     }
 
     // ===== Game Integration =====
