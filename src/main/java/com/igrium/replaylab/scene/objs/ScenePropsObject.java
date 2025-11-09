@@ -13,6 +13,7 @@ import imgui.ImGui;
 import imgui.type.ImInt;
 import lombok.Getter;
 import lombok.Setter;
+import lombok.experimental.Accessors;
 import org.apache.commons.lang3.mutable.Mutable;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
@@ -39,6 +40,18 @@ public final class ScenePropsObject extends ReplayObject {
 
     @Getter
     private int resolutionY = 1080;
+
+    @Getter
+    private float frameRate = 24f;
+
+    @Getter @Setter
+    private boolean motionBlur;
+
+    /**
+     * The camera's shutter speed as represented by a fraction of the frame rate.
+     */
+    @Getter
+    private float shutterSpeed = 0.5f;
 
     public ScenePropsObject(ReplayObjectType<?> type, ReplayScene scene) {
         super(type, scene);
@@ -77,6 +90,20 @@ public final class ScenePropsObject extends ReplayObject {
         setResolutionY(resolutionY);
     }
 
+    public void setFrameRate(float frameRate) {
+        if (frameRate <= 0) {
+            throw new IllegalArgumentException("Frame rate must be greater than zero");
+        }
+        this.frameRate = frameRate;
+    }
+
+    public void setShutterSpeed(float shutterSpeed) {
+        if (shutterSpeed <= 0 || shutterSpeed >= 1) {
+            throw new IllegalArgumentException("Shutter speed fall in the range (0-1)");
+        }
+        this.shutterSpeed = shutterSpeed;
+    }
+
     @Override
     public void apply(int timestamp) {
     }
@@ -106,6 +133,15 @@ public final class ScenePropsObject extends ReplayObject {
         if (json.has("resolutionY")) {
             setResolutionY(json.getAsJsonPrimitive("resolutionY").getAsInt());
         }
+        if (json.has("frameRate")) {
+            setFrameRate(json.getAsJsonPrimitive("frameRate").getAsFloat());
+        }
+        if (json.has("motionBlur")) {
+            setMotionBlur(json.getAsJsonPrimitive("motionBlur").getAsBoolean());
+        }
+        if (json.has("shutterSpeed")) {
+            setShutterSpeed(json.getAsJsonPrimitive("shutterSpeed").getAsFloat());
+        }
     }
 
     @Override
@@ -115,10 +151,10 @@ public final class ScenePropsObject extends ReplayObject {
         json.addProperty("length", getLength());
         json.addProperty("resolutionX", getResolutionX());
         json.addProperty("resolutionY", getResolutionY());
+        json.addProperty("frameRate", getFrameRate());
+        json.addProperty("motionBlur", isMotionBlur());
+        json.addProperty("shutterSpeed", getShutterSpeed());
 
-        LOGGER.debug("ScenePropsObject.writeJson -> resolutionX={}, resolutionY={}",
-                getResolutionX(), getResolutionY());
-        LOGGER.debug("Full json: {}", json.toString());
     }
 
     private final Mutable<String> cameraObjectInput = new SimpleMutable<>();

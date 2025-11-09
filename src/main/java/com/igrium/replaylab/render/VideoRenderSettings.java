@@ -48,6 +48,16 @@ public final class VideoRenderSettings {
     private final float fps = 24;
 
     /**
+     * Apply multi-sample motion blur to the scene
+     */
+    private final boolean motionBlur = false;
+
+    /**
+     * Shutter speed to use when applying motion blur. Only relevant if <code>motionBlur</code> is enabled.
+     */
+    private final float shutterSpeed = 0.5f;
+
+    /**
      * The number of progressive refinement samples to use. <code>0</code> to disable progressive refinement.
      */
     private final int samples = 0;

@@ -101,10 +101,18 @@ public class ReplayScene {
         return sceneProps;
     }
 
+    /**
+     * Get the scene's length.
+     * @return Timeline length in milliseconds.
+     */
     public int getLength() {
         return getSceneProps().getLength();
     }
 
+    /**
+     * Get the global replay time that the scene starts at.
+     * @return Replay time in milliseconds
+     */
     public int getStartTime() {
         return getSceneProps().getStartTime();
     }
