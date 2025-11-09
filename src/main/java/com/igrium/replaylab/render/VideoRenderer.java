@@ -4,6 +4,7 @@ import com.igrium.replaylab.playback.AbstractScenePlayer;
 import com.igrium.replaylab.render.capture.FrameCapture;
 import com.igrium.replaylab.render.capture.FrameCaptures;
 import com.igrium.replaylab.render.writer.FrameWriter;
+import com.igrium.replaylab.render.writer.FrameWriterSpawner;
 import com.igrium.replaylab.render.writer.FrameWriters;
 import com.igrium.replaylab.scene.ReplayScene;
 import com.mojang.blaze3d.systems.RenderSystem;
@@ -77,6 +78,7 @@ public class VideoRenderer {
 
     public void render() throws VideoRenderException {
         RenderSystem.assertOnRenderThread();
+
 
         FrameCapture frameCapture = FrameCaptures.create(settings.getFrameCapture(), this);
         FrameWriter frameWriter = FrameWriters.create(settings.getFrameWriter(), this);

@@ -15,6 +15,10 @@ public final class FrameCaptures {
 
     public static final Map<Identifier, Factory<?>> REGISTRY = new HashMap<>();
 
+    {
+        REGISTRY.put(Identifier.of("replaylab:opengl"), OpenGLFrameCapture::new);
+    }
+
     public static FrameCapture create(Identifier id, VideoRenderer renderer) {
         var factory = REGISTRY.get(id);
         if (factory == null) {
