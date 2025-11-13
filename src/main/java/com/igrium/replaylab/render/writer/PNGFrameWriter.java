@@ -21,6 +21,8 @@ public class PNGFrameWriter implements FrameWriter {
     @Getter
     private volatile @Nullable Throwable error;
 
+    private volatile @Nullable CompletableFuture<?> finishFuture;
+
     public PNGFrameWriter(VideoRenderer renderer, VideoRenderSettings settings) {
         this.settings = settings;
     }
@@ -55,7 +57,11 @@ public class PNGFrameWriter implements FrameWriter {
 
     @Override
     public CompletableFuture<?> finish() {
-        return CompletableFuture.runAsync(() -> {
+        if (finishFuture != null) {
+            return finishFuture;
+        }
+
+        finishFuture = CompletableFuture.runAsync(() -> {
             try {
                 if (!pngWriterService.awaitTermination(60, TimeUnit.SECONDS)) {
                     throw new TimeoutException("PNG writer timed out");
@@ -68,6 +74,7 @@ public class PNGFrameWriter implements FrameWriter {
                 throw new CompletionException(error);
             }
         });
+        return finishFuture;
     }
 
 }

@@ -12,10 +12,7 @@ import org.jetbrains.annotations.Nullable;
 public class FrameCaptures {
     public static final BiMap<Identifier, FrameCaptureType<?, ?>> REGISTRY = HashBiMap.create();
 
-//    public static <T extends FrameCapture, C> FrameCaptureType<T, C> register(String id, FrameCaptureType<T, C> type) {
-//        REGISTRY.put(Identifier.of(id), type);
-//        return type;
-//    }
+    public static final FrameCaptureType<OpenGLFrameCapture, Object> OPENGL = registerSimple("replaylab:opengl", OpenGLFrameCapture::new);
 
     public static <T extends FrameCaptureType<?, ?>> T register(String id, T type) {
         REGISTRY.put(Identifier.of(id), type);

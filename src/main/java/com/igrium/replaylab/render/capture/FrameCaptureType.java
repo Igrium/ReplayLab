@@ -2,8 +2,12 @@ package com.igrium.replaylab.render.capture;
 
 import com.igrium.replaylab.render.VideoRenderSettings;
 import com.igrium.replaylab.render.VideoRenderer;
+import lombok.Getter;
+import net.minecraft.util.Identifier;
 
 public abstract class FrameCaptureType<T extends FrameCapture, C> {
+
+    @Getter
     private final Class<C> configClass;
 
     protected FrameCaptureType(Class<C> configClass) {
@@ -32,6 +36,10 @@ public abstract class FrameCaptureType<T extends FrameCapture, C> {
      * @param config The config to edit.
      */
     public void drawConfigEditor(VideoRenderSettings renderSettings, C config) {};
+
+    public final Identifier getId() {
+        return FrameCaptures.REGISTRY.inverse().get(this);
+    }
 
     public interface Factory<T extends FrameCapture> {
         T create(VideoRenderer renderer, VideoRenderSettings settings);

@@ -105,6 +105,10 @@ public class ReplayScene {
         return getSceneProps().getLength();
     }
 
+    /**
+     * Get the time in the replay where the scene starts.
+     * @return Global replay start time (ms)
+     */
     public int getStartTime() {
         return getSceneProps().getStartTime();
     }

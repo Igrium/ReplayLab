@@ -22,8 +22,10 @@ public interface FrameWriter {
     void write(NativeImage image, int frameIdx) throws Exception;
 
     /**
-     * Asynchronously the export process.
-     * @return A future that completes once all async write operations have finished. May return immediately.
+     * Asynchronously finish the export process.
+     *
+     * @return A future that completes once all async write operations have finished.
+     * If it is already in the process of finishing, return that future instead.
      */
     CompletableFuture<?> finish();
 }
