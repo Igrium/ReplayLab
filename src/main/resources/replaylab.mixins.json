@@ -2,11 +2,7 @@
     "required": true,
     "package": "com.igrium.replaylab.mixin",
     "compatibilityLevel": "JAVA_21",
-    "mixins": [
-        "AccessorGuiReplayEntry",
-        "MixinGuiReplayViewer",
-        "MixinKeyBindingRegistry"
-    ],
+    "mixins": ["AccessorGuiReplayEntry", "MixinAppManager", "MixinGuiReplayViewer", "MixinKeyBindingRegistry"],
     "injectors": {
         "defaultRequire": 1
     },

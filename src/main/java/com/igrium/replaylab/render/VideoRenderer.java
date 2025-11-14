@@ -1,5 +1,6 @@
 package com.igrium.replaylab.render;
 
+import com.igrium.craftui.app.AppManager;
 import com.igrium.replaylab.ReplayLab;
 import com.igrium.replaylab.playback.AbstractScenePlayer;
 import com.igrium.replaylab.render.capture.FrameCapture;
@@ -19,14 +20,17 @@ import com.replaymod.replay.ReplayHandler;
 import lombok.Getter;
 import lombok.NonNull;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.sound.PositionedSoundInstance;
 import net.minecraft.client.texture.NativeImage;
+import net.minecraft.client.util.Window;
 import net.minecraft.sound.SoundCategory;
 import net.minecraft.sound.SoundEvent;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.Util;
 import net.minecraft.util.crash.CrashException;
 import org.lwjgl.glfw.GLFW;
+import org.lwjgl.opengl.GL11;
 import org.slf4j.Logger;
 
 import java.util.EnumMap;
@@ -35,6 +39,12 @@ import java.util.concurrent.*;
 public class VideoRenderer {
 
     private static final Logger LOGGER = ReplayLab.getLogger("VideoRenderer");
+
+    /**
+     * <code>true</code> if ReplayLab is currently exporting a video.
+     */
+    @Getter
+    private static boolean renderingVideo;
 
     private final MinecraftClient mc = MinecraftClient.getInstance();
 
@@ -74,121 +84,127 @@ public class VideoRenderer {
 
         RenderSystem.assertOnRenderThread();
 
-        /// === SETUP ===
-        boolean wasAsyncMode = replay.getReplaySender().isAsyncMode();
-        replay.getReplaySender().setAsyncMode(false);
-
-        FrameCapture capture = spawnFrameCapture(settings.getFrameCapture());
-        FrameWriter writer = spawnFrameWriter(settings.getFrameWriter());
-
-        RenderScenePlayer scenePlayer = new RenderScenePlayer(replay);
-        scenePlayer.start(scene);
-        CompletableFuture<?> scenePlayerFuture = scenePlayer.getFuture();
-
-        boolean debugWasShown = mc.getDebugHud().shouldShowDebugHud();
-        if (debugWasShown) {
-            mc.getDebugHud().toggleDebugHud();
-        }
-
-        boolean mouseWasGrabbed = mc.mouse.isCursorLocked();
-        mc.mouse.unlockCursor();
-
-        EnumMap<SoundCategory, Float> originalSoundLevels = new EnumMap<>(SoundCategory.class);
-        for (var category : SoundCategory.values()) {
-            if (category != SoundCategory.MASTER) {
-                originalSoundLevels.put(category, mc.options.getSoundVolume(category));
-                mc.options.getSoundVolumeOption(category).setValue(0d);
-            }
-        }
-
-        float fps = settings.getFps();
-        int duration = scene.getLength();
-
-        totalFrames = (int) (duration * fps / 1000);
-
-        ForceChunkLoadingHook forceChunkLoadingHook = new ForceChunkLoadingHook(mc.worldRenderer);
-
-        /// === TIMELINE SETUP ===
-        // I have no idea what mixin bullshit replay mod is doing, but I'll just copy it
-        ReplayTimer timer = (ReplayTimer) ((MinecraftAccessor) mc).getTimer();
-
-        // Play up to one second before starting render to set entity positions
-        int videoStart = scene.getStartTime();
-
-        if (videoStart > 1000) {
-            int replayTime = videoStart - 1000;
-            timer.tickDelta = 0;
-
-            ((TimerAccessor) timer).setTickLength(Utils.DEFAULT_MS_PER_TICK);
-            while (replayTime < videoStart) {
-                replayTime += 50;
-                replay.getReplaySender().sendPacketsTill(replayTime);
-                mc.tick();
-            }
-        }
-
-        /// === RENDERING PIPELINE ===
-        writer.start();
-
-        while (frameIdx < totalFrames && !abort) {
-            if (GLFW.glfwWindowShouldClose(mc.getWindow().getHandle()) || ((MinecraftAccessor) mc).getCrashReporter() != null) {
-                writer.finish();
-            }
-            NativeImage frame = capture.capture(frameIdx); // Internally calls queueNextFrame, triggering UI updates.
-            writer.write(frame, frameIdx);
-            LOGGER.info("Writing frame {} / {}", frameIdx, totalFrames);
-        }
-
-        // TODO: busy wait so we can update UI
         try {
-            writer.finish().get(60, TimeUnit.SECONDS);
-        } catch (TimeoutException e) {
-            LOGGER.error("Frame writer timed out");
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        } catch (ExecutionException | CancellationException e) {
-            LOGGER.error("Frame writer crashed: ", e.getCause());
-        }
-
-        /// === FINISH ===
-        if (((MinecraftAccessor) mc).getCrashReporter() != null) {
-            throw new CrashException(((MinecraftAccessor) mc).getCrashReporter().get());
-        }
-
-        // TODO: spherical metadata
-
-        if (scenePlayerFuture != null && !scenePlayerFuture.isDone()) {
-            scenePlayerFuture.cancel(false);
-        }
-
-        // Tear down of the timeline player might only happen the next tick after it was cancelled
-        scenePlayer.onTick();
-
-        if (debugWasShown) {
-            mc.getDebugHud().toggleDebugHud();
-        }
-
-        if (mouseWasGrabbed) {
-            mc.mouse.lockCursor();
-        }
-
-        for (var entry : originalSoundLevels.entrySet()) {
-            mc.options.getSoundVolumeOption(entry.getKey()).setValue(Double.valueOf(entry.getValue()));
-        }
-
-        mc.setScreen(null);
-        forceChunkLoadingHook.uninstall();
-
-        mc.getSoundManager().play(PositionedSoundInstance.master(SoundEvent.of(Identifier.of("replaymod:render_success")), 1));
-
-        // Finally, resize the Minecraft framebuffer to the actual width/height of the window
-        MCVer.resizeMainWindow(mc, guiWindow.getFramebufferWidth(), guiWindow.getFramebufferHeight());
-
-        if (!wasAsyncMode) {
+            /// === SETUP ===
+            renderingVideo = true;
+            boolean wasAsyncMode = replay.getReplaySender().isAsyncMode();
             replay.getReplaySender().setAsyncMode(false);
-        }
 
-        return !abort;
+            FrameCapture capture = spawnFrameCapture(settings.getFrameCapture());
+            FrameWriter writer = spawnFrameWriter(settings.getFrameWriter());
+
+            RenderScenePlayer scenePlayer = new RenderScenePlayer(replay);
+            scenePlayer.start(scene);
+            CompletableFuture<?> scenePlayerFuture = scenePlayer.getFuture();
+
+            boolean debugWasShown = mc.getDebugHud().shouldShowDebugHud();
+            if (debugWasShown) {
+                mc.getDebugHud().toggleDebugHud();
+            }
+
+            boolean mouseWasGrabbed = mc.mouse.isCursorLocked();
+            mc.mouse.unlockCursor();
+
+            EnumMap<SoundCategory, Float> originalSoundLevels = new EnumMap<>(SoundCategory.class);
+            for (var category : SoundCategory.values()) {
+                if (category != SoundCategory.MASTER) {
+                    originalSoundLevels.put(category, mc.options.getSoundVolume(category));
+                    mc.options.getSoundVolumeOption(category).setValue(0d);
+                }
+            }
+
+            float fps = settings.getFps();
+            int duration = scene.getLength();
+
+            totalFrames = (int) (duration * fps / 1000);
+
+            ForceChunkLoadingHook forceChunkLoadingHook = new ForceChunkLoadingHook(mc.worldRenderer);
+
+            /// === TIMELINE SETUP ===
+            // I have no idea what mixin bullshit replay mod is doing, but I'll just copy it
+            ReplayTimer timer = (ReplayTimer) ((MinecraftAccessor) mc).getTimer();
+
+            // Play up to one second before starting render to set entity positions
+            int videoStart = scene.getStartTime();
+
+            if (videoStart > 1000) {
+                int replayTime = videoStart - 1000;
+                timer.tickDelta = 0;
+
+                ((TimerAccessor) timer).setTickLength(Utils.DEFAULT_MS_PER_TICK);
+                while (replayTime < videoStart) {
+                    replayTime += 50;
+                    replay.getReplaySender().sendPacketsTill(replayTime);
+                    mc.tick();
+                }
+            }
+
+            /// === RENDERING PIPELINE ===
+            writer.start();
+
+            while (frameIdx < totalFrames && !abort) {
+                if (GLFW.glfwWindowShouldClose(mc.getWindow().getHandle()) || ((MinecraftAccessor) mc).getCrashReporter() != null) {
+                    writer.finish();
+                }
+                NativeImage frame = capture.capture(frameIdx); // Internally calls queueNextFrame, triggering UI updates.
+                drawGui();
+                writer.write(frame, frameIdx);
+                LOGGER.info("Writing frame {} / {}", frameIdx, totalFrames);
+            }
+
+            // TODO: busy wait so we can update UI
+            try {
+                writer.finish().get(60, TimeUnit.SECONDS);
+            } catch (TimeoutException e) {
+                LOGGER.error("Frame writer timed out");
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            } catch (ExecutionException | CancellationException e) {
+                LOGGER.error("Frame writer crashed: ", e.getCause());
+            }
+
+            /// === FINISH ===
+            if (((MinecraftAccessor) mc).getCrashReporter() != null) {
+                throw new CrashException(((MinecraftAccessor) mc).getCrashReporter().get());
+            }
+
+            // TODO: spherical metadata
+
+            if (scenePlayerFuture != null && !scenePlayerFuture.isDone()) {
+                scenePlayerFuture.cancel(false);
+            }
+
+            // Tear down of the timeline player might only happen the next tick after it was cancelled
+            scenePlayer.onTick();
+
+            if (debugWasShown) {
+                mc.getDebugHud().toggleDebugHud();
+            }
+
+            if (mouseWasGrabbed) {
+                mc.mouse.lockCursor();
+            }
+
+            for (var entry : originalSoundLevels.entrySet()) {
+                mc.options.getSoundVolumeOption(entry.getKey()).setValue(Double.valueOf(entry.getValue()));
+            }
+
+            mc.setScreen(null);
+            forceChunkLoadingHook.uninstall();
+
+            mc.getSoundManager().play(PositionedSoundInstance.master(SoundEvent.of(Identifier.of("replaymod:render_success")), 1));
+
+            // Finally, resize the Minecraft framebuffer to the actual width/height of the window
+            MCVer.resizeMainWindow(mc, guiWindow.getFramebufferWidth(), guiWindow.getFramebufferHeight());
+
+            if (!wasAsyncMode) {
+                replay.getReplaySender().setAsyncMode(false);
+            }
+
+            return !abort;
+        } finally {
+            renderingVideo = false;
+        }
     }
 
     /**
@@ -197,6 +213,7 @@ public class VideoRenderer {
      */
     public float queueNextFrame() {
         guiWindow.bind();
+
 
         ReplayTimer timer = (ReplayTimer) ((MinecraftAccessor) mc).getTimer(); // Updating the timer will cause the timeline player to update the game state
         try {
@@ -214,13 +231,15 @@ public class VideoRenderer {
         // TODO: camera path exporter
         scene.spectateCamera(getVideoTime());
         frameIdx++;
+
+//        drawGui();
         return timer.tickDelta;
     }
 
     private void executeTaskQueue() {
         while (true) {
             while (mc.getOverlay() != null) {
-                // TODO: GUI update
+//                drawGui();
                 ((MCVer.MinecraftMethodAccessor) mc).replayModExecuteTaskQueue();
             }
 
@@ -237,6 +256,36 @@ public class VideoRenderer {
         ((MCVer.MinecraftMethodAccessor) mc).replayModExecuteTaskQueue();
     }
 
+    public boolean drawGui() {
+        Window window = mc.getWindow();
+        if (GLFW.glfwWindowShouldClose(window.getHandle()) || ((MinecraftAccessor) mc).getCrashReporter() != null) {
+            return false;
+        }
+
+//            MCVer.pushMatrix();
+
+            RenderSystem.clear(GL11.GL_COLOR_BUFFER_BIT | GL11.GL_DEPTH_BUFFER_BIT);
+        guiWindow.beginWrite();
+
+//        RenderSystem.clear(256);
+
+        DrawContext drawContext = new DrawContext(mc, mc.getBufferBuilders().getEntityVertexConsumers());
+        drawContext.draw();
+
+        guiWindow.endWrite();
+
+        MCVer.pushMatrix();
+        AppManager.render(mc);
+//        guiWindow.flip();
+        mc.getWindow().swapBuffers(null);
+        MCVer.popMatrix();
+
+        if (mc.mouse.isCursorLocked()) {
+            mc.mouse.unlockCursor();
+        }
+
+        return !abort;
+    }
 
     public int getVideoTime() {
         return (int) (frameIdx * 1000 / settings.getFps());

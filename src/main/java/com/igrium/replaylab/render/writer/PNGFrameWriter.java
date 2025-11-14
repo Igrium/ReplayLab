@@ -20,6 +20,7 @@ public class PNGFrameWriter implements FrameWriter {
 
     private static final Logger LOGGER = LoggerFactory.getLogger("ReplayLab/PNGFrameWriter");
 
+    private final VideoRenderer renderer;
     private final VideoRenderSettings settings;
 
     private final List<CompletableFuture<?>> futures = new ArrayList<>();
@@ -30,6 +31,7 @@ public class PNGFrameWriter implements FrameWriter {
     private volatile @Nullable CompletableFuture<?> finishFuture;
 
     public PNGFrameWriter(VideoRenderer renderer, VideoRenderSettings settings) {
+        this.renderer = renderer;
         this.settings = settings;
     }
 
@@ -54,11 +56,14 @@ public class PNGFrameWriter implements FrameWriter {
     public void write(NativeImage image, int frameIdx) {
         if (error != null)
             return;
+
+        int maxDigits = (int) (Math.log10(renderer.getTotalFrames()) + 1);
         pngWriterService.submit(() -> {
             if (error != null)
                 return;
 
-            var path = settings.getOutPath().resolve(frameIdx + ".png");
+            String prefix = String.format("%0" + maxDigits + "d", frameIdx);
+            var path = settings.getOutPath().resolve(prefix + ".png");
 
             try {
                 image.writeTo(path);
