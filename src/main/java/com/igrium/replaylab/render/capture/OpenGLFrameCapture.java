@@ -1,5 +1,6 @@
 package com.igrium.replaylab.render.capture;
 
+import com.igrium.replaylab.ReplayLab;
 import com.igrium.replaylab.render.VideoRenderSettings;
 import com.igrium.replaylab.render.VideoRenderer;
 import com.mojang.blaze3d.systems.RenderSystem;
@@ -9,7 +10,6 @@ import com.replaymod.core.versions.MCVer;
 import com.replaymod.render.mixin.GameRendererAccessor;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.render.WorldRenderer;
 import net.minecraft.client.texture.NativeImage;
 import net.minecraft.client.util.ScreenshotRecorder;
 import org.lwjgl.opengl.GL11;
@@ -23,6 +23,10 @@ public class OpenGLFrameCapture implements FrameCapture {
     public OpenGLFrameCapture(VideoRenderer videoRenderer, VideoRenderSettings renderSettings) {
         this.videoRenderer = videoRenderer;
         this.renderSettings = renderSettings;
+    }
+
+    @Override
+    public void start() {
     }
 
     @Override
@@ -64,5 +68,10 @@ public class OpenGLFrameCapture implements FrameCapture {
 
         /// === Save Frame ===
         return ScreenshotRecorder.takeScreenshot(mc.getFramebuffer());
+    }
+
+    @Override
+    public void finish() {
+
     }
 }

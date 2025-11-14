@@ -7,6 +7,7 @@ import com.igrium.replaylab.operator.InsertKeyframeOperator;
 import com.igrium.replaylab.operator.CommitObjectUpdateOperator;
 import com.igrium.replaylab.operator.RemoveKeyframesOperator;
 import com.igrium.replaylab.operator.RemoveObjectOperator;
+import com.igrium.replaylab.render.VideoRenderSettings;
 import com.igrium.replaylab.scene.ReplayScene;
 import com.igrium.replaylab.scene.obj.ReplayObject;
 import com.igrium.replaylab.scene.objs.ScenePropsObject;
@@ -48,6 +49,7 @@ public class ReplayLabUI extends DockSpaceApp {
         return ReplayModReplay.instance.getReplayHandler();
     }
 
+    @Getter
     private final ReplayLabEditorState editorState = new ReplayLabEditorState();
 
     //    private final DopeSheetOld dopeSheet = new DopeSheetOld();
@@ -119,6 +121,8 @@ public class ReplayLabUI extends DockSpaceApp {
         editorState.onPreRender();
     }
 
+    private final VideoRenderSettings tmpExportSettings = new VideoRenderSettings();
+
     @Override
     protected void render(MinecraftClient client) {
         var replayHandler = getReplayHandler();
@@ -155,6 +159,7 @@ public class ReplayLabUI extends DockSpaceApp {
         drawOutliner();
         drawInspector();
         drawSceneProperties();
+        ExportWindow.drawExportWindow(this, tmpExportSettings);
 
         if (!firstFrame) {
             exceptionPopup.render();
@@ -173,6 +178,10 @@ public class ReplayLabUI extends DockSpaceApp {
             if (ImGui.beginMenu("File")) {
                 if (ImGui.menuItem("Open Scene")) {
                     sceneBrowser.open();
+                }
+
+                if (ImGui.menuItem("Export")) {
+                    ExportWindow.open();
                 }
 
                 if (ImGui.menuItem("Exit")) {

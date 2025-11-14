@@ -59,10 +59,6 @@ public class VideoRenderer {
         this.settings = settings;
         this.replay = replay;
         this.scene = scene;
-
-        if (replay.getReplaySender().isAsyncMode()) {
-            LOGGER.warn("Replay is in async mode");
-        }
     }
 
     public void abort() {
@@ -79,10 +75,14 @@ public class VideoRenderer {
         RenderSystem.assertOnRenderThread();
 
         /// === SETUP ===
+        boolean wasAsyncMode = replay.getReplaySender().isAsyncMode();
+        replay.getReplaySender().setAsyncMode(false);
+
         FrameCapture capture = spawnFrameCapture(settings.getFrameCapture());
         FrameWriter writer = spawnFrameWriter(settings.getFrameWriter());
 
         RenderScenePlayer scenePlayer = new RenderScenePlayer(replay);
+        scenePlayer.start(scene);
         CompletableFuture<?> scenePlayerFuture = scenePlayer.getFuture();
 
         boolean debugWasShown = mc.getDebugHud().shouldShowDebugHud();
@@ -136,6 +136,7 @@ public class VideoRenderer {
             }
             NativeImage frame = capture.capture(frameIdx); // Internally calls queueNextFrame, triggering UI updates.
             writer.write(frame, frameIdx);
+            LOGGER.info("Writing frame {} / {}", frameIdx, totalFrames);
         }
 
         // TODO: busy wait so we can update UI
@@ -183,6 +184,10 @@ public class VideoRenderer {
         // Finally, resize the Minecraft framebuffer to the actual width/height of the window
         MCVer.resizeMainWindow(mc, guiWindow.getFramebufferWidth(), guiWindow.getFramebufferHeight());
 
+        if (!wasAsyncMode) {
+            replay.getReplaySender().setAsyncMode(false);
+        }
+
         return !abort;
     }
 
@@ -207,7 +212,7 @@ public class VideoRenderer {
         }
 
         // TODO: camera path exporter
-
+        scene.spectateCamera(getVideoTime());
         frameIdx++;
         return timer.tickDelta;
     }

@@ -6,6 +6,7 @@ import com.google.common.collect.Maps;
 import com.igrium.replaylab.operator.ReplayOperator;
 import com.igrium.replaylab.scene.key.KeyChannel;
 import com.igrium.replaylab.scene.key.Keyframe;
+import com.igrium.replaylab.scene.obj.CameraProvider;
 import com.igrium.replaylab.scene.obj.ReplayObject;
 import com.igrium.replaylab.scene.obj.ReplayObjects;
 import com.igrium.replaylab.scene.objs.ScenePropsObject;
@@ -14,6 +15,9 @@ import com.igrium.replaylab.util.NameUtils;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.Setter;
+import net.minecraft.MinecraftVersion;
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.entity.Entity;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -113,7 +117,6 @@ public class ReplayScene {
         return getSceneProps().getStartTime();
     }
 
-
     /**
      * Convert a local timestamp to a global replay time suitable for the relay mod.
      * @param sceneTimestamp Scene time in ms.
@@ -151,6 +154,31 @@ public class ReplayScene {
 
     public @Nullable Keyframe getKeyframe(KeyHandleReference ref) {
         return getKeyframe(ref.object(), ref.channel(), ref.keyframe());
+    }
+
+    /**
+     * Get the entity responsible for providing the camera view on a given frame.
+     * @param timestamp Timestamp to use.
+     * @return The scene camera entity. if there is any at that timestamp.
+     */
+    public @Nullable Entity getSceneCamera(int timestamp) {
+        String objName = getSceneProps().getCameraObject();
+        if (objName == null)
+            return null;
+
+        ReplayObject obj = getObject(objName);
+        if (obj instanceof CameraProvider prov) {
+            return prov.getCameraEntity();
+        } else {
+            return null;
+        }
+    }
+
+    public void spectateCamera(int timestamp) {
+        Entity cam = getSceneCamera(timestamp);
+        if (cam != null) {
+            MinecraftClient.getInstance().setCameraEntity(cam);
+        }
     }
 
     /**

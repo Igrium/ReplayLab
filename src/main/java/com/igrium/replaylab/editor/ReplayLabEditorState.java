@@ -334,11 +334,9 @@ public class ReplayLabEditorState {
         getScene().applyToGame(shouldSample, getPlayhead());
     }
 
+    @Deprecated
     private void spectateCamera() {
-        Entity cam = getSceneCamera(getPlayhead());
-        if (cam != null) {
-            MinecraftClient.getInstance().setCameraEntity(cam);
-        }
+        scene.spectateCamera(getPlayhead());
     }
 
     /**
@@ -346,17 +344,9 @@ public class ReplayLabEditorState {
      * @param timestamp Timestamp to use.
      * @return The scene camera entity. if there is any at that timestamp.
      */
+    @Deprecated
     public @Nullable Entity getSceneCamera(int timestamp) {
-        String objName = scene.getSceneProps().getCameraObject();
-        if (objName == null)
-            return null;
-
-        ReplayObject obj = scene.getObject(objName);
-        if (obj instanceof CameraProvider prov) {
-            return prov.getCameraEntity();
-        } else {
-            return null;
-        }
+        return scene.getSceneCamera(timestamp);
     }
 
     // ===== Operators & Undo/Redo =====
