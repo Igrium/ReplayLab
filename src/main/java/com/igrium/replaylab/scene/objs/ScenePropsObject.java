@@ -11,6 +11,7 @@ import com.igrium.replaylab.scene.obj.ReplayObjectType;
 import com.igrium.replaylab.ui.util.ReplayLabControls;
 import com.igrium.replaylab.util.SimpleMutable;
 import imgui.ImGui;
+import imgui.type.ImFloat;
 import imgui.type.ImInt;
 import lombok.Getter;
 import lombok.Setter;
@@ -135,11 +136,13 @@ public final class ScenePropsObject extends ReplayObject {
     private final Mutable<String> cameraObjectInput = new SimpleMutable<>();
     private final ImInt startTimeInput = new ImInt();
     private final ImInt lengthInput = new ImInt();
+    private final ImFloat fpsInput = new ImFloat();
 
     boolean editingRes = false;
     final int[] resInput = new int[2];
     boolean editingStartTime = false;
     boolean editingLength = false;
+    boolean editingFps = false;
 
     @Override
     public PropertiesPanelState drawPropertiesPanel() {
@@ -162,6 +165,17 @@ public final class ScenePropsObject extends ReplayObject {
             setResolution(resInput[0], resInput[1]);
             modified = true;
             editingRes = false;
+        }
+
+        fpsInput.set(fps);
+        if (ImGui.inputFloat("FPS", fpsInput)) {
+            editingFps = true;
+        }
+        setFps(fpsInput.get());
+
+        if (editingFps && !ImGui.isItemActive()) {
+            editingFps = false;
+            modified = true;
         }
 
         cameraObjectInput.setValue(cameraObject);
@@ -197,6 +211,7 @@ public final class ScenePropsObject extends ReplayObject {
             editingLength = false;
             modified = true;
         }
+
 
         return modified ? PropertiesPanelState.COMMIT : PropertiesPanelState.NONE;
     }

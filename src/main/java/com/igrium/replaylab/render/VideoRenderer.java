@@ -154,7 +154,6 @@ public class VideoRenderer {
                 NativeImage frame = capture.capture(frameIdx); // Internally calls queueNextFrame
                 drawGui();
                 writer.write(frame, frameIdx);
-                LOGGER.info("Writing frame {} / {}", frameIdx, totalFrames);
             }
 
             // TODO: busy wait so we can update UI
