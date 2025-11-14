@@ -3,6 +3,7 @@ package com.igrium.replaylab.scene.objs;
 import com.google.gson.JsonDeserializationContext;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonSerializationContext;
+import com.igrium.replaylab.render.VideoRenderSettings;
 import com.igrium.replaylab.scene.ReplayScene;
 import com.igrium.replaylab.scene.obj.CameraProvider;
 import com.igrium.replaylab.scene.obj.ReplayObject;
@@ -35,47 +36,51 @@ public final class ScenePropsObject extends ReplayObject {
     private int length = 10000; // 10 seconds default
 
     @Getter
+    private float fps = 24f;
+
+    @Getter
     private int resolutionX = 1920;
 
     @Getter
     private int resolutionY = 1080;
+
+
+    /**
+     * The last render settings used. Serialized with the object, but generally not used in undo/redo.
+     */
+    // TODO: determine if lack of undo step causes accidental reset
+    @Getter
+    private VideoRenderSettings renderSettings = new VideoRenderSettings();
 
     public ScenePropsObject(ReplayObjectType<?> type, ReplayScene scene) {
         super(type, scene);
     }
 
     public void setStartTime(int startTime) {
-        if (startTime < 0) {
-            throw new IllegalArgumentException("startTime may not be negative.");
-        }
-        this.startTime = startTime;
+        this.startTime = Math.max(startTime, 0);
     }
 
     public void setLength(int length) {
-        if (length < 0) {
-            throw new IllegalArgumentException("length may not be negative.");
-        }
-        this.length = length;
+        this.length = Math.max(length, 0);
+    }
+
+    public void setFps(float fps) {
+        this.fps = Math.max(fps, 1);
     }
 
     public void setResolutionX(int resolutionX) {
-        if (resolutionX < 2) {
-            throw new IllegalArgumentException("Resolution must be at least two.");
-        }
-        this.resolutionX = resolutionX;
+        this.resolutionX = Math.max(resolutionX, 2);
     }
 
     public void setResolutionY(int resolutionY) {
-        if (resolutionY < 2) {
-            throw new IllegalArgumentException("Resolution must be at least two.");
-        }
-        this.resolutionY = resolutionY;
+        this.resolutionY = Math.max(resolutionY, 2);
     }
 
     public void setResolution(int resolutionX, int resolutionY) {
         setResolutionX(resolutionX);
         setResolutionY(resolutionY);
     }
+
 
     @Override
     public void apply(int timestamp) {
@@ -100,11 +105,18 @@ public final class ScenePropsObject extends ReplayObject {
         if (json.has("length")) {
             setLength(json.getAsJsonPrimitive("length").getAsInt());
         }
+        if (json.has("fps")) {
+            setFps(json.getAsJsonPrimitive("fps").getAsInt());
+        }
         if (json.has("resolutionX")) {
             setResolutionX(json.getAsJsonPrimitive("resolutionX").getAsInt());
         }
         if (json.has("resolutionY")) {
             setResolutionY(json.getAsJsonPrimitive("resolutionY").getAsInt());
+        }
+
+        if (json.has("renderSettings")) {
+            this.renderSettings = context.deserialize(json.get("renderSettings"), VideoRenderSettings.class);
         }
     }
 
@@ -113,12 +125,11 @@ public final class ScenePropsObject extends ReplayObject {
         json.addProperty("cameraObject", getCameraObject());
         json.addProperty("startTime", getStartTime());
         json.addProperty("length", getLength());
+        json.addProperty("fps", getFps());
         json.addProperty("resolutionX", getResolutionX());
         json.addProperty("resolutionY", getResolutionY());
 
-        LOGGER.debug("ScenePropsObject.writeJson -> resolutionX={}, resolutionY={}",
-                getResolutionX(), getResolutionY());
-        LOGGER.debug("Full json: {}", json.toString());
+        json.add("renderSettings", context.serialize(renderSettings));
     }
 
     private final Mutable<String> cameraObjectInput = new SimpleMutable<>();

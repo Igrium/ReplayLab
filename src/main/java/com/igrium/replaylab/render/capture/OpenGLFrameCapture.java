@@ -3,6 +3,7 @@ package com.igrium.replaylab.render.capture;
 import com.igrium.replaylab.ReplayLab;
 import com.igrium.replaylab.render.VideoRenderSettings;
 import com.igrium.replaylab.render.VideoRenderer;
+import com.igrium.replaylab.scene.ReplayScene;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.replaymod.core.events.PostRenderCallback;
 import com.replaymod.core.events.PreRenderCallback;
@@ -18,10 +19,12 @@ public class OpenGLFrameCapture implements FrameCapture {
     private final MinecraftClient mc = MinecraftClient.getInstance();
 
     private final VideoRenderer videoRenderer;
+    private final ReplayScene scene;
     private final VideoRenderSettings renderSettings;
 
     public OpenGLFrameCapture(VideoRenderer videoRenderer, VideoRenderSettings renderSettings) {
         this.videoRenderer = videoRenderer;
+        this.scene = videoRenderer.getScene();
         this.renderSettings = renderSettings;
     }
 
@@ -34,7 +37,7 @@ public class OpenGLFrameCapture implements FrameCapture {
         float tickDelta = videoRenderer.queueNextFrame();
 
         /// === RENDER ===
-        MCVer.resizeMainWindow(mc, renderSettings.getWidth(), renderSettings.getHeight());
+        MCVer.resizeMainWindow(mc, scene.getSceneProps().getResolutionX(), scene.getSceneProps().getResolutionY());
         MCVer.pushMatrix();
         mc.getFramebuffer().beginWrite(true);
 

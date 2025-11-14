@@ -8,6 +8,7 @@ import com.igrium.replaylab.operator.CommitObjectUpdateOperator;
 import com.igrium.replaylab.operator.RemoveKeyframesOperator;
 import com.igrium.replaylab.operator.RemoveObjectOperator;
 import com.igrium.replaylab.render.VideoRenderSettings;
+import com.igrium.replaylab.render.VideoRenderer;
 import com.igrium.replaylab.scene.ReplayScene;
 import com.igrium.replaylab.scene.obj.ReplayObject;
 import com.igrium.replaylab.scene.objs.ScenePropsObject;
@@ -159,7 +160,8 @@ public class ReplayLabUI extends DockSpaceApp {
         drawOutliner();
         drawInspector();
         drawSceneProperties();
-        ExportWindow.drawExportWindow(this, tmpExportSettings);
+        ExportWindow.drawExportWindow(editorState, editorState.getScene().getSceneProps().getRenderSettings());
+        drawExportProgress();
 
         if (!firstFrame) {
             exceptionPopup.render();
@@ -457,6 +459,22 @@ public class ReplayLabUI extends DockSpaceApp {
         }
         if (state.wantsUpdateScene()) {
             editorState.applyToGame(o -> o != object);
+        }
+    }
+
+    private void drawExportProgress() {
+        VideoRenderer r = editorState.getRenderer();
+        if (r != null && !ImGui.isPopupOpen("Export Progress")) {
+            ImGui.openPopup("Export Progress");
+        }
+
+        if (ImGui.beginPopupModal("Export Progress", ImGuiWindowFlags.NoSavedSettings)) {
+            if (r != null) {
+                ImGui.text("Rendering frame %d / %d".formatted(r.getFrameIdx(), r.getTotalFrames()));
+            } else {
+                ImGui.closeCurrentPopup();
+            }
+            ImGui.endPopup();
         }
     }
 

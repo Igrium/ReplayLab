@@ -4,6 +4,7 @@ import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.Maps;
 import com.igrium.replaylab.operator.ReplayOperator;
+import com.igrium.replaylab.render.VideoRenderSettings;
 import com.igrium.replaylab.scene.key.KeyChannel;
 import com.igrium.replaylab.scene.key.Keyframe;
 import com.igrium.replaylab.scene.obj.CameraProvider;
@@ -125,6 +126,10 @@ public class ReplayScene {
     public int sceneToReplayTime(int sceneTimestamp) {
         // TODO: Update this to handle time dilation
         return sceneTimestamp + getStartTime();
+    }
+
+    public float getFps() {
+        return getSceneProps().getFps();
     }
 
     public @Nullable KeyChannel getChannel(String object, String channel) {

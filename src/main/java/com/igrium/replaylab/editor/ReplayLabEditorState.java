@@ -2,6 +2,8 @@ package com.igrium.replaylab.editor;
 
 import com.igrium.replaylab.operator.ReplayOperator;
 import com.igrium.replaylab.playback.RealtimeScenePlayer;
+import com.igrium.replaylab.render.VideoRenderSettings;
+import com.igrium.replaylab.render.VideoRenderer;
 import com.igrium.replaylab.scene.ReplayScene;
 import com.igrium.replaylab.scene.ReplayScenes;
 import com.igrium.replaylab.scene.obj.CameraProvider;
@@ -38,7 +40,7 @@ import java.util.function.Predicate;
  */
 public class ReplayLabEditorState {
 
-    // ===== Static Members =====
+    /// ===== Static Members =====
     private static final Logger LOGGER = LoggerFactory.getLogger(ReplayLabEditorState.class);
 
     private static @Nullable ReplayHandler getReplayHandler() {
@@ -59,7 +61,7 @@ public class ReplayLabEditorState {
         }
     }
 
-    // ===== Fields =====
+    /// ===== Fields =====
 
     @Getter
     private final ImInt playheadRef = new ImInt(0);
@@ -94,12 +96,18 @@ public class ReplayLabEditorState {
     @Getter
     private final KeySelectionSet keySelection = new KeySelectionSet();
 
-    // ===== Constructors =====
+    /**
+     * The video that's currently rendering.
+     */
+    @Getter @Setter @Nullable
+    private VideoRenderer renderer;
+
+    /// ===== Constructors =====
     public ReplayLabEditorState() {
         scene.setExceptionCallback(this::onException);
     }
 
-    // ===== Getters/Setters =====
+    /// ===== Getters/Setters =====
 
     public final int getPlayhead() {
         return playheadRef.get();
@@ -252,7 +260,7 @@ public class ReplayLabEditorState {
         refreshSceneListSync();
     }
 
-    // ===== Playback =====
+    /// ===== Playback =====
 
     public boolean isPlaying() {
         return scenePlayer != null && scenePlayer.isActive();
@@ -317,7 +325,7 @@ public class ReplayLabEditorState {
 
     }
 
-    // ===== Game Integration =====
+    /// ===== Game Integration =====
 
     /**
      * Sample and all animated properties to the game.
@@ -384,7 +392,7 @@ public class ReplayLabEditorState {
         return false;
     }
 
-    // ===== Saving =====
+    /// ===== Saving =====
 
     /**
      * Save the active scene to file.
@@ -416,7 +424,9 @@ public class ReplayLabEditorState {
         }, Util.getIoWorkerExecutor());
     }
 
-    // ===== Error Handling =====
+
+
+    /// ===== Error Handling =====
 
     private void onException(Throwable e) {
         if (exceptionCallback != null) {
@@ -424,4 +434,26 @@ public class ReplayLabEditorState {
         }
     }
 
+    /// === Rendering ===
+
+    public boolean isRendering() {
+        return getRenderer() != null;
+    }
+
+    public void render(VideoRenderSettings settings) {
+        if (isRendering()) {
+            LOGGER.warn("Already rendering!");
+            return;
+        }
+
+        renderer = new VideoRenderer(settings, getReplayHandlerOrThrow(), getScene());
+        try {
+            renderer.render();
+        } catch (Throwable e) {
+            LOGGER.error("Error exporting video", e);
+            onException(e);
+        } finally {
+            renderer = null;
+        }
+    }
 }

@@ -24,14 +24,6 @@ import java.nio.file.Paths;
 public class VideoRenderSettings {
     private static final Logger LOGGER = ReplayLab.getLogger("VideoRenderSettings");
 
-    @Getter
-    private float fps = 24;
-
-    @Getter
-    private int width = 1920;
-
-    @Getter
-    private int height = 1080;
 
     @Getter @Setter @NonNull
     private Path outPath = FabricLoader.getInstance().getGameDir().resolve("replay_videos");
@@ -47,18 +39,6 @@ public class VideoRenderSettings {
 
     @Getter @Setter @Nullable
     private Object frameWriterConfig;
-
-    public void setFps(float fps) {
-        this.fps = Math.max(.001f, fps);
-    }
-
-    public void setWidth(int width) {
-        this.width = Math.max(1, width);
-    }
-
-    public void setHeight(int height) {
-        this.height = Math.max(1, height);
-    }
 
     @Tolerate
     public void setFrameCapture(Identifier id) {
@@ -88,15 +68,6 @@ class VideoRenderSettingsSerializer implements JsonSerializer<VideoRenderSetting
         JsonObject json = elem.getAsJsonObject();
         VideoRenderSettings settings = new VideoRenderSettings();
 
-        if (json.has("fps")) {
-            settings.setFps(json.get("fps").getAsFloat());
-        }
-        if (json.has("width")) {
-            settings.setWidth(json.get("width").getAsInt());
-        }
-        if (json.has("height")) {
-            settings.setHeight(json.get("height").getAsInt());
-        }
         if (json.has("outPath")) {
             settings.setOutPath(Paths.get(json.get("outPath").getAsString()));
         }
@@ -127,9 +98,6 @@ class VideoRenderSettingsSerializer implements JsonSerializer<VideoRenderSetting
     public JsonElement serialize(VideoRenderSettings src, Type typeOfSrc, JsonSerializationContext context) {
         JsonObject json = new JsonObject();
 
-        json.addProperty("fps", src.getFps());
-        json.addProperty("width", src.getWidth());
-        json.addProperty("height", src.getHeight());
         json.addProperty("outPath", src.getOutPath().toString());
         json.addProperty("frameCapture", src.getFrameCapture().getId().toString());
         json.addProperty("frameWriter", src.getFrameWriter().getId().toString());

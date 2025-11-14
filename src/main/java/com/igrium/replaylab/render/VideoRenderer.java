@@ -48,8 +48,13 @@ public class VideoRenderer {
 
     private final MinecraftClient mc = MinecraftClient.getInstance();
 
+    @Getter
     private final VideoRenderSettings settings;
+
+    @Getter
     private final ReplayHandler replay;
+
+    @Getter
     private final ReplayScene scene;
 
     private final VirtualWindow guiWindow = new VirtualWindow(mc);
@@ -113,7 +118,7 @@ public class VideoRenderer {
                 }
             }
 
-            float fps = settings.getFps();
+            float fps = scene.getFps();
             int duration = scene.getLength();
 
             totalFrames = (int) (duration * fps / 1000);
@@ -146,7 +151,7 @@ public class VideoRenderer {
                 if (GLFW.glfwWindowShouldClose(mc.getWindow().getHandle()) || ((MinecraftAccessor) mc).getCrashReporter() != null) {
                     writer.finish();
                 }
-                NativeImage frame = capture.capture(frameIdx); // Internally calls queueNextFrame, triggering UI updates.
+                NativeImage frame = capture.capture(frameIdx); // Internally calls queueNextFrame
                 drawGui();
                 writer.write(frame, frameIdx);
                 LOGGER.info("Writing frame {} / {}", frameIdx, totalFrames);
@@ -288,7 +293,7 @@ public class VideoRenderer {
     }
 
     public int getVideoTime() {
-        return (int) (frameIdx * 1000 / settings.getFps());
+        return (int) (frameIdx * 1000 / scene.getFps());
     }
 
     private <T extends FrameCapture, C> T spawnFrameCapture(FrameCaptureType<T, C> type) {
