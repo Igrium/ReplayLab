@@ -1,13 +1,11 @@
 package com.igrium.replaylab.ui;
 
 import com.igrium.craftui.file.FileDialogs;
-import com.igrium.replaylab.ReplayLab;
 import com.igrium.replaylab.editor.ReplayLabEditorState;
 import com.igrium.replaylab.render.VideoRenderSettings;
-import com.igrium.replaylab.render.VideoRenderer;
 import com.mojang.blaze3d.systems.RenderSystem;
-import com.replaymod.replay.ReplayModReplay;
 import imgui.ImGui;
+import imgui.flag.ImGuiCond;
 import imgui.flag.ImGuiWindowFlags;
 import imgui.type.ImBoolean;
 import imgui.type.ImString;
@@ -35,7 +33,8 @@ public class ExportWindow {
             filePathInput.set(settings.getOutPath());
         }
 
-        if (ImGui.beginPopupModal("Export Video", isOpen, ImGuiWindowFlags.AlwaysAutoResize)) {
+        ImGui.setNextWindowSize(640, 0, ImGuiCond.Appearing);
+        if (ImGui.beginPopupModal("Export Video", isOpen, ImGuiWindowFlags.NoSavedSettings)) {
             ImGui.text("Output File");
             if (ImGui.button("Browse")) {
                 FileDialogs.showOpenFolderDialog(settings.getOutPath().toString()).thenAcceptAsync(opt -> {
@@ -47,7 +46,7 @@ public class ExportWindow {
                 }, r -> RenderSystem.recordRenderCall(r::run));
             }
             ImGui.sameLine();
-            ImGui.setNextItemWidth(512);
+            ImGui.setNextItemWidth(-1);
 
             if (ImGui.inputText("##filepath", filePathInput)) {
                 settings.setOutPath(Paths.get(filePathInput.get()));

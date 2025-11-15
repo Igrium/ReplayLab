@@ -46,6 +46,14 @@ public class VideoRenderer {
     @Getter
     private static boolean renderingVideo;
 
+    public enum RenderState {
+        READY,
+        STARTING,
+        RENDERING,
+        FINISHING,
+        DONE
+    }
+
     private final MinecraftClient mc = MinecraftClient.getInstance();
 
     @Getter
@@ -68,6 +76,9 @@ public class VideoRenderer {
     @Getter
     private int totalFrames;
 
+    @Getter
+    private RenderState renderState = RenderState.READY;
+
     private volatile boolean abort;
 
     public VideoRenderer(VideoRenderSettings settings, ReplayHandler replay, ReplayScene scene) {
@@ -88,7 +99,7 @@ public class VideoRenderer {
     public boolean render() throws Throwable {
 
         RenderSystem.assertOnRenderThread();
-
+        renderState = RenderState.STARTING;
         try {
             /// === SETUP ===
             renderingVideo = true;
@@ -147,6 +158,7 @@ public class VideoRenderer {
             /// === RENDERING PIPELINE ===
             writer.start();
 
+            renderState = RenderState.RENDERING;
             while (frameIdx < totalFrames && !abort) {
                 if (GLFW.glfwWindowShouldClose(mc.getWindow().getHandle()) || ((MinecraftAccessor) mc).getCrashReporter() != null) {
                     writer.finish();
@@ -156,18 +168,29 @@ public class VideoRenderer {
                 writer.write(frame, frameIdx);
             }
 
-            // TODO: busy wait so we can update UI
-            try {
-                writer.finish().get(60, TimeUnit.SECONDS);
-            } catch (TimeoutException e) {
-                LOGGER.error("Frame writer timed out");
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-            } catch (ExecutionException | CancellationException e) {
-                LOGGER.error("Frame writer crashed: ", e.getCause());
+            /// === FINISH ===
+
+            renderState = RenderState.FINISHING;
+            CompletableFuture<?> finishFuture = writer.finish();
+            long finishStartTime = Util.getMeasuringTimeMs();
+            while (!finishFuture.isDone()) {
+                drawGui();
+                //noinspection BusyWait
+                Thread.sleep(10);
+                if (Util.getMeasuringTimeMs() - finishStartTime > 30000) {
+                    LOGGER.error("Frame writer timed out");
+                    break;
+                }
+
+                if (Thread.currentThread().isInterrupted()) {
+                    break;
+                }
             }
 
-            /// === FINISH ===
+            if (finishFuture.isCompletedExceptionally()) {
+                LOGGER.error("Frame writer crashed: ", finishFuture.exceptionNow());
+            }
+
             if (((MinecraftAccessor) mc).getCrashReporter() != null) {
                 throw new CrashException(((MinecraftAccessor) mc).getCrashReporter().get());
             }
@@ -208,6 +231,7 @@ public class VideoRenderer {
             return !abort;
         } finally {
             renderingVideo = false;
+            renderState = RenderState.DONE;
         }
     }
 
