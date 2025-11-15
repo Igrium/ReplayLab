@@ -237,34 +237,6 @@ public class KeySelectionSet {
         return dest;
     }
 
-//    private class HandleRefIterator extends AbstractIterator<KeyHandleReference> {
-//        Iterator<Map.Entry<String, Map<String, Int2ObjectMap<IntSet>>>> objsIterator = selected.entrySet().iterator();
-//        Map.Entry<String, Map<String, Int2ObjectMap<IntSet>>> objEntry;
-//
-//        Iterator<Map.Entry<String, Int2ObjectMap<IntSet>>> chansIterator;
-//        Map.Entry<String, Int2ObjectMap<IntSet>> chanEntry;
-//
-//        Iterator<Int2ObjectMap.Entry<IntSet>> keysIterator;
-//        Int2ObjectMap.Entry<IntSet> keyEntry;
-//
-//        IntIterator handlesIterator;
-//
-//
-//        @Override
-//        protected @Nullable KeyHandleReference computeNext() {
-//            if ((chansIterator == null || !chansIterator.hasNext())) {
-//                if (objsIterator.hasNext()) {
-//                    objEntry = objsIterator.next();
-//                    chansIterator = objEntry.getValue().entrySet().iterator();
-//                } else {
-//                    return endOfData();
-//                }
-//            }
-//
-//
-//            return null;
-//        }
-//    }
 
     /**
      * Iterate over all selected handles in the scene.
@@ -274,7 +246,6 @@ public class KeySelectionSet {
     public void forSelectedHandles(HandleRefConsumer c) {
         forSelectedHandles(c, false);
     }
-
 
     public void forSelectedHandles(HandleRefConsumer c, boolean includeChildren) {
         for (var objEntry : selected.entrySet()) {
@@ -522,6 +493,31 @@ public class KeySelectionSet {
      */
     public boolean selectKeyframe(KeyframeReference ref) {
         return selectKeyframe(ref.objectName(), ref.channelName(), ref.keyIndex());
+    }
+
+    /**
+     * Remap the selection references of a channel after it has been sorted.
+     *
+     * @param objName The object name
+     * @param chName  The channel name
+     * @param mapping An array where <code>mapping[oldIndex] = newIndex</code>
+     */
+    public void remapSelection(String objName, String chName, int[] mapping) {
+        Map<String, Int2ObjectMap<IntSet>> obj = selected.get(objName);
+        if (obj == null) return;
+
+        Int2ObjectMap<IntSet> ch = obj.get(chName);
+        if (ch == null) return;
+
+        Int2ObjectMap<IntSet> newCh = new Int2ObjectAVLTreeMap<>();
+        for (var entry : ch.int2ObjectEntrySet()) {
+            int oldIndex = entry.getIntKey();
+            if (0 <= oldIndex && oldIndex < mapping.length) {
+                newCh.put(mapping[oldIndex], entry.getValue());
+            }
+        }
+
+        obj.put(chName, newCh);
     }
 
     /**

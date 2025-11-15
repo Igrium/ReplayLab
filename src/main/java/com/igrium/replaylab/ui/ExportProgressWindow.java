@@ -1,6 +1,6 @@
 package com.igrium.replaylab.ui;
 
-import com.igrium.replaylab.editor.ReplayLabEditorState;
+import com.igrium.replaylab.editor.EditorState;
 import com.igrium.replaylab.render.VideoRenderer;
 import imgui.ImGui;
 import imgui.flag.ImGuiCond;
@@ -9,7 +9,7 @@ import imgui.flag.ImGuiWindowFlags;
 public class ExportProgressWindow {
     private static final String POPUP = "Exporting Video";
 
-    public static void drawExportProgress(ReplayLabEditorState editorState) {
+    public static void drawExportProgress(EditorState editorState) {
         VideoRenderer r = editorState.getRenderer();
         if (r != null && !ImGui.isPopupOpen(POPUP)) {
             ImGui.openPopup(POPUP);

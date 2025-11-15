@@ -2,13 +2,12 @@ package com.igrium.replaylab.ui;
 
 
 import com.igrium.craftui.app.DockSpaceApp;
-import com.igrium.replaylab.editor.ReplayLabEditorState;
+import com.igrium.replaylab.editor.EditorState;
 import com.igrium.replaylab.operator.InsertKeyframeOperator;
 import com.igrium.replaylab.operator.CommitObjectUpdateOperator;
 import com.igrium.replaylab.operator.RemoveKeyframesOperator;
 import com.igrium.replaylab.operator.RemoveObjectOperator;
 import com.igrium.replaylab.render.VideoRenderSettings;
-import com.igrium.replaylab.render.VideoRenderer;
 import com.igrium.replaylab.scene.ReplayScene;
 import com.igrium.replaylab.scene.obj.ReplayObject;
 import com.igrium.replaylab.scene.objs.ScenePropsObject;
@@ -33,7 +32,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -51,7 +49,7 @@ public class ReplayLabUI extends DockSpaceApp {
     }
 
     @Getter
-    private final ReplayLabEditorState editorState = new ReplayLabEditorState();
+    private final EditorState editorState = new EditorState();
 
     //    private final DopeSheetOld dopeSheet = new DopeSheetOld();
     private final DopeSheet dopeSheet = new DopeSheet();

@@ -32,14 +32,14 @@ public interface Bezier2dc {
 
     /**
      * Sample only the X value at a given T.
-     * @param T T to sample at.
+     * @param t T to sample at.
      * @return X value of the sampled point.
      */
     double sampleX(double t);
 
     /**
      * Sample only the Y value at a given T.
-     * @param T T to sample at.
+     * @param t T to sample at.
      * @return Y value of the sampled point.
      */
     double sampleY(double t);
@@ -104,6 +104,15 @@ public interface Bezier2dc {
      * @return <code>dest</code>
      */
     Vector3d intersectY(double y, Vector3d dest);
+
+    /**
+     * Subdivide this bezier into two segments.
+     *
+     * @param dest1 Place segment 1 here.
+     * @param dest2 Place segment 2 here.
+     * @param t     T value to split at. Should be in range (0-1)
+     */
+    void subdivide(Bezier2d dest1, Bezier2d dest2, double t);
 
     interface IntersectionConsumer {
         void accept(double x, double y);

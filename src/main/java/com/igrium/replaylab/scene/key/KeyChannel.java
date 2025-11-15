@@ -2,11 +2,13 @@ package com.igrium.replaylab.scene.key;
 
 import com.google.gson.*;
 import com.google.gson.annotations.JsonAdapter;
+import com.igrium.replaylab.editor.KeySelectionSet;
 import com.igrium.replaylab.math.Bezier2d;
 import it.unimi.dsi.fastutil.ints.IntAVLTreeSet;
 import it.unimi.dsi.fastutil.ints.IntSet;
 import lombok.Getter;
 import lombok.Setter;
+import org.jetbrains.annotations.Nullable;
 import org.joml.Vector3d;
 
 import java.lang.reflect.Type;
@@ -88,7 +90,7 @@ public class KeyChannel {
     }
 
     /**
-     * Sort all the keyframes in this channel. Although not required, Improves the performance of calls to <code>sample</code>
+     * Sort all the keyframes in this channel. Although not required, Improves the performance of calls to <code>sample</code>.
      * @return an array such that <code>result[newIndex] = oldIndex</code> for every keyframe in the channel.
      */
     public int[] sortKeys() {
@@ -102,6 +104,30 @@ public class KeyChannel {
         }
 
         return sortedIndices;
+    }
+
+    /**
+     * Sort all the keyframes in this channel by their time. Causes subsequent samples to run in linear time.
+     *
+     * @param selection Modify the selection to reference new mappings
+     * @param objName   The name of the object this channel is in. Should be non-null of <code>selection</code> is non-null.
+     * @param chName    The name of this channel. Should be non-null if <code>selection</code> is non-null.
+     */
+    public void sortKeys(@Nullable KeySelectionSet selection, @Nullable String objName, @Nullable String chName) {
+        // Shortcut if we don't need to keep track of selection
+        if (selection == null) {
+            keyframes.sort(Comparator.comparing(k -> k));
+            return;
+        }
+
+        int[] sorted = sortKeys(); // sorted[newIndex] = oldIndex
+
+        int[] newIndexMapping = new int[sorted.length];
+        for (int i = 0; i < sorted.length; i++) {
+            newIndexMapping[sorted[i]] = i;
+        }
+
+        selection.remapSelection(objName, chName, newIndexMapping);
     }
 
     /**
@@ -202,6 +228,7 @@ public class KeyChannel {
         return left;
     }
 
+
     /**
      * Make a deep copy of this channel.
      */
@@ -214,6 +241,7 @@ public class KeyChannel {
         ch.locked = locked;
         return ch;
     }
+
 }
 
 class KeyChannelSerializer implements JsonSerializer<KeyChannel>, JsonDeserializer<KeyChannel> {

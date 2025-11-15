@@ -1,6 +1,6 @@
 package com.igrium.replaylab.ui;
 
-import com.igrium.replaylab.editor.ReplayLabEditorState;
+import com.igrium.replaylab.editor.EditorState;
 import imgui.ImGui;
 import imgui.ImVec2;
 import imgui.flag.ImGuiCond;
@@ -27,7 +27,7 @@ public class SceneBrowser {
         wantsOpenPopup = true;
     }
 
-    public void render(ReplayLabEditorState editorState) {
+    public void render(EditorState editorState) {
         if (wantsOpenPopup) {
             ImGui.openPopup(POPUP_NAME);
             isOpen.set(true);
@@ -166,7 +166,7 @@ public class SceneBrowser {
 
     }
 
-    private void openScene(ReplayLabEditorState editorState, int idx) {
+    private void openScene(EditorState editorState, int idx) {
         String sceneName = editorState.getScenes().get(idx);
 
         // Don't actually load the scene until the next frame.

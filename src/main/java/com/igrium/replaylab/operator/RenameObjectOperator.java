@@ -1,6 +1,6 @@
 package com.igrium.replaylab.operator;
 
-import com.igrium.replaylab.scene.ReplayScene;
+import com.igrium.replaylab.editor.EditorState;
 
 public class RenameObjectOperator implements ReplayOperator {
     private final String oldName;
@@ -14,21 +14,21 @@ public class RenameObjectOperator implements ReplayOperator {
     }
 
     @Override
-    public boolean execute(ReplayScene scene) {
+    public boolean execute(EditorState scene) {
         if (oldName.equals(newName)) {
             return false;
         }
-        actualNewName = scene.makeNameUnique(newName);
-        return scene.renameObject(oldName, actualNewName);
+        actualNewName = scene.getScene().makeNameUnique(newName);
+        return scene.getScene().renameObject(oldName, actualNewName);
     }
 
     @Override
-    public void undo(ReplayScene scene) {
-        scene.renameObject(actualNewName, oldName);
+    public void undo(EditorState scene) {
+        scene.getScene().renameObject(actualNewName, oldName);
     }
 
     @Override
-    public void redo(ReplayScene scene) {
-        scene.renameObject(oldName, actualNewName);
+    public void redo(EditorState scene) {
+        scene.getScene().renameObject(oldName, actualNewName);
     }
 }

@@ -102,6 +102,24 @@ public final class Keyframe implements Comparable<Keyframe> {
         };
     }
 
+    /**
+     * Called when the keyframe connected to Handle A has been moved.
+     * @param prevConnection The previous version of the keyframe (a copy)
+     * @param nextConnection The new version of the keyframe
+     */
+    public void updateHandleA(Keyframe prevConnection, Keyframe nextConnection) {
+
+    }
+
+    /**
+     * Called when the keyframe connected to Handle B has been moved.
+     * @param prevConnection The previous version of the keyframe (a copy)
+     * @param nextConnection The new version of the keyframe
+     */
+    public void updateHandleB(Keyframe prevConnection, Keyframe nextConnection) {
+
+    }
+
     public void copyFrom(Keyframe other) {
         this.center.set(other.center);
         this.handleA.set(other.handleA);

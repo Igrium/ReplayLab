@@ -1,7 +1,7 @@
 package com.igrium.replaylab.ui;
 
 import com.igrium.craftui.file.FileDialogs;
-import com.igrium.replaylab.editor.ReplayLabEditorState;
+import com.igrium.replaylab.editor.EditorState;
 import com.igrium.replaylab.render.VideoRenderSettings;
 import com.mojang.blaze3d.systems.RenderSystem;
 import imgui.ImGui;
@@ -24,7 +24,7 @@ public class ExportWindow {
         wantsOpen = true;
     }
 
-    public static void drawExportWindow(ReplayLabEditorState editor, VideoRenderSettings settings) {
+    public static void drawExportWindow(EditorState editor, VideoRenderSettings settings) {
         if (wantsOpen) {
             ImGui.openPopup("Export Video");
             isOpen.set(true);
@@ -66,7 +66,7 @@ public class ExportWindow {
         }
     }
 
-    private static void export(ReplayLabEditorState editor, VideoRenderSettings settings) {
+    private static void export(EditorState editor, VideoRenderSettings settings) {
         // Render outside of ImGui context
         MinecraftClient.getInstance().send(() -> {
             editor.render(settings);

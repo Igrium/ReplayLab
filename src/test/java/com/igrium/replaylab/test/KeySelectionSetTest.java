@@ -165,4 +165,71 @@ class KeySelectionSetTest {
         assertTrue(seenHandles.contains(new KeySelectionSet.KeyHandleReference("obj", "chan", 4, 2)));
         assertTrue(seenHandles.contains(new KeySelectionSet.KeyHandleReference("obj", "chan", 5, 2)));
     }
+
+    @Test
+    void remapSelection_reordersKeysAndHandles() {
+        KeySelectionSet ks = new KeySelectionSet();
+
+        // initial selections in obj1/chanA
+        ks.selectHandle("obj1", "chanA", 0, 0); // old 0 -> will map to 2
+        ks.selectHandle("obj1", "chanA", 1, 1); // old 1 -> will map to 0
+        ks.selectHandle("obj1", "chanA", 2, 2); // old 2 -> will map to 1
+        ks.selectKeyframe("obj1", "chanA", 3);  // old 3 -> will map to 3 (unchanged)
+
+        // selections that should remain untouched (different channel/object)
+        ks.selectHandle("obj1", "chanB", 0, 1);
+        ks.selectHandle("obj2", "chanA", 0, 2);
+
+        // mapping oldIndex -> newIndex
+        int[] mapping = new int[]{2, 0, 1, 3};
+
+        ks.remapSelection("obj1", "chanA", mapping);
+
+        // old 0 moved to 2
+        assertFalse(ks.isHandleSelected("obj1", "chanA", 0, 0));
+        assertTrue(ks.isHandleSelected("obj1", "chanA", 2, 0));
+
+        // old 1 moved to 0
+        assertFalse(ks.isHandleSelected("obj1", "chanA", 1, 1));
+        assertTrue(ks.isHandleSelected("obj1", "chanA", 0, 1));
+
+        // old 2 moved to 1
+        assertTrue(ks.isHandleSelected("obj1", "chanA", 1, 2));
+        assertFalse(ks.isHandleSelected("obj1", "chanA", 2, 2)); // moved away
+
+        // keyframe that had all handles (old 3) remains at 3
+        assertTrue(ks.isHandleSelected("obj1", "chanA", 3, 0));
+        assertTrue(ks.isHandleSelected("obj1", "chanA", 3, 1));
+        assertTrue(ks.isHandleSelected("obj1", "chanA", 3, 2));
+
+        // other selections are untouched
+        assertTrue(ks.isHandleSelected("obj1", "chanB", 0, 1));
+        assertTrue(ks.isHandleSelected("obj2", "chanA", 0, 2));
+    }
+
+    @Test
+    void remapSelection_ignoresOutOfRangeOldIndices() {
+        KeySelectionSet ks = new KeySelectionSet();
+
+        // select keys 0..3 and also 4 (which will be out-of-range in mapping)
+        ks.selectHandle("obj", "ch", 0, 0);
+        ks.selectHandle("obj", "ch", 1, 1);
+        ks.selectHandle("obj", "ch", 2, 2);
+        ks.selectHandle("obj", "ch", 3, 0);
+        ks.selectHandle("obj", "ch", 4, 1); // this one should be dropped by remap
+
+        // mapping covers old indices 0..3 only
+        int[] mapping = new int[]{1, 0, 3, 2};
+
+        ks.remapSelection("obj", "ch", mapping);
+
+        // keys 0..3 got remapped (old0->1, old1->0, old2->3, old3->2)
+        assertTrue(ks.isHandleSelected("obj", "ch", 1, 0)); // old 0 -> 1
+        assertTrue(ks.isHandleSelected("obj", "ch", 0, 1)); // old 1 -> 0
+        assertTrue(ks.isHandleSelected("obj", "ch", 3, 2)); // old 2 -> 3
+        assertTrue(ks.isHandleSelected("obj", "ch", 2, 0)); // old 3 -> 2
+
+        // old index 4 was outside mapping.length and therefore should be removed
+        assertFalse(ks.isHandleSelected("obj", "ch", 4, 1));
+    }
 }

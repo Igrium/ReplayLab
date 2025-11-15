@@ -1,5 +1,6 @@
 package com.igrium.replaylab.operator;
 
+import com.igrium.replaylab.editor.EditorState;
 import com.igrium.replaylab.scene.ReplayScene;
 import com.igrium.replaylab.scene.obj.ReplayObject;
 
@@ -13,23 +14,23 @@ public class RemoveObjectOperator implements ReplayOperator {
     }
 
     @Override
-    public boolean execute(ReplayScene scene) {
+    public boolean execute(EditorState scene) {
         if (objectId.equals(ReplayScene.SCENE_PROPS)) {
             // Don't delete the scene props
             return false;
         }
 
-        obj = scene.removeObject(objectId);
+        obj = scene.getScene().removeObject(objectId);
         return obj != null;
     }
 
     @Override
-    public void undo(ReplayScene scene) {
-        scene.addObject(objectId, obj);
+    public void undo(EditorState scene) {
+        scene.getScene().addObject(objectId, obj);
     }
 
     @Override
-    public void redo(ReplayScene scene) {
-        scene.removeObject(objectId);
+    public void redo(EditorState scene) {
+        scene.getScene().removeObject(objectId);
     }
 }

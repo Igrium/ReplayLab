@@ -1,15 +1,12 @@
 package com.igrium.replaylab.editor;
 
 import com.igrium.replaylab.ReplayLab;
-import com.igrium.replaylab.camera.AnimatedCameraEntity;
-import com.igrium.replaylab.operator.CommitObjectUpdateOperator;
 import com.igrium.replaylab.operator.ReplayOperator;
 import com.igrium.replaylab.playback.RealtimeScenePlayer;
 import com.igrium.replaylab.render.VideoRenderSettings;
 import com.igrium.replaylab.render.VideoRenderer;
 import com.igrium.replaylab.scene.ReplayScene;
 import com.igrium.replaylab.scene.ReplayScenes;
-import com.igrium.replaylab.scene.obj.CameraProvider;
 import com.igrium.replaylab.scene.obj.ReplayObject;
 import com.igrium.replaylab.scene.obj.ReplayObject3D;
 import com.replaymod.replay.ReplayHandler;
@@ -27,7 +24,6 @@ import net.minecraft.util.math.Vec3d;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -44,7 +40,7 @@ import java.util.function.Predicate;
  * Manages replay lab editor state. Implemented to try to separate editor global logic from UI for code cleanliness.
  * Scene-level operations are implemented in {@link ReplayScene}
  */
-public class ReplayLabEditorState {
+public class EditorState {
 
     /// ===== Static Members =====
     private static final Logger LOGGER = ReplayLab.getLogger("ReplayLabEditorState");
@@ -114,7 +110,7 @@ public class ReplayLabEditorState {
     private boolean pilotingCamera;
 
     /// ===== Constructors =====
-    public ReplayLabEditorState() {
+    public EditorState() {
         scene.setExceptionCallback(this::onException);
     }
 
@@ -411,7 +407,7 @@ public class ReplayLabEditorState {
     }
 
     public boolean applyOperator(ReplayOperator operator, boolean applyToGame) {
-        if (scene.applyOperator(operator)) {
+        if (scene.applyOperator(this, operator)) {
             saveSceneAsync();
             if (applyToGame) {
                 applyToGame();
@@ -422,7 +418,7 @@ public class ReplayLabEditorState {
     }
 
     public boolean undo() {
-        if (scene.undo()) {
+        if (scene.undo(this)) {
             saveSceneAsync();
             applyToGame();
             return true;
@@ -431,7 +427,7 @@ public class ReplayLabEditorState {
     }
 
     public boolean redo() {
-        if (scene.redo()) {
+        if (scene.redo(this)) {
             saveSceneAsync();
             applyToGame();
             return true;

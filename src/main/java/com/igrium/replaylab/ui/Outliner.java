@@ -1,6 +1,6 @@
 package com.igrium.replaylab.ui;
 
-import com.igrium.replaylab.editor.ReplayLabEditorState;
+import com.igrium.replaylab.editor.EditorState;
 import com.igrium.replaylab.operator.AddObjectOperator;
 import com.igrium.replaylab.operator.RemoveObjectOperator;
 import com.igrium.replaylab.operator.RenameObjectOperator;
@@ -25,7 +25,7 @@ public class Outliner {
     private RenameObjectOperator queuedRename;
     private String queuedDelete;
 
-    public void drawOutliner(ReplayLabEditorState editorState) {
+    public void drawOutliner(EditorState editorState) {
 
         // HEADER
         drawAddObjectButton(editorState);
@@ -102,7 +102,7 @@ public class Outliner {
         }
     }
 
-    private void drawAddObjectButton(ReplayLabEditorState editorState) {
+    private void drawAddObjectButton(EditorState editorState) {
         if (ImGui.button("+")) {
             ImGui.openPopup("New Object");
         }
@@ -119,7 +119,7 @@ public class Outliner {
         }
     }
 
-    private static void drawRemoveObjectButton(ReplayLabEditorState editorState) {
+    private static void drawRemoveObjectButton(EditorState editorState) {
         String selected = editorState.getSelectedObject();
         ImGui.beginDisabled(selected == null);
 

@@ -1,5 +1,6 @@
 package com.igrium.replaylab.operator;
 
+import com.igrium.replaylab.editor.EditorState;
 import com.igrium.replaylab.scene.ReplayScene;
 import com.igrium.replaylab.scene.key.KeyChannel;
 import com.igrium.replaylab.scene.obj.ReplayObject;
@@ -32,7 +33,7 @@ public class RemoveKeyframesOperator implements ReplayOperator {
     }
 
     @Override
-    public boolean execute(ReplayScene scene) {
+    public boolean execute(EditorState scene) {
         Map<String, Map<String, IntSet>> map = new HashMap<>();
         for (var keyRef : keys) {
             Map<String, IntSet> channels = map.computeIfAbsent(keyRef.object(), v -> new HashMap<>());
@@ -46,13 +47,13 @@ public class RemoveKeyframesOperator implements ReplayOperator {
 
         boolean success = false;
         for (var objEntry : map.entrySet()) {
-            ReplayObject obj = scene.getObject(objEntry.getKey());
+            ReplayObject obj = scene.getScene().getObject(objEntry.getKey());
             if (obj == null)
                 continue;
 
-            SerializedReplayObject pre = scene.getSavedObject(objEntry.getKey());
+            SerializedReplayObject pre = scene.getScene().getSavedObject(objEntry.getKey());
             if (pre == null) {
-                pre = scene.saveObject(objEntry.getKey()); // Generally shouldn't happen
+                pre = scene.getScene().saveObject(objEntry.getKey()); // Generally shouldn't happen
             }
             this.pre.put(objEntry.getKey(), pre);
 
@@ -74,7 +75,7 @@ public class RemoveKeyframesOperator implements ReplayOperator {
                 }
             }
 
-            SerializedReplayObject post = scene.saveObject(objEntry.getKey());
+            SerializedReplayObject post = scene.getScene().saveObject(objEntry.getKey());
             this.post.put(objEntry.getKey(), post);
         }
 
@@ -82,18 +83,18 @@ public class RemoveKeyframesOperator implements ReplayOperator {
     }
 
     @Override
-    public void undo(ReplayScene scene) {
+    public void undo(EditorState scene) {
         pre.forEach((name, serialized) -> {
-            scene.setSavedObject(name, serialized);
-            scene.revertObject(name);
+            scene.getScene().setSavedObject(name, serialized);
+            scene.getScene().revertObject(name);
         });
     }
 
     @Override
-    public void redo(ReplayScene scene) {
+    public void redo(EditorState scene) {
         post.forEach((name, serialized) -> {
-            scene.setSavedObject(name, serialized);
-            scene.revertObject(name);
+            scene.getScene().setSavedObject(name, serialized);
+            scene.getScene().revertObject(name);
         });
     }
 }

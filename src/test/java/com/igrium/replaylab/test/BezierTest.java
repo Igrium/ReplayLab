@@ -444,4 +444,44 @@ public class BezierTest {
 
         assertEquals(3, countNaN(roots), "All roots must be NaN (NaN propagation)");
     }
+
+    @Test
+    public void testSubdivision() {
+        Bezier2d orig = new Bezier2d(
+                new Vector2d(0.0, 0.0),
+                new Vector2d(1.0, 2.0),
+                new Vector2d(2.0, 2.0),
+                new Vector2d(3.0, 0.0)
+        );
+
+        Bezier2d left = new Bezier2d();
+        Bezier2d right = new Bezier2d();
+        orig.subdivide(left, right, 0.5);
+
+        // left: (0,0), (0.5,1), (1.0,1.5), (1.5,1.5)
+        assertEquals(0.0, left.p0x, EPSILON);
+        assertEquals(0.0, left.p0y, EPSILON);
+
+        assertEquals(0.5, left.p1x, EPSILON);
+        assertEquals(1.0, left.p1y, EPSILON);
+
+        assertEquals(1.0, left.p2x, EPSILON);
+        assertEquals(1.5, left.p2y, EPSILON);
+
+        assertEquals(1.5, left.p3x, EPSILON);
+        assertEquals(1.5, left.p3y, EPSILON);
+
+        // right: (1.5,1.5), (2.0,1.5), (2.5,1), (3,0)
+        assertEquals(1.5, right.p0x, EPSILON);
+        assertEquals(1.5, right.p0y, EPSILON);
+
+        assertEquals(2.0, right.p1x, EPSILON);
+        assertEquals(1.5, right.p1y, EPSILON);
+
+        assertEquals(2.5, right.p2x, EPSILON);
+        assertEquals(1.0, right.p2y, EPSILON);
+
+        assertEquals(3.0, right.p3x, EPSILON);
+        assertEquals(0.0, right.p3y, EPSILON);
+    }
 }

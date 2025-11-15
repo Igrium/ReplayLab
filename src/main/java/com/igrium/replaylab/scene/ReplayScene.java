@@ -3,8 +3,8 @@ package com.igrium.replaylab.scene;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.Maps;
+import com.igrium.replaylab.editor.EditorState;
 import com.igrium.replaylab.operator.ReplayOperator;
-import com.igrium.replaylab.render.VideoRenderSettings;
 import com.igrium.replaylab.scene.key.KeyChannel;
 import com.igrium.replaylab.scene.key.Keyframe;
 import com.igrium.replaylab.scene.obj.CameraProvider;
@@ -16,7 +16,6 @@ import com.igrium.replaylab.util.NameUtils;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.Setter;
-import net.minecraft.MinecraftVersion;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.entity.Entity;
 import org.jetbrains.annotations.Nullable;
@@ -354,10 +353,10 @@ public class ReplayScene {
      * @param operator Operator to execute.
      * @return <code>true</code> if the operation was successful and the operator was added to the undo stack.
      */
-    public boolean applyOperator(ReplayOperator operator) {
+    public boolean applyOperator(EditorState editorState, ReplayOperator operator) {
         boolean result;
         try {
-            result = operator.execute(this);
+            result = operator.execute(editorState);
         } catch (Exception e) {
             LOGGER.error("Error executing operator {}: ", operator.getClass().getSimpleName(), e);
             // We consider the undo/redo stack corrupted.
@@ -380,12 +379,12 @@ public class ReplayScene {
      * Undo the previous operation.
      * @return <code>true</code> if there was an operator to undo and it undid successfully.
      */
-    public boolean undo() {
+    public boolean undo(EditorState editorState) {
         if (undoStack.isEmpty()) return false;
 
         ReplayOperator op = undoStack.pop();
         try {
-            op.undo(this);
+            op.undo(editorState);
         } catch (Exception e) {
             LOGGER.error("Error undoing operator: ", e);
             undoStack.clear();
@@ -403,12 +402,12 @@ public class ReplayScene {
      * Redo the previous operation.
      * @return <code>true</code> if there was an operator to redo and it redid successfully.
      */
-    public boolean redo() {
+    public boolean redo(EditorState editorState) {
         if (redoStack.isEmpty()) return false;
 
         ReplayOperator op = redoStack.pop();
         try {
-            op.redo(this);
+            op.redo(editorState);
         } catch (Exception e) {
             LOGGER.error("Error redoing operator: ", e);
             undoStack.clear();

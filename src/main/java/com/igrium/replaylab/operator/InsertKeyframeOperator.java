@@ -1,6 +1,6 @@
 package com.igrium.replaylab.operator;
 
-import com.igrium.replaylab.scene.ReplayScene;
+import com.igrium.replaylab.editor.EditorState;
 import com.igrium.replaylab.scene.obj.ReplayObject;
 
 public class InsertKeyframeOperator extends SimpleObjectOperator {
@@ -12,7 +12,7 @@ public class InsertKeyframeOperator extends SimpleObjectOperator {
     }
 
     @Override
-    public boolean execute(ReplayScene scene, ReplayObject object) {
+    public boolean execute(EditorState scene, ReplayObject object) {
         return object.insertKey(timestamp);
     }
 }
