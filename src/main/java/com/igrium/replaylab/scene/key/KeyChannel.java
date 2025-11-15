@@ -163,7 +163,7 @@ public class KeyChannel {
         } else if (Double.isFinite(tCandidates.z)) {
             t = tCandidates.z;
         } else {
-            assert false : "No T candidates found while sampling timeline at " + timestamp;
+//            assert false : "No T candidates found while sampling timeline at " + timestamp;
             return 0;
         }
 

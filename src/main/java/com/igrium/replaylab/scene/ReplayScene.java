@@ -161,17 +161,21 @@ public class ReplayScene {
         return getKeyframe(ref.object(), ref.channel(), ref.keyframe());
     }
 
+    public @Nullable ReplayObject getSceneCameraObject(int timestamp) {
+        String objName = getSceneProps().getCameraObject();
+        if (objName == null)
+            return null;
+
+        return getObject(objName);
+    }
+
     /**
      * Get the entity responsible for providing the camera view on a given frame.
      * @param timestamp Timestamp to use.
      * @return The scene camera entity. if there is any at that timestamp.
      */
     public @Nullable Entity getSceneCamera(int timestamp) {
-        String objName = getSceneProps().getCameraObject();
-        if (objName == null)
-            return null;
-
-        ReplayObject obj = getObject(objName);
+        ReplayObject obj = getSceneCameraObject(timestamp);
         if (obj instanceof CameraProvider prov) {
             return prov.getCameraEntity();
         } else {

@@ -59,6 +59,18 @@ public abstract class ReplayObject3D extends ReplayObject implements TransformPr
     @Getter @Setter
     private @Nullable String parent;
 
+    public void setPosition(Vector3dc pos) {
+        position.set(pos);
+    }
+
+    public void setPosition(double x, double y, double z) {
+        position.set(x, y, z);
+    }
+
+    public void setPosition(Vec3d vec) {
+        position.set(vec.getX(), vec.getY(), vec.getZ());
+    }
+
     /**
      * Find this object's parent in the scene, cast it to a TransformProvider, and return it.
      * @return Parent object; <code>null</code> if the object could not be found, or it's not a TransformProvider

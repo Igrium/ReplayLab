@@ -1,5 +1,8 @@
 package com.igrium.replaylab.editor;
 
+import com.igrium.replaylab.ReplayLab;
+import com.igrium.replaylab.camera.AnimatedCameraEntity;
+import com.igrium.replaylab.operator.CommitObjectUpdateOperator;
 import com.igrium.replaylab.operator.ReplayOperator;
 import com.igrium.replaylab.playback.RealtimeScenePlayer;
 import com.igrium.replaylab.render.VideoRenderSettings;
@@ -8,6 +11,7 @@ import com.igrium.replaylab.scene.ReplayScene;
 import com.igrium.replaylab.scene.ReplayScenes;
 import com.igrium.replaylab.scene.obj.CameraProvider;
 import com.igrium.replaylab.scene.obj.ReplayObject;
+import com.igrium.replaylab.scene.obj.ReplayObject3D;
 import com.replaymod.replay.ReplayHandler;
 import com.replaymod.replay.ReplayModReplay;
 import com.replaymod.replaystudio.replay.ReplayFile;
@@ -16,8 +20,10 @@ import lombok.Getter;
 import lombok.NonNull;
 import lombok.Setter;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.entity.Entity;
 import net.minecraft.util.Util;
+import net.minecraft.util.math.Vec3d;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
@@ -41,7 +47,7 @@ import java.util.function.Predicate;
 public class ReplayLabEditorState {
 
     /// ===== Static Members =====
-    private static final Logger LOGGER = LoggerFactory.getLogger(ReplayLabEditorState.class);
+    private static final Logger LOGGER = ReplayLab.getLogger("ReplayLabEditorState");
 
     private static @Nullable ReplayHandler getReplayHandler() {
         return ReplayModReplay.instance.getReplayHandler();
@@ -62,6 +68,8 @@ public class ReplayLabEditorState {
     }
 
     /// ===== Fields =====
+
+    private final MinecraftClient mc = MinecraftClient.getInstance();
 
     @Getter
     private final ImInt playheadRef = new ImInt(0);
@@ -101,6 +109,9 @@ public class ReplayLabEditorState {
      */
     @Getter @Setter @Nullable
     private VideoRenderer renderer;
+
+    @Getter
+    private boolean pilotingCamera;
 
     /// ===== Constructors =====
     public ReplayLabEditorState() {
@@ -262,6 +273,50 @@ public class ReplayLabEditorState {
 
     /// ===== Playback =====
 
+    public void onPreRender() {
+        if (scenePlayer != null && scenePlayer.isActive()) {
+            setPlayhead(scenePlayer.getTimePassed());
+        }
+        if (isCameraView()) {
+            spectateCamera();
+
+            Entity cameraEnt = scene.getSceneCamera(getPlayhead());
+            ReplayObject cameraObj = scene.getSceneCameraObject(getPlayhead());
+
+            ClientPlayerEntity player = mc.player;
+
+            // Pilot the camera if cursor is locked
+            if (mc.mouse.isCursorLocked() && cameraObj instanceof ReplayObject3D cam3d && player != null) {
+                pilotingCamera = true;
+                cam3d.setPosition(player.getEyePos());
+                cam3d.getRotation().x = player.getPitch();
+                cam3d.getRotation().y = player.getYaw();
+
+                cam3d.apply(getPlayhead());
+
+            }
+            else if (pilotingCamera && cameraObj != null) {
+                // Apply camera move
+//                applyOperator(new CommitObjectUpdateOperator(cameraObj.getId()));
+                pilotingCamera = false;
+
+            }
+            else if (cameraEnt != null && player != null) {
+                // TP player to camera
+                player.refreshPositionAndAngles(cameraEnt.getX(), cameraEnt.getY() - player.getStandingEyeHeight(), cameraEnt.getZ(),
+                        cameraEnt.getYaw(), cameraEnt.getPitch());
+            }
+
+        } else {
+            pilotingCamera = false;
+        }
+    }
+
+    private static void tpEyePos(Entity srcEnt, Entity destEnt) {
+        Vec3d srcPos = srcEnt.getEyePos();
+        destEnt.setPos(srcPos.getX(), srcPos.getY() - destEnt.getStandingEyeHeight(), srcPos.getZ());
+    }
+
     public boolean isPlaying() {
         return scenePlayer != null && scenePlayer.isActive();
     }
@@ -300,14 +355,6 @@ public class ReplayLabEditorState {
         });
     }
 
-    public void onPreRender() {
-        if (scenePlayer != null && scenePlayer.isActive()) {
-            setPlayhead(scenePlayer.getTimePassed());
-        }
-        if (isCameraView()) {
-            spectateCamera();
-        }
-    }
 
     public void doTimeJump() {
         if (isPlaying()) {
