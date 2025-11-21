@@ -48,7 +48,7 @@ public final class Keyframe implements Comparable<Keyframe> {
         return (int) center.x();
     }
 
-    public void setTime(int time) {
+    public void setTime(double time) {
         center.x = time;
     }
 
@@ -82,6 +82,32 @@ public final class Keyframe implements Comparable<Keyframe> {
 
     public double getGlobalBY() {
         return center.y + handleB.y;
+    }
+
+    public void setGlobalAX(double x) {
+        handleA.x = x - center.x;
+    }
+
+    public void setGlobalAY(double y) {
+        handleA.y = y - center.y;
+    }
+
+    public void setGlobalA(double x, double y) {
+        setGlobalAX(x);
+        setGlobalAY(y);
+    }
+
+    public void setGlobalBX(double x) {
+        handleB.x = x - center.x;
+    }
+
+    public void setGlobalBY(double y) {
+        handleB.y = y - center.y;
+    }
+
+    public void setGlobalB(double x, double y) {
+        setGlobalBX(x);
+        setGlobalBY(y);
     }
 
     public double getHandleX(int handle) {

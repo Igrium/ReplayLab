@@ -2,14 +2,18 @@ package com.igrium.replaylab.scene.key;
 
 import com.google.gson.*;
 import com.google.gson.annotations.JsonAdapter;
+import com.igrium.replaylab.ReplayLab;
 import com.igrium.replaylab.editor.KeySelectionSet;
 import com.igrium.replaylab.math.Bezier2d;
+import com.igrium.replaylab.math.Bezier2dc;
+import com.igrium.replaylab.math.Beziers;
 import it.unimi.dsi.fastutil.ints.IntAVLTreeSet;
 import it.unimi.dsi.fastutil.ints.IntSet;
 import lombok.Getter;
 import lombok.Setter;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Vector3d;
+import org.slf4j.Logger;
 
 import java.lang.reflect.Type;
 import java.util.ArrayList;
@@ -23,6 +27,8 @@ import java.util.stream.IntStream;
  */
 @JsonAdapter(KeyChannelSerializer.class)
 public class KeyChannel {
+
+    private static final Logger LOGGER = ReplayLab.getLogger("KeyChannel");
 
     @Getter
     private final List<Keyframe> keyframes;
@@ -51,7 +57,7 @@ public class KeyChannel {
      * Add a keyframe to this channel.
      * If there is already a keyframe at that timestamp, replace its value with the new value.
      * @param timestamp Timestamp to add at.
-     * @param value Value to give the new keyframe.
+     * @param value Value to give the new keyframe. <code>NaN</code> to automatically generate.
      * @return A reference to the added keyframe. Use to adjust interpolation, etc.
      */
     public Keyframe addKeyframe(int timestamp, double value) {
@@ -61,9 +67,50 @@ public class KeyChannel {
                 return key;
             }
         }
-        var key = new Keyframe(timestamp, value);
-        keyframes.add(key);
-        return key;
+
+//        Keyframe keyframe;
+//        if (!Double.isFinite(value)) {
+//            Keyframe[] keys = this.keyframes.toArray(Keyframe[]::new);
+//            if (keys.length == 0) {
+//                LOGGER.warn("Cannot automatically generate keyframe value when no keys are present!");
+//                keyframe = new Keyframe(timestamp, 0);
+//            } else if (keys.length == 1) {
+//                keyframe = new Keyframe(timestamp, keys[0].getValue());
+//            } else {
+//                Arrays.sort(keys);
+//                int prevIndex = findKeyIndex(keys, timestamp);
+//                Keyframe prev = prevIndex >= 0 ? keys[0] : null;
+//                Keyframe next = prevIndex >= 0 && prevIndex + 1 < keys.length ? keys[prevIndex + 1] : null;
+//
+//                if (prev != null && next != null) {
+//                    Bezier2d bezier = Beziers.fromKeyframes(prev, next, new Bezier2d());
+//
+//                    double t = intersectX(bezier, timestamp);
+//                    Bezier2d leftCurve = new Bezier2d();
+//                    Bezier2d rightCurve = new Bezier2d();
+//                    bezier.subdivide(leftCurve, rightCurve, t);
+//
+//                    keyframe = new Keyframe(timestamp, bezier.sampleY(t));
+//                    Beziers.toLeftKeyframe(prev, leftCurve);
+//                    Beziers.toRightKeyframe(keyframe, leftCurve);
+//
+//                    Beziers.toLeftKeyframe(keyframe, rightCurve);
+//                    Beziers.toRightKeyframe(next, rightCurve);
+//                } else if (prev != null) {
+//                    keyframe = new Keyframe(timestamp, prev.getValue());
+//                } else if (next != null) {
+//                    keyframe = new Keyframe(timestamp, next.getValue());
+//                } else {
+//                    throw new RuntimeException("Both previous and next keyframes were null. This should not happen.");
+//                }
+//            }
+//        } else {
+//            keyframe = new Keyframe(timestamp, value);
+//        }
+
+        Keyframe keyframe = new Keyframe(timestamp, value);
+        this.keyframes.add(keyframe);
+        return keyframe;
     }
 
     /**
@@ -168,17 +215,12 @@ public class KeyChannel {
         Keyframe key = keys[keyIndex];
         Keyframe next = keys[nextIndex];
 
-        Bezier2d bezier = new Bezier2d();
+        Bezier2d bezier = Beziers.fromKeyframes(key, next, new Bezier2d());
+        double t = intersectX(bezier, timestamp);
+        return bezier.sampleY(t);
+    }
 
-        bezier.setP0(key.getCenter());
-        bezier.setP3(next.getCenter());
-
-        bezier.p1x = key.getHandleB().x + key.getCenter().x;
-        bezier.p1y = key.getHandleB().y + key.getCenter().y;
-
-        bezier.p2x = next.getHandleA().x + next.getCenter().x;
-        bezier.p2y = next.getHandleA().y + next.getCenter().y;
-
+    private static double intersectX(Bezier2dc bezier, double timestamp) {
         Vector3d tCandidates = bezier.intersectX(timestamp, new Vector3d());
 
         double t;
@@ -189,11 +231,11 @@ public class KeyChannel {
         } else if (Double.isFinite(tCandidates.z)) {
             t = tCandidates.z;
         } else {
-//            assert false : "No T candidates found while sampling timeline at " + timestamp;
+            LOGGER.warn("No T candidates found while sampling timeline at {}", timestamp);
             return 0;
         }
 
-        return bezier.sampleY(t);
+        return t;
     }
 
     /**

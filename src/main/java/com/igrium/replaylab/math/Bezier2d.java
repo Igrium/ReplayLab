@@ -343,35 +343,35 @@ public final class Bezier2d implements Bezier2dc {
         t = Math.clamp(t, 0, 1);
 
         // Yeah I know we're allocating here but this gets called very infrequently.
-        Vector4d d1 = new Vector4d();
-        Vector4d d2 = new Vector4d();
+        double[] d1 = new double[4];
+        double[] d2 = new double[4];
 
         // subdivide X
         subdivide1d(p0x, p1x, p2x, p3x, t, d1, d2);
-        dest1.p0x = d1.x;
-        dest1.p1x = d1.y;
-        dest1.p2x = d1.z;
-        dest1.p3x = d1.w;
+        dest1.p0x = d1[0];
+        dest1.p1x = d1[1];
+        dest1.p2x = d1[2];
+        dest1.p3x = d1[3];
 
-        dest2.p0x = d2.x;
-        dest2.p1x = d2.y;
-        dest2.p2x = d2.z;
-        dest2.p3x = d2.w;
+        dest2.p0x = d2[0];
+        dest2.p1x = d2[1];
+        dest2.p2x = d2[2];
+        dest2.p3x = d2[3];
 
         // subdivide Y
         subdivide1d(p0y, p1y, p2y, p3y, t, d1, d2);
-        dest1.p0y = d1.x;
-        dest1.p1y = d1.y;
-        dest1.p2y = d1.z;
-        dest1.p3y = d1.w;
+        dest1.p0y = d1[0];
+        dest1.p1y = d1[1];
+        dest1.p2y = d1[2];
+        dest1.p3y = d1[3];
 
-        dest2.p0y = d2.x;
-        dest2.p1y = d2.y;
-        dest2.p2y = d2.z;
-        dest2.p3y = d2.w;
+        dest2.p0y = d2[0];
+        dest2.p1y = d2[1];
+        dest2.p2y = d2[2];
+        dest2.p3y = d2[3];
     }
 
-    private static void subdivide1d(double p0, double p1, double p2, double p3, double t, Vector4d dest1, Vector4d dest2) {
+    private static void subdivide1d(double p0, double p1, double p2, double p3, double t, double[] dest1, double[] dest2) {
         double p01 = lerp(p0, p1, t);
         double p12 = lerp(p1, p2, t);
         double p23 = lerp(p2, p3, t);
@@ -381,15 +381,15 @@ public final class Bezier2d implements Bezier2dc {
 
         double p0123 = lerp(p012, p123, t); // The point on the curve
 
-        dest1.x = p0;
-        dest1.y = p01;
-        dest1.z = p012;
-        dest1.w = p0123;
+        dest1[0] = p0;
+        dest1[1] = p01;
+        dest1[2] = p012;
+        dest1[3] = p0123;
 
-        dest2.x = p0123;
-        dest2.y = p123;
-        dest2.z = p23;
-        dest2.w = p3;
+        dest2[0] = p0123;
+        dest2[1] = p123;
+        dest2[2] = p23;
+        dest2[3] = p3;
     }
 
     private static final double SQRT_3 = Math.sqrt(3);
