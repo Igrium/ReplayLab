@@ -215,7 +215,7 @@ public class DopeSheet {
             selected.forSelectedKeyframes(ref -> {
                 Keyframe keyframe = ref.get(scene.getObjects());
                 if (keyframe != null) {
-                    keyDragOffsets.put(ref, keyframe.getTime());
+                    keyDragOffsets.put(ref, keyframe.getTimeInt());
                 }
             });
             startedDraggingKeys = true;
@@ -487,7 +487,7 @@ public class DopeSheet {
                 KeyChannel channel = chEntry.getValue();
 
                 for (int keyIndex = 0; keyIndex < channel.getKeyframes().size(); keyIndex++) {
-                    int keyTime = channel.getKeyframes().get(keyIndex).getTime();
+                    int keyTime = channel.getKeyframes().get(keyIndex).getTimeInt();
                     int categoryIndex;
                     Set<ChannelKeyRef> keyRefs;
                     if (keyIndexCache.containsKey(keyTime)) {
@@ -592,7 +592,7 @@ public class DopeSheet {
         BiFloatFunction<Integer> getHoveredKey = (posX, posY) -> {
             int i = 0;
             for (var key : keys) {
-                float centerX = cursorX + (key.getTime()) * zoomFactor;
+                float centerX = cursorX + (key.getTimeInt()) * zoomFactor;
                 if (centerX - keyRadius - 2 < posX && posX < centerX + keyRadius + 2
                         && centerY - keyRadius - 2 <= posY && posY <= centerY + keyRadius + 2) {
                     return i;
@@ -624,7 +624,7 @@ public class DopeSheet {
             boolean selected = isSelected.test(i);
             int keyColor = selected ? ImColor.rgb(1f, 1f, 1f) : ImColor.rgb(.5f, .5f, .5f);
 
-            float centerX = cursorX + (key.getTime()) * zoomFactor;
+            float centerX = cursorX + (key.getTimeInt()) * zoomFactor;
             drawList.addNgonFilled(centerX, centerY, keyRadius, keyColor, 4);
             i++;
         }

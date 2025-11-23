@@ -62,51 +62,11 @@ public class KeyChannel {
      */
     public Keyframe addKeyframe(int timestamp, double value) {
         for (var key : keyframes) {
-            if (key.getTime() == timestamp) {
+            if (key.getTimeInt() == timestamp) {
                 key.setValue(value);
                 return key;
             }
         }
-
-//        Keyframe keyframe;
-//        if (!Double.isFinite(value)) {
-//            Keyframe[] keys = this.keyframes.toArray(Keyframe[]::new);
-//            if (keys.length == 0) {
-//                LOGGER.warn("Cannot automatically generate keyframe value when no keys are present!");
-//                keyframe = new Keyframe(timestamp, 0);
-//            } else if (keys.length == 1) {
-//                keyframe = new Keyframe(timestamp, keys[0].getValue());
-//            } else {
-//                Arrays.sort(keys);
-//                int prevIndex = findKeyIndex(keys, timestamp);
-//                Keyframe prev = prevIndex >= 0 ? keys[0] : null;
-//                Keyframe next = prevIndex >= 0 && prevIndex + 1 < keys.length ? keys[prevIndex + 1] : null;
-//
-//                if (prev != null && next != null) {
-//                    Bezier2d bezier = Beziers.fromKeyframes(prev, next, new Bezier2d());
-//
-//                    double t = intersectX(bezier, timestamp);
-//                    Bezier2d leftCurve = new Bezier2d();
-//                    Bezier2d rightCurve = new Bezier2d();
-//                    bezier.subdivide(leftCurve, rightCurve, t);
-//
-//                    keyframe = new Keyframe(timestamp, bezier.sampleY(t));
-//                    Beziers.toLeftKeyframe(prev, leftCurve);
-//                    Beziers.toRightKeyframe(keyframe, leftCurve);
-//
-//                    Beziers.toLeftKeyframe(keyframe, rightCurve);
-//                    Beziers.toRightKeyframe(next, rightCurve);
-//                } else if (prev != null) {
-//                    keyframe = new Keyframe(timestamp, prev.getValue());
-//                } else if (next != null) {
-//                    keyframe = new Keyframe(timestamp, next.getValue());
-//                } else {
-//                    throw new RuntimeException("Both previous and next keyframes were null. This should not happen.");
-//                }
-//            }
-//        } else {
-//            keyframe = new Keyframe(timestamp, value);
-//        }
 
         Keyframe keyframe = new Keyframe(timestamp, value);
         this.keyframes.add(keyframe);
@@ -126,11 +86,11 @@ public class KeyChannel {
         while (iter.hasNext()) {
             Keyframe key = iter.next();
 
-            if (occupied.contains(key.getTime())) {
+            if (occupied.contains(key.getTimeInt())) {
                 iter.remove();
                 success = true;
             } else {
-                occupied.add(key.getTime());
+                occupied.add(key.getTimeInt());
             }
         }
         return success;
@@ -222,7 +182,7 @@ public class KeyChannel {
 
     private static double intersectX(Bezier2dc bezier, double timestamp) {
         Vector3d tCandidates = bezier.intersectX(timestamp, new Vector3d());
-
+//        LOGGER.info("TS: {}, cand=({} {} {}}", timestamp, tCandidates.x, tCandidates.y, tCandidates.z);
         double t;
         if (Double.isFinite(tCandidates.x)) {
             t = tCandidates.x;
@@ -252,18 +212,18 @@ public class KeyChannel {
         int left = 0;
         int right = keys.length - 1;
 
-        if (keys[left].getTime() > timestamp) {
+        if (keys[left].getTimeInt() > timestamp) {
             return -1;
         }
-        if (keys[right].getTime() <= timestamp) {
+        if (keys[right].getTimeInt() <= timestamp) {
             return right;
         }
         // Modified binary search
         while (right - left > 1) {
             int mid = left + (right - left) / 2;
-            if (keys[mid].getTime() <= timestamp) { // too low
+            if (keys[mid].getTimeInt() <= timestamp) { // too low
                 left = mid;
-            } else if (keys[mid].getTime() > timestamp) { // too high
+            } else if (keys[mid].getTimeInt() > timestamp) { // too high
                 right = mid;
             }
         }

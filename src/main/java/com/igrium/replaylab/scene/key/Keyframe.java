@@ -6,6 +6,7 @@ import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonWriter;
 import lombok.Getter;
 import lombok.NonNull;
+import lombok.Setter;
 import org.jetbrains.annotations.NotNull;
 import org.joml.Vector2d;
 
@@ -18,6 +19,11 @@ import java.io.IOException;
  * but it's only intended to be used as an integer.
  */
 public final class Keyframe implements Comparable<Keyframe> {
+
+    public enum HandleType {
+        FREE, ALIGNED, VECTOR, AUTO, AUTO_CLAMPED
+    }
+
     /**
      * The (mutable) center point of the keyframe. The X axis is time and the Y axis is the value.
      */
@@ -36,6 +42,12 @@ public final class Keyframe implements Comparable<Keyframe> {
     @Getter @JsonAdapter(Vector2dSerializer.class)
     private final @NonNull Vector2d handleB = new Vector2d(20.0, 0.0);
 
+    @Getter @Setter
+    private HandleType handleAType = HandleType.AUTO_CLAMPED;
+
+    @Getter @Setter
+    private HandleType handleBType = HandleType.AUTO_CLAMPED;
+
     public Keyframe(int time, double value) {
         center.set(time, value);
     }
@@ -44,8 +56,12 @@ public final class Keyframe implements Comparable<Keyframe> {
         copyFrom(other);
     }
 
-    public int getTime() {
+    public int getTimeInt() {
         return (int) center.x();
+    }
+
+    public double getTime() {
+        return center.x();
     }
 
     public void setTime(double time) {
@@ -58,6 +74,11 @@ public final class Keyframe implements Comparable<Keyframe> {
 
     public void setValue(double value) {
         center.y = value;
+    }
+
+    public void setHandleType(HandleType handleType) {
+        setHandleAType(handleType);
+        setHandleBType(handleType);
     }
 
     public Vector2d getGlobalA(Vector2d dest) {
@@ -128,23 +149,38 @@ public final class Keyframe implements Comparable<Keyframe> {
         };
     }
 
-    /**
-     * Called when the keyframe connected to Handle A has been moved.
-     * @param prevConnection The previous version of the keyframe (a copy)
-     * @param nextConnection The new version of the keyframe
-     */
-    public void updateHandleA(Keyframe prevConnection, Keyframe nextConnection) {
+    private double estimateAutoTangent(Keyframe[] channel, int index) {
+        if (index <= 0) {
+            Keyframe next = channel[1];
+            return (next.center.y - center.y) / (next.center.x - center.x);
+        } else if (index >= channel.length - 1) {
+            Keyframe prev = channel[index - 1];
+            return (center.y - prev.center.y) / (center.x - prev.center.x);
+        } else {
+            Keyframe next = channel[index + 1];
+            Keyframe prev = channel[index - 1];
 
+            return (next.center.y - prev.center.y) / (next.center.x - prev.center.x);
+        }
     }
 
-    /**
-     * Called when the keyframe connected to Handle B has been moved.
-     * @param prevConnection The previous version of the keyframe (a copy)
-     * @param nextConnection The new version of the keyframe
-     */
-    public void updateHandleB(Keyframe prevConnection, Keyframe nextConnection) {
-
-    }
+//    /**
+//     * Called when the keyframe connected to Handle A has been moved.
+//     * @param prevConnection The previous version of the keyframe (a copy)
+//     * @param nextConnection The new version of the keyframe
+//     */
+//    public void updateHandleA(Keyframe prevConnection, Keyframe nextConnection) {
+//
+//    }
+//
+//    /**
+//     * Called when the keyframe connected to Handle B has been moved.
+//     * @param prevConnection The previous version of the keyframe (a copy)
+//     * @param nextConnection The new version of the keyframe
+//     */
+//    public void updateHandleB(Keyframe prevConnection, Keyframe nextConnection) {
+//
+//    }
 
     public void copyFrom(Keyframe other) {
         this.center.set(other.center);
@@ -154,7 +190,7 @@ public final class Keyframe implements Comparable<Keyframe> {
 
     @Override
     public int compareTo(@NotNull Keyframe o) {
-        return getTime() - o.getTime();
+        return getTimeInt() - o.getTimeInt();
     }
 
     private static class Vector2dSerializer extends TypeAdapter<Vector2d> {

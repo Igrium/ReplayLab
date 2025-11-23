@@ -63,6 +63,7 @@ public class CurveEditor {
     /**
      * The amount of ms / value units offset from the mouse that each key being dragged has.
      */
+    @Getter
     private final Map<KeyHandleReference, Vector2dc> keyDragOffsets = new HashMap<>();
 
     private record KeyOffsetPair(KeyHandleReference ref, Vector2dc offset) {};

@@ -9,6 +9,9 @@ import com.igrium.replaylab.operator.RemoveKeyframesOperator;
 import com.igrium.replaylab.operator.RemoveObjectOperator;
 import com.igrium.replaylab.render.VideoRenderSettings;
 import com.igrium.replaylab.scene.ReplayScene;
+import com.igrium.replaylab.scene.key.ChannelOperators;
+import com.igrium.replaylab.scene.key.KeyChannel;
+import com.igrium.replaylab.scene.key.Keyframe;
 import com.igrium.replaylab.scene.obj.ReplayObject;
 import com.igrium.replaylab.scene.objs.ScenePropsObject;
 import com.igrium.replaylab.ui.util.ExceptionPopup;
@@ -403,6 +406,29 @@ public class ReplayLabUI extends DockSpaceApp {
             } else if (curveEditor.isScrubbing()) {
                 wantsApplyToGame = true;
             }
+
+//            for (var handleRef : curveEditor.getKeyDragOffsets().keySet()) {
+//                // Any handle which is manually dragged must use manual mode
+//                if (handleRef.handleIndex() == 0) continue;
+//
+//                Keyframe key = handleRef.keyRef().get(editorState.getScene().getObjects());
+//                if (key == null) continue;
+//
+//                switch(handleRef.handleIndex()) {
+//                    case 1 -> key.setHandleAType(Keyframe.HandleType.FREE);
+//                    case 2 -> key.setHandleBType(Keyframe.HandleType.FREE);
+//                }
+//            }
+
+            // Recompute handles
+            curveEditor.getKeyDragOffsets().keySet().stream()
+                    .map(ref -> ref.keyRef().channelRef())
+                    .distinct().forEach(chRef -> {
+                        KeyChannel ch = chRef.get(editorState.getScene().getObjects());
+                        if (ch != null) {
+                            ChannelOperators.computeAutoHandles(ch);
+                        }
+                    });
 
             if (!curveEditor.getUpdatedObjects().isEmpty()) {
                 editorState.applyOperator(new CommitObjectUpdateOperator(curveEditor.getUpdatedObjects()));

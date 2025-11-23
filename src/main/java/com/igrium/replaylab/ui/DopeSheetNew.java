@@ -14,14 +14,11 @@ import imgui.flag.*;
 import imgui.type.ImInt;
 import lombok.Getter;
 import lombok.Setter;
-import org.apache.commons.lang3.mutable.MutableBoolean;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
-import java.util.function.BiConsumer;
 import java.util.function.BiPredicate;
 import java.util.function.IntPredicate;
-import java.util.function.Predicate;
 
 public class DopeSheetNew {
     /**
@@ -166,7 +163,7 @@ public class DopeSheetNew {
                     boolean selected = isSelected.test(i);
                     int keyColor = selected ? ImColor.rgb(1f, 1f, 1f) : ImColor.rgb(.5f, .5f, .5f);
 
-                    float centerX = msToPixelX(key.getTime()) + graphX;
+                    float centerX = msToPixelX(key.getTimeInt()) + graphX;
                     drawList.addNgonFilled(centerX, centerY, keyRadius, keyColor, 4);
                     i++;
                 }
