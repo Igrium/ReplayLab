@@ -1,7 +1,7 @@
 package com.igrium.replaylab;
 
 import com.igrium.craftui.app.AppManager;
-import com.igrium.replaylab.testcommands.PrintCameraCommand;
+import com.igrium.replaylab.debug.PrintCameraCommand;
 import com.igrium.replaylab.ui.ReplayLabUI;
 import com.replaymod.core.ReplayMod;
 import com.replaymod.replay.ReplayModReplay;

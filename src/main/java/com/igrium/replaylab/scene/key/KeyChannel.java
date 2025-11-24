@@ -3,6 +3,7 @@ package com.igrium.replaylab.scene.key;
 import com.google.gson.*;
 import com.google.gson.annotations.JsonAdapter;
 import com.igrium.replaylab.ReplayLab;
+import com.igrium.replaylab.debug.TimelineDebugScreen;
 import com.igrium.replaylab.editor.KeySelectionSet;
 import com.igrium.replaylab.math.Bezier2d;
 import com.igrium.replaylab.math.Bezier2dc;
@@ -176,28 +177,9 @@ public class KeyChannel {
         Keyframe next = keys[nextIndex];
 
         Bezier2d bezier = Beziers.fromKeyframes(key, next, new Bezier2d());
-        double t = intersectX(bezier, timestamp);
+        double t = Beziers.intersectX(bezier, timestamp);
         return bezier.sampleY(t);
     }
-
-    private static double intersectX(Bezier2dc bezier, double timestamp) {
-        Vector3d tCandidates = bezier.intersectX(timestamp, new Vector3d());
-//        LOGGER.info("TS: {}, cand=({} {} {}}", timestamp, tCandidates.x, tCandidates.y, tCandidates.z);
-        double t;
-        if (Double.isFinite(tCandidates.x)) {
-            t = tCandidates.x;
-        } else if (Double.isFinite(tCandidates.y)) {
-            t = tCandidates.y;
-        } else if (Double.isFinite(tCandidates.z)) {
-            t = tCandidates.z;
-        } else {
-            LOGGER.warn("No T candidates found while sampling timeline at {}", timestamp);
-            return 0;
-        }
-
-        return t;
-    }
-
     /**
      * Find the index of the keyframe directly to the left of the given timestamp.
      * Specifically, return the index of the greatest key less than or equal to the timestamp.

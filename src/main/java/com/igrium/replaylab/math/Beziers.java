@@ -46,4 +46,44 @@ public class Beziers {
         bezier.getP3(keyframe.getCenter());
         keyframe.setGlobalA(bezier.p2x(), bezier.p2y());
     }
+
+    /**
+     * Find the parameter t in [0,1] such that the Bezier curve's X coordinate equals the given xSample.
+     *
+     * <p>Uses a simple Newton–Raphson iteration with a linear initial guess (based on end points)
+     * to invert the cubic Bezier's X component. The result is clamped to [0,1]. Iteration stops
+     * when the error is below a small epsilon, the derivative is too small, or a max iteration
+     * count is reached.</p>
+     *
+     * @param bezier the Bezier curve to invert (provides p0x..p3x and sampling/derivative helpers)
+     * @param xSample the X value to find the corresponding parameter t for
+     * @return a value t in [0,1] such that bezier.sampleX(t) ≈ xSample; if convergence fails
+     *         the best found/clamped t is returned
+     * @implNote I vibe-coded this because I hate math. Bite me.
+     */
+    public static double intersectX(Bezier2dc bezier, double xSample) {
+        // Initial guess assumes a linear mapping
+        double t = (xSample - bezier.p0x()) / (bezier.p3x() - bezier.p0x());
+        t = Math.max(0.0, Math.min(1.0, t)); // Clamp to [0, 1]
+
+        // Newton-Raphson iterations
+        final int MAX_ITER = 7;
+        final double EPS = 1e-9;
+        for (int i = 0; i < MAX_ITER; i++) {
+            double bx = bezier.sampleX(t); // Evaluate Bezier at t
+            double dbx = Bezier2d.derive(t, bezier.p0x(), bezier.p1x(), bezier.p2x(), bezier.p3x()); // Derivative
+
+            double err = bx - xSample;
+            if (Math.abs(err) < EPS) {
+                break; // Converged!
+            }
+            if (Math.abs(dbx) < EPS) {
+                // Derivative too close to zero; fallback to previous t
+                break;
+            }
+            t -= err / dbx;
+            t = Math.max(0.0, Math.min(1.0, t));
+        }
+        return t;
+    }
 }

@@ -1,4 +1,4 @@
-package com.igrium.replaylab.testcommands;
+package com.igrium.replaylab.debug;
 
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.context.CommandContext;

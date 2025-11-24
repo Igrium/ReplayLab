@@ -2,6 +2,7 @@ package com.igrium.replaylab.math;
 
 import org.joml.*;
 
+import javax.swing.text.NumberFormatter;
 import java.lang.Math;
 import static org.joml.Math.lerp;
 
@@ -490,5 +491,10 @@ public final class Bezier2d implements Bezier2dc {
             case 1 -> vec.y = val;
             case 2 -> vec.z = val;
         }
+    }
+
+    @Override
+    public String toString() {
+        return String.format("[(%f,%f), (%f,%f), (%f,%f), (%f,%f)]", p0x, p0y, p1x, p1y, p2x, p2y, p3x, p3y);
     }
 }

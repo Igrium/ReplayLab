@@ -2,6 +2,7 @@ package com.igrium.replaylab.ui;
 
 
 import com.igrium.craftui.app.DockSpaceApp;
+import com.igrium.replaylab.debug.TimelineDebugScreen;
 import com.igrium.replaylab.editor.EditorState;
 import com.igrium.replaylab.operator.InsertKeyframeOperator;
 import com.igrium.replaylab.operator.CommitObjectUpdateOperator;
@@ -11,7 +12,6 @@ import com.igrium.replaylab.render.VideoRenderSettings;
 import com.igrium.replaylab.scene.ReplayScene;
 import com.igrium.replaylab.scene.key.ChannelOperators;
 import com.igrium.replaylab.scene.key.KeyChannel;
-import com.igrium.replaylab.scene.key.Keyframe;
 import com.igrium.replaylab.scene.obj.ReplayObject;
 import com.igrium.replaylab.scene.objs.ScenePropsObject;
 import com.igrium.replaylab.ui.util.ExceptionPopup;
@@ -163,6 +163,8 @@ public class ReplayLabUI extends DockSpaceApp {
         drawSceneProperties();
         ExportWindow.drawExportWindow(editorState, editorState.getScene().getSceneProps().getRenderSettings());
         ExportProgressWindow.drawExportProgress(editorState);
+
+        TimelineDebugScreen.drawDebugScreen();
 
         if (!firstFrame) {
             exceptionPopup.render();

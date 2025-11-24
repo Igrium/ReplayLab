@@ -39,7 +39,7 @@ public class ChannelOperators {
             double tangent = tangents[i];
 
             // incoming (left) handle
-            if (i > 0 && (key.getHandleAType() == HandleType.AUTO)) {
+            if (i > 0 && isAuto(key.getHandleAType())) {
                 double prevDt = key.getTime() - keys[i - 1].getTime();
                 double offsetTime = prevDt / 3.0;
                 double offsetValue = tangent * offsetTime;
@@ -49,7 +49,7 @@ public class ChannelOperators {
 
 
             // outgoing (right) handle
-            if (i < keys.length - 1 && (key.getHandleBType() == HandleType.AUTO)) {
+            if (i < keys.length - 1 && isAuto(key.getHandleBType())) {
                 double nextDt = keys[i + 1].getTime() - key.getTime();
                 double offsetTime = nextDt / 3.0;
                 double offsetValue = tangent * offsetTime;
@@ -62,5 +62,9 @@ public class ChannelOperators {
         Keyframe[] keyframes = channel.getKeyframes().toArray(Keyframe[]::new);
         Arrays.sort(keyframes);
         computeAutoHandles(keyframes);
+    }
+
+    private static boolean isAuto(HandleType handleType) {
+        return handleType == HandleType.AUTO || handleType == HandleType.AUTO_CLAMPED;
     }
 }
