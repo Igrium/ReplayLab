@@ -291,6 +291,24 @@ public class KeySelectionSet {
         return dest;
     }
 
+    /**
+     * Get a set of all "effectively" selected handles,
+     * meaning that a center handle will treat its two children as selected rather than selecting itself.
+     * @return Immutable set of all selected handles
+     */
+    public Set<KeyHandleReference> effectiveSelectedHandles() {
+        Set<KeyHandleReference> dest = new HashSet<>();
+        forSelectedHandles(ref -> {
+            if (ref.handleIndex == 0) {
+                dest.add(new KeyHandleReference(ref.keyRef, 1));
+                dest.add(new KeyHandleReference(ref.keyRef, 2));
+            } else {
+                dest.add(ref);
+            }
+        });
+        return dest;
+    }
+
     public boolean isEmpty() {
         return selected.isEmpty();
     }

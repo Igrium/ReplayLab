@@ -670,9 +670,66 @@ public class CurveEditor {
             }
 
             if (ImGui.beginPopup("contextMenu")) {
+
                 ImGui.menuItem("Test menu item");
+
+                // Handle selection
                 if (ImGui.beginMenu("Handle Type")) {
-                    ImGui.menuItem("Vector");
+                    // If every selected handle has the same handle type, find it.
+                    Keyframe.HandleType handleType = null;
+                    for (KeyHandleReference handle : selectedKeys.effectiveSelectedHandles()) {
+                        Keyframe key = handle.keyRef().get(scene.getObjects());
+                        if (key != null) {
+                            Keyframe.HandleType type = switch(handle.handleIndex()) {
+                                case 1 -> key.getHandleAType();
+                                case 2 -> key.getHandleBType();
+                                default -> null;
+                            };
+
+                            if (type == null) continue; // Shouldn't happen
+
+                            if (handleType == null) {
+                                handleType = type;
+                            } else if (handleType != type) {
+                                handleType = null;
+                                break;
+                            }
+                        }
+                    }
+
+
+                    Keyframe.HandleType newHandleType = null;
+
+                    if (ImGui.menuItem("Free", "", handleType == Keyframe.HandleType.FREE)) {
+                        newHandleType = Keyframe.HandleType.FREE;
+                    }
+                    if (ImGui.menuItem("Aligned", "", handleType == Keyframe.HandleType.ALIGNED)) {
+                        newHandleType = Keyframe.HandleType.ALIGNED;
+                    }
+                    if (ImGui.menuItem("Vector", "", handleType == Keyframe.HandleType.VECTOR)) {
+                        newHandleType = Keyframe.HandleType.VECTOR;
+                    }
+                    if (ImGui.menuItem("Automatic", "", handleType == Keyframe.HandleType.AUTO)) {
+                        newHandleType = Keyframe.HandleType.AUTO;
+                    }
+                    if (ImGui.menuItem("Auto Clamped", "", handleType == Keyframe.HandleType.AUTO_CLAMPED)) {
+                        newHandleType = Keyframe.HandleType.AUTO_CLAMPED;
+                    }
+
+                    if (newHandleType != null) {
+                        for (KeyHandleReference ref : selectedKeys.effectiveSelectedHandles()) {
+                            Keyframe keyframe = ref.keyRef().get(scene.getObjects());
+                            if (keyframe == null) continue;
+                            switch (ref.handleIndex()) {
+                                case 1 -> keyframe.setHandleAType(newHandleType);
+                                case 2 -> keyframe.setHandleBType(newHandleType);
+                            }
+                            updatedHandles.add(ref);
+                            droppedHandles.add(ref);
+                        }
+
+                    }
+
                     ImGui.endMenu();
                 }
                 ImGui.endPopup();
@@ -813,10 +870,6 @@ public class CurveEditor {
                 }
 
                 updatedHandles.addAll(keyDragOffsets.keySet());
-            }
-
-            if (rightClickedOn != null) {
-                ReplayLab.getLogger("CurveEditor").info("Right-clicked on {}", rightClickedOn);
             }
 
             /// === PANNING ===
