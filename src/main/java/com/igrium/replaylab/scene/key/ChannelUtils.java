@@ -9,7 +9,7 @@ import com.igrium.replaylab.scene.key.Keyframe.HandleType;
  * A number of "operators" regarding channels moved out here to de-bloat
  */
 @UtilityClass
-public class ChannelOperators {
+public class ChannelUtils {
 
     /**
      * Automatically generate the handles for keyframes with their handle types set to auto

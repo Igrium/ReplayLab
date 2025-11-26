@@ -1,6 +1,8 @@
 package com.igrium.replaylab.ui;
 
+import com.igrium.replaylab.ReplayLab;
 import com.igrium.replaylab.editor.KeySelectionSet;
+import com.igrium.replaylab.editor.KeySelectionSet.KeyframeReference;
 import com.igrium.replaylab.editor.KeySelectionSet.KeyHandleReference;
 import com.igrium.replaylab.scene.ReplayScene;
 import com.igrium.replaylab.scene.key.KeyChannel;
@@ -9,14 +11,10 @@ import com.igrium.replaylab.scene.obj.ReplayObject;
 import com.igrium.replaylab.ui.util.ReplayLabControls;
 import com.igrium.replaylab.ui.util.TimelineFlags;
 import com.igrium.replaylab.ui.util.TimelineHeader;
-import imgui.ImColor;
 import imgui.ImDrawList;
 import imgui.ImGui;
 import imgui.ImVec2;
-import imgui.flag.ImGuiCol;
-import imgui.flag.ImGuiHoveredFlags;
-import imgui.flag.ImGuiStyleVar;
-import imgui.flag.ImGuiWindowFlags;
+import imgui.flag.*;
 import imgui.type.ImBoolean;
 import imgui.type.ImInt;
 import lombok.Getter;
@@ -54,17 +52,23 @@ public class CurveEditor {
     private float zoomFactorY = 0.1f;
 
     /**
-     * All the replay objects that have had an update <em>committed</em> this frame.
+     * All the handles that have had an updated <em>committed</em> this frame.
      * Does not include keyframes being dragged.
      */
     @Getter
-    private final Set<String> updatedObjects = new HashSet<>();
+    private final Set<KeyHandleReference> droppedHandles = new HashSet<>();
+
+    /**
+     * All the handles that have been updated this frame. Could be in the middle of dragging or an option has been changed.
+     */
+    @Getter
+    private final Set<KeyHandleReference> updatedHandles = new HashSet<>();
 
     /**
      * The amount of ms / value units offset from the mouse that each key being dragged has.
      */
-    @Getter
     private final Map<KeyHandleReference, Vector2dc> keyDragOffsets = new HashMap<>();
+
 
     private record KeyOffsetPair(KeyHandleReference ref, Vector2dc offset) {};
 
@@ -91,6 +95,11 @@ public class CurveEditor {
      * The global pixel position of a selection box start position
      */
     private @Nullable ImVec2 boxSelectStart;
+
+    /**
+     * The keyframe that is currently being edited in the context menu
+     */
+    private @Nullable KeyHandleReference contextKey = null;
 
     public boolean isScrubbing() {
         return header.isScrubbing();
@@ -156,7 +165,8 @@ public class CurveEditor {
     public void drawCurveEditor(ReplayScene scene, @Nullable Collection<String> selectedObjects,
                                 KeySelectionSet selectedKeys, @Nullable ImInt playhead, int flags) {
 
-        updatedObjects.clear();
+        droppedHandles.clear();
+        updatedHandles.clear();
         Collection<String> objs = selectedObjects != null ? selectedObjects : scene.getObjects().keySet();
 
         int majorIntervalX = (int) TimelineHeader.computeMajorInterval(zoomFactorX);
@@ -401,8 +411,10 @@ public class CurveEditor {
 
             /// === Keyframes ===
             KeyHandleReference clickedOn = null;
+            KeyHandleReference rightClickedOn = null;
 
             boolean mouseClicked = ImGui.isItemClicked();
+            boolean rightClicked = ImGui.isItemClicked(ImGuiMouseButton.Right);
 
             // If we're overing any key, with some leeway for drag threshold
             boolean hoveringAnyKey = false;
@@ -437,7 +449,7 @@ public class CurveEditor {
                             boolean rSelected = selectedKeys.isHandleSelected(objName, chEntry.getKey(), keyIdx, 2);
 
                             int color = 0xFF000000;
-                            int handleColor = 0x88000000;
+                            int handleEndColor = 0x88000000;
                             int selColor = ImGui.getColorU32(ImGuiCol.Text);
 
                             float keyX = msToPixelX((float) key.getCenter().x()) + graphX;
@@ -448,26 +460,40 @@ public class CurveEditor {
                             float handleAX = keyX + (float) key.getHandleA().x() * zoomFactorX;
                             float handleAY = keyY + (float) key.getHandleA().y() * zoomFactorY;
 
-                            drawList.addCircle(handleAX, handleAY, 3f, lSelected ? selColor : handleColor);
+                            drawList.addCircle(handleAX, handleAY, 3f, lSelected ? selColor : handleEndColor);
 
                             float handleBX = keyX + (float) key.getHandleB().x() * zoomFactorX;
                             float handleBY = keyY + (float) key.getHandleB().y() * zoomFactorY;
 
-                            drawList.addCircle(handleBX, handleBY, 3f, rSelected ? selColor : handleColor);
+                            drawList.addCircle(handleBX, handleBY, 3f, rSelected ? selColor : handleEndColor);
 
                             // TODO: Shouldn't this be defined in the theme somehow?
                             int lineColor = 0x808E79D1;
                             int lineColorSel = 0xFF93B4FF;
 
-                            drawList.addLine(handleAX, handleAY, keyX, keyY, lSelected || cSelected ? lineColorSel : lineColor);
-                            drawList.addLine(handleBX, handleBY, keyX, keyY, rSelected || cSelected ? lineColorSel : lineColor);
+                            int lColor = getHandleColor(key.getHandleAType());
+                            if (!(lSelected || cSelected)) {
+                                lColor = replaceAlpha(lColor, 63);
+                            }
+
+                            int rColor = getHandleColor(key.getHandleBType());
+                            if (!(rSelected || cSelected)) {
+                                rColor = replaceAlpha(rColor, 63);
+                            }
+
+                            drawList.addLine(handleAX, handleAY, keyX, keyY, lColor);
+                            drawList.addLine(handleBX, handleBY, keyX, keyY, rColor);
+
+                            boolean channelSelected = selectedKeys.isChannelSelected(objName, chEntry.getKey());
 
                             // Prioritize clicking on the selected channel unless the keyframe being clicked is already selected.
                             // In that case, don't let it be selected again so we can select overlapping keys.
-                            if (mouseClicked && (selectedKeys.isChannelSelected(objName, chEntry.getKey()) || clickedOn == null)) {
-                                KeyHandleReference handle0Ref = new KeyHandleReference(objName, chEntry.getKey(), keyIdx, 0);
-                                KeyHandleReference handle1Ref = new KeyHandleReference(objName, chEntry.getKey(), keyIdx, 1);
-                                KeyHandleReference handle2Ref = new KeyHandleReference(objName, chEntry.getKey(), keyIdx, 2);
+                            if (mouseClicked && (channelSelected || clickedOn == null)) {
+                                KeyframeReference keyRef = new KeyframeReference(objName, chEntry.getKey(), keyIdx);
+
+                                KeyHandleReference handle0Ref = new KeyHandleReference(keyRef, 0);
+                                KeyHandleReference handle1Ref = new KeyHandleReference(keyRef, 1);
+                                KeyHandleReference handle2Ref = new KeyHandleReference(keyRef, 2);
 
                                 if (keyHovered(keyX, keyY, mouseGlobalX, mouseGlobalY) && !selectedKeys.isHandleSelected(handle0Ref)) {
                                     clickedOn = handle0Ref;
@@ -475,6 +501,19 @@ public class CurveEditor {
                                     clickedOn = handle1Ref;
                                 } else if (keyHovered(handleBX, handleBY, mouseGlobalX, mouseGlobalY) && !selectedKeys.isHandleSelected(handle2Ref)) {
                                     clickedOn = handle2Ref;
+                                }
+                            }
+
+                            // On the other hand, right-clicking should always prioritize the selected channel
+                            if (rightClicked && (channelSelected || rightClickedOn == null)) {
+                                KeyframeReference keyRef = new KeyframeReference(objName, chEntry.getKey(), keyIdx);
+
+                                if (keyHovered(keyX, keyY, mouseGlobalX, mouseGlobalY)) {
+                                    rightClickedOn = new KeyHandleReference(keyRef, 0);
+                                } else if (keyHovered(handleAX, handleAY, mouseGlobalX, mouseGlobalY)) {
+                                    rightClickedOn = new KeyHandleReference(keyRef, 1);
+                                } else if (keyHovered(handleBX, handleBY, mouseGlobalX, mouseGlobalY)) {
+                                    rightClickedOn = new KeyHandleReference(keyRef, 2);
                                 }
                             }
 
@@ -546,12 +585,13 @@ public class CurveEditor {
             }
 
             ///  === SELECTION ===
-            if (clickedOn != null) {
+            if (clickedOn != null || rightClickedOn != null) {
                 if (!ImGui.getIO().getKeyCtrl()) {
                     selectedKeys.deselectAll();
                 }
-                selectedKeys.selectHandle(clickedOn);
+                selectedKeys.selectHandle(clickedOn != null ? clickedOn : rightClickedOn);
             } else if (mouseClicked && !ImGui.getIO().getKeyCtrl() && !hoveringAnyKey) {
+                // Don't deselect on right click
                 selectedKeys.deselectAll();
             }
 
@@ -623,13 +663,25 @@ public class CurveEditor {
                 }
             }
 
+            /// === RIGHT CLICK ===
+            if (rightClickedOn != null) {
+                contextKey = rightClickedOn;
+                ImGui.openPopup("contextMenu");
+            }
+
+            if (ImGui.beginPopup("contextMenu")) {
+                ImGui.menuItem("Test menu item");
+                if (ImGui.beginMenu("Handle Type")) {
+                    ImGui.menuItem("Vector");
+                    ImGui.endMenu();
+                }
+                ImGui.endPopup();
+            }
 
             /// ==== DRAGGING ===
             if (isDragging() && !ImGui.isMouseDragging(0)) {
                 /// Stop dragging
-                for (var ref : keyDragOffsets.keySet()) {
-                    updatedObjects.add(ref.objectName());
-                }
+                droppedHandles.addAll(keyDragOffsets.keySet());
                 keyDragOffsets.clear();
                 smallestKeyDragOffset = null;
 
@@ -759,6 +811,12 @@ public class CurveEditor {
                         }
                     }
                 }
+
+                updatedHandles.addAll(keyDragOffsets.keySet());
+            }
+
+            if (rightClickedOn != null) {
+                ReplayLab.getLogger("CurveEditor").info("Right-clicked on {}", rightClickedOn);
             }
 
             /// === PANNING ===
@@ -828,6 +886,17 @@ public class CurveEditor {
     // Move externally to reduce code overhead
     private static boolean isSmaller(Vector2dc vec, @Nullable KeyOffsetPair smallest) {
         return smallest == null || (vec.lengthSquared() < smallest.offset().lengthSquared());
+    }
+
+    private static int getHandleColor(Keyframe.HandleType type) {
+        // Colors stolen from Blender
+        return switch (type) {
+            case FREE -> 0xFFEBB400;
+            case ALIGNED -> 0xFF449434;
+            case VECTOR -> 0xFF353596;
+            case AUTO -> 0xFFba1c0b;
+            case AUTO_CLAMPED -> 0xFFD27A8F;
+        };
     }
 
     /**

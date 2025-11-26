@@ -58,6 +58,7 @@ public class ReplayScene {
      * @param keyframe Keyframe index within the channel.
      * @param handle   Handle index of the keyframe. 0 = center, 1 = left, 2 = right
      */
+    @Deprecated
     public record KeyHandleReference(String object, String channel, int keyframe, int handle) {
         public KeyHandleReference(KeyReference keyRef, int handle) {
             this(keyRef.object(), keyRef.channel(), keyRef.keyframe(), handle);
