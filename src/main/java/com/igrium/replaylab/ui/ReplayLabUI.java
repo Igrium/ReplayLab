@@ -396,8 +396,7 @@ public class ReplayLabUI extends DockSpaceApp {
     private void drawCurveEditor() {
         if (ImGui.begin("Curve Editor")) {
 
-            curveEditor.drawCurveEditor(editorState.getScene(), null, editorState.getKeySelection(),
-                    editorState.getPlayheadRef(), 0);
+            curveEditor.drawAndManageHandles(editorState, 0);
 
             long replayTime = editorState.getScene().sceneToReplayTime(editorState.getPlayhead());
 
@@ -409,27 +408,6 @@ public class ReplayLabUI extends DockSpaceApp {
                 wantsApplyToGame = true;
             }
 
-            // Recompute handles
-            curveEditor.getUpdatedHandles().stream()
-                    .map(ref -> ref.keyRef().channelRef())
-                    .distinct().forEach(chRef -> {
-                        KeyChannel ch = chRef.get(editorState.getScene().getObjects());
-                        if (ch != null) {
-                            ChannelUtils.computeAutoHandles(ch);
-                        }
-                    });
-
-            if (!curveEditor.getDroppedHandles().isEmpty()) {
-                var updatedObjects = curveEditor.getDroppedHandles().stream()
-                        .map(ref -> ref.objectName())
-                        .distinct()
-                        .toList();
-
-                editorState.applyOperator(new CommitObjectUpdateOperator(updatedObjects));
-            } else {
-                // Always apply to game if we're dragging
-                editorState.applyToGame();
-            }
         }
         ImGui.end();
     }

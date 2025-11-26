@@ -1,10 +1,13 @@
 package com.igrium.replaylab.ui;
 
 import com.igrium.replaylab.ReplayLab;
+import com.igrium.replaylab.editor.EditorState;
 import com.igrium.replaylab.editor.KeySelectionSet;
 import com.igrium.replaylab.editor.KeySelectionSet.KeyframeReference;
 import com.igrium.replaylab.editor.KeySelectionSet.KeyHandleReference;
+import com.igrium.replaylab.operator.CommitObjectUpdateOperator;
 import com.igrium.replaylab.scene.ReplayScene;
+import com.igrium.replaylab.scene.key.ChannelUtils;
 import com.igrium.replaylab.scene.key.KeyChannel;
 import com.igrium.replaylab.scene.key.Keyframe;
 import com.igrium.replaylab.scene.obj.ReplayObject;
@@ -24,6 +27,7 @@ import org.joml.*;
 
 import java.lang.Math;
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class CurveEditor {
 
@@ -150,6 +154,54 @@ public class CurveEditor {
         double newOffsetY = center - (center - offsetY) * (this.zoomFactorY / targetZoom);
         this.zoomFactorY = targetZoom;
         this.offsetY = newOffsetY;
+    }
+
+    public void drawAndManageHandles(EditorState editorState, int flags) {
+        drawCurveEditor(editorState.getScene(), null, editorState.getKeySelection(), editorState.getPlayheadRef(), flags);
+
+
+        // All handles being directly manipulated should have their type set to aligned.
+        for (var hRef : keyDragOffsets.keySet()) {
+            if (keyDragOffsets.containsKey(new KeyHandleReference(hRef.keyRef(), 0)))
+                continue; // Don't mess with the handles if center is being dragged
+            Keyframe key = hRef.keyRef().get(editorState.getScene().getObjects());
+            if (key != null) {
+                if (key.getHandleAType() != Keyframe.HandleType.FREE) {
+                    key.setHandleAType(Keyframe.HandleType.ALIGNED);
+                }
+                if (key.getHandleBType() != Keyframe.HandleType.FREE) {
+                    key.setHandleBType(Keyframe.HandleType.ALIGNED);
+                }
+            }
+        }
+
+        // Recompute handles
+        getUpdatedHandles().stream()
+                .map(ref -> ref.keyRef().channelRef())
+                .distinct().forEach(chRef -> {
+                    KeyChannel ch = chRef.get(editorState.getScene().getObjects());
+                    if (ch == null) return;
+
+                    var dragging = keyDragOffsets.keySet().stream()
+                            .map(hRef -> new ChannelUtils.LocalHandleRef(hRef.keyIndex(), hRef.handleIndex()))
+                            .collect(Collectors.toSet());
+
+                    ChannelUtils.computeAutoHandles(ch, dragging);
+                });
+
+        if (!getDroppedHandles().isEmpty()) {
+            var updatedObjects = getDroppedHandles().stream()
+                    .map(ref -> ref.objectName())
+                    .distinct()
+                    .toList();
+
+            editorState.applyOperator(new CommitObjectUpdateOperator(updatedObjects));
+            editorState.applyToGame();
+        } else if (isDragging()) {
+            // Always apply to game if we're dragging
+            editorState.applyToGame();
+        }
+
     }
 
     /**

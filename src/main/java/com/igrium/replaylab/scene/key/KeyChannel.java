@@ -71,6 +71,7 @@ public class KeyChannel {
 
         Keyframe keyframe = new Keyframe(timestamp, value);
         this.keyframes.add(keyframe);
+        ChannelUtils.computeAutoHandles(this, null);
         return keyframe;
     }
 

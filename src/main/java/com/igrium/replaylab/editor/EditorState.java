@@ -49,7 +49,7 @@ public class EditorState {
         return ReplayModReplay.instance.getReplayHandler();
     }
 
-    private static ReplayHandler getReplayHandlerOrThrow() {
+    public static ReplayHandler getReplayHandlerOrThrow() {
         var handler = getReplayHandler();
         if (handler == null) {
             throw new IllegalStateException("No replay handler.");
