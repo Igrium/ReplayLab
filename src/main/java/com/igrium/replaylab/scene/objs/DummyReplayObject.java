@@ -41,20 +41,20 @@ public class DummyReplayObject extends ReplayObject {
         }
     }
 
-    private final ImDouble dummyValInput = new ImDouble();
+    private final double[] dummyValInput = new double[1];
 
     @Override
     public PropertiesPanelState drawPropertiesPanel() {
         boolean modified = false;
 
-        dummyValInput.set(dummyValue);
-        if (ImGui.dragScalar("Dummy Value", ImGuiDataType.Double, dummyValInput,1)) {
+        dummyValInput[0] = dummyValue;
+        if (ImGui.dragScalar("Dummy Value", dummyValInput, 1)) {
             modified = true;
         }
 //        if (ImGui.inputDouble("Dummy Value", dummyValInput)) {
 //            modified = true;
 //        }
-        dummyValue = dummyValInput.get();
+        dummyValue = dummyValInput[0];
 
         return modified ? PropertiesPanelState.DRAGGING : PropertiesPanelState.NONE;
     }

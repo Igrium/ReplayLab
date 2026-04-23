@@ -20,10 +20,7 @@ import com.igrium.replaylab.ui.util.TimelineFlags;
 import com.replaymod.replay.ReplayHandler;
 import com.replaymod.replay.ReplayModReplay;
 import imgui.ImGui;
-import imgui.flag.ImGuiCol;
-import imgui.flag.ImGuiFocusedFlags;
-import imgui.flag.ImGuiStyleVar;
-import imgui.flag.ImGuiWindowFlags;
+import imgui.flag.*;
 import imgui.type.ImBoolean;
 import lombok.Getter;
 import net.minecraft.client.MinecraftClient;
@@ -288,7 +285,7 @@ public class ReplayLabUI extends DockSpaceApp {
         ImGui.setCursorPosY(ImGui.getContentRegionMaxY() - viewportFooterHeight);
 
         ImGui.setNextWindowBgAlpha(1);
-        if (ImGui.beginChild("Playback", ImGui.getContentRegionAvailX(), viewportFooterHeight, true, ImGuiWindowFlags.AlwaysAutoResize)) {
+        if (ImGui.beginChild("Playback", ImGui.getContentRegionAvailX(), viewportFooterHeight, true)) {
             ImGui.alignTextToFramePadding();
             ImGui.text("Scene: " + editorState.getSceneName());
             ImGui.sameLine();
