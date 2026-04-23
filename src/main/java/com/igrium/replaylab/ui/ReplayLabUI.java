@@ -36,33 +36,48 @@ import java.util.HashSet;
 import java.util.Set;
 
 /**
- * The main CraftApp for the replay lab editor
+ * The main CraftApp for the replay lab editor.
  */
 public class ReplayLabUI extends DockSpaceApp {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(ReplayLabUI.class);
+    // =========================================================================
+    // Constants
+    // =========================================================================
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(ReplayLabUI.class);
     private static final Identifier LAYOUT = Identifier.of("replaylab:replaylab");
 
-    private static ReplayHandler getReplayHandler() {
-        return ReplayModReplay.instance.getReplayHandler();
-    }
+    // =========================================================================
+    // Core state
+    // =========================================================================
 
     @Getter
     private final EditorState editorState = new EditorState();
 
-    //    private final DopeSheetOld dopeSheet = new DopeSheetOld();
+    @Getter
+    private final ExceptionPopup exceptionPopup = new ExceptionPopup();
+
+    // =========================================================================
+    // UI panels
+    // =========================================================================
+
     private final DopeSheet dopeSheet = new DopeSheet();
     private final DopeSheetNew dopeSheetNew = new DopeSheetNew();
     private final CurveEditor curveEditor = new CurveEditor();
     private final SceneBrowser sceneBrowser = new SceneBrowser();
     private final Outliner outliner = new Outliner();
+
+    // =========================================================================
+    // Deferred action flags (set during render, executed in preRender)
+    // =========================================================================
+
     private boolean wantsJumpTime;
     private boolean wantsApplyToGame;
     private boolean wantsExit;
 
-    @Getter
-    private final ExceptionPopup exceptionPopup = new ExceptionPopup();
+    // =========================================================================
+    // UI state
+    // =========================================================================
 
     /**
      * Hacky fix for the fact that exceptionPopup seems to crash the game if shown on the first frame.
@@ -74,6 +89,16 @@ public class ReplayLabUI extends DockSpaceApp {
      */
     private float viewportFooterHeight;
 
+    private final Set<ReplayScene.KeyReference> selectedKeys = new HashSet<>();
+    private final ImBoolean cameraViewInput = new ImBoolean();
+    private final ImBoolean snapKeysInput = new ImBoolean();
+    private float prevCameraControlsGroupWidth = 0;
+
+    private final VideoRenderSettings tmpExportSettings = new VideoRenderSettings();
+
+    // =========================================================================
+    // Constructor & lifecycle
+    // =========================================================================
 
     public ReplayLabUI() {
         setViewportInputMode(ViewportInputMode.HOLD);
@@ -94,7 +119,7 @@ public class ReplayLabUI extends DockSpaceApp {
         super.preRender(client);
 
         if (getReplayHandler() == null) {
-            close(); // Close the app if we have no replay open.
+            close();
             return;
         }
 
@@ -108,8 +133,8 @@ public class ReplayLabUI extends DockSpaceApp {
                 MinecraftClient.getInstance().disconnect();
                 MinecraftClient.getInstance().setScreen(null);
             }
-
-        } if (wantsJumpTime) {
+        }
+        if (wantsJumpTime) {
             editorState.doTimeJump();
             wantsJumpTime = false;
         } else if (wantsApplyToGame) {
@@ -120,17 +145,15 @@ public class ReplayLabUI extends DockSpaceApp {
         editorState.onPreRender();
     }
 
-    private final VideoRenderSettings tmpExportSettings = new VideoRenderSettings();
-
     @Override
     protected void render(MinecraftClient client) {
         var replayHandler = getReplayHandler();
         if (replayHandler == null) {
-            close(); // Close the app if we have no replay open.
+            close();
             return;
         }
 
-        // Don't render the default UI
+        // Don't render the default ReplayMod UI
         replayHandler.getOverlay().setVisible(false);
         super.render(client);
 
@@ -147,9 +170,8 @@ public class ReplayLabUI extends DockSpaceApp {
             ImGui.pushStyleColor(ImGuiCol.ChildBg, bgColor);
             drawPlaybackControls();
             ImGui.popStyleColor();
-            testDeleteHotkey();
+            processGlobalHotkeys();
         }
-
         ImGui.end();
 
         drawDopeSheet();
@@ -158,9 +180,9 @@ public class ReplayLabUI extends DockSpaceApp {
         drawOutliner();
         drawInspector();
         drawSceneProperties();
+
         ExportWindow.drawExportWindow(editorState, editorState.getScene().getSceneProps().getRenderSettings());
         ExportProgressWindow.drawExportProgress(editorState);
-
         TimelineDebugScreen.drawDebugScreen();
 
         if (!firstFrame) {
@@ -168,113 +190,72 @@ public class ReplayLabUI extends DockSpaceApp {
             sceneBrowser.render(editorState);
         }
 
-        var io = ImGui.getIO();
-        if (io.getWantCaptureKeyboard() && !io.getWantTextInput()) {
-            processGlobalHotkeys();
-        }
         firstFrame = false;
     }
 
+    @Override
+    protected void onClose() {
+        var rh = getReplayHandler();
+        if (rh != null) {
+            try {
+                rh.endReplay();
+            } catch (IOException e) {
+                LOGGER.error("Error closing replay: ", e);
+            }
+        }
+        super.onClose();
+    }
+
+    // =========================================================================
+    // Menu bar & hotkeys
+    // =========================================================================
+
     private void drawMenuBar() {
-        if (ImGui.beginMainMenuBar()) {
-            if (ImGui.beginMenu("File")) {
-                if (ImGui.menuItem("Open Scene")) {
-                    sceneBrowser.open();
-                }
+        if (!ImGui.beginMainMenuBar()) return;
 
-                if (ImGui.menuItem("Export")) {
-                    ExportWindow.open();
-                }
-
-                if (ImGui.menuItem("Exit")) {
-                    wantsExit = true;
-                }
-                ImGui.endMenu();
-            }
-            if (ImGui.beginMenu("Edit")) {
-                if (ImGui.menuItem("Undo", "Ctrl+Z")) {
-                    editorState.undo();
-                }
-                if (ImGui.menuItem("Redo", "Ctrl+Shift+Z")) {
-                    editorState.redo();
-                }
-
-                ImGui.separator();
-
-                ImGui.beginDisabled(editorState.getSelectedObject() == null);
-                if (ImGui.menuItem("Delete Selected", "Del")) {
-                    deleteObject();
-                }
-                ImGui.endDisabled();
-
-                if (ImGui.menuItem("Insert Keyframe", "I")) {
-                    insertKeyframe();
-                }
-
-                ImGui.endMenu();
-            }
-
-            ImGui.endMainMenuBar();
+        if (ImGui.beginMenu("File")) {
+            if (ImGui.menuItem("Open Scene")) sceneBrowser.open();
+            if (ImGui.menuItem("Export")) ExportWindow.open();
+            if (ImGui.menuItem("Exit")) wantsExit = true;
+            ImGui.endMenu();
         }
 
+        if (ImGui.beginMenu("Edit")) {
+            if (ImGui.menuItem("Undo", "Ctrl+Z")) editorState.undo();
+            if (ImGui.menuItem("Redo", "Ctrl+Shift+Z")) editorState.redo();
+
+            ImGui.separator();
+
+            ImGui.beginDisabled(editorState.getSelectedObject() == null);
+            if (ImGui.menuItem("Delete Selected", "Del")) deleteObject();
+            ImGui.endDisabled();
+
+            if (ImGui.menuItem("Insert Keyframe", "I")) insertKeyframe();
+
+            ImGui.endMenu();
+        }
+
+        ImGui.endMainMenuBar();
     }
 
     private void processGlobalHotkeys() {
         var io = ImGui.getIO();
-        if (io.getWantTextInput()) {
-            return;
-        }
+        if (io.getWantTextInput()) return;
 
-        if (isCtrlPressed() && ImGui.isKeyPressed(GLFW.GLFW_KEY_Z)) {
+        if (ImGui.shortcut(ImGuiKey.ImGuiMod_Ctrl | ImGuiKey.ImGuiMod_Shift | ImGuiKey.Z)) {
+            editorState.redo();
+        } else if (ImGui.shortcut(ImGuiKey.ImGuiMod_Ctrl | ImGuiKey.Z)) {
             editorState.undo();
         }
 
-        if (isCtrlPressed() && io.getKeyShift() && ImGui.isKeyPressed(GLFW.GLFW_KEY_Z)) {
-            editorState.redo();
-        }
-
-        if (ImGui.isKeyPressed(GLFW.GLFW_KEY_I)) {
+        if (ImGui.shortcut(ImGuiKey.I)) {
             insertKeyframe();
         }
     }
 
-    /**
-     * Delete the selected object if the delete button is pressed over this window
-     */
-    private void testDeleteHotkey() {
-        var io = ImGui.getIO();
-        if (ImGui.isWindowFocused(ImGuiFocusedFlags.ChildWindows) && !io.getWantTextInput() && ImGui.isKeyPressed(GLFW.GLFW_KEY_DELETE)) {
-            deleteObject();
-        }
-    }
-
-    private void saveScene() {
-        if (editorState.getSceneName() == null) {
-            editorState.setSceneName("scene");
-        }
-        editorState.saveSceneAsync();
-    }
-
-    private void insertKeyframe() {
-        String selected = editorState.getSelectedObject();
-        if (selected != null) {
-            editorState.applyOperator(new InsertKeyframeOperator(selected, editorState.getPlayhead()));
-        }
-    }
-
-    private void deleteObject() {
-        String selected = editorState.getSelectedObject();
-        if (selected != null) {
-            editorState.applyOperator(new RemoveObjectOperator(selected));
-        }
-    }
-
-    private final Set<ReplayScene.KeyReference> selectedKeys = new HashSet<>();
-
-    private final ImBoolean cameraViewInput = new ImBoolean();
-    private final ImBoolean snapKeysInput = new ImBoolean();
-
-    private float prevCameraControlsGroupWidth = 0;
+    // =========================================================================
+    // Playback controls
+    // =========================================================================
 
     private void drawPlaybackControls() {
         ImGui.pushFont(ReplayLabIcons.getFont());
@@ -283,39 +264,44 @@ public class ReplayLabUI extends DockSpaceApp {
         ImGui.popFont();
 
         ImGui.setCursorPosY(ImGui.getContentRegionMaxY() - viewportFooterHeight);
-
         ImGui.setNextWindowBgAlpha(1);
-        if (ImGui.beginChild("Playback", ImGui.getContentRegionAvailX(), viewportFooterHeight, true)) {
-            ImGui.alignTextToFramePadding();
-            ImGui.text("Scene: " + editorState.getSceneName());
-            ImGui.sameLine();
 
-            float groupWidth = (buttonSize + ImGui.getStyle().getItemSpacingX()) * 5 - ImGui.getStyle().getItemSpacingX();
-
-            ImGui.setCursorPosX(ImGui.getContentRegionMaxX() / 2 - groupWidth / 2);
-            ImGui.alignTextToFramePadding();
-
-            playbackIcon(ReplayLabIcons.ICON_TO_START_ALT, "Scene Start", buttonSize);
-            playbackIcon(ReplayLabIcons.ICON_TO_START, "Previous Keyframe", buttonSize);
-            char playPauseIcon = editorState.isPlaying() ? ReplayLabIcons.ICON_PAUSE: ReplayLabIcons.ICON_PLAY;
-            if (playbackIcon(playPauseIcon, "Play/Pause", buttonSize)) {
-                onPlayPauseClicked();
-            }
-
-            playbackIcon(ReplayLabIcons.ICON_TO_END, "Next Keyframe", buttonSize);
-            playbackIcon(ReplayLabIcons.ICON_TO_END_ALT, "Scene End", buttonSize);
-
-            ImGui.setCursorPosX(ImGui.getContentRegionMaxX() - prevCameraControlsGroupWidth);
-
-            /// Editor buttons
-            ImGui.beginGroup();
-            cameraViewInput.set(editorState.isCameraView());
-            if (ReplayLabControls.toggleButton(ReplayLabIcons.ICON_VIDEOCAM, "Toggle Camera View", cameraViewInput)) {
-                editorState.setCameraView(cameraViewInput.get());
-            }
-            ImGui.endGroup();
-            prevCameraControlsGroupWidth = ImGui.getItemRectSizeX();
+        if (!ImGui.beginChild("Playback", ImGui.getContentRegionAvailX(), viewportFooterHeight, true)) {
+            ImGui.endChild();
+            return;
         }
+
+        // Scene name (left-aligned)
+        ImGui.alignTextToFramePadding();
+        ImGui.text("Scene: " + editorState.getSceneName());
+        ImGui.sameLine();
+
+        // Transport buttons (center-aligned)
+        float groupWidth = (buttonSize + ImGui.getStyle().getItemSpacingX()) * 5 - ImGui.getStyle().getItemSpacingX();
+        ImGui.setCursorPosX(ImGui.getContentRegionMaxX() / 2 - groupWidth / 2);
+        ImGui.alignTextToFramePadding();
+
+        playbackIcon(ReplayLabIcons.ICON_TO_START_ALT, "Scene Start", buttonSize);
+        playbackIcon(ReplayLabIcons.ICON_TO_START, "Previous Keyframe", buttonSize);
+
+        char playPauseIcon = editorState.isPlaying() ? ReplayLabIcons.ICON_PAUSE : ReplayLabIcons.ICON_PLAY;
+        if (playbackIcon(playPauseIcon, "Play/Pause", buttonSize)) {
+            onPlayPauseClicked();
+        }
+
+        playbackIcon(ReplayLabIcons.ICON_TO_END, "Next Keyframe", buttonSize);
+        playbackIcon(ReplayLabIcons.ICON_TO_END_ALT, "Scene End", buttonSize);
+
+        // Camera controls (right-aligned)
+        ImGui.setCursorPosX(ImGui.getContentRegionMaxX() - prevCameraControlsGroupWidth);
+        ImGui.beginGroup();
+        cameraViewInput.set(editorState.isCameraView());
+        if (ReplayLabControls.toggleButton(ReplayLabIcons.ICON_VIDEOCAM, "Toggle Camera View", cameraViewInput)) {
+            editorState.setCameraView(cameraViewInput.get());
+        }
+        ImGui.endGroup();
+        prevCameraControlsGroupWidth = ImGui.getItemRectSizeX();
+
         ImGui.endChild();
     }
 
@@ -327,38 +313,21 @@ public class ReplayLabUI extends DockSpaceApp {
         }
     }
 
-    private boolean playbackIcon(char icon, String tooltip, float buttonSize) {
-        ImGui.pushFont(ReplayLabIcons.getFont());
-        boolean res = ImGui.button(String.valueOf(icon), buttonSize, buttonSize);
-        ImGui.popFont();
-
-        if (ImGui.isItemHovered()) {
-            ImGui.setTooltip(tooltip);
-        }
-        ImGui.sameLine();
-        return res;
-    }
-
-    private boolean toggleButton(char icon, @Nullable String tooltip, ImBoolean value) {
-        ImGui.pushFont(ReplayLabIcons.getFont());
-        boolean result = ReplayLabControls.toggleButton(String.valueOf(icon), value);
-        ImGui.popFont();
-
-        if (ImGui.isItemHovered() && tooltip != null) {
-            ImGui.setTooltip(tooltip);
-        }
-        return result;
-    }
+    // =========================================================================
+    // Panel draw methods
+    // =========================================================================
 
     private void drawDopeSheet() {
         if (ImGui.begin("Dope Sheet")) {
-            dopeSheet.drawDopeSheet(editorState.getScene(), editorState.getKeySelection(), 20 * 1000, editorState.getPlayheadRef(), TimelineFlags.SNAP_KEYS);
+            dopeSheet.drawDopeSheet(editorState.getScene(), editorState.getKeySelection(),
+                    20 * 1000, editorState.getPlayheadRef(), TimelineFlags.SNAP_KEYS);
+
             if (!dopeSheet.getUpdatedObjects().isEmpty()) {
                 editorState.applyOperator(new CommitObjectUpdateOperator(dopeSheet.getUpdatedObjects()));
                 editorState.saveSceneAsync();
             }
 
-            // Always apply if we're dragging
+            // Always apply to game while dragging keys
             if (!dopeSheet.getKeyDragOffsets().isEmpty()) {
                 wantsApplyToGame = true;
             }
@@ -368,43 +337,42 @@ public class ReplayLabUI extends DockSpaceApp {
                     && ImGui.isKeyPressed(GLFW.GLFW_KEY_DELETE)) {
                 editorState.applyOperator(new RemoveKeyframesOperator(selectedKeys));
             }
+            processGlobalHotkeys();
         }
         ImGui.end();
 
         long replayTime = editorState.getScene().sceneToReplayTime(editorState.getPlayhead());
-        // If we dropped the playhead, always jump. Otherwise, only jump of we moved forward.
+        // Jump if playhead was dropped, or if scrubbing forward.
         if (dopeSheet.isFinishedDraggingPlayhead() ||
                 (dopeSheet.isDraggingPlayhead() && replayTime >= getReplayHandler().getReplaySender().currentTimeStamp())) {
             wantsJumpTime = true;
         } else if (dopeSheet.isDraggingPlayhead()) {
             wantsApplyToGame = true;
         }
-
     }
 
     private void drawDopeSheetNew() {
         if (ImGui.begin("Dope Sheet (new)")) {
-            dopeSheetNew.drawDopeSheet(editorState.getScene(), null, editorState.getKeySelection(),
-                    editorState.getPlayheadRef(), 0);
+            dopeSheetNew.drawDopeSheet(editorState.getScene(), null,
+                    editorState.getKeySelection(), editorState.getPlayheadRef(), 0);
+            processGlobalHotkeys();
         }
         ImGui.end();
     }
 
     private void drawCurveEditor() {
         if (ImGui.begin("Curve Editor")) {
-
             curveEditor.drawAndManageHandles(editorState, 0);
 
             long replayTime = editorState.getScene().sceneToReplayTime(editorState.getPlayhead());
-
-            // If we dropped the playhead, always jump. Otherwise, only jump of we moved forward.
+            // Jump if scrubbing stopped, or if scrubbing forward.
             if (curveEditor.stoppedScrubbing() ||
                     (curveEditor.isScrubbing() && replayTime > getReplayHandler().getReplaySender().currentTimeStamp())) {
                 wantsJumpTime = true;
             } else if (curveEditor.isScrubbing()) {
                 wantsApplyToGame = true;
             }
-
+            processGlobalHotkeys();
         }
         ImGui.end();
     }
@@ -413,6 +381,7 @@ public class ReplayLabUI extends DockSpaceApp {
         if (ImGui.begin("Outliner")) {
             outliner.drawOutliner(editorState);
             testDeleteHotkey();
+            processGlobalHotkeys();
         }
         ImGui.end();
     }
@@ -430,6 +399,7 @@ public class ReplayLabUI extends DockSpaceApp {
                 ImGui.separator();
                 drawObjectProperties(selected);
             }
+            processGlobalHotkeys();
         }
         ImGui.end();
     }
@@ -437,10 +407,14 @@ public class ReplayLabUI extends DockSpaceApp {
     private void drawSceneProperties() {
         if (ImGui.begin("Scene Properties")) {
             drawObjectProperties(editorState.getScene().getSceneProps());
-
+            processGlobalHotkeys();
         }
         ImGui.end();
     }
+
+    // =========================================================================
+    // Object / operator helpers
+    // =========================================================================
 
     private void drawObjectProperties(ReplayObject object) {
         ReplayObject.PropertiesPanelState state = object.drawPropertiesPanel();
@@ -455,24 +429,57 @@ public class ReplayLabUI extends DockSpaceApp {
         }
     }
 
+    private void insertKeyframe() {
+        String selected = editorState.getSelectedObject();
+        if (selected != null) {
+            editorState.applyOperator(new InsertKeyframeOperator(selected, editorState.getPlayhead()));
+        }
+    }
+
+    private void deleteObject() {
+        String selected = editorState.getSelectedObject();
+        if (selected != null) {
+            editorState.applyOperator(new RemoveObjectOperator(selected));
+        }
+    }
+
+    private void saveScene() {
+        if (editorState.getSceneName() == null) {
+            editorState.setSceneName("scene");
+        }
+        editorState.saveSceneAsync();
+    }
+
+    /**
+     * Delete the selected object if the delete button is pressed over this window.
+     */
+    @Deprecated
+    private void testDeleteHotkey() {
+        if (ImGui.isWindowFocused(ImGuiFocusedFlags.ChildWindows) && ImGui.shortcut(ImGuiKey.Delete)) {
+            deleteObject();
+        }
+    }
+
+    // =========================================================================
+    // Viewport & layout overrides
+    // =========================================================================
+
     @Override
     protected ViewportBounds getCustomViewportBounds() {
         var bounds = super.getCustomViewportBounds();
-        if (bounds == null) return null; // Shouldn't happen
+        if (bounds == null) return null;
 
         int width = bounds.width();
         int height = bounds.height() - (int) viewportFooterHeight;
-
         int offsetX = bounds.x();
         int offsetY = bounds.y() + (int) viewportFooterHeight;
 
-        // Cast to aspect ratio if we're in camera view
+        // Letterbox to the target aspect ratio when in camera view
         if (editorState.isCameraView()) {
             ScenePropsObject props = editorState.getScene().getSceneProps();
-
-            int bx;
-            int by;
             float targetRatio = (float) props.getResolutionX() / props.getResolutionY();
+
+            int bx, by;
             if (((float) width / height) > targetRatio) {
                 bx = (int) (height * targetRatio);
                 by = height;
@@ -483,7 +490,6 @@ public class ReplayLabUI extends DockSpaceApp {
 
             offsetX += (width - bx) / 2;
             offsetY += (height - by) / 2;
-
             width = bx;
             height = by;
         }
@@ -494,23 +500,40 @@ public class ReplayLabUI extends DockSpaceApp {
         return new ViewportBounds(offsetX, offsetY, width, height);
     }
 
-
     @Override
     protected @Nullable Identifier getLayoutPreset() {
         return LAYOUT;
     }
 
-    @Override
-    protected void onClose() {
-        var rh = getReplayHandler();
-        if (rh != null) {
-            try {
-                rh.endReplay();
-            } catch (IOException e) {
-                LOGGER.error("Error closing replay: ", e);
-            }
-        }
-        super.onClose();
+    // =========================================================================
+    // Widget helpers
+    // =========================================================================
+
+    private boolean playbackIcon(char icon, String tooltip, float buttonSize) {
+        ImGui.pushFont(ReplayLabIcons.getFont());
+        boolean res = ImGui.button(String.valueOf(icon), buttonSize, buttonSize);
+        ImGui.popFont();
+
+        if (ImGui.isItemHovered()) ImGui.setTooltip(tooltip);
+        ImGui.sameLine();
+        return res;
+    }
+
+    private boolean toggleButton(char icon, @Nullable String tooltip, ImBoolean value) {
+        ImGui.pushFont(ReplayLabIcons.getFont());
+        boolean result = ReplayLabControls.toggleButton(String.valueOf(icon), value);
+        ImGui.popFont();
+
+        if (ImGui.isItemHovered() && tooltip != null) ImGui.setTooltip(tooltip);
+        return result;
+    }
+
+    // =========================================================================
+    // Static helpers
+    // =========================================================================
+
+    private static ReplayHandler getReplayHandler() {
+        return ReplayModReplay.instance.getReplayHandler();
     }
 
     private static boolean isCtrlPressed() {
