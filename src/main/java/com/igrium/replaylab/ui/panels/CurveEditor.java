@@ -5,6 +5,7 @@ import com.igrium.replaylab.editor.KeySelectionSet;
 import com.igrium.replaylab.editor.KeySelectionSet.KeyframeReference;
 import com.igrium.replaylab.editor.KeySelectionSet.KeyHandleReference;
 import com.igrium.replaylab.operator.CommitObjectUpdateOperator;
+import com.igrium.replaylab.operator.RemoveKeyframesOperator;
 import com.igrium.replaylab.scene.ReplayScene;
 import com.igrium.replaylab.scene.key.ChannelUtils;
 import com.igrium.replaylab.scene.key.KeyChannel;
@@ -172,6 +173,13 @@ public class CurveEditor extends UIPanel {
         } else if (isScrubbing()) {
             editorState.queueApplyToGame();
         }
+
+        if (ImGui.shortcut(ImGuiKey.Delete)) {
+            // we need to clear selected keyframes
+            var selected = editorState.getKeySelection().getSelectedKeyframes();
+            editorState.getKeySelection().deselectAll();
+            editorState.applyOperator(new RemoveKeyframesOperator(selected));
+        }
     }
 
     public void drawAndManageHandles(EditorState editorState, int flags) {
@@ -209,7 +217,7 @@ public class CurveEditor extends UIPanel {
 
         if (!getDroppedHandles().isEmpty()) {
             var updatedObjects = getDroppedHandles().stream()
-                    .map(ref -> ref.objectName())
+                    .map(KeyHandleReference::objectName)
                     .distinct()
                     .toList();
 

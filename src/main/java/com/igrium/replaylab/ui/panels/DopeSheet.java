@@ -3,7 +3,6 @@ package com.igrium.replaylab.ui.panels;
 import com.igrium.replaylab.editor.EditorState;
 import com.igrium.replaylab.editor.KeySelectionSet;
 import com.igrium.replaylab.operator.CommitObjectUpdateOperator;
-import com.igrium.replaylab.operator.RemoveKeyframesOperator;
 import com.igrium.replaylab.scene.ReplayScene;
 import com.igrium.replaylab.editor.KeySelectionSet.KeyframeReference;
 import com.igrium.replaylab.scene.key.Keyframe;
