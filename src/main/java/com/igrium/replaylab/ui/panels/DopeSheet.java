@@ -1,6 +1,9 @@
-package com.igrium.replaylab.ui;
+package com.igrium.replaylab.ui.panels;
 
+import com.igrium.replaylab.editor.EditorState;
 import com.igrium.replaylab.editor.KeySelectionSet;
+import com.igrium.replaylab.operator.CommitObjectUpdateOperator;
+import com.igrium.replaylab.operator.RemoveKeyframesOperator;
 import com.igrium.replaylab.scene.ReplayScene;
 import com.igrium.replaylab.editor.KeySelectionSet.KeyframeReference;
 import com.igrium.replaylab.scene.key.Keyframe;
@@ -11,25 +14,21 @@ import imgui.ImColor;
 import imgui.ImDrawList;
 import imgui.ImGui;
 import imgui.ImVec2;
-import imgui.flag.ImGuiCol;
-import imgui.flag.ImGuiStyleVar;
-import imgui.flag.ImGuiTreeNodeFlags;
-import imgui.flag.ImGuiWindowFlags;
+import imgui.flag.*;
 import imgui.type.ImInt;
 import it.unimi.dsi.fastutil.ints.Int2IntAVLTreeMap;
 import it.unimi.dsi.fastutil.ints.Int2IntMap;
 import lombok.Getter;
+import net.minecraft.util.Identifier;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 import java.util.function.*;
 
-public class DopeSheet {
+public class DopeSheet extends UIPanel {
 
     public static final int DRAW_IN_POINT = 256;
     public static final int DRAW_OUT_POINT = 512;
-
-
 
     private static final int TICKS_PER_SECOND = 1000;
 
@@ -38,6 +37,10 @@ public class DopeSheet {
      */
     @Getter
     private float zoomFactor = 0.1f;
+
+    public DopeSheet(Identifier id) {
+        super(id);
+    }
 
     public void setZoomFactor(float zoomFactor) {
         if (zoomFactor <= 0) {
@@ -96,6 +99,26 @@ public class DopeSheet {
 
     private void startDragging(KeySelectionSet selected, ReplayScene scene) {
 
+    }
+
+    @Override
+    protected void drawContents(EditorState editorState) {
+        drawDopeSheet(editorState.getScene(), editorState.getKeySelection(),
+                20 * 1000, editorState.getPlayheadRef(), TimelineFlags.SNAP_KEYS);
+
+        if (!getUpdatedObjects().isEmpty()) {
+            editorState.applyOperator(new CommitObjectUpdateOperator(getUpdatedObjects()));
+            editorState.saveSceneAsync();
+        }
+
+        // Always apply while dragging keys
+        if (!getKeyDragOffsets().isEmpty()) {
+            editorState.queueApplyToGame();
+        }
+
+        if (ImGui.shortcut(ImGuiKey.Delete)) {
+//            editorState.applyOperator(new RemoveKeyframesOperator(editorState.getKeySelection()));
+        }
     }
 
     /**

@@ -1,4 +1,4 @@
-package com.igrium.replaylab.ui;
+package com.igrium.replaylab.ui.panels;
 
 import com.igrium.replaylab.editor.EditorState;
 import com.igrium.replaylab.operator.AddObjectOperator;
@@ -7,11 +7,12 @@ import com.igrium.replaylab.operator.RenameObjectOperator;
 import com.igrium.replaylab.scene.obj.ReplayObjects;
 import imgui.ImGui;
 import imgui.type.ImString;
+import net.minecraft.util.Identifier;
 import net.minecraft.util.Language;
 import org.jetbrains.annotations.Nullable;
 import org.lwjgl.glfw.GLFW;
 
-public class Outliner {
+public class Outliner extends UIPanel {
 
     /**
      * The original of the item that's currently being renamed
@@ -24,6 +25,15 @@ public class Outliner {
 
     private RenameObjectOperator queuedRename;
     private String queuedDelete;
+
+    public Outliner(Identifier id) {
+        super(id);
+    }
+
+    @Override
+    protected void drawContents(EditorState editorState) {
+        drawOutliner(editorState);
+    }
 
     public void drawOutliner(EditorState editorState) {
 

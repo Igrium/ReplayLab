@@ -3,5 +3,12 @@
 
   "replayobject.dummy": "Dummy",
   "replayobject.blockDisplay": "Block Display",
-  "replayobject.camera": "Camera"
+  "replayobject.camera": "Camera",
+
+  "panel.replaylab.dopesheet_legacy": "Dope Sheet (Legacy)",
+  "panel.replaylab.dopesheet": "Dope Sheet",
+  "panel.replaylab.curveeditor": "Curve Editor",
+  "panel.replaylab.outliner": "Outliner",
+  "panel.replaylab.inspector": "Inspector",
+  "panel.replaylab.sceneprops": "Scene Properties"
 }

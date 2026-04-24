@@ -16,6 +16,7 @@ import imgui.type.ImInt;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.Setter;
+import lombok.experimental.Accessors;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.entity.Entity;
@@ -45,7 +46,7 @@ public class EditorState {
     /// ===== Static Members =====
     private static final Logger LOGGER = ReplayLab.getLogger("ReplayLabEditorState");
 
-    private static @Nullable ReplayHandler getReplayHandler() {
+    public static @Nullable ReplayHandler getReplayHandler() {
         return ReplayModReplay.instance.getReplayHandler();
     }
 
@@ -109,6 +110,14 @@ public class EditorState {
     @Getter
     private boolean pilotingCamera;
 
+    @Getter
+    @Accessors(fluent = true)
+    private boolean wantsTimeJump;
+
+    @Getter
+    @Accessors(fluent = true)
+    private boolean wantsApplyToGame;
+
     /// ===== Constructors =====
     public EditorState() {
         scene.setExceptionCallback(this::onException);
@@ -122,6 +131,14 @@ public class EditorState {
 
     public final void setPlayhead(int playhead) {
         playheadRef.set(playhead);
+    }
+
+    public void queueTimeJump() {
+        wantsTimeJump = true;
+    }
+
+    public void queueApplyToGame() {
+        wantsApplyToGame = true;
     }
 
     public void setScene(@NotNull ReplayScene scene) {
@@ -365,7 +382,7 @@ public class EditorState {
         getReplayHandlerOrThrow().doJump(replayTime, true);
 
         MinecraftClient.getInstance().send(this::applyToGame);
-
+        wantsTimeJump = false;
     }
 
     /// ===== Game Integration =====
@@ -375,6 +392,7 @@ public class EditorState {
      */
     public void applyToGame() {
         getScene().applyToGame(getPlayhead());
+        wantsApplyToGame = false;
     }
 
     /**
@@ -383,6 +401,7 @@ public class EditorState {
      */
     public void applyToGame(Predicate<? super ReplayObject> shouldSample) {
         getScene().applyToGame(shouldSample, getPlayhead());
+        wantsApplyToGame = false;
     }
 
     @Deprecated

@@ -1,6 +1,5 @@
-package com.igrium.replaylab.ui;
+package com.igrium.replaylab.ui.panels;
 
-import com.igrium.replaylab.ReplayLab;
 import com.igrium.replaylab.editor.EditorState;
 import com.igrium.replaylab.editor.KeySelectionSet;
 import com.igrium.replaylab.editor.KeySelectionSet.KeyframeReference;
@@ -11,6 +10,7 @@ import com.igrium.replaylab.scene.key.ChannelUtils;
 import com.igrium.replaylab.scene.key.KeyChannel;
 import com.igrium.replaylab.scene.key.Keyframe;
 import com.igrium.replaylab.scene.obj.ReplayObject;
+import com.igrium.replaylab.ui.ReplayLabIcons;
 import com.igrium.replaylab.ui.util.ReplayLabControls;
 import com.igrium.replaylab.ui.util.TimelineFlags;
 import com.igrium.replaylab.ui.util.TimelineHeader;
@@ -22,6 +22,7 @@ import imgui.type.ImBoolean;
 import imgui.type.ImInt;
 import lombok.Getter;
 import lombok.Setter;
+import net.minecraft.util.Identifier;
 import org.jetbrains.annotations.Nullable;
 import org.joml.*;
 
@@ -29,7 +30,7 @@ import java.lang.Math;
 import java.util.*;
 import java.util.stream.Collectors;
 
-public class CurveEditor {
+public class CurveEditor extends UIPanel {
 
     /**
      * The X pan amount in milliseconds
@@ -72,6 +73,10 @@ public class CurveEditor {
      * The amount of ms / value units offset from the mouse that each key being dragged has.
      */
     private final Map<KeyHandleReference, Vector2dc> keyDragOffsets = new HashMap<>();
+
+    public CurveEditor(Identifier id) {
+        super(id);
+    }
 
 
     private record KeyOffsetPair(KeyHandleReference ref, Vector2dc offset) {};
@@ -154,6 +159,19 @@ public class CurveEditor {
         double newOffsetY = center - (center - offsetY) * (this.zoomFactorY / targetZoom);
         this.zoomFactorY = targetZoom;
         this.offsetY = newOffsetY;
+    }
+
+    @Override
+    protected void drawContents(EditorState editorState) {
+        drawAndManageHandles(editorState, 0);
+        long replayTime = editorState.getScene().sceneToReplayTime(editorState.getPlayhead());
+
+        if (stoppedScrubbing() ||
+                (isScrubbing() && replayTime > EditorState.getReplayHandlerOrThrow().getReplaySender().currentTimeStamp())) {
+            editorState.queueTimeJump();
+        } else if (isScrubbing()) {
+            editorState.queueApplyToGame();
+        }
     }
 
     public void drawAndManageHandles(EditorState editorState, int flags) {

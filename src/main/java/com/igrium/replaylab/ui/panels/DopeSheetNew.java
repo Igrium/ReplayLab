@@ -1,5 +1,6 @@
-package com.igrium.replaylab.ui;
+package com.igrium.replaylab.ui.panels;
 
+import com.igrium.replaylab.editor.EditorState;
 import com.igrium.replaylab.editor.KeySelectionSet;
 import com.igrium.replaylab.editor.KeySelectionSet.KeyframeReference;
 
@@ -14,13 +15,14 @@ import imgui.flag.*;
 import imgui.type.ImInt;
 import lombok.Getter;
 import lombok.Setter;
+import net.minecraft.util.Identifier;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 import java.util.function.BiPredicate;
 import java.util.function.IntPredicate;
 
-public class DopeSheetNew {
+public class DopeSheetNew extends UIPanel {
     /**
      * The pan amount in milliseconds
      */
@@ -55,6 +57,10 @@ public class DopeSheetNew {
     // Not null if we're currently panning
     private @Nullable Double panStartPos;
 
+    public DopeSheetNew(Identifier id) {
+        super(id);
+    }
+
     public void setZoomFactor(float zoomFactor) {
         if (zoomFactor <= 0) {
             throw new IllegalArgumentException("Zoom factor must be greater than zero");
@@ -67,6 +73,12 @@ public class DopeSheetNew {
     }
 
     private record AggregateKeyRef(String objName, int keyIdx) {};
+
+    @Override
+    protected void drawContents(EditorState editorState) {
+        drawDopeSheet(editorState.getScene(), null, editorState.getKeySelection(),
+                editorState.getPlayheadRef(), 0);
+    }
 
     /**
      * Draw the dope sheet.

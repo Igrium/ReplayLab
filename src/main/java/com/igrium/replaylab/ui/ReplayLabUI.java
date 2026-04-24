@@ -10,10 +10,9 @@ import com.igrium.replaylab.operator.RemoveKeyframesOperator;
 import com.igrium.replaylab.operator.RemoveObjectOperator;
 import com.igrium.replaylab.render.VideoRenderSettings;
 import com.igrium.replaylab.scene.ReplayScene;
-import com.igrium.replaylab.scene.key.ChannelUtils;
-import com.igrium.replaylab.scene.key.KeyChannel;
 import com.igrium.replaylab.scene.obj.ReplayObject;
 import com.igrium.replaylab.scene.objs.ScenePropsObject;
+import com.igrium.replaylab.ui.panels.*;
 import com.igrium.replaylab.ui.util.ExceptionPopup;
 import com.igrium.replaylab.ui.util.ReplayLabControls;
 import com.igrium.replaylab.ui.util.TimelineFlags;
@@ -33,6 +32,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 /**
@@ -61,18 +61,23 @@ public class ReplayLabUI extends DockSpaceApp {
     // UI panels
     // =========================================================================
 
-    private final DopeSheet dopeSheet = new DopeSheet();
-    private final DopeSheetNew dopeSheetNew = new DopeSheetNew();
-    private final CurveEditor curveEditor = new CurveEditor();
+    private final List<UIPanel> panels = List.of(
+            new DopeSheet(Identifier.of("replaylab:dopesheet_legacy")),
+            new DopeSheetNew(Identifier.of("replaylab:dopesheet")),
+            new CurveEditor(Identifier.of("replaylab:curveeditor")),
+            new Outliner(Identifier.of("replaylab:outliner")),
+            new Inspector(Identifier.of("replaylab:inspector")),
+            new ScenePropsPanel(Identifier.of("replaylab:sceneprops"))
+    );
+
+
     private final SceneBrowser sceneBrowser = new SceneBrowser();
-    private final Outliner outliner = new Outliner();
+
 
     // =========================================================================
     // Deferred action flags (set during render, executed in preRender)
     // =========================================================================
 
-    private boolean wantsJumpTime;
-    private boolean wantsApplyToGame;
     private boolean wantsExit;
 
     // =========================================================================
@@ -134,12 +139,10 @@ public class ReplayLabUI extends DockSpaceApp {
                 MinecraftClient.getInstance().setScreen(null);
             }
         }
-        if (wantsJumpTime) {
+        if (editorState.wantsTimeJump()) {
             editorState.doTimeJump();
-            wantsJumpTime = false;
-        } else if (wantsApplyToGame) {
+        } else if (editorState.wantsApplyToGame()) {
             editorState.applyToGame();
-            wantsApplyToGame = false;
         }
 
         editorState.onPreRender();
@@ -174,16 +177,14 @@ public class ReplayLabUI extends DockSpaceApp {
         }
         ImGui.end();
 
-        drawDopeSheet();
-        drawDopeSheetNew();
-        drawCurveEditor();
-        drawOutliner();
-        drawInspector();
-        drawSceneProperties();
+        // Panels
+        for (var panel : panels) {
+            panel.draw(editorState, 0, null);
+        }
 
         ExportWindow.drawExportWindow(editorState, editorState.getScene().getSceneProps().getRenderSettings());
         ExportProgressWindow.drawExportProgress(editorState);
-        TimelineDebugScreen.drawDebugScreen();
+//        TimelineDebugScreen.drawDebugScreen();
 
         if (!firstFrame) {
             exceptionPopup.render();
@@ -232,6 +233,17 @@ public class ReplayLabUI extends DockSpaceApp {
 
             if (ImGui.menuItem("Insert Keyframe", "I")) insertKeyframe();
 
+            ImGui.endMenu();
+        }
+
+        if (ImGui.beginMenu("Window")) {
+            for (var panel : panels) {
+                String label = (panel.isVisible() ? "* " : "  ") + panel.getTitle();
+                if (ImGui.menuItem(label)) {
+                    panel.requestFocus();
+                    panel.setVisible(true);
+                }
+            }
             ImGui.endMenu();
         }
 
@@ -314,120 +326,9 @@ public class ReplayLabUI extends DockSpaceApp {
     }
 
     // =========================================================================
-    // Panel draw methods
-    // =========================================================================
-
-    private void drawDopeSheet() {
-        if (ImGui.begin("Dope Sheet")) {
-            dopeSheet.drawDopeSheet(editorState.getScene(), editorState.getKeySelection(),
-                    20 * 1000, editorState.getPlayheadRef(), TimelineFlags.SNAP_KEYS);
-
-            if (!dopeSheet.getUpdatedObjects().isEmpty()) {
-                editorState.applyOperator(new CommitObjectUpdateOperator(dopeSheet.getUpdatedObjects()));
-                editorState.saveSceneAsync();
-            }
-
-            // Always apply to game while dragging keys
-            if (!dopeSheet.getKeyDragOffsets().isEmpty()) {
-                wantsApplyToGame = true;
-            }
-
-            if (ImGui.isWindowFocused(ImGuiFocusedFlags.ChildWindows)
-                    && !ImGui.getIO().getWantTextInput()
-                    && ImGui.isKeyPressed(GLFW.GLFW_KEY_DELETE)) {
-                editorState.applyOperator(new RemoveKeyframesOperator(selectedKeys));
-            }
-            processGlobalHotkeys();
-        }
-        ImGui.end();
-
-        long replayTime = editorState.getScene().sceneToReplayTime(editorState.getPlayhead());
-        // Jump if playhead was dropped, or if scrubbing forward.
-        if (dopeSheet.isFinishedDraggingPlayhead() ||
-                (dopeSheet.isDraggingPlayhead() && replayTime >= getReplayHandler().getReplaySender().currentTimeStamp())) {
-            wantsJumpTime = true;
-        } else if (dopeSheet.isDraggingPlayhead()) {
-            wantsApplyToGame = true;
-        }
-    }
-
-    private void drawDopeSheetNew() {
-        if (ImGui.begin("Dope Sheet (new)")) {
-            dopeSheetNew.drawDopeSheet(editorState.getScene(), null,
-                    editorState.getKeySelection(), editorState.getPlayheadRef(), 0);
-            processGlobalHotkeys();
-        }
-        ImGui.end();
-    }
-
-    private void drawCurveEditor() {
-        if (ImGui.begin("Curve Editor")) {
-            curveEditor.drawAndManageHandles(editorState, 0);
-
-            long replayTime = editorState.getScene().sceneToReplayTime(editorState.getPlayhead());
-            // Jump if scrubbing stopped, or if scrubbing forward.
-            if (curveEditor.stoppedScrubbing() ||
-                    (curveEditor.isScrubbing() && replayTime > getReplayHandler().getReplaySender().currentTimeStamp())) {
-                wantsJumpTime = true;
-            } else if (curveEditor.isScrubbing()) {
-                wantsApplyToGame = true;
-            }
-            processGlobalHotkeys();
-        }
-        ImGui.end();
-    }
-
-    private void drawOutliner() {
-        if (ImGui.begin("Outliner")) {
-            outliner.drawOutliner(editorState);
-            testDeleteHotkey();
-            processGlobalHotkeys();
-        }
-        ImGui.end();
-    }
-
-    private void drawInspector() {
-        if (ImGui.begin("Inspector")) {
-            String selId = editorState.getSelectedObject();
-            ReplayObject selected = selId != null ? editorState.getScene().getObject(selId) : null;
-
-            if (selected == null) {
-                ImGui.text("No selected object.");
-            } else {
-                String typeName = Language.getInstance().get(selected.getType().getTranslationKey());
-                ImGui.text(selId + " (" + typeName + ")");
-                ImGui.separator();
-                drawObjectProperties(selected);
-            }
-            processGlobalHotkeys();
-        }
-        ImGui.end();
-    }
-
-    private void drawSceneProperties() {
-        if (ImGui.begin("Scene Properties")) {
-            drawObjectProperties(editorState.getScene().getSceneProps());
-            processGlobalHotkeys();
-        }
-        ImGui.end();
-    }
-
-    // =========================================================================
     // Object / operator helpers
     // =========================================================================
 
-    private void drawObjectProperties(ReplayObject object) {
-        ReplayObject.PropertiesPanelState state = object.drawPropertiesPanel();
-        if (state.wantsInsertKeyframe()) {
-            object.insertKey(editorState.getPlayhead());
-        }
-        if (state.wantsUndoStep()) {
-            editorState.applyOperator(new CommitObjectUpdateOperator(object.getId()), false);
-        }
-        if (state.wantsUpdateScene()) {
-            editorState.applyToGame(o -> o != object);
-        }
-    }
 
     private void insertKeyframe() {
         String selected = editorState.getSelectedObject();
