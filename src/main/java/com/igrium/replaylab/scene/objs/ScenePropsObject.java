@@ -97,8 +97,11 @@ public final class ScenePropsObject extends ReplayObject {
 
     @Override
     protected void readJson(JsonObject json, JsonDeserializationContext context) {
-        if (json.has("cameraObject")) {
-            setCameraObject(json.getAsJsonPrimitive("cameraObject").getAsString());
+        var cameraElem = json.get("cameraObject");
+        if (cameraElem != null && cameraElem.isJsonPrimitive()) {
+            setCameraObject(cameraElem.getAsString());
+        } else {
+            setCameraObject(null);
         }
         if (json.has("startTime")) {
             setStartTime(json.getAsJsonPrimitive("startTime").getAsInt());
