@@ -1,5 +1,6 @@
 package com.igrium.replaylab.ui.panels;
 
+import com.igrium.replaylab.ReplayLab;
 import com.igrium.replaylab.editor.EditorState;
 import com.igrium.replaylab.editor.KeySelectionSet;
 import com.igrium.replaylab.editor.KeySelectionSet.KeyframeReference;
@@ -212,13 +213,37 @@ public class DopeSheetNew extends UIPanel {
                         }
                         int[] keyMsList = combinedKeys.keySet().toIntArray();
                         ImGui.setNextItemWidth(ImGui.getContentRegionAvailX());
-                        drawKeyChannel(keyMsList, rowIndex, keyIdx -> {
+                        IntPredicate isSelected = keyIdx -> {
                             for (var ref : combinedKeys.get(keyMsList[keyIdx])) {
                                 if (selectedKeys.isKeyframeSelected(ref))
                                     return true;
                             }
                             return false;
-                        }, (selIdx, button) -> {}, drawList);
+                        };
+                        drawKeyChannel(keyMsList, rowIndex, isSelected, (selIdx, button) -> {
+                            if (button != 0) return; // TODO: right-click
+                            if (selIdx == null) {
+                                if (!ImGui.getIO().getKeyCtrl()) selectedKeys.deselectAll();
+                                return;
+                            }
+                            if (ImGui.getIO().getKeyCtrl()) {
+                                // Select multi
+                                boolean wasSelected = isSelected.test((int)selIdx);
+                                for (var ref : combinedKeys.get(keyMsList[selIdx])) {
+                                    if (wasSelected) {
+                                        selectedKeys.deselectKeyframe(ref);
+                                    } else {
+                                        selectedKeys.selectKeyframe(ref);
+                                    }
+                                }
+                            } else {
+                                // Select single
+                                selectedKeys.deselectAll();
+                                for (var ref : combinedKeys.get(keyMsList[selIdx])) {
+                                    selectedKeys.selectKeyframe(ref);
+                                }
+                            }
+                        }, drawList);
                     }
 
                     rowIndex++;
@@ -232,9 +257,28 @@ public class DopeSheetNew extends UIPanel {
                                     .toArray();
 
                             ImGui.setNextItemWidth(ImGui.getContentRegionAvailX());
-                            drawKeyChannel(keyMsList, rowIndex,
-                                    keyIdx -> selectedKeys.isKeyframeSelected(objName, chEntry.getKey(), keyIdx),
-                                    (selIdx, button) -> {}, drawList);
+                            IntPredicate isSelected = keyIdx ->
+                                    selectedKeys.isKeyframeSelected(objName, chEntry.getKey(), keyIdx);
+                            drawKeyChannel(keyMsList, rowIndex, isSelected, (selIdx, button) -> {
+                                if (button != 0) return; // TODO: right-click
+                                if (selIdx == null) {
+                                    if (!ImGui.getIO().getKeyCtrl()) selectedKeys.deselectAll();
+                                    return;
+                                }
+                                if (ImGui.getIO().getKeyCtrl()) {
+                                    // Select multi
+                                    boolean wasSelected = isSelected.test((int)selIdx);
+                                    if (wasSelected) {
+                                        selectedKeys.deselectKeyframe(objName, chEntry.getKey(), selIdx);
+                                    } else {
+                                        selectedKeys.selectKeyframe(objName, chEntry.getKey(), selIdx);
+                                    }
+                                } else {
+                                    // Select single
+                                    selectedKeys.deselectAll();
+                                    selectedKeys.selectKeyframe(objName, chEntry.getKey(), selIdx);
+                                }
+                            }, drawList);
 
                             rowIndex++;
                         }
@@ -246,6 +290,7 @@ public class DopeSheetNew extends UIPanel {
             ImGui.endGroup();
         }
         ImGui.endChild();
+        // TODO: I don't wanna do the math for box selection right now...
 
         /// === HEADER ===
         ImGui.setCursorPos(headerCursorX, headerCursorY);
