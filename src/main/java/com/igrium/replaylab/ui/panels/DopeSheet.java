@@ -33,6 +33,7 @@ import java.util.function.*;
  *
  * <p>Call {@link #drawDopeSheet} each ImGui frame to render and process input.
  */
+@Deprecated
 public class DopeSheet extends UIPanel {
 
     // -----------------------------------------------------------------------

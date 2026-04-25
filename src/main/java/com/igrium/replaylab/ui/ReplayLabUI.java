@@ -55,7 +55,6 @@ public class ReplayLabUI extends DockSpaceApp {
     // =========================================================================
 
     private final List<UIPanel> panels = List.of(
-            new DopeSheet(Identifier.of("replaylab:dopesheet_legacy")),
             new DopeSheetNew(Identifier.of("replaylab:dopesheet")),
             new CurveEditor(Identifier.of("replaylab:curveeditor")),
             new Outliner(Identifier.of("replaylab:outliner")),
@@ -342,16 +341,6 @@ public class ReplayLabUI extends DockSpaceApp {
             editorState.setSceneName("scene");
         }
         editorState.saveSceneAsync();
-    }
-
-    /**
-     * Delete the selected object if the delete button is pressed over this window.
-     */
-    @Deprecated
-    private void testDeleteHotkey() {
-        if (ImGui.isWindowFocused(ImGuiFocusedFlags.ChildWindows) && ImGui.shortcut(ImGuiKey.Delete)) {
-            deleteObject();
-        }
     }
 
     // =========================================================================
