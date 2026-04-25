@@ -16,10 +16,7 @@ import com.igrium.replaylab.ui.util.ChannelList;
 import com.igrium.replaylab.ui.util.ReplayLabControls;
 import com.igrium.replaylab.ui.util.TimelineHeader;
 import imgui.*;
-import imgui.flag.ImGuiCol;
-import imgui.flag.ImGuiHoveredFlags;
-import imgui.flag.ImGuiKey;
-import imgui.flag.ImGuiStyleVar;
+import imgui.flag.*;
 import imgui.type.ImBoolean;
 import imgui.type.ImInt;
 import it.unimi.dsi.fastutil.ints.*;
@@ -36,6 +33,7 @@ public class DopeSheetNew extends UIPanel {
 
     private static final float SNAP_THRESHOLD_PX = 4f;
     private static final float INTERVAL_DIVISOR = 4f;
+    private static final float MAX_ZOOM_FACTOR = 8f;
 
     /**
      * The X pan amount in milliseconds
@@ -124,21 +122,22 @@ public class DopeSheetNew extends UIPanel {
         if (zoomFactor <= 0) {
             throw new IllegalArgumentException("zoomFactor must be greater than 0.");
         }
-        this.zoomFactor = zoomFactor;
+        this.zoomFactor = Math.min(zoomFactor, MAX_ZOOM_FACTOR);
     }
 
     /**
-     * Modify the zoom of the editor on the X axis, centering it around a supplied point.
+     * Modify the zoom of the editor, centering it around a supplied point
      *
      * @param targetZoom New zoom factor.
      * @param center     Point to center around (ms)
      */
-    public void setZoomFactorX(float targetZoom, double center) {
+    public void setZoomFactor(float targetZoom, double center) {
+        targetZoom = Math.min(targetZoom, MAX_ZOOM_FACTOR);
         if (targetZoom == this.zoomFactor) return;
 
-        double newOffsetX = center - (center - offsetX) * (this.zoomFactor / targetZoom);
-        this.zoomFactor = targetZoom;
-        this.offsetX = newOffsetX;
+        double newOffset = center - (center - offsetX) * (this.zoomFactor / targetZoom);
+        this.zoomFactor = targetZoom;;
+        this.offsetX = newOffset;
     }
 
     @Override
@@ -204,7 +203,8 @@ public class DopeSheetNew extends UIPanel {
         boolean wantStartDragging = false;
 
         /// === MAIN ===
-        ImGui.beginChild("main", ImGui.getContentRegionAvailX(), -1, false);
+        // We'll manually implement scrolling so keyframe graph can "consume" it.
+        ImGui.beginChild("main", ImGui.getContentRegionAvailX(), -1, false, ImGuiWindowFlags.NoScrollWithMouse);
         {
             ///  === CHANNEL LIST ===
             ImGui.beginGroup();
@@ -214,11 +214,13 @@ public class DopeSheetNew extends UIPanel {
             ImGui.sameLine();
             headerCursorX = ImGui.getCursorPosX() + ImGui.getStyle().getItemSpacing().x;
 
+            float graphStart = ImGui.getCursorPosX();
+
             /// === KEYFRAMES ===
             ImGui.beginGroup();
+            float graphX = ImGui.getCursorScreenPosX();
+            float graphY = ImGui.getCursorScreenPosY();
             {
-                float graphX = ImGui.getCursorScreenPosX();
-                float graphY = ImGui.getCursorScreenPosY();
                 float graphWidth = ImGui.getContentRegionAvailX();
                 ImGui.pushStyleVar(ImGuiStyleVar.ItemSpacing, ImGui.getStyle().getItemSpacingX(), 0);
 
@@ -322,20 +324,34 @@ public class DopeSheetNew extends UIPanel {
 
                     if (pixelIn > 0) {
                         float pixelInGlobal = pixelIn + graphX;
-                        drawList.addLine(pixelInGlobal, graphY, pixelInGlobal, graphY + graphHeight, ImGui.getColorU32(ImGuiCol.Separator));
-                        drawList.addRectFilled(graphX, graphY, pixelInGlobal, graphY + graphHeight, ImGui.getColorU32(ImGuiCol.ModalWindowDimBg));
+                        drawList.addLine(pixelInGlobal, graphY, pixelInGlobal, graphY + channelListHeight, ImGui.getColorU32(ImGuiCol.Separator));
+                        drawList.addRectFilled(graphX, graphY, pixelInGlobal, graphY + channelListHeight, ImGui.getColorU32(ImGuiCol.ModalWindowDimBg));
                     }
 
                     if (pixelOut < graphWidth) {
                         float pixelOutGlobal = pixelOut + graphX;
-                        drawList.addLine(pixelOutGlobal, graphY, pixelOutGlobal, graphY + graphHeight, ImGui.getColorU32(ImGuiCol.Separator));
-                        drawList.addRectFilled(pixelOutGlobal, graphY, graphX + graphWidth, graphY + graphHeight, ImGui.getColorU32(ImGuiCol.ModalWindowDimBg));
+                        drawList.addLine(pixelOutGlobal, graphY, pixelOutGlobal, graphY + channelListHeight, ImGui.getColorU32(ImGuiCol.Separator));
+                        drawList.addRectFilled(pixelOutGlobal, graphY, graphX + graphWidth, graphY + channelListHeight, ImGui.getColorU32(ImGuiCol.ModalWindowDimBg));
                     }
                 }
 
             }
             ImGui.endGroup();
 
+            /// === ZOOM ===
+            if (ImGui.isItemHovered()) {
+                float mWheel = ImGui.getIO().getMouseWheel();
+                if (mWheel != 0) {
+                    float mouseGlobalX = ImGui.getMousePosX();
+                    double mouseXMs = pixelXToMs(mouseGlobalX - graphX);
+                    float factor = (float) Math.pow(2, mWheel * .125);
+                    setZoomFactor(zoomFactor * factor, mouseXMs);
+                }
+                // zoom logic
+            } else {
+                float scrollSpeed = ImGui.getTextLineHeightWithSpacing() * 3f;
+                ImGui.setScrollY(ImGui.getScrollY() - ImGui.getIO().getMouseWheel() * scrollSpeed);
+            }
 
             /// === PANNING ===
             if (ImGui.isMouseDragging(2)) {

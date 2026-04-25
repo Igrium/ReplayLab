@@ -85,6 +85,10 @@ public class TimelineHeader {
         int minorInterval = majorInterval / 2;
         int tinyInterval = majorInterval / 4;
 
+        if (majorInterval == 0 || minorInterval == 0 || tinyInterval == 0) {
+            return;
+        }
+
         float em = ImGui.getFontSize();
         int snapTargetMs;
         if (tinyInterval * zoomFactor > em * 1.2) {
@@ -109,24 +113,6 @@ public class TimelineHeader {
 
             int startTick = Math.floorDiv((int) offsetX, majorInterval) * majorInterval;
             int endTick = Math.ceilDiv((int) (offsetX + widthMs), majorInterval) * majorInterval;
-
-//            for (int ms = startTick; ms <= endTick; ms+= minorInterval) {
-//                float pos = msToPixel.apply(ms) + cursorX;
-//
-//                boolean isMajor = ms % majorInterval == 0;
-//                if (isMajor) {
-//                    // Number
-//                    float sec = ms / 1000f;
-//                    String str = majorInterval < 1000 ? String.format("%.2f", sec) : Integer.toString(Math.round(sec));
-//                    ImVec2 strLen = ImGui.calcTextSize(str);
-//                    drawList.addText(pos - strLen.x / 2f, cursorY, ImGui.getColorU32(ImGuiCol.Text), str);
-//                }
-//
-//                // Tick
-//                drawList.addLine(pos, cursorY + headerHeight / (isMajor ? 1.8f : 1.4f),
-//                        pos, cursorY + headerHeight, 0xAAAAAAAA);
-//
-//            }
 
             ImVec2 strLength = new ImVec2();
             for (int ms = startTick; ms <= endTick; ms += tinyInterval) {
@@ -153,37 +139,6 @@ public class TimelineHeader {
                     drawList.addLine(pos, cursorY + headerHeight / 1.2f, pos, cursorY + headerHeight, 0xAAAAAAAA);
                 }
             }
-
-            // Major intervals
-//            for (int ms = Math.floorDiv(headerStartTick, majorInterval); ms <= headerEndTick; ms += majorInterval) {
-//                float pos = msToPixel.apply(ms);
-//                float sec = ms / 1000f;
-//
-//                // Number
-//                String str = majorInterval < 1000 ? String.format("%.2f", sec) : Integer.toString(Math.round(sec));
-//                ImVec2 strLen = ImGui.calcTextSize(str);
-//                drawList.addText(cursorX + (pos - strLen.x / 2f), cursorY, ImGui.getColorU32(ImGuiCol.Text), str);
-//
-//                // Tick
-//                drawList.addLine(cursorX + pos, cursorY + headerHeight / 1.8f,
-//                        cursorX + pos, cursorY + headerHeight, 0xAAAAAAAA);
-//            }
-//
-//            // Minor ticks
-//            for (int ms = Math.floorDiv(headerStartTick, minorInterval); ms <= headerEndTick; ms += minorInterval) {
-//                float pos = msToPixel.apply(ms);
-//                drawList.addLine(cursorX + pos, cursorY + headerHeight / 1.4f,
-//                        cursorX + pos, cursorY + headerHeight, 0xAAAAAAAA);
-//            }
-//
-//            // Don't bother drawing tiny ticks if they're too small
-//            if (tinyInterval * zoomFactor > em * 1.2) {
-//                for (float ms = Math.floorDiv(headerEndTick, tinyInterval); ms <= headerEndTick; ms += tinyInterval) {
-//                    float pos = msToPixel.apply(ms);
-//                    drawList.addLine(cursorX + pos, cursorY + headerHeight / 1.2f,
-//                            cursorX + pos, cursorY + headerHeight, 0xAAAAAAAA);
-//                }
-//            }
 
             drawList.popClipRect();
         }
