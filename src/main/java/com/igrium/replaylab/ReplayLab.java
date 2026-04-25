@@ -22,9 +22,14 @@ import java.nio.file.Path;
 public class ReplayLab implements ModInitializer, ClientModInitializer {
 
     public static final Logger LOGGER = LoggerFactory.getLogger(ReplayLab.class);
+    private static final StackWalker STACK_WALKER = StackWalker.getInstance(StackWalker.Option.RETAIN_CLASS_REFERENCE);
 
     public static Logger getLogger(String name) {
         return LoggerFactory.getLogger("ReplayLab/" + name);
+    }
+
+    public static Logger getLogger() {
+        return LoggerFactory.getLogger("ReplayLab/" + STACK_WALKER.getCallerClass().getName());
     }
 
     @Getter
@@ -67,5 +72,4 @@ public class ReplayLab implements ModInitializer, ClientModInitializer {
         AppManager.openApp(appInstance);
         appInstance.afterOpen();
     }
-
 }
