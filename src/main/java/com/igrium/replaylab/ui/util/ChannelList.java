@@ -11,9 +11,7 @@ import imgui.flag.ImGuiCol;
 import imgui.flag.ImGuiStyleVar;
 import lombok.experimental.UtilityClass;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
+import java.util.*;
 
 @UtilityClass
 public class ChannelList {
@@ -21,10 +19,10 @@ public class ChannelList {
      * Draw the channel list
      * @param scene Scene to use
      * @param objs Object IDs to render
-     * @return A collection of all channels which are currently expanded. Needed for the dope sheet.
+     * @return A collection of all objects which are currently expanded. Needed for the dope sheet.
      */
-    public static List<KeySelectionSet.ChannelReference> drawChannelList(ReplayScene scene, Collection<? extends String> objs, int width) {
-        List<KeySelectionSet.ChannelReference> visibleChannels = new ArrayList<>(objs.size() * 6); // random somewhat-informed guess
+    public static Collection<String> drawChannelList(ReplayScene scene, Collection<? extends String> objs, int width) {
+        Set<String> expandedObjs = new HashSet<>(objs.size());
         for (var name : objs) {
             ReplayObject obj = scene.getObject(name);
             if (obj == null)
@@ -127,9 +125,9 @@ public class ChannelList {
                     }
                     ImGui.popStyleVar();
                     ImGui.popStyleColor();
-                    visibleChannels.add(new KeySelectionSet.ChannelReference(obj.getId(), entry.getKey()));
                 }
                 ImGui.treePop();
+                expandedObjs.add(name);
             }
 
             if (setAllLocked != null || setAllHidden != null) {
@@ -143,6 +141,6 @@ public class ChannelList {
                 }
             }
         }
-        return visibleChannels;
+        return expandedObjs;
     }
 }

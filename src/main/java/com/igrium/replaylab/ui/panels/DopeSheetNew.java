@@ -5,23 +5,19 @@ import com.igrium.replaylab.editor.KeySelectionSet;
 import com.igrium.replaylab.editor.KeySelectionSet.KeyframeReference;
 import com.igrium.replaylab.scene.ReplayScene;
 import com.igrium.replaylab.scene.key.KeyChannel;
+import com.igrium.replaylab.scene.key.Keyframe;
 import com.igrium.replaylab.scene.obj.ReplayObject;
 import com.igrium.replaylab.ui.ReplayLabIcons;
 import com.igrium.replaylab.ui.util.ChannelList;
 import com.igrium.replaylab.ui.util.ReplayLabControls;
 import com.igrium.replaylab.ui.util.TimelineHeader;
-import imgui.ImColor;
-import imgui.ImDrawList;
-import imgui.ImGui;
-import imgui.ImVec2;
+import imgui.*;
 import imgui.flag.ImGuiCol;
+import imgui.flag.ImGuiStyleVar;
 import imgui.type.ImBoolean;
 import imgui.type.ImInt;
 import it.unimi.dsi.fastutil.floats.FloatList;
-import it.unimi.dsi.fastutil.ints.Int2ObjectAVLTreeMap;
-import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
-import it.unimi.dsi.fastutil.ints.IntList;
-import it.unimi.dsi.fastutil.ints.IntPredicate;
+import it.unimi.dsi.fastutil.ints.*;
 import lombok.Getter;
 import lombok.Setter;
 import net.minecraft.util.Identifier;
@@ -182,10 +178,9 @@ public class DopeSheetNew extends UIPanel {
         /// === MAIN ===
         ImGui.beginChild("main", ImGui.getContentRegionAvailX(), -1, false);
         {
-
             ///  === CHANNEL LIST ===
             ImGui.beginGroup();
-            var visibleChannels = ChannelList.drawChannelList(scene, objs, 192);
+            var expandedObjects = ChannelList.drawChannelList(scene, objs, 192);
             ImGui.endGroup();
             ImGui.sameLine();
             headerCursorX = ImGui.getCursorPosX() + ImGui.getStyle().getItemSpacing().x;
@@ -193,56 +188,71 @@ public class DopeSheetNew extends UIPanel {
             /// === KEYFRAMES ===
             ImGui.beginGroup();
             {
+                ImGui.pushStyleVar(ImGuiStyleVar.ItemSpacing, ImGui.getStyle().getItemSpacingX(), 0);
+
                 ImDrawList drawList = ImGui.getWindowDrawList();
                 int rowIndex = 0;
                 boolean wantStartDragging = false;
 
-                String currentObjName = null;
-                for (var cRef : visibleChannels) {
-                    KeyChannel channel = cRef.get(scene.getObjects());
-                    if (channel == null) continue; // TODO: leave empty space
-                    if (currentObjName == null || !currentObjName.equals(cRef.objectName())) {
-                        // Next object
-                        currentObjName = cRef.objectName();
+                for (String objName : objs) {
+                    ReplayObject obj = scene.getObject(objName);
+                    if (obj == null) continue;
 
-                        // Map all ms timestamps and the keyframes that land on that timestamp.
-                        // Used to draw the combined keyframe row.
-                        Int2ObjectAVLTreeMap<Set<KeyframeReference>> keyIndex = new Int2ObjectAVLTreeMap<>();
-                        for (int i = 0; i < channel.getKeyframes().size(); i++) {
-                            var key = channel.getKeyframes().get(i);
-                            var set = keyIndex.computeIfAbsent(key.getTimeInt(), v -> new HashSet<>());
-                            set.add(new KeyframeReference(cRef, i));
+                    // COMBINED ROW
+                    {
+                        // Map all ms timestamps and the keyframes that land on said timestamp.
+                        Int2ObjectMap<Set<KeyframeReference>> combinedKeys = new Int2ObjectOpenHashMap<>();
+                        for (var chEntry : obj.getChannels().entrySet()) {
+                            var chan = chEntry.getValue();
+                            for (int i = 0; i < chan.getKeyframes().size(); i++) {
+                                var key = chan.getKeyframes().get(i);
+                                var set = combinedKeys.computeIfAbsent(key.getTimeInt(), v -> new HashSet<>());
+                                set.add(new KeyframeReference(objName, chEntry.getKey(), i));
+                            }
                         }
+                        int[] keyMsList = combinedKeys.keySet().toIntArray();
+                        ImGui.setNextItemWidth(ImGui.getContentRegionAvailX());
+                        drawKeyChannel(keyMsList, rowIndex, keyIdx -> {
+                            for (var ref : combinedKeys.get(keyMsList[keyIdx])) {
+                                if (selectedKeys.isKeyframeSelected(ref))
+                                    return true;
+                            }
+                            return false;
+                        }, (selIdx, button) -> {}, drawList);
+                    }
 
+                    rowIndex++;
+
+                    // INDIVIDUAL CHANNELS
+                    if (expandedObjects.contains(objName)) {
+                        for (var chEntry : obj.getChannels().entrySet()) {
+                            int[] keyMsList = chEntry.getValue().getKeyframes()
+                                    .stream()
+                                    .mapToInt(Keyframe::getTimeInt)
+                                    .toArray();
+
+                            ImGui.setNextItemWidth(ImGui.getContentRegionAvailX());
+                            drawKeyChannel(keyMsList, rowIndex,
+                                    keyIdx -> selectedKeys.isKeyframeSelected(objName, chEntry.getKey(), keyIdx),
+                                    (selIdx, button) -> {}, drawList);
+
+                            rowIndex++;
+                        }
                     }
                 }
+                ImGui.popStyleVar();
 
-//                for (String objName : objs) {
-//                    ReplayObject object = scene.getObject(objName);
-//                    if (object == null) continue; // TODO: leave empty space
-//
-//                    // A mapping of all ms timestamps and the keyframes that land on that timestamp
-//                    // Used for merging keyframes in object headers
-//                    Int2ObjectMap<Set<KeyframeReference>> keyIndex = new Int2ObjectAVLTreeMap<>();
-//
-//                    // We'll iterate over channels twice. Once to build the key index so we can draw the combined channel,
-//                    // and another to draw the individual keyframes
-//                }
             }
             ImGui.endGroup();
         }
         ImGui.endChild();
-//
-//        ImGui.sameLine();
-//        float headerCursorX = ImGui.getCursorPosX();
-//        ImGui.newLine();
 
         /// === HEADER ===
         ImGui.setCursorPos(headerCursorX, headerCursorY);
         header.drawHeader(headerHeight, zoomFactor, (float) offsetX, scene.getLength(), playhead, graphHeight, 0);
     }
 
-    private boolean drawKeyChannel(IntList keys, int rowIndex, IntPredicate isSelected, BiConsumer<Integer, Integer> onClick, ImDrawList drawList) {
+    private boolean drawKeyChannel(int[] keys, int rowIndex, IntPredicate isSelected, BiConsumer<Integer, Integer> onClick, ImDrawList drawList) {
         ImGui.pushID("Dope Channel " + rowIndex);
 
         float lineWidth = ImGui.calcItemWidth();
@@ -256,7 +266,7 @@ public class DopeSheetNew extends UIPanel {
 
         float keySize = ImGui.getFontSize();
         float keyRadius = keySize / 2;
-        float centerY = cursorX + lineHeight / 2;
+        float centerY = cursorY + lineHeight / 2;
 
         BiFunction<Float, Float, Integer> getHoveredKey = (posX, posY) -> {
             int i = 0;
@@ -289,16 +299,11 @@ public class DopeSheetNew extends UIPanel {
             }
         }
 
-        int i = 0;
-        var iter = keys.intIterator();
-        while (iter.hasNext()) {
-            var key = iter.nextInt();
+        for (int i = 0; i < keys.length; i++) {
+            int keyMs = keys[i];
             boolean selected = isSelected.test(i);
             int keyColor = selected ? ImColor.rgb(1f, 1f, 1f) : ImColor.rgb(.5f, .5f, .5f);
-
-            float centerX = msToPixelX(key);
-            drawList.addNgonFilled(centerX, centerY, keyRadius, keyColor, 4);
-            i++;
+            drawList.addNgonFilled(cursorX + msToPixelX(keyMs), centerY, keyRadius, keyColor, 4);
         }
 
         ImGui.popID();
