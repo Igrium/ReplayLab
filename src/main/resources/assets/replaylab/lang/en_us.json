@@ -10,5 +10,8 @@
   "panel.replaylab.curveeditor": "Curve Editor",
   "panel.replaylab.outliner": "Outliner",
   "panel.replaylab.inspector": "Inspector",
-  "panel.replaylab.sceneprops": "Scene Properties"
+  "panel.replaylab.sceneprops": "Scene Properties",
+
+  "gui.replaylab.tooltip_snap": "Snap Keyframes",
+  "gui.replaylab.tooltip_fit": "Fit to Selected"
 }

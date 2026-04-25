@@ -96,8 +96,8 @@ public class ReplayLabControls {
         boolean result = toggleButton(String.valueOf(icon), pressed);
         ImGui.popFont();
 
-        if (tooltip != null && ImGui.isItemHovered()) {
-            ImGui.setTooltip(Language.getInstance().get(tooltip));
+        if (tooltip != null) {
+            ImGui.setItemTooltip(Language.getInstance().get(tooltip));
         }
         return result;
     }
@@ -107,8 +107,8 @@ public class ReplayLabControls {
         boolean result = ImGui.button(icon + "##" + id);
         ImGui.popFont();
 
-        if (tooltip != null && ImGui.isItemHovered()) {
-            ImGui.setTooltip(Language.getInstance().get(tooltip));
+        if (tooltip != null) {
+            ImGui.setItemTooltip(Language.getInstance().get(tooltip));
         }
         return result;
     }

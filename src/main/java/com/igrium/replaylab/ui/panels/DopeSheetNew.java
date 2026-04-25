@@ -1,263 +1,192 @@
 package com.igrium.replaylab.ui.panels;
 
 import com.igrium.replaylab.editor.EditorState;
-import com.igrium.replaylab.editor.KeySelectionSet;
 import com.igrium.replaylab.editor.KeySelectionSet.KeyframeReference;
-
+import com.igrium.replaylab.editor.KeySelectionSet;
 import com.igrium.replaylab.scene.ReplayScene;
-import com.igrium.replaylab.scene.key.Keyframe;
+import com.igrium.replaylab.scene.key.KeyChannel;
 import com.igrium.replaylab.scene.obj.ReplayObject;
+import com.igrium.replaylab.ui.ReplayLabIcons;
+import com.igrium.replaylab.ui.util.ChannelList;
+import com.igrium.replaylab.ui.util.ReplayLabControls;
 import com.igrium.replaylab.ui.util.TimelineHeader;
-import imgui.ImColor;
-import imgui.ImDrawList;
 import imgui.ImGui;
-import imgui.flag.*;
+import imgui.ImVec2;
+import imgui.flag.ImGuiCol;
+import imgui.flag.ImGuiStyleVar;
+import imgui.type.ImBoolean;
 import imgui.type.ImInt;
 import lombok.Getter;
 import lombok.Setter;
 import net.minecraft.util.Identifier;
 import org.jetbrains.annotations.Nullable;
+import org.joml.Vector2dc;
 
 import java.util.*;
-import java.util.function.BiPredicate;
-import java.util.function.IntPredicate;
 
 public class DopeSheetNew extends UIPanel {
+
     /**
-     * The pan amount in milliseconds
+     * The X pan amount in milliseconds
      */
     @Getter @Setter
-    private double offset;
+    private double offsetX;
 
     /**
      * The amount of pixels per millisecond
      */
     @Getter
-    public float zoomFactor = 0.1f;
+    private float zoomFactor = 0.1f;
 
     /**
-     * All the replay objects that have had an update <em>committed</em> this frame.
+     * All the keyframes that have had an update <em>comitted</em> this frame.
      * Does not include keyframes being dragged.
      */
     @Getter
-    private final Set<String> updatedObjects = new HashSet<>();
+    private final Set<KeyframeReference> droppedKeys = new HashSet<>();
 
     /**
-     * The amount of units offset from the mouse that each key being dragged has
+     * All the handles that have been updated this frame.
+     */
+    @Getter
+    private final Set<KeyframeReference> updatedKeys = new HashSet<>();
+
+    /**
+     * The amount of ms offset from the mouse that each key being dragged has.
      */
     private final Map<KeyframeReference, Double> keyDragOffsets = new HashMap<>();
 
-    private final TimelineHeader header = new TimelineHeader();
+    private record KeyOffsetPair(KeyframeReference ref, double offset) {};
 
     /**
-     * All the objects which are expanded this frame
+     * The key drag offset that's closest to the mouse (ms)
      */
-    private final Set<String> openObjects = new HashSet<>();
+    private @Nullable KeyOffsetPair smallestKeyDragOffset;
 
-    // Not null if we're currently panning
+    /**
+     * The global location of the smallest key drag offset at the time of drag start
+     */
+    private double dragStartPos;
+
+    private final TimelineHeader header = new TimelineHeader();
+
+    // Not null if currently panning
     private @Nullable Double panStartPos;
+
+    private final ImBoolean snapKeyframes = new ImBoolean();
+
+    /**
+     * The global pixel position of a selection box start position
+     */
+    private @Nullable ImVec2 boxSelectStart;
+
+    /**
+     * The keyframe that is currently being edited in the context menu
+     */
+    private @Nullable KeyframeReference contextKey;
+
 
     public DopeSheetNew(Identifier id) {
         super(id);
     }
 
+    public boolean isScrubbing() {
+        return header.isScrubbing();
+    }
+
+    public boolean stoppedScrubbing() {
+        return header.stoppedScrubbing();
+    }
+
+    public boolean isDragging() {
+        return !keyDragOffsets.isEmpty();
+    }
+
+    public boolean isBoxSelecting() {
+        return boxSelectStart != null;
+    }
+
     public void setZoomFactor(float zoomFactor) {
         if (zoomFactor <= 0) {
-            throw new IllegalArgumentException("Zoom factor must be greater than zero");
+            throw new IllegalArgumentException("zoomFactor must be greater than 0.");
         }
         this.zoomFactor = zoomFactor;
     }
 
-    private interface DrawKeyChLambda {
-        void call(List<Keyframe> keys, int rowIdx, IntPredicate isSelected);
-    }
+    /**
+     * Modify the zoom of the editor on the X axis, centering it around a supplied point.
+     *
+     * @param targetZoom New zoom factor.
+     * @param center     Point to center around (ms)
+     */
+    public void setZoomFactorX(float targetZoom, double center) {
+        if (targetZoom == this.zoomFactor) return;
 
-    private record AggregateKeyRef(String objName, int keyIdx) {};
+        double newOffsetX = center - (center - offsetX) * (this.zoomFactor / targetZoom);
+        this.zoomFactor = targetZoom;
+        this.offsetX = newOffsetX;
+    }
 
     @Override
     protected void drawContents(EditorState editorState) {
-        drawDopeSheet(editorState.getScene(), null, editorState.getKeySelection(),
-                editorState.getPlayheadRef(), 0);
+        drawDopeSheet(editorState.getScene(), null, editorState.getKeySelection(), editorState.getPlayheadRef());
+
+        long replayTime = editorState.getScene().sceneToReplayTime(editorState.getPlayhead());
+        if (stoppedScrubbing() ||
+                (isScrubbing() && replayTime > EditorState.getReplayHandlerOrThrow().getReplaySender().currentTimeStamp())) {
+            editorState.queueTimeJump();
+        } else if (isScrubbing()) {
+            editorState.queueApplyToGame();
+        }
     }
 
-    /**
-     * Draw the dope sheet.
-     *
-     * @param scene           The scene to edit. Keyframes will be updated as the user changes them.
-     * @param selectedObjects The objects to display the keyframes of. <code>null</code> to display all objects
-     * @param selectedKeys    All keyframe handles which are currently selected.
-     *                        Updated as the user selects/deselects keyframes.
-     * @param playhead        Current playhead position. Updated as the player scrubs.
-     * @param flags           Render flags.
-     */
     public void drawDopeSheet(ReplayScene scene, @Nullable Collection<String> selectedObjects,
-                                KeySelectionSet selectedKeys, @Nullable ImInt playhead, int flags) {
-        updatedObjects.clear();
+                              KeySelectionSet selectedKeys, @Nullable ImInt playhead) {
+        droppedKeys.clear();
+        updatedKeys.clear();
         Collection<String> objs = selectedObjects != null ? selectedObjects : scene.getObjects().keySet();
 
         int majorIntervalX = (int) TimelineHeader.computeMajorInterval(zoomFactor);
         int minorIntervalX = majorIntervalX / 2;
 
-        ImGui.pushStyleVar(ImGuiStyleVar.ChildBorderSize, 0);
-        ImGui.pushStyleVar(ImGuiStyleVar.ItemSpacing, ImGui.getStyle().getItemSpacingX(), 0);
-
-        // Allocate space for header
         float headerCursorY = ImGui.getCursorPosY();
         float headerHeight = ImGui.getTextLineHeight() * 2f;
 
         ImGui.dummy(0, headerHeight);
-
-        ImGui.beginChild("content", -1, -1, false);
-
-        /// === CHANNEL LIST ===
-        ImGui.pushID("channels");
-        ImGui.beginGroup();
-        {
-            openObjects.clear();
-
-            for (String objName : objs) {
-                ReplayObject obj = scene.getObject(objName);
-                if (obj == null) continue;
-
-                ImGui.alignTextToFramePadding();
-                if (ImGui.treeNodeEx(objName)) {
-                    openObjects.add(objName);
-
-                    for (String chName : obj.getChannels().keySet()) {
-                        ImGui.alignTextToFramePadding();
-                        ImGui.text(chName);
-                    }
-                    ImGui.treePop();
-                }
-            }
-            ImGui.dummy(128, 0); // Force width
-        }
-        ImGui.endGroup();
-        ImGui.popID(); // channels
-
-        KeyframeReference hoveredKeyframe = null;
-        AggregateKeyRef hoveredAggregate = null;
-
-        /// === AGGREGATE KEYFRAMES ===
-        // Aggregate all keyframes into a single timeline for relevant objects.
-
-        /// === Key List ===
         ImGui.sameLine();
-        ImGui.beginChild("KeyList", -1, -1, false);
+
+        /// === BUTTONS ===
+        ReplayLabControls.toggleButton(ReplayLabIcons.ICON_MAGNET, "gui.replaylab.tooltip_snap", snapKeyframes);
+        ImGui.sameLine();
+        boolean wantsFit = ReplayLabControls.iconButton(ReplayLabIcons.ICON_RESIZE_FULL_ALT, "", "gui.replaylab.tooltip_fit");
+
+
+        float graphHeight = ImGui.getContentRegionAvailY();
+        float headerCursorX;
+
+        /// === MAIN ===
+        ImGui.beginChild("main", ImGui.getContentRegionAvailX(), -1, false);
         {
-            float graphX = ImGui.getCursorScreenPosX();
 
-            ImDrawList drawList = ImGui.getWindowDrawList();
-
-            float graphWidth = ImGui.getContentRegionAvailX();
-
-            /// === DRAW KEYFRAMES ===
-            DrawKeyChLambda drawKeyCh = (keys, rowIdx, isSelected) -> {
-                ImGui.pushID("Dope Channel" + rowIdx);
-
-                float lineWidth = ImGui.calcItemWidth();
-                float lineHeight = ImGui.getFrameHeight();
-
-                float cursorY = ImGui.getCursorScreenPosY();
-
-                int bgColor = ImGui.getColorU32(rowIdx % 2 == 0 ? ImGuiCol.TableRowBgAlt : ImGuiCol.TableRowBg);
-
-                drawList.addRectFilled(graphX, cursorY, graphX + lineWidth, cursorY + lineHeight, bgColor);
-
-                float keySize = ImGui.getFontSize();
-                float keyRadius = keySize / 2;
-                float centerY = cursorY + lineHeight / 2;
-
-                ImGui.invisibleButton("##canvas", lineWidth, lineHeight);
-
-                int i = 0;
-                for (Keyframe key : keys) {
-                    boolean selected = isSelected.test(i);
-                    int keyColor = selected ? ImColor.rgb(1f, 1f, 1f) : ImColor.rgb(.5f, .5f, .5f);
-
-                    float centerX = msToPixelX(key.getTimeInt()) + graphX;
-                    drawList.addNgonFilled(centerX, centerY, keyRadius, keyColor, 4);
-                    i++;
-                }
-
-                ImGui.popID(); // Dope Channel
-            };
-
-            float keySize = ImGui.getFontSize();
-            float keyRadius = keySize / 2;
-
-            BiPredicate<Double, Float> isKeyHovered = (ms, mouseX) -> {
-                float centerX = msToPixelX(ms) + graphX;
-                return (centerX - keyRadius - 2 < mouseX && mouseX < centerX + keyRadius + 2);
-            };
-
-            float mouseX = ImGui.getMousePosX();
-
-            /// === CHANNELS ===
-            int rowIdx = 0;
-            for (String objName : objs) {
-                ReplayObject obj = scene.getObject(objName);
-                if (obj == null) continue;
-
-                // TODO: Draw the aggregate keyframes rather than a placeholder
-                ImGui.setNextItemWidth(graphWidth);
-                drawKeyCh.call(List.of(), rowIdx, v -> false);
-                rowIdx++;
-
-                // Draw individual channels
-                if (openObjects.contains(objName)) {
-                    for (var chEntry : obj.getChannels().entrySet()) {
-                        ImGui.setNextItemWidth(graphWidth);
-                        drawKeyCh.call(chEntry.getValue().getKeyframes(), rowIdx,
-                                idx -> selectedKeys.isKeyframeSelected(objName, chEntry.getKey(), idx));
-                        rowIdx++;
-
-                        // Check hover
-                        if (ImGui.isItemHovered()) {
-                            int keyIdx = 0;
-                            for (Keyframe key : chEntry.getValue().getKeyframes()) {
-                                if (isKeyHovered.test(key.getCenter().x, mouseX)) {
-                                    hoveredKeyframe = new KeyframeReference(objName, chEntry.getKey(), keyIdx);
-                                    break;
-                                }
-                                keyIdx++;
-                            }
-                        }
-                    }
-                }
-            }
+            ///  === CHANNEL LIST ===
+            ImGui.beginGroup();
+            var visibleChannels = ChannelList.drawChannelList(scene, objs, 192);
+            ImGui.endGroup();
+            ImGui.sameLine();
+            headerCursorX = ImGui.getCursorPosX() + ImGui.getStyle().getItemSpacing().x;
+            ImGui.beginGroup();
+            ImGui.text("Replay Controls");
+            ImGui.text("Lione");
+            ImGui.endGroup();
         }
-        ImGui.popStyleVar(2);
+        ImGui.endChild();
+//
+//        ImGui.sameLine();
+//        float headerCursorX = ImGui.getCursorPosX();
+//        ImGui.newLine();
 
-        /// === SELECTION ===
-        {
-            if (ImGui.isMouseClicked(0) && ImGui.isWindowHovered(ImGuiHoveredFlags.ChildWindows | ImGuiHoveredFlags.AllowWhenBlockedByActiveItem)) {
-                if (ImGui.getIO().getKeyCtrl()) {
-                    if (hoveredKeyframe != null) {
-                        if (selectedKeys.isKeyframeSelected(hoveredKeyframe)) {
-                            selectedKeys.deselectKeyframe(hoveredKeyframe);
-                        } else {
-                            selectedKeys.selectKeyframe(hoveredKeyframe);
-                        }
-                    }
-                } else {
-                    selectedKeys.deselectAll();
-                    if (hoveredKeyframe != null) {
-                        selectedKeys.selectKeyframe(hoveredKeyframe);
-                    }
-                }
-            }
-        }
-
-        ImGui.endChild(); // KeyList
-        ImGui.endChild(); // content
-    }
-
-    private float msToPixelX(double ms) {
-        return (float) ((ms - offset) * zoomFactor);
-    }
-
-    private float pixelXToMs(float pixel) {
-        return (float) (pixel / zoomFactor + offset);
+        /// === HEADER ===
+        ImGui.setCursorPos(headerCursorX, headerCursorY);
+        header.drawHeader(headerHeight, zoomFactor, (float) offsetX, scene.getLength(), playhead, graphHeight, 0);
     }
 }

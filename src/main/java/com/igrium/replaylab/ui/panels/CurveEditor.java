@@ -12,6 +12,7 @@ import com.igrium.replaylab.scene.key.KeyChannel;
 import com.igrium.replaylab.scene.key.Keyframe;
 import com.igrium.replaylab.scene.obj.ReplayObject;
 import com.igrium.replaylab.ui.ReplayLabIcons;
+import com.igrium.replaylab.ui.util.ChannelList;
 import com.igrium.replaylab.ui.util.ReplayLabControls;
 import com.igrium.replaylab.ui.util.TimelineFlags;
 import com.igrium.replaylab.ui.util.TimelineHeader;
@@ -36,13 +37,15 @@ public class CurveEditor extends UIPanel {
     /**
      * The X pan amount in milliseconds
      */
-    @Getter @Setter
+    @Getter
+    @Setter
     private double offsetX;
 
     /**
      * The Y pan amount in curve units
      */
-    @Getter @Setter
+    @Getter
+    @Setter
     private double offsetY;
 
     /**
@@ -80,7 +83,10 @@ public class CurveEditor extends UIPanel {
     }
 
 
-    private record KeyOffsetPair(KeyHandleReference ref, Vector2dc offset) {};
+    private record KeyOffsetPair(KeyHandleReference ref, Vector2dc offset) {
+    }
+
+    ;
 
     /**
      * The key drag offset that's closest to the mouse
@@ -143,8 +149,9 @@ public class CurveEditor extends UIPanel {
 
     /**
      * Modify the zoom of the editor on the X axis, centering it around a supplied point.
+     *
      * @param targetZoom New zoom factor.
-     * @param center Point to center around (ms)
+     * @param center     Point to center around (ms)
      */
     public void setZoomFactorX(float targetZoom, double center) {
         if (targetZoom == this.zoomFactorX) return;
@@ -260,135 +267,15 @@ public class CurveEditor extends UIPanel {
         ImGui.sameLine();
 
         /// === BUTTONS ===
-        ReplayLabControls.toggleButton(ReplayLabIcons.ICON_MAGNET, "Snap Keyframes", snapKeyframes);
+        ReplayLabControls.toggleButton(ReplayLabIcons.ICON_MAGNET, "gui.replaylab.tooltip_snap", snapKeyframes);
         ImGui.sameLine();
-        boolean wantsFit = ReplayLabControls.iconButton(ReplayLabIcons.ICON_RESIZE_FULL_ALT, "", "Fit to Selected");
+        boolean wantsFit = ReplayLabControls.iconButton(ReplayLabIcons.ICON_RESIZE_FULL_ALT, "", "gui.replaylab.tooltip_fit");
 
         /// === CHANNEL LIST ===
         ImGui.beginChild("channels", 192, -1, false, ImGuiWindowFlags.NoScrollbar);
-        {
+        ChannelList.drawChannelList(scene, objs, 192);
+        ImGui.endChild();
 
-            for (var name : objs) {
-                ReplayObject obj = scene.getObject(name);
-                if (obj == null)
-                    continue;
-
-                Boolean setAllLocked = null;
-                Boolean setAllHidden = null;
-
-                boolean anyUnlocked = false;
-                for (KeyChannel channel : obj.getChannels().values()) {
-                    if (!channel.isLocked()) {
-                        anyUnlocked = true;
-                        break;
-                    }
-                }
-
-                boolean anyVisible = false;
-                for (KeyChannel channel : obj.getChannels().values()) {
-                    if (!channel.isHidden()) {
-                        anyVisible = true;
-                        break;
-                    }
-                }
-
-                boolean renderObjDisabled = !anyVisible || !anyUnlocked;
-
-                if (renderObjDisabled) {
-                    ImGui.pushStyleColor(ImGuiCol.Text, ImGui.getColorU32(ImGuiCol.TextDisabled));
-                }
-                boolean open = ImGui.treeNodeEx(name);
-                if (renderObjDisabled) {
-                    ImGui.popStyleColor();
-                }
-
-                // Global object toggles
-                ImGui.pushStyleColor(ImGuiCol.Button, 0);
-                ImGui.pushStyleVar(ImGuiStyleVar.ItemSpacing, 0f, 0f);
-
-                ImGui.sameLine();
-                ImGui.setCursorPosX(ImGui.getContentRegionMaxX() - ImGui.getFontSize() * 3.5f);
-                boolean toggleObjVisible = ReplayLabControls.iconButton(anyVisible ? ReplayLabIcons.ICON_EYE : ReplayLabIcons.ICON_EYE_OFF,
-                        name + "hide", null);
-
-                if (toggleObjVisible) {
-                    setAllHidden = anyVisible;
-                }
-
-                ImGui.sameLine();
-                boolean toggleObjLock = ReplayLabControls.iconButton(anyUnlocked ? ReplayLabIcons.ICON_LOCK_OPEN : ReplayLabIcons.ICON_LOCK,
-                        name + "hide", null);
-
-                if (toggleObjLock) {
-                    setAllLocked = anyUnlocked;
-                }
-
-                ImGui.popStyleColor();
-                ImGui.popStyleVar();
-
-
-                if (open) {
-                    for (var entry : obj.getChannels().entrySet()) {
-                        boolean disable = entry.getValue().isHidden() || entry.getValue().isLocked();
-
-                        if (disable) {
-                            ImGui.beginDisabled();
-                        }
-                        ImGui.text(entry.getKey());
-                        ImGui.sameLine();
-                        if (disable) {
-                            ImGui.endDisabled();
-                        }
-
-                        ImGui.setCursorPosX(ImGui.getContentRegionMaxX() - ImGui.getFontSize() * 3.5f);
-
-                        boolean ctrlPressed = ImGui.getIO().getKeyCtrl();
-
-                        ImGui.pushStyleVar(ImGuiStyleVar.ItemSpacing, 0f, 0f);
-                        ImGui.pushStyleColor(ImGuiCol.Button, 0);
-                        boolean wasHidden = entry.getValue().isHidden();
-                        boolean toggleHidden = ReplayLabControls.iconButton(wasHidden ? ReplayLabIcons.ICON_EYE_OFF : ReplayLabIcons.ICON_EYE,
-                                name + entry.getKey() + "hide", null);
-
-                        if (toggleHidden) {
-                            if (ctrlPressed) {
-                                setAllHidden = !wasHidden;
-                            } else {
-                                entry.getValue().setHidden(!wasHidden);
-                            }
-                        }
-                        ImGui.sameLine();
-
-                        boolean wasLocked = entry.getValue().isLocked();
-                        boolean toggleLock = ReplayLabControls.iconButton(wasLocked ? ReplayLabIcons.ICON_LOCK : ReplayLabIcons.ICON_LOCK_OPEN,
-                                name + entry.getKey() + "lock", null);
-                        if (toggleLock) {
-                            if (ctrlPressed) {
-                                setAllLocked = !wasLocked;
-                            } else {
-                                entry.getValue().setLocked(!wasLocked);
-                            }
-                        }
-                        ImGui.popStyleVar();
-                        ImGui.popStyleColor();
-                    }
-                    ImGui.treePop();
-                }
-
-                if (setAllLocked != null || setAllHidden != null) {
-                    for (var ch : obj.getChannels().values()) {
-                        if (setAllLocked != null) {
-                            ch.setLocked(setAllLocked);
-                        }
-                        if (setAllHidden != null) {
-                            ch.setHidden(setAllHidden);
-                        }
-                    }
-                }
-            }
-
-            ImGui.endChild();
-        }
 
         ImGui.sameLine();
         float headerCursorX = ImGui.getCursorPosX();
@@ -468,7 +355,7 @@ public class CurveEditor extends UIPanel {
             int colMinor = replaceAlpha(colMajor, 16);
 
             // X intervals
-            for (int ms = startTick; ms <= endTick; ms+= minorIntervalX) {
+            for (int ms = startTick; ms <= endTick; ms += minorIntervalX) {
                 float xPos = msToPixelX(ms) + graphX;
                 int color = ms % majorIntervalX == 0 ? colMajor : colMinor;
                 drawList.addLine(xPos, graphY, xPos, graphY + gHeight, color);
@@ -758,7 +645,7 @@ public class CurveEditor extends UIPanel {
                     for (KeyHandleReference handle : selectedKeys.effectiveSelectedHandles()) {
                         Keyframe key = handle.keyRef().get(scene.getObjects());
                         if (key != null) {
-                            Keyframe.HandleType type = switch(handle.handleIndex()) {
+                            Keyframe.HandleType type = switch (handle.handleIndex()) {
                                 case 1 -> key.getHandleAType();
                                 case 2 -> key.getHandleBType();
                                 default -> null;
@@ -937,10 +824,12 @@ public class CurveEditor extends UIPanel {
                         case 0 -> {
                             key.setTime((int) newGlobalTime);
                             key.setValue(newGlobalValue);
-                        } case 1 -> {
+                        }
+                        case 1 -> {
                             key.getHandleA().x = newGlobalTime - key.getCenter().x;
                             key.getHandleA().y = newGlobalValue - key.getCenter().y;
-                        } case 2 -> {
+                        }
+                        case 2 -> {
                             key.getHandleB().x = newGlobalTime - key.getCenter().x;
                             key.getHandleB().y = newGlobalValue - key.getCenter().y;
                         }
@@ -1032,9 +921,10 @@ public class CurveEditor extends UIPanel {
 
     /**
      * Compute a bounding box of all the curves in a set of replay objects.
+     *
      * @param objects Objects to compute curves of.
-     * @param dest1 Min corner of the bbox
-     * @param dest2 Max corner of the bbox
+     * @param dest1   Min corner of the bbox
+     * @param dest2   Max corner of the bbox
      * @implNote Doesn't compute the <em>tightest</em> bounding box according to the beziers; only the bounds of all the handles.
      */
     private static void computeBoundingBox(Iterable<? extends ReplayObject> objects, Vector2d dest1, Vector2d dest2) {
