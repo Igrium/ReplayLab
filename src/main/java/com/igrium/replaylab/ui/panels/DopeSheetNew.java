@@ -1,6 +1,5 @@
 package com.igrium.replaylab.ui.panels;
 
-import com.igrium.replaylab.ReplayLab;
 import com.igrium.replaylab.editor.EditorState;
 import com.igrium.replaylab.editor.KeySelectionSet;
 import com.igrium.replaylab.editor.KeySelectionSet.KeyframeReference;
@@ -11,23 +10,29 @@ import com.igrium.replaylab.scene.key.KeyChannel;
 import com.igrium.replaylab.scene.key.Keyframe;
 import com.igrium.replaylab.scene.obj.ReplayObject;
 import com.igrium.replaylab.ui.ReplayLabIcons;
-import com.igrium.replaylab.ui.ReplayLabUI;
 import com.igrium.replaylab.ui.util.ChannelList;
 import com.igrium.replaylab.ui.util.ReplayLabControls;
 import com.igrium.replaylab.ui.util.TimelineHeader;
-import imgui.*;
+import imgui.ImColor;
+import imgui.ImDrawList;
+import imgui.ImGui;
+import imgui.ImVec2;
 import imgui.flag.*;
 import imgui.type.ImBoolean;
 import imgui.type.ImInt;
-import it.unimi.dsi.fastutil.ints.*;
+import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
+import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
+import it.unimi.dsi.fastutil.ints.IntPredicate;
 import lombok.Getter;
 import lombok.Setter;
 import net.minecraft.util.Identifier;
 import org.jetbrains.annotations.Nullable;
+import org.joml.Vector2f;
 
 import java.util.*;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
+import java.util.function.Consumer;
 
 public class DopeSheetNew extends UIPanel {
 
@@ -155,7 +160,6 @@ public class DopeSheetNew extends UIPanel {
         var droppedObjects = getDroppedKeys().stream()
                 .map(KeyframeReference::objectName)
                 .distinct()
-
                 .toList();
 
         // If any objects were fully updated this frame, push an undo operator
@@ -183,7 +187,6 @@ public class DopeSheetNew extends UIPanel {
         mouseDragging = draggingNow;
 
         int majorIntervalX = (int) TimelineHeader.computeMajorInterval(zoomFactor);
-        int minorIntervalX = majorIntervalX / 2;
 
         float headerCursorY = ImGui.getCursorPosY();
         float headerHeight = ImGui.getTextLineHeight() * 2f;
@@ -261,7 +264,6 @@ public class DopeSheetNew extends UIPanel {
                             }
 
                             boolean isCtrl = ImGui.getIO().getKeyCtrl();
-                            boolean wasSelected = isCtrl && isSelected.test((int) selIdx);
                             var refs = combinedKeys.get(keyMsList[selIdx]);
 
                             if (!isCtrl) {
@@ -366,6 +368,18 @@ public class DopeSheetNew extends UIPanel {
             } else {
                 panStartPos = null;
             }
+
+            /// === BOX SELECT ===
+            {
+                // Every position that a given keyframe renders at.
+                Map<KeyframeReference, Set<Vector2f>> keyPositions;
+
+                for (String objName : objs) {
+                    ReplayObject obj = scene.getObject(objName);
+                    if (obj == null) continue;
+
+                }
+            }
         }
         ImGui.endChild();
         // TODO: I don't wanna do the math for box selection right now...
@@ -413,9 +427,7 @@ public class DopeSheetNew extends UIPanel {
                             snapAdjustMs = nearestIntervalMs - anchorMs;
                         }
                     }
-
                 }
-
 
                 for (var entry : keyDragOffsets.entrySet()) {
                     Keyframe key = entry.getKey().get(scene.getObjects());
@@ -458,7 +470,6 @@ public class DopeSheetNew extends UIPanel {
                     smallestKeyDragOffset = new KeyOffsetPair(ref, offset);
                 }
             });
-
         }
 
         /// === HEADER ===
@@ -466,7 +477,20 @@ public class DopeSheetNew extends UIPanel {
         header.drawHeader(headerHeight, zoomFactor, (float) offsetX, scene.getLength(), playhead, graphHeight, 0);
     }
 
-    private boolean drawKeyChannel(int[] keys, int rowIndex, IntPredicate isSelected, BiConsumer<Integer, Integer> onClick, ImDrawList drawList) {
+    /**
+     * Draw a singular row of keyframes.
+     *
+     * @param keys       ms positions of all the keys to render.
+     * @param rowIndex   Index of the row.
+     * @param isSelected Determines if a given key renders as selected (keyIndex -> selected)
+     * @param onClick    Called when a key has been clicked on (keyIndex, mouseButton)
+     * @param drawList   The draw list to use.
+     * @return <code>true</code> if we should start dragging the keys.
+     */
+    private boolean drawKeyChannel(int[] keys, int rowIndex,
+                                   IntPredicate isSelected,
+                                   BiConsumer<Integer, Integer> onClick,
+                                   ImDrawList drawList) {
         ImGui.pushID("Dope Channel " + rowIndex);
 
         float lineWidth = ImGui.calcItemWidth();
@@ -486,7 +510,6 @@ public class DopeSheetNew extends UIPanel {
             int i = 0;
             for (var key : keys) {
                 float centerX = msToPixelX(key) + cursorX;
-//                float centerX = cursorX + key * zoomFactor;
                 if (centerX - keyRadius - 2 < posX && posX < centerX + keyRadius + 2
                         && centerY - keyRadius - 2 <= posY && posY <= centerY + keyRadius + 2) {
                     return i;
