@@ -39,6 +39,15 @@ public class DopeSheetNew extends UIPanel {
     private static final float INTERVAL_DIVISOR = 4f;
     private static final float MAX_ZOOM_FACTOR = 8f;
 
+    private enum KeyframeShape {
+        DIAMOND,
+        SQUARE,
+        CIRCLE,
+        CIRCLE_FILLED
+    }
+
+    private record KeyDrawData(int ms, boolean selected, KeyframeShape shape) {};
+
     /**
      * The X pan amount in milliseconds
      */
@@ -175,6 +184,10 @@ public class DopeSheetNew extends UIPanel {
             editorState.getKeySelection().deselectAll();
             editorState.applyOperator(new RemoveKeyframesOperator(selected));
         }
+
+        if (ImGui.shortcut(ImGuiKey.ModCtrl | ImGuiKey.A)) {
+//            editorState.getKeySelection()
+        }
     }
 
     public void drawDopeSheet(ReplayScene scene, @Nullable Collection<String> selectedObjects,
@@ -298,34 +311,35 @@ public class DopeSheetNew extends UIPanel {
                     if (!expandedObjects.contains(objName)) continue;
 
                     for (var chEntry : obj.getChannels().entrySet()) {
-                        int[] keyMsList = chEntry.getValue().getKeyframes()
-                                .stream()
-                                .mapToInt(Keyframe::getTimeInt)
-                                .toArray();
-
-                        ImGui.setNextItemWidth(ImGui.getContentRegionAvailX());
-                        IntPredicate isSelected = keyIdx ->
-                                selectedKeys.isKeyframeSelected(objName, chEntry.getKey(), keyIdx);
-
-                        if (drawKeyChannel(keyMsList, rowIndex, isSelected, (selIdx, button) -> {
-                            if (button != 0) return; // TODO: right-click
-
-                            if (selIdx == null) {
-                                if (!ImGui.getIO().getKeyCtrl()) selectedKeys.deselectAll();
-                                return;
+                        KeyDrawData[] drawData = new KeyDrawData[chEntry.getValue().getKeyframes().size()];
+                        {
+                            int i = 0;
+                            for (var key : chEntry.getValue().getKeyframes()) {
+                                drawData[i] = new KeyDrawData(key.getTimeInt(),
+                                        selectedKeys.isKeyframeSelected(objName, chEntry.getKey(), i),
+                                        getKeyShape(key.getHandleAType(), key.getHandleBType()));
+                                i++;
                             }
+                        }
+                        ImGui.setNextItemWidth(ImGui.getContentRegionAvailX());
+
+                        if (drawKeyChannelNew(drawData, rowIndex, (selIdx, button) -> {
+                            if (button != 0) return;
 
                             boolean isCtrl = ImGui.getIO().getKeyCtrl();
-                            String chKey = chEntry.getKey();
+                            String chName = chEntry.getKey();
 
-                            // TODO: Ctrl deselect (broken because of dragging)
                             if (!isCtrl) {
                                 selectedKeys.deselectAll();
                             }
-                            selectedKeys.selectKeyframe(objName, chKey, selIdx);
+
+                            // TODO: Ctrl deselect (broken because of dragging)
+                            if (selIdx != null)
+                                selectedKeys.selectKeyframe(objName, chName, selIdx);
+
                         }, (keyIdx, pos) -> {
                             var ref = new KeyframeReference(objName, chEntry.getKey(), keyIdx);
-                            Set<Vector2f> set = keyPositions.computeIfAbsent(ref, k -> new HashSet<>());
+                            Set<Vector2f> set = keyPositions.computeIfAbsent(ref, v -> new HashSet<>());
                             set.add(pos);
                         }, drawList)) {
                             hoveringAnyKey = true;
@@ -534,6 +548,81 @@ public class DopeSheetNew extends UIPanel {
     /**
      * Draw a singular row of keyframes.
      *
+     * @param keys          All keyframes to render.
+     * @param rowIndex      Index of the row.
+     * @param onClick       Called when a key has been clicked on (keyIndex, mouseButton -> void)
+     * @param screenPosSink Called with the position of each keyframe on the screen. (keyIndex, positionGlobal -> void)
+     * @param drawList      The draw list to use.
+     * @return <code>true</code> if any key is hovered.
+     */
+    private boolean drawKeyChannelNew(KeyDrawData[] keys, int rowIndex,
+                                      BiConsumer<Integer, Integer> onClick,
+                                      BiConsumer<Integer, Vector2f> screenPosSink,
+                                      ImDrawList drawList) {
+        ImGui.pushID("Dope Channel " + rowIndex);
+
+        float lineWidth = ImGui.calcItemWidth();
+        float lineHeight = ImGui.getFrameHeight();
+
+        float cursorX = ImGui.getCursorScreenPosX();
+        float cursorY = ImGui.getCursorScreenPosY();
+
+        int color = ImGui.getColorU32(rowIndex % 2 == 0 ? ImGuiCol.TableRowBgAlt : ImGuiCol.TableRowBg);
+        drawList.addRectFilled(cursorX, cursorY, cursorX + lineWidth, cursorY + lineHeight, color);
+
+        float keySize = ImGui.getFontSize();
+        float keyRadius = keySize / 2;
+        float centerY = cursorY + lineHeight / 2;
+
+        BiFunction<Float, Float, Integer> getHoveredKey = (posX, posY) -> {
+            int i = 0;
+            for (var key : keys) {
+                float centerX = msToPixelX(key.ms()) + cursorX;
+                if (centerX - keyRadius - 2 < posX && posX < centerX + keyRadius + 2
+                        && centerY - keyRadius - 2 <= posY && posY <= centerY + keyRadius + 2) {
+                    return i;
+                }
+                i++;
+            }
+            return null;
+        };
+
+        ImGui.invisibleButton("##canvas", lineWidth, lineHeight);
+
+        float mx = ImGui.getMousePosX();
+        float my = ImGui.getMousePosY();
+
+        Integer hovered = getHoveredKey.apply(mx, my);
+
+        if (ImGui.isItemHovered()) {
+            if (!mouseStartedDragging || hovered == null) {
+                if (ImGui.isMouseClicked(0)) {
+                    if (hovered == null || !keys[hovered].selected) {
+                        onClick.accept(hovered, 0);
+                    }
+                } else if (ImGui.isMouseClicked(1)) {
+                    onClick.accept(hovered, 1);
+                }
+            }
+        }
+
+        for (int i = 0; i < keys.length; i++) {
+            int keyMs = keys[i].ms;
+            boolean selected = keys[i].selected;
+            int keyColor = selected ? ImColor.rgb(1f, 1f, 1f) : ImColor.rgb(.5f, .5f, .5f);
+            Vector2f pos = new Vector2f(cursorX + msToPixelX(keyMs), centerY);
+//            drawList.addNgonFilled(pos.x, pos.y, keyRadius, keyColor, 4);
+            drawKeyframe(keys[i].shape, pos.x, pos.y, keyRadius, keyColor, drawList);
+            screenPosSink.accept(i, pos);
+        }
+
+        ImGui.popID();
+        return hovered != null;
+    }
+
+    /**
+     * Draw a singular row of keyframes.
+     *
      * @param keys          ms positions of all the keys to render.
      * @param rowIndex      Index of the row.
      * @param isSelected    Determines if a given key renders as selected (keyIndex -> selected)
@@ -542,6 +631,7 @@ public class DopeSheetNew extends UIPanel {
      * @param drawList      The draw list to use.
      * @return <code>true</code> if any key is hovered.
      */
+    @Deprecated
     private boolean drawKeyChannel(int[] keys, int rowIndex,
                                    IntPredicate isSelected,
                                    BiConsumer<Integer, Integer> onClick,
@@ -605,6 +695,35 @@ public class DopeSheetNew extends UIPanel {
 
         ImGui.popID();
         return hovered != null;
+    }
+
+    private KeyframeShape getKeyShape(Keyframe.HandleType... handleTypes) {
+        if (handleTypes.length == 0)
+            return KeyframeShape.DIAMOND;
+
+        for (var type : handleTypes) {
+            if (type != handleTypes[0])
+                return KeyframeShape.DIAMOND;
+        }
+
+        return switch(handleTypes[0]) {
+            case AUTO -> KeyframeShape.CIRCLE;
+            case AUTO_CLAMPED -> KeyframeShape.CIRCLE_FILLED;
+            case VECTOR -> KeyframeShape.SQUARE;
+            default -> KeyframeShape.DIAMOND;
+        };
+    }
+
+    private void drawKeyframe(KeyframeShape shape, float x, float y, float radius, int color, ImDrawList drawList) {
+        if (shape != KeyframeShape.DIAMOND) {
+            radius *= .75f;
+        }
+        switch (shape) {
+            case DIAMOND -> drawList.addNgonFilled(x, y, radius, color, 4);
+            case SQUARE -> drawList.addRectFilled(x - radius, y - radius, x + radius, y + radius, color);
+            case CIRCLE -> drawList.addCircle(x, y, radius, color, 0, radius / 1.4f);
+            case CIRCLE_FILLED -> drawList.addCircleFilled(x, y, radius, color);
+        }
     }
 
     private float msToPixelX(double ms) {
