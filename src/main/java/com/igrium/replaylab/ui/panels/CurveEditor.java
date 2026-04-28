@@ -187,6 +187,10 @@ public class CurveEditor extends UIPanel {
             editorState.getKeySelection().deselectAll();
             editorState.applyOperator(new RemoveKeyframesOperator(selected));
         }
+
+        if (ImGui.shortcut(ImGuiKey.ModCtrl | ImGuiKey.A)) {
+            editorState.getKeySelection().selectAll(editorState.getScene().getObjects());
+        }
     }
 
     public void drawAndManageHandles(EditorState editorState, int flags) {

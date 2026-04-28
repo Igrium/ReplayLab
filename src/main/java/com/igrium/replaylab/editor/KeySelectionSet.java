@@ -658,6 +658,24 @@ public class KeySelectionSet {
         return success;
     }
 
+    /**
+     * Select all keyframes on all objects.
+     * @param objects Objects to consider.
+     */
+    public void selectAll(Map<String, ReplayObject> objects) {
+        for (var objEntry : objects.entrySet()) {
+            var objSel = selected.computeIfAbsent(objEntry.getKey(), v -> new HashMap<>());
+            for (var chEntry : objEntry.getValue().getChannels().entrySet()) {
+                var chSel = objSel.computeIfAbsent(chEntry.getKey(), v -> new Int2ObjectAVLTreeMap<>());
+                for (int i = 0; i < chEntry.getValue().getKeyframes().size(); i++) {
+                    var keySel = chSel.computeIfAbsent(i, v -> new IntArraySet());
+                    keySel.add(0);
+                    keySel.add(1);
+                }
+            }
+        }
+    }
+
     private static Map<String, Map<String, Int2ObjectMap<IntSet>>> deepCopy(Map<String, Map<String, Int2ObjectMap<IntSet>>> src) {
         Map<String, Map<String, Int2ObjectMap<IntSet>>> dest = new HashMap<>(src.size());
         for (var objEntry : src.entrySet()) {
