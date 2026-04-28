@@ -1,8 +1,10 @@
 package com.igrium.replaylab.ui.panels;
 
+import com.igrium.replaylab.ReplayLab;
 import com.igrium.replaylab.editor.EditorState;
 import com.igrium.replaylab.editor.KeySelectionSet;
 import com.igrium.replaylab.editor.KeySelectionSet.KeyframeReference;
+import com.igrium.replaylab.operator.ChangeHandleTypeOperator;
 import com.igrium.replaylab.operator.CommitObjectUpdateOperator;
 import com.igrium.replaylab.operator.RemoveKeyframesOperator;
 import com.igrium.replaylab.scene.ReplayScene;
@@ -111,6 +113,10 @@ public class DopeSheetNew extends UIPanel {
     private boolean mouseDragging;
     private boolean mouseStartedDragging;
 
+    /**
+     * The keys that were selected for right-click
+     */
+    private final Map<KeyframeReference, Keyframe> contextKeys = new HashMap<>();
 
     public DopeSheetNew(Identifier id) {
         super(id);
@@ -156,7 +162,7 @@ public class DopeSheetNew extends UIPanel {
 
     @Override
     protected void drawContents(EditorState editorState) {
-        drawDopeSheet(editorState.getScene(), null, editorState.getKeySelection(), editorState.getPlayheadRef());
+        drawDopeSheet(editorState, null, editorState.getKeySelection(), editorState.getPlayheadRef());
 
         long replayTime = editorState.getScene().sceneToReplayTime(editorState.getPlayhead());
         if (stoppedScrubbing() ||
@@ -191,8 +197,9 @@ public class DopeSheetNew extends UIPanel {
         }
     }
 
-    public void drawDopeSheet(ReplayScene scene, @Nullable Collection<String> selectedObjects,
+    public void drawDopeSheet(EditorState editor, @Nullable Collection<String> selectedObjects,
                               KeySelectionSet selectedKeys, @Nullable ImInt playhead) {
+        ReplayScene scene = editor.getScene();
         droppedKeys.clear();
         updatedKeys.clear();
         Collection<String> objs = selectedObjects != null ? selectedObjects : scene.getObjects().keySet();
@@ -235,13 +242,13 @@ public class DopeSheetNew extends UIPanel {
             float graphStart = ImGui.getCursorPosX();
 
             /// === KEYFRAMES ===
-            ImGui.beginGroup();
             float graphX = ImGui.getCursorScreenPosX();
             float graphY = ImGui.getCursorScreenPosY();
 
             // Every position that a given keyframe renders at. Used for box select.
             Map<KeyframeReference, Set<Vector2f>> keyPositions = new HashMap<>();
             boolean hoveringAnyKey = false;
+            ImGui.beginGroup();
             {
                 float graphWidth = ImGui.getContentRegionAvailX();
                 ImGui.pushStyleVar(ImGuiStyleVar.ItemSpacing, ImGui.getStyle().getItemSpacingX(), 0);
@@ -376,6 +383,72 @@ public class DopeSheetNew extends UIPanel {
 
             }
             ImGui.endGroup();
+
+            /// === RIGHT CLICK ===
+            boolean rightClicked = ImGui.isItemClicked(ImGuiMouseButton.Right);
+            if (rightClicked) {
+                contextKeys.clear();
+                // We cache the keyframe itself in the context keys because it won't change when the menu is open
+                selectedKeys.forSelectedKeyframes(ref -> {
+                    Keyframe key = ref.get(scene.getObjects());
+                    if (key != null) {
+                        contextKeys.put(ref, key);
+                    }
+                });
+                ImGui.openPopup("contextMenu");
+            }
+
+            if (ImGui.beginPopup("contextMenu")) {
+                ImGui.beginDisabled(contextKeys.isEmpty());
+                if (ImGui.beginMenu("Handle Type")) {
+                    // If every selected handle has the same handle type, find it.
+                    Keyframe.HandleType handleType = null;
+                    for (var entry : contextKeys.entrySet()) {
+                        var typeA = entry.getValue().getHandleAType();
+                        var typeB = entry.getValue().getHandleBType();
+
+                        if (typeA != typeB)
+                            break;
+
+                        if (handleType == null) {
+                            handleType = typeA;
+                        } else if (handleType != typeA) {
+                            handleType = null;
+                            break;
+                        }
+                    }
+                    Keyframe.HandleType newHandleType = null;
+                    if (ImGui.menuItem("Free", "", handleType == Keyframe.HandleType.FREE)) {
+                        newHandleType = Keyframe.HandleType.FREE;
+                    }
+                    if (ImGui.menuItem("Aligned", "", handleType == Keyframe.HandleType.ALIGNED)) {
+                        newHandleType = Keyframe.HandleType.ALIGNED;
+                    }
+                    if (ImGui.menuItem("Vector", "", handleType == Keyframe.HandleType.VECTOR)) {
+                        newHandleType = Keyframe.HandleType.VECTOR;
+                    }
+                    if (ImGui.menuItem("Automatic", "", handleType == Keyframe.HandleType.AUTO)) {
+                        newHandleType = Keyframe.HandleType.AUTO;
+                    }
+                    if (ImGui.menuItem("Auto Clamped", "", handleType == Keyframe.HandleType.AUTO_CLAMPED)) {
+                        newHandleType = Keyframe.HandleType.AUTO_CLAMPED;
+                    }
+
+                    if (newHandleType != null) {
+
+                        List<KeySelectionSet.KeyHandleReference> handleRefs = new ArrayList<>(contextKeys.size() * 2);
+                        for (var key : contextKeys.keySet()) {
+                            handleRefs.add(new KeySelectionSet.KeyHandleReference(key, 0));
+                        }
+                        var handleOperator = new ChangeHandleTypeOperator(handleRefs, newHandleType);
+                        editor.applyOperator(handleOperator);
+                    }
+
+                    ImGui.endMenu();
+                }
+                ImGui.endDisabled();
+                ImGui.endPopup();
+            }
 
             /// === ZOOM ===
             if (ImGui.isItemHovered()) {
@@ -565,7 +638,7 @@ public class DopeSheetNew extends UIPanel {
                                    ImDrawList drawList) {
         ImGui.pushID("Dope Channel " + rowIndex);
 
-        float lineWidth = ImGui.calcItemWidth();
+        float lineWidth = ImGui.getContentRegionAvailX();
         float lineHeight = ImGui.getFrameHeight();
 
         float cursorX = ImGui.getCursorScreenPosX();
@@ -648,7 +721,7 @@ public class DopeSheetNew extends UIPanel {
         switch (shape) {
             case DIAMOND -> drawList.addNgonFilled(x, y, radius, color, 4);
             case SQUARE -> drawList.addRectFilled(x - radius, y - radius, x + radius, y + radius, color);
-            case CIRCLE -> drawList.addCircle(x, y, radius, color, 0, radius / 1.4f);
+            case CIRCLE -> drawList.addCircle(x, y, radius, color, 0, radius / 1.1f);
             case CIRCLE_FILLED -> drawList.addCircleFilled(x, y, radius, color);
         }
     }

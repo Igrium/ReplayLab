@@ -53,7 +53,21 @@ public class KeySelectionSet {
         }
     }
 
+    /**
+     * A reference to a keyframe handle
+     * @param keyRef Internal key ref
+     * @param handleIndex 0 = center; 1 = left; 2 = right
+     */
     public record KeyHandleReference(KeyframeReference keyRef, int handleIndex) {
+
+        public KeyHandleReference(KeyframeReference keyRef, int handleIndex) {
+            if (handleIndex < 0 || handleIndex > 2) {
+                throw new IllegalArgumentException("Invalid handle index: " + handleIndex);
+            }
+            this.keyRef = keyRef;
+            this.handleIndex = handleIndex;
+        }
+
         public KeyHandleReference(String objName, String channelName, int keyIndex, int handleIndex) {
             this(new KeyframeReference(objName, channelName, keyIndex), handleIndex);
         }
@@ -100,6 +114,16 @@ public class KeySelectionSet {
                 }
             }
             return true;
+        }
+
+        public Keyframe.HandleType getHandleType(Map<? extends String, ? extends ReplayObject> objects) {
+            Keyframe key = keyRef.get(objects);
+            if (key == null) return null;
+            return switch(handleIndex) {
+                case 0 -> key.getHandleAType();
+                case 1 -> key.getHandleBType();
+                default -> throw new IllegalStateException("Unexpected value: " + handleIndex);
+            };
         }
 
         public boolean equals(String objName, String channelName, int keyIndex, int handleIndex) {

@@ -186,6 +186,8 @@ public final class Keyframe implements Comparable<Keyframe> {
         this.center.set(other.center);
         this.handleA.set(other.handleA);
         this.handleB.set(other.handleB);
+        handleAType = other.handleAType;
+        handleBType = other.handleBType;
     }
 
     @Override
