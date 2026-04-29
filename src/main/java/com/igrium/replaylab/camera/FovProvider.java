@@ -10,5 +10,5 @@ public interface FovProvider {
      * Get the field of view to use.
      * @return The FOV in degrees.
      */
-    double getFov();
+    float getFov();
 }

@@ -18,7 +18,7 @@ import net.minecraft.world.World;
  */
 public class AnimatedCameraEntity extends Entity implements RollProvider, FovProvider {
 
-    private double fov;
+    private float fov;
     private float roll;
 
     public AnimatedCameraEntity(EntityType<?> type, World world) {
@@ -30,11 +30,11 @@ public class AnimatedCameraEntity extends Entity implements RollProvider, FovPro
 
 
     @Override
-    public double getFov() {
+    public float getFov() {
         return fov;
     }
 
-    public void setFov(double fov) {
+    public void setFov(float fov) {
         this.fov = fov;
     }
 
@@ -58,7 +58,8 @@ public class AnimatedCameraEntity extends Entity implements RollProvider, FovPro
         this.lastRenderX = this.prevX = x;
         this.lastRenderY = this.prevY = y;
         this.lastRenderZ = this.prevZ = z;
-        this.setPosition(x, y, z);
+        this.refreshPositionAndAngles(x, y, z, getYaw(), getPitch());
+        calculateDimensions();
     }
 
     /**
@@ -83,7 +84,7 @@ public class AnimatedCameraEntity extends Entity implements RollProvider, FovPro
 
     @Override
     public Packet<ClientPlayPacketListener> createSpawnPacket(EntityTrackerEntry entityTrackerEntry) {
-        throw new IllegalStateException("This eneity is client-side only.");
+        throw new IllegalStateException("This entity is client-side only.");
     }
 
     @Override
@@ -124,5 +125,15 @@ public class AnimatedCameraEntity extends Entity implements RollProvider, FovPro
     @Override
     public boolean canHit() {
         return true; // Allows player to interact
+    }
+
+    @Override
+    public boolean shouldRender(double distance) {
+        return true;
+    }
+
+    @Override
+    public boolean shouldRender(double cameraX, double cameraY, double cameraZ) {
+        return true;
     }
 }

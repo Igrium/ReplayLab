@@ -1,6 +1,8 @@
 package com.igrium.replaylab;
 
 import com.igrium.craftui.app.AppManager;
+import com.igrium.replaylab.camera.AnimatedCameraEntity;
+import com.igrium.replaylab.camera.AnimatedCameraRenderer;
 import com.igrium.replaylab.debug.PrintCameraCommand;
 import com.igrium.replaylab.ui.ReplayLabUI;
 import com.replaymod.core.ReplayMod;
@@ -11,6 +13,7 @@ import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.api.ModInitializer;
 
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
+import net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry;
 import net.fabricmc.loader.api.FabricLoader;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
@@ -52,6 +55,10 @@ public class ReplayLab implements ModInitializer, ClientModInitializer {
         if (FabricLoader.getInstance().isDevelopmentEnvironment()) {
             ClientCommandRegistrationCallback.EVENT.register(PrintCameraCommand::register);
         }
+        EntityRendererRegistry.register(
+                ReplayLabEntities.CAMERA,
+                AnimatedCameraRenderer::new
+        );
     }
 
     public boolean isEditorOpen() {

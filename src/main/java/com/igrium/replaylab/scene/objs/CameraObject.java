@@ -27,7 +27,7 @@ public class CameraObject extends EntityObject<AnimatedCameraEntity> {
         getCombinedTransform(posCache, rotCache, null);
         setCameraTransform(ent, posCache, rotCache);
 
-        world.spawnEntity(ent);
+        world.addEntity(ent);
         return ent;
     }
 

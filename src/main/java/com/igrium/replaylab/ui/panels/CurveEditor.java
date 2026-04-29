@@ -86,8 +86,6 @@ public class CurveEditor extends UIPanel {
     private record KeyOffsetPair(KeyHandleReference ref, Vector2dc offset) {
     }
 
-    ;
-
     /**
      * The key drag offset that's closest to the mouse
      */
