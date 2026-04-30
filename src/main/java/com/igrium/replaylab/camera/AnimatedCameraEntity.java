@@ -127,13 +127,4 @@ public class AnimatedCameraEntity extends Entity implements RollProvider, FovPro
         return true; // Allows player to interact
     }
 
-    @Override
-    public boolean shouldRender(double distance) {
-        return true;
-    }
-
-    @Override
-    public boolean shouldRender(double cameraX, double cameraY, double cameraZ) {
-        return true;
-    }
 }

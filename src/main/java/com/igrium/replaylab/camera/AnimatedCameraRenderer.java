@@ -1,9 +1,6 @@
 package com.igrium.replaylab.camera;
 
-import net.minecraft.client.render.RenderLayer;
-import net.minecraft.client.render.VertexConsumer;
-import net.minecraft.client.render.VertexConsumerProvider;
-import net.minecraft.client.render.VertexRendering;
+import net.minecraft.client.render.*;
 import net.minecraft.client.render.entity.EntityRenderer;
 import net.minecraft.client.render.entity.EntityRendererFactory;
 import net.minecraft.client.util.math.MatrixStack;
@@ -46,61 +43,61 @@ public class AnimatedCameraRenderer extends EntityRenderer<AnimatedCameraEntity,
                 Math.toRadians(state.getPitch()),
                 Math.toRadians(state.getRoll())
         );
-        VertexRendering.drawBox(matrices, vertexConsumers.getBuffer(RenderLayer.getLines()), new Box(-2, -2, -2, 2, 2, 2), 1, 1, 1, 1);
-//        matrices.multiply(rot);
+        matrices.multiply(rot);
 
         VertexConsumer lines = vertexConsumers.getBuffer(RenderLayer.LINES);
-        MatrixStack.Entry entry = matrices.peek();
-        Matrix4f posMat = entry.getPositionMatrix();
-        Matrix3f normMat = entry.getNormalMatrix();
 
-        float height = computeCamHeight(Math.toRadians(state.getFov()));
+//        float height = computeCamHeight(Math.toRadians(state.getFov()));
+        float height = 1;
         float halfHeight = height / 2;
 
-        drawLine(lines, entry,
+        // Quad
+        drawLine(matrices, lines,
                 -halfHeight, -halfHeight, 1,
+                halfHeight, -halfHeight, 1, -1);
+
+        drawLine(matrices, lines,
                 halfHeight, -halfHeight, 1,
-                1, 1, 1);
+                halfHeight, halfHeight, 1, -1);
 
-        drawLine(lines, entry,
-                halfHeight, -halfHeight, 1,
+        drawLine(matrices, lines,
                 halfHeight, halfHeight, 1,
-                1, 1, 1);
+                -halfHeight, halfHeight, 1, -1);
 
-        drawLine(lines, entry,
-                halfHeight, halfHeight, 1,
+        drawLine(matrices, lines,
                 -halfHeight, halfHeight, 1,
-                1, 1, 1);
+                -halfHeight, -halfHeight, 1, -1);
 
-        drawLine(lines, entry,
-                -halfHeight, halfHeight, 1,
-                -halfHeight, -halfHeight, 1,
-                1, 1, 1);
+        // Frustum
+        drawLine(matrices, lines,
+                0, 0, 0,
+                -halfHeight, -halfHeight, 1, -1);
+
+        drawLine(matrices, lines,
+                0, 0, 0,
+                -halfHeight, halfHeight, 1, -1);
+
+        drawLine(matrices, lines,
+                0, 0, 0,
+                halfHeight, -halfHeight, 1, -1);
+
+        drawLine(matrices, lines,
+                0, 0, 0,
+                halfHeight, halfHeight, 1, -1);
 
         matrices.pop();
-//        matrices.multiply(new Quaternionf().rotateY);
     }
 
-    private static final Vector3f normCache = new Vector3f();
-
-    private static void drawLine(VertexConsumer lines,
-                                 MatrixStack.Entry entry,
+    private static void drawLine(MatrixStack matrices, VertexConsumer vertexConsumer,
                                  float x1, float y1, float z1,
                                  float x2, float y2, float z2,
-                                 float r, float g, float b) {
-        normCache.set(x2, y2, z2).sub(x1, y1, z1).normalize();
-
-        lines.vertex(entry, x1, y1, z1)
-                .color(r, g, b, 1)
-                .normal(normCache.x, normCache.y, normCache.z);
-
-        lines.vertex(entry, x2, y2, z2)
-                .color(r, g, b, 1)
-                .normal(normCache.x, normCache.y, normCache.z);
-//        lines.vertex(posMat, x1, y1, z1)
-//                .color(r, g, b, 1)
-//                .normal(normMat, normCache.x, normCache.y, normCache.z);
+                                 int color) {
+        MatrixStack.Entry entry = matrices.peek();
+        Vector3f normal = new Vector3f(x2 - x1, y2 - y1, z2 - z1).normalize();
+        vertexConsumer.vertex(entry, x1, y1, z1).color(color).normal(entry, normal);
+        vertexConsumer.vertex(entry, x2, y2, z2).color(color).normal(entry, normal);
     }
+
     private float computeCamHeight(float fovRad) {
         return 2 * Math.tan(fovRad / 2);
     }
