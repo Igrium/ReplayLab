@@ -1,6 +1,7 @@
 package com.igrium.replaylab.scene.obj;
 
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.world.ClientWorld;
 import net.minecraft.entity.Entity;
 import net.minecraft.world.World;
 import org.jetbrains.annotations.Nullable;
@@ -15,12 +16,12 @@ public interface EntityProvider<T extends Entity> {
      * @param world World to search in.
      * @return The entity. <code>null</code> if it does not exist.
      */
-    @Nullable T getEntity(World world);
+    @Nullable T getEntity(ClientWorld world);
 
     /**
      * Get the entity this object references from the current client world.
      *
-     * @return The entity. <code>null</code> if it does not exist.
+     * @return The entity. <code>null</code> if it does not exist or if the client isn't in a world.
      */
     default @Nullable T getEntity() {
         var world = MinecraftClient.getInstance().world;

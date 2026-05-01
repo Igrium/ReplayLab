@@ -13,7 +13,7 @@ import org.joml.Vector3d;
 /**
  * A replay object that spawns a virtual "entity" in the scene. Used for cameras and display elements
  */
-public abstract class EntityObject<T extends Entity> extends ReplayObject3D implements CameraProvider, EntityProvider<T> {
+public abstract class EntityObject<T extends Entity> extends ReplayObject3D implements EntityProvider<T> {
     public EntityObject(ReplayObjectType<?> type, ReplayScene scene) {
         super(type, scene);
     }
@@ -23,34 +23,12 @@ public abstract class EntityObject<T extends Entity> extends ReplayObject3D impl
      */
     private @Nullable T entity;
 
-    /**
-     * Get or create the entity instance.
-     * @param world Ensure the entity belongs to this world.
-     */
-    public final T getOrCreateEntity(@NonNull ClientWorld world) {
+    @Override
+    public @Nullable T getEntity(ClientWorld world) {
         if (!isEntValid(entity, world)) {
             entity = createEntity(world);
         }
         return entity;
-    }
-
-    /**
-     * Get or create the entity instance using the client's current world.
-     * @return The entity, or <code>null</code> if the client's not in a world.
-     */
-    public final @Nullable T getOrCreateEntity() {
-        var world = MinecraftClient.getInstance().world;
-        return (world != null) ? getOrCreateEntity(world) : null;
-    }
-
-    /**
-     * Get the entity instance
-     * @param world World to use.
-     * @return The entity; <code>null</code> if the entity does not exist or is invalid.
-     */
-    @Override
-    public @Nullable T getEntity(World world) {
-        return isEntValid(entity, world) ? entity : null;
     }
 
     /**
@@ -85,7 +63,7 @@ public abstract class EntityObject<T extends Entity> extends ReplayObject3D impl
         if (world == null)
             return;
 
-        T ent = getOrCreateEntity(world);
+        T ent = getEntity(world);
         applyEntityTransform(ent, timestamp);
     }
 
@@ -95,7 +73,7 @@ public abstract class EntityObject<T extends Entity> extends ReplayObject3D impl
         if (world == null)
             return;
 
-        getOrCreateEntity(world);
+        getEntity(world);
     }
 
     @Override
@@ -139,9 +117,4 @@ public abstract class EntityObject<T extends Entity> extends ReplayObject3D impl
      * @return The new entity instance
      */
     protected abstract T createEntity(ClientWorld world);
-
-    @Override
-    public @Nullable Entity getCameraEntity() {
-        return getOrCreateEntity();
-    }
 }

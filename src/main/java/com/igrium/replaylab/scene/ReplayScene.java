@@ -12,6 +12,7 @@ import lombok.Getter;
 import lombok.NonNull;
 import lombok.Setter;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.world.ClientWorld;
 import net.minecraft.entity.Entity;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
@@ -107,8 +108,8 @@ public class ReplayScene {
      */
     public @Nullable Entity getSceneCamera(int timestamp) {
         ReplayObject obj = getSceneCameraObject(timestamp);
-        if (obj instanceof CameraProvider prov) {
-            return prov.getCameraEntity();
+        if (obj instanceof EntityProvider<?> prov) {
+            return prov.getEntity();
         } else {
             return null;
         }
@@ -278,7 +279,7 @@ public class ReplayScene {
      */
     public Stream<ReplayObject> referencingObjects(Entity entity) {
         return objectsUnmod.values().stream().filter(obj ->
-                obj instanceof EntityProvider<?> e && e.getEntity(entity.getWorld()) == entity);
+                obj instanceof EntityProvider<?> e && e.getEntity((ClientWorld) entity.getWorld()) == entity);
     }
 
     /**

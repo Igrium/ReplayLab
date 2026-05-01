@@ -5,7 +5,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonSerializationContext;
 import com.igrium.replaylab.render.VideoRenderSettings;
 import com.igrium.replaylab.scene.ReplayScene;
-import com.igrium.replaylab.scene.obj.CameraProvider;
+import com.igrium.replaylab.scene.obj.EntityObject;
 import com.igrium.replaylab.scene.obj.ReplayObject;
 import com.igrium.replaylab.scene.obj.ReplayObjectType;
 import com.igrium.replaylab.ui.util.ReplayLabControls;
@@ -183,7 +183,7 @@ public final class ScenePropsObject extends ReplayObject {
 
         cameraObjectInput.setValue(cameraObject);
         if (ReplayLabControls.objectSelector("Camera Object", cameraObjectInput,
-                obj -> obj instanceof CameraProvider, getScene().getObjects())) {
+                obj -> obj instanceof EntityObject<?>, getScene().getObjects())) {
             modified = true;
             setCameraObject(cameraObjectInput.getValue());
         }
