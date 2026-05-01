@@ -5,13 +5,8 @@ import com.google.common.collect.HashBiMap;
 import com.google.common.collect.Maps;
 import com.igrium.replaylab.editor.EditorState;
 import com.igrium.replaylab.operator.ReplayOperator;
-import com.igrium.replaylab.scene.key.KeyChannel;
-import com.igrium.replaylab.scene.key.Keyframe;
-import com.igrium.replaylab.scene.obj.CameraProvider;
-import com.igrium.replaylab.scene.obj.ReplayObject;
-import com.igrium.replaylab.scene.obj.ReplayObjects;
+import com.igrium.replaylab.scene.obj.*;
 import com.igrium.replaylab.scene.objs.ScenePropsObject;
-import com.igrium.replaylab.scene.obj.SerializedReplayObject;
 import com.igrium.replaylab.util.NameUtils;
 import lombok.Getter;
 import lombok.NonNull;
@@ -27,6 +22,7 @@ import java.util.Deque;
 import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
+import java.util.stream.Stream;
 
 /**
  * Keeps track of all the runtime stuff regarding a scene.
@@ -39,37 +35,6 @@ public class ReplayScene {
     public static final String SCENE_PROPS = "scene";
 
     /**
-     * Contains a "reference" to a particular keyframe within the manifest.
-     * If the manifest gets re-initialized for any reason, this reference should remain.
-     *
-     * @param object   Object name
-     * @param channel  Channel name within the category.
-     * @param keyframe Keyframe index within the channel.
-     */
-    @Deprecated
-    public record KeyReference(String object, String channel, int keyframe) {
-    }
-
-    /**
-     * Contains a "reference" to a particular keyframe handle within the scene.
-     *
-     * @param object   Object name
-     * @param channel  Channel name
-     * @param keyframe Keyframe index within the channel.
-     * @param handle   Handle index of the keyframe. 0 = center, 1 = left, 2 = right
-     */
-    @Deprecated
-    public record KeyHandleReference(String object, String channel, int keyframe, int handle) {
-        public KeyHandleReference(KeyReference keyRef, int handle) {
-            this(keyRef.object(), keyRef.channel(), keyRef.keyframe(), handle);
-        }
-
-        public KeyReference toKeyReference() {
-            return new KeyReference(object, channel, keyframe);
-        }
-    }
-
-    /**
      * All the objects in this scene.
      */
     private final BiMap<String, ReplayObject> objects = HashBiMap.create();
@@ -80,8 +45,6 @@ public class ReplayScene {
      */
     @Getter
     private final SerializedObjectHolder savedObjects = new SerializedObjectHolder();
-//    private final BiMap<String, SerializedReplayObject> savedObjects = Maps.synchronizedBiMap(HashBiMap.create());
-//    private final BiMap<String, SerializedReplayObject> savedObjectsUnmod = Maps.unmodifiableBiMap(savedObjects);
 
     private final Deque<ReplayOperator> undoStack = new ArrayDeque<>();
     private final Deque<ReplayOperator> redoStack = new ArrayDeque<>();
@@ -89,9 +52,6 @@ public class ReplayScene {
     @Setter @Nullable
     private Consumer<? super Exception> exceptionCallback;
 
-//    public ReplayScene() {
-//        addObject("sceneProps", ReplayObjectType.SCENE_PROPS.create());
-//    }
 
     public ScenePropsObject getSceneProps() {
         ReplayObject obj = getObject(SCENE_PROPS);
@@ -130,35 +90,6 @@ public class ReplayScene {
 
     public float getFps() {
         return getSceneProps().getFps();
-    }
-
-    public @Nullable KeyChannel getChannel(String object, String channel) {
-        ReplayObject obj = getObject(object);
-        return obj != null ? obj.getChannels().get(channel) : null;
-    }
-
-    public @Nullable KeyChannel getChannel(KeyReference ref) {
-        return getChannel(ref.object(), ref.channel());
-    }
-
-    public @Nullable Keyframe getKeyframe(String object, String channel, int keyframe) {
-        if (keyframe < 0) return null;
-
-        ReplayObject obj = getObject(object);
-        if (obj == null) return null;
-
-        KeyChannel ch = obj.getChannels().get(channel);
-        if (ch == null || keyframe >= ch.getKeyframes().size()) return null;
-
-        return ch.getKeyframes().get(keyframe);
-    }
-
-    public @Nullable Keyframe getKeyframe(KeyReference ref) {
-        return getKeyframe(ref.object(), ref.channel(), ref.keyframe());
-    }
-
-    public @Nullable Keyframe getKeyframe(KeyHandleReference ref) {
-        return getKeyframe(ref.object(), ref.channel(), ref.keyframe());
     }
 
     public @Nullable ReplayObject getSceneCameraObject(int timestamp) {
@@ -243,7 +174,6 @@ public class ReplayScene {
         }
         return false;
     }
-
 
     /**
      * Remove a replay object from the scene.
@@ -338,6 +268,27 @@ public class ReplayScene {
         }
 
         obj.parse(serialized);
+    }
+
+    /**
+     * Find all replay objects that provide a reference to the given entity.
+     * @param entity Entity to search for.
+     * @return A stream of all valid replay objects.
+     * @implNote Somewhat expensive operation. Should be cached if used frequently.
+     */
+    public Stream<ReplayObject> referencingObjects(Entity entity) {
+        return objectsUnmod.values().stream().filter(obj ->
+                obj instanceof EntityProvider<?> e && e.getEntity(entity.getWorld()) == entity);
+    }
+
+    /**
+     * Find the first replay object that provides a reference to the given entity.
+     * @param entity Entity to search for.
+     * @return The first valid replay object, or <code>null</code> if none was found.
+     * @implNote Somewhat expensive operation. Should be cached if used frequently.
+     */
+    public @Nullable ReplayObject firstReferencingObject(Entity entity) {
+        return referencingObjects(entity).findFirst().orElse(null);
     }
 
     /**

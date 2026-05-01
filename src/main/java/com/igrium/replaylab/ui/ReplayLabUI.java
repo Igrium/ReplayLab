@@ -2,11 +2,12 @@ package com.igrium.replaylab.ui;
 
 
 import com.igrium.craftui.app.DockSpaceApp;
+import com.igrium.craftui.util.RaycastUtils;
 import com.igrium.replaylab.editor.EditorState;
 import com.igrium.replaylab.operator.InsertKeyframeOperator;
 import com.igrium.replaylab.operator.RemoveObjectOperator;
 import com.igrium.replaylab.render.VideoRenderSettings;
-import com.igrium.replaylab.scene.ReplayScene;
+import com.igrium.replaylab.scene.obj.ReplayObject;
 import com.igrium.replaylab.scene.objs.ScenePropsObject;
 import com.igrium.replaylab.ui.panels.*;
 import com.igrium.replaylab.ui.util.ExceptionPopup;
@@ -18,15 +19,18 @@ import imgui.flag.*;
 import imgui.type.ImBoolean;
 import lombok.Getter;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.Mouse;
+import net.minecraft.client.world.ClientWorld;
+import net.minecraft.entity.Entity;
 import net.minecraft.util.Identifier;
+import net.minecraft.util.hit.EntityHitResult;
+import net.minecraft.util.hit.HitResult;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 /**
  * The main CraftApp for the replay lab editor.
@@ -86,9 +90,7 @@ public class ReplayLabUI extends DockSpaceApp {
      */
     private float viewportFooterHeight;
 
-    private final Set<ReplayScene.KeyReference> selectedKeys = new HashSet<>();
     private final ImBoolean cameraViewInput = new ImBoolean();
-    private final ImBoolean snapKeysInput = new ImBoolean();
     private float prevCameraControlsGroupWidth = 0;
 
     private final VideoRenderSettings tmpExportSettings = new VideoRenderSettings();
@@ -166,6 +168,10 @@ public class ReplayLabUI extends DockSpaceApp {
             drawPlaybackControls();
             ImGui.popStyleColor();
             processGlobalHotkeys();
+
+            if (ImGui.isWindowHovered() && ImGui.isMouseClicked(0)) {
+                raycastSelect();
+            }
         }
         ImGui.end();
 
@@ -176,7 +182,6 @@ public class ReplayLabUI extends DockSpaceApp {
 
         ExportWindow.drawExportWindow(editorState, editorState.getScene().getSceneProps().getRenderSettings());
         ExportProgressWindow.drawExportProgress(editorState);
-//        TimelineDebugScreen.drawDebugScreen();
 
         if (!firstFrame) {
             exceptionPopup.render();
@@ -197,6 +202,22 @@ public class ReplayLabUI extends DockSpaceApp {
             }
         }
         super.onClose();
+    }
+
+    private void raycastSelect() {
+        Mouse mouse = MinecraftClient.getInstance().mouse;
+
+        ClientWorld world = MinecraftClient.getInstance().world;
+        if (world == null) return;
+
+        HitResult raycast = RaycastUtils.raycastViewport((float) mouse.getX(), (float) mouse.getY(), 1000, e -> true, false);
+        if (raycast instanceof EntityHitResult hit) {
+            Entity ent = hit.getEntity();
+            ReplayObject replayObject = editorState.getScene().firstReferencingObject(ent);
+            if (replayObject != null) {
+                editorState.setSelectedObject(replayObject.getId());
+            }
+        }
     }
 
     // =========================================================================

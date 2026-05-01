@@ -27,8 +27,7 @@ public class AnimatedCameraEntity extends Entity implements RollProvider, FovPro
             throw new IllegalStateException("Animated camera should never be spawned on the server!");
         }
     }
-
-
+    
     @Override
     public float getFov() {
         return fov;

@@ -6,13 +6,14 @@ import lombok.NonNull;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.world.ClientWorld;
 import net.minecraft.entity.Entity;
+import net.minecraft.world.World;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Vector3d;
 
 /**
  * A replay object that spawns a virtual "entity" in the scene. Used for cameras and display elements
  */
-public abstract class EntityObject<T extends Entity> extends ReplayObject3D implements CameraProvider {
+public abstract class EntityObject<T extends Entity> extends ReplayObject3D implements CameraProvider, EntityProvider<T> {
     public EntityObject(ReplayObjectType<?> type, ReplayScene scene) {
         super(type, scene);
     }
@@ -20,7 +21,6 @@ public abstract class EntityObject<T extends Entity> extends ReplayObject3D impl
     /**
      * The current instantiated entity
      */
-    @Getter
     private @Nullable T entity;
 
     /**
@@ -28,7 +28,7 @@ public abstract class EntityObject<T extends Entity> extends ReplayObject3D impl
      * @param world Ensure the entity belongs to this world.
      */
     public final T getOrCreateEntity(@NonNull ClientWorld world) {
-        if (entity == null || entity.isRemoved() || entity.getWorld() != world) {
+        if (!isEntValid(entity, world)) {
             entity = createEntity(world);
         }
         return entity;
@@ -39,13 +39,26 @@ public abstract class EntityObject<T extends Entity> extends ReplayObject3D impl
      * @return The entity, or <code>null</code> if the client's not in a world.
      */
     public final @Nullable T getOrCreateEntity() {
-        ClientWorld world = MinecraftClient.getInstance().world;
-        if (world == null)
-            return null;
-
-        return getOrCreateEntity(world);
+        var world = MinecraftClient.getInstance().world;
+        return (world != null) ? getOrCreateEntity(world) : null;
     }
 
+    /**
+     * Get the entity instance
+     * @param world World to use.
+     * @return The entity; <code>null</code> if the entity does not exist or is invalid.
+     */
+    @Override
+    public @Nullable T getEntity(World world) {
+        return isEntValid(entity, world) ? entity : null;
+    }
+
+    /**
+     * Get the current instantiated entity, regardless of whether it's still valid.
+     */
+    public @Nullable T getInstantiatedEntity() {
+        return entity;
+    }
 
     @Override
     protected boolean hasPosition() {
@@ -60,6 +73,10 @@ public abstract class EntityObject<T extends Entity> extends ReplayObject3D impl
     @Override
     protected boolean hasScale() {
         return false;
+    }
+
+    private boolean isEntValid(Entity entity, World world) {
+        return entity != null && !entity.isRemoved() && entity.getWorld() == world;
     }
 
     @Override
