@@ -32,9 +32,11 @@ public class CameraObject extends EntityObject<AnimatedCameraEntity> {
     }
 
     @Override
-    protected void applyEntityTransform(AnimatedCameraEntity entity, int timestamp) {
-        getCombinedTransform(posCache, rotCache, null);
+    protected void applyToEntity(AnimatedCameraEntity entity, int timestamp) {
+        super.getCombinedTransform(posCache, rotCache, null);
         setCameraTransform(entity, posCache, rotCache);
+
+//        entity.setSelected(getScene().is);
     }
 
     private static void setCameraTransform(AnimatedCameraEntity camera, Vector3dc pos, Vector3dc rot) {

@@ -1,8 +1,6 @@
 package com.igrium.replaylab.scene.obj;
 
 import com.igrium.replaylab.scene.ReplayScene;
-import lombok.Getter;
-import lombok.NonNull;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.world.ClientWorld;
 import net.minecraft.entity.Entity;
@@ -64,7 +62,7 @@ public abstract class EntityObject<T extends Entity> extends ReplayObject3D impl
             return;
 
         T ent = getEntity(world);
-        applyEntityTransform(ent, timestamp);
+        applyToEntity(ent, timestamp);
     }
 
     @Override
@@ -89,12 +87,12 @@ public abstract class EntityObject<T extends Entity> extends ReplayObject3D impl
     private final Vector3d globalRot = new Vector3d();
 
     /**
-     * Sample and apply this object's transform to the entity.
+     * Apply this object's properties to the entity.
      *
      * @param entity    Entity to apply to.
      * @param timestamp Current timestamp. Transform values are already applied, so it's likely not used.
      */
-    protected void applyEntityTransform(T entity, int timestamp) {
+    protected void applyToEntity(T entity, int timestamp) {
         getCombinedTransform(globalPos, globalRot, null);
         entity.setPos(globalPos.x(), globalPos.y(), globalPos.z());
         entity.prevX = globalPos.x;

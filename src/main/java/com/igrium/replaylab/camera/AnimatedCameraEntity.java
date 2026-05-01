@@ -1,5 +1,7 @@
 package com.igrium.replaylab.camera;
 
+import lombok.Getter;
+import lombok.Setter;
 import net.minecraft.client.world.ClientWorld;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
@@ -18,32 +20,23 @@ import net.minecraft.world.World;
  */
 public class AnimatedCameraEntity extends Entity implements RollProvider, FovProvider {
 
+    @Getter @Setter
     private float fov;
+
+    @Getter @Setter
     private float roll;
+
+    @Getter @Setter
+    private boolean selected;
+
+    @Getter @Setter
+    private boolean active;
 
     public AnimatedCameraEntity(EntityType<?> type, World world) {
         super(type, world);
         if (!world.isClient) {
             throw new IllegalStateException("Animated camera should never be spawned on the server!");
         }
-    }
-    
-    @Override
-    public float getFov() {
-        return fov;
-    }
-
-    public void setFov(float fov) {
-        this.fov = fov;
-    }
-
-    @Override
-    public float getRoll() {
-        return roll;
-    }
-
-    public void setRoll(float roll) {
-        this.roll = roll;
     }
 
     /**

@@ -123,6 +123,8 @@ public abstract class ReplayObject3D extends ReplayObject implements TransformPr
         getLocalTransform(dest);
     }
 
+    
+
     public final void getLocalTransform(Matrix4d dest) {
         dest.translate(position);
         dest.rotateYXZ(Math.toRadians(rotation.x), Math.toRadians(rotation.y), Math.toRadians(rotation.z));
@@ -130,7 +132,7 @@ public abstract class ReplayObject3D extends ReplayObject implements TransformPr
     }
 
     /**
-     * Get the final transform of this object in timeline-compatible components. Includes parents constraints
+     * Get the final transform of this object in timeline-compatible components. Includes parents and constraints
      *
      * @param outPos   The global position of this object
      * @param outRot   The YXZ euler rotation of this object in degrees

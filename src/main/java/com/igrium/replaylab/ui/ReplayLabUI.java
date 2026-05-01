@@ -3,6 +3,7 @@ package com.igrium.replaylab.ui;
 
 import com.igrium.craftui.app.DockSpaceApp;
 import com.igrium.craftui.util.RaycastUtils;
+import com.igrium.replaylab.ReplayLab;
 import com.igrium.replaylab.editor.EditorState;
 import com.igrium.replaylab.operator.InsertKeyframeOperator;
 import com.igrium.replaylab.operator.RemoveObjectOperator;
@@ -15,6 +16,7 @@ import com.igrium.replaylab.ui.util.ReplayLabControls;
 import com.replaymod.replay.ReplayHandler;
 import com.replaymod.replay.ReplayModReplay;
 import imgui.ImGui;
+import imgui.extension.imguizmo.ImGuizmo;
 import imgui.flag.*;
 import imgui.type.ImBoolean;
 import lombok.Getter;
@@ -26,6 +28,8 @@ import net.minecraft.util.Identifier;
 import net.minecraft.util.hit.EntityHitResult;
 import net.minecraft.util.hit.HitResult;
 import org.jetbrains.annotations.Nullable;
+import org.joml.Matrix4f;
+import org.joml.Matrix4fc;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -41,8 +45,13 @@ public class ReplayLabUI extends DockSpaceApp {
     // Constants
     // =========================================================================
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(ReplayLabUI.class);
+    private static final Logger LOGGER = ReplayLab.getLogger();
     private static final Identifier LAYOUT = Identifier.of("replaylab:replaylab");
+
+    @Getter
+    private static final Matrix4f viewMatrix = new Matrix4f();
+    @Getter
+    private static final Matrix4f projectionMatrix = new Matrix4f();
 
     // =========================================================================
     // Core state
@@ -172,6 +181,9 @@ public class ReplayLabUI extends DockSpaceApp {
             if (ImGui.isWindowHovered() && ImGui.isMouseClicked(0)) {
                 raycastSelect();
             }
+
+            SceneGizmos.drawGizmos(editorState, getCustomViewportBounds());
+
         }
         ImGui.end();
 
