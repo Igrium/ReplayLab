@@ -7,68 +7,69 @@ import org.joml.*;
 /**
  * A three-dimensional transform that supports large positional coordinates.
  */
-@Accessors(fluent = true) @Getter
+@Accessors(fluent = true)
+@Getter
 public class Transform {
     private final Vector3d position;
     private final Quaternionf rotation;
-    private final Vector3f scale;
+    private float scale;
 
     public Transform() {
         position = new Vector3d();
         rotation = new Quaternionf();
-        scale = new Vector3f(1, 1, 1);
+        scale = 1;
     }
 
-    public Transform(Vector3dc position, Quaternionfc rotation, Vector3fc scale) {
+    public Transform(Vector3dc position, Quaternionfc rotation, float scale) {
         this.position = new Vector3d(position);
         this.rotation = new Quaternionf(rotation);
-        this.scale = new Vector3f(scale);
+        this.scale = scale;
     }
 
-    public Transform(Vector3d position, Quaternionf rotation, float scale) {
-        this.position = new Vector3d(position);
-        this.rotation = new Quaternionf(rotation);
-        this.scale = new Vector3f(scale);
+    public void setScale(float scale) {
+        this.scale = scale;
     }
 
     /**
      * Apply a child transform on top of this one.
+     *
      * @param child Child transform to apply.
-     * @param dest Destination transform
+     * @param dest  Destination transform
      * @return <code>dest</code>
      */
     public Transform mul(Transform child, Transform dest) {
-        // Snapshot all inputs as primitives before writing anything to dest.
-        // Without this, dest == this or dest == child corrupts reads mid-calculation.
+        // Snapshot inputs first so dest may alias this or child safely.
         float parentRotX = this.rotation.x, parentRotY = this.rotation.y, parentRotZ = this.rotation.z, parentRotW = this.rotation.w;
         float childRotX = child.rotation.x, childRotY = child.rotation.y, childRotZ = child.rotation.z, childRotW = child.rotation.w;
 
-        float parentScaleX = this.scale.x, parentScaleY = this.scale.y, parentScaleZ = this.scale.z;
-        float childScaleX = child.scale.x, childScaleY = child.scale.y, childScaleZ = child.scale.z;
+//        float parentScaleX = this.scale.x, parentScaleY = this.scale.y, parentScaleZ = this.scale.z;
+        float parentScale = this.scale;
 
         double parentPosX = this.position.x, parentPosY = this.position.y, parentPosZ = this.position.z;
         double childPosX = child.position.x, childPosY = child.position.y, childPosZ = child.position.z;
 
-        // Apply parent scale to child's local position to get the world-space offset.
-        double scaledOffsetX = parentScaleX * childPosX;
-        double scaledOffsetY = parentScaleY * childPosY;
-        double scaledOffsetZ = parentScaleZ * childPosZ;
+        // childPos in parent space, then rotated into world space
+        double scaledOffsetX = parentScale * childPosX;
+        double scaledOffsetY = parentScale * childPosY;
+        double scaledOffsetZ = parentScale * childPosZ;
 
-        // Load parent rotation into dest.rotation temporarily so we can rotate
-        // the offset into world space — then add parent's world position.
+        // world position = parent position + parent rotation * (parent scale * child position)
         dest.rotation.set(parentRotX, parentRotY, parentRotZ, parentRotW);
         dest.rotation.transform(scaledOffsetX, scaledOffsetY, scaledOffsetZ, dest.position);
         dest.position.add(parentPosX, parentPosY, parentPosZ);
 
-        // All reads are done. Safe to write the final rotation and scale.
+        // world rotation = parent rotation * child rotation
         dest.rotation.mul(childRotX, childRotY, childRotZ, childRotW);
-        dest.scale.set(parentScaleX * childScaleX, parentScaleY * childScaleY, parentScaleZ * childScaleZ);
+
+
+        dest.scale = parentScale * child.scale;
 
         return dest;
     }
 
     /**
      * Modify this transform with a child transform on top of it.
+     *
      * @param child Child transform to apply.
      * @return <code>this</code>
      */
@@ -87,7 +88,7 @@ public class Transform {
     public Transform translate(double x, double y, double z, Transform dest) {
         dest.position.set(position.x + x, position.y + y, position.z + z);
         dest.rotation.set(rotation);
-        dest.scale.set(scale);
+        dest.scale = scale;
         return dest;
     }
 
@@ -108,7 +109,7 @@ public class Transform {
     public Transform rotate(Quaternionfc rotation, Transform dest) {
         rotation.mul(this.rotation, dest.rotation);
         dest.position.set(this.position);
-        dest.scale.set(this.scale);
+        dest.scale = scale;
         return dest;
     }
 
@@ -124,7 +125,7 @@ public class Transform {
         rotation.transform(offsetX, offsetY, offsetZ, dest.position);
         dest.position.add(x, y, z);
         rotation.mul(this.rotation, dest.rotation);
-        dest.scale.set(this.scale);
+        dest.scale = scale;
         return dest;
     }
 
@@ -140,73 +141,61 @@ public class Transform {
         return rotateAround(rotation, pivot, this);
     }
 
-    public Transform scale(float scaleX, float scaleY, float scaleZ, Transform dest) {
-        this.position.mul(scaleX, scaleY, scaleZ, dest.position);
-        this.scale.mul(scaleX, scaleY, scaleZ, dest.scale);
+//    public Transform scale(float scaleX, float scaleY, float scaleZ, Transform dest) {
+//        dest.position.set(this.position);
+//        dest.rotation.set(this.rotation);
+//        this.scale.mul(scaleX, scaleY, scaleZ, dest.scale);
+//        return dest;
+//    }
+//
+//    public Transform scale(Vector3fc scale, Transform dest) {
+//        return scale(scale.x(), scale.y(), scale.z(), dest);
+//    }
+
+    public Transform scale(float amount, Transform dest) {
         dest.rotation.set(this.rotation);
+        dest.position.set(this.position);
+        dest.scale = this.scale * amount;
         return dest;
     }
 
-    public Transform scale(Vector3fc scale, Transform dest) {
-        return scale(scale.x(), scale.y(), scale.z(), dest);
-    }
-
-    public Transform scale(float amount, Transform dest) {
-        return scale(amount, amount, amount, dest);
-    }
-
-    public Transform scale(float scaleX, float scaleY, float scaleZ) {
-        return scale(scaleX, scaleY, scaleZ, this);
-    }
-
-    public Transform scale(Vector3fc scale) {
-        return scale(scale, this);
-    }
-
     public Transform scale(float amount) {
-        return scale(amount, amount, amount, this);
+        return scale(amount, this);
     }
 
-    public Transform scaleAround(float scaleX, float scaleY, float scaleZ, double pivotX, double pivotY, double pivotZ, Transform dest) {
+    public Transform scaleAround(float factor, double pivotX, double pivotY, double pivotZ, Transform dest) {
         double offsetX = position.x - pivotX;
         double offsetY = position.y - pivotY;
         double offsetZ = position.z - pivotZ;
 
-        dest.position.set(pivotX + offsetX * scaleX, pivotY + offsetY * scaleY, pivotZ + offsetZ * scaleZ);
-        this.scale.mul(scaleX, scaleY, scaleZ, dest.scale);
+        dest.position.set(pivotX + offsetX * factor, pivotY, pivotZ + offsetZ * factor);
+        dest.scale = this.scale * factor;
         dest.rotation.set(this.rotation);
         return dest;
     }
 
-    public Transform scaleAround(float scaleX, float scaleY, float scaleZ, double pivotX, double pivotY, double pivotZ) {
-        return scaleAround(scaleX, scaleY, scaleZ, pivotX, pivotY, pivotZ, this);
+    public Transform scaleAround(float factor, double pivotX, double pivotY, double pivotZ) {
+        return scaleAround(factor, pivotX, pivotY, pivotZ, this);
     }
 
-    public Transform scaleAround(float scaleX, float scaleY, float scaleZ, Vector3dc pivot, Transform dest) {
-        return scaleAround(scaleX, scaleY, scaleZ, pivot.x(), pivot.y(), pivot.z(), dest);
+    public Transform scaleAround(float factor, Vector3dc pivot, Transform dest) {
+        return scaleAround(factor, pivot.x(), pivot.y(), pivot.z(), dest);
     }
 
-    public Transform scaleAround(float scaleX, float scaleY, float scaleZ, Vector3dc pivot) {
-        return scaleAround(scaleX, scaleY, scaleZ, pivot, this);
-    }
-
-    public Transform scaleAround(Vector3fc scale, Vector3dc pivot, Transform dest) {
-        return scaleAround(scale.x(), scale.y(), scale.z(), pivot, dest);
-    }
-
-    public Transform scaleAround(Vector3fc scale, Vector3dc pivot) {
-        return scaleAround(scale, pivot, this);
+    public Transform scaleAround(float factor, Vector3dc pivot) {
+        return scaleAround(factor, pivot, this);
     }
 
     public void invert(Transform dest) {
         rotation.invert(dest.rotation);
         dest.rotation.transform(
-                -position.x / scale.x,
-                -position.y / scale.y,
-                -position.z / scale.z,
+                -position.x / scale,
+                -position.y / scale,
+                -position.z / scale,
                 dest.position
         );
-        dest.scale.set(1f / scale.x, 1f / scale.y, 1f / scale.z);
+
+        dest.scale = 1 / scale;
     }
 
     public void invert() {
