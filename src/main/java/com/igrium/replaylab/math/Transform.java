@@ -3,6 +3,7 @@ package com.igrium.replaylab.math;
 import lombok.Getter;
 import lombok.experimental.Accessors;
 import org.joml.*;
+import org.joml.Math;
 
 /**
  * A three-dimensional transform that supports large positional coordinates.
@@ -200,5 +201,67 @@ public class Transform {
 
     public void invert() {
         invert(this);
+    }
+
+    /**
+     * Apply this transform to a matrix4f (relative to a root position to avoid precision errors)
+     * @param rootX Root X position.
+     * @param rootY Root Y position.
+     * @param rootZ Root Z position.
+     * @param dest destination matrix.
+     * @return <code></code>
+     * @apiNote Transformation applies ON TOP of existing value in <code>dest</code>
+     */
+    public Matrix4f toMatrix(double rootX, double rootY, double rootZ, Matrix4f dest) {
+        dest.translate((float) (position.x - rootX), (float) (position.y - rootY), (float) (position.z - rootZ));
+        dest.rotate(rotation);
+        dest.scale(scale);
+        return dest;
+    }
+
+    /**
+     * Apply this transform to a matrix4f (relative to a root position to avoid precision errors)
+     * @param root Root position.
+     * @param dest destination matrix.
+     * @return <code></code>
+     * @apiNote Transformation applies ON TOP of existing value in <code>dest</code>
+     */
+    public Matrix4f toMatrix(Vector3dc root, Matrix4f dest) {
+        return toMatrix(root.x(), root.y(), root.z(), dest);
+    }
+
+    /**
+     * Apply this transform to a matrix4f.
+     * @param dest destination matrix.
+     * @return <code>dest</code>
+     * @apiNote Transformation applies ON TOP of existing value in <code>dest</code>
+     * @implNote May result in precision errors with large world coordinates. See: {@link #toMatrix(double, double, double, Matrix4f)}
+     */
+    public Matrix4f toMatrix(Matrix4f dest) {
+        return toMatrix(0, 0, 0, dest);
+    }
+
+    public Transform fromMatrix(Matrix4f matrix) {
+        getTranslation(matrix, position);
+        scale = getUniformScale(matrix);
+        matrix.getNormalizedRotation(rotation);
+        return this;
+    }
+
+    /**
+     * double version of matrix4f getTranslation
+     */
+    private static Vector3d getTranslation(Matrix4fc matrix, Vector3d dest) {
+        dest.x = matrix.m30();
+        dest.y = matrix.m31();
+        dest.z = matrix.m32();
+        return dest;
+    }
+
+    private static float getUniformScale(Matrix4fc matrix) {
+        float x = Math.sqrt(matrix.m00() * matrix.m00() + matrix.m01() * matrix.m01() + matrix.m02() * matrix.m02());
+        float y = Math.sqrt(matrix.m10() * matrix.m10() + matrix.m11() * matrix.m11() + matrix.m12() * matrix.m12());
+        float z = Math.sqrt(matrix.m20() * matrix.m20() + matrix.m21() * matrix.m21() + matrix.m22() * matrix.m22());
+        return (x + y + z) / 3f;
     }
 }
