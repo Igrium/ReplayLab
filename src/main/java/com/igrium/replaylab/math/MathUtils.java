@@ -21,10 +21,14 @@ public class MathUtils {
         Vector3f forward = rot.transform(new Vector3f(0, 0, 1));
 
         float pitch = (float) Math.toDegrees(Math.atan2(-forward.y, Math.sqrt(forward.x * forward.x + forward.z * forward.z)));
-        float yaw = (float) Math.toDegrees(Math.atan2(forward.x, forward.z));
+        float yaw   = (float) Math.toDegrees(Math.atan2(-forward.x, forward.z));
 
-        Quaternionf noRoll = new Quaternionf().rotateY((float) Math.toRadians(yaw)).rotateX((float) Math.toRadians(pitch));
-        float roll = noRoll.conjugate(new Quaternionf()).mul(rot).getEulerAnglesXYZ(new Vector3f()).z; // residual is pure roll
+        // Negate yaw here — JOML rotateY goes opposite to Minecraft's yaw convention
+        Quaternionf noRoll = new Quaternionf()
+                .rotateY((float) Math.toRadians(-yaw))
+                .rotateX((float) Math.toRadians(pitch));
+
+        float roll = noRoll.conjugate(new Quaternionf()).mul(rot).getEulerAnglesXYZ(new Vector3f()).z;
         roll = (float) Math.toDegrees(roll);
 
         return new Vector3f(pitch, yaw, roll);

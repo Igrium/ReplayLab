@@ -146,7 +146,7 @@ public class TimelineHeader {
         // === PLAYHEAD ===
         if (playhead != null && !hasFlag(TimelineFlags.NO_PLAYHEAD, flags)) {
 
-            if (!hasFlag(TimelineFlags.READONLY_PLAYHEAD, flags) && ImGui.isItemHovered() && ImGui.isMouseDown(0)) {
+            if (!hasFlag(TimelineFlags.READONLY_PLAYHEAD, flags) && ImGui.isItemActive() && ImGui.isMouseDown(0)) {
                 scrubbing = true;
             } else if (scrubbing) {
                 scrubbing = false;
