@@ -13,8 +13,9 @@ import net.minecraft.network.listener.ClientPlayPacketListener;
 import net.minecraft.network.packet.Packet;
 import net.minecraft.server.network.EntityTrackerEntry;
 import net.minecraft.server.world.ServerWorld;
+import net.minecraft.util.math.Box;
+import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
-import org.joml.Math;
 import org.joml.Quaternionfc;
 import org.joml.Vector3dc;
 import org.joml.Vector3f;
@@ -135,4 +136,55 @@ public class AnimatedCameraEntity extends Entity implements RollProvider, FovPro
         return true; // Allows player to interact
     }
 
+    /**
+     * Because Box is missing crucial functions.
+     */
+    private static class SimpleBox {
+        double minX, minY, minZ;
+        double maxX, maxY, maxZ;
+
+        SimpleBox(Vec3d origin) {
+            minX = origin.x;
+            minY = origin.y;
+            minZ = origin.z;
+
+            maxX = origin.x;
+            maxY = origin.y;
+            maxZ = origin.z;
+        }
+
+        SimpleBox expand(double amount) {
+            minX -= amount;
+            minY -= amount;
+            minZ -= amount;
+
+            maxX += amount;
+            maxY += amount;
+            maxZ += amount;
+            return this;
+        }
+
+        SimpleBox shift(Vec3d vec) {
+            minX += vec.x;
+            minY += vec.y;
+            minZ += vec.z;
+
+            maxX += vec.x;
+            maxY += vec.y;
+            maxZ += vec.z;
+            return this;
+        }
+
+        Box toBox() {
+            return new Box(minX, minY, minZ, maxX, maxY, maxZ);
+        }
+    }
+
+    @Override
+    protected Box calculateDefaultBoundingBox(Vec3d pos) {
+       return new SimpleBox(pos)
+               .expand(0.5)
+               .shift(getRotationVector().multiply(.5))
+               .toBox();
+    }
 }

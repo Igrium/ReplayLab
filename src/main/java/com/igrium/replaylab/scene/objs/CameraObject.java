@@ -2,13 +2,18 @@ package com.igrium.replaylab.scene.objs;
 
 import com.igrium.replaylab.ReplayLabEntities;
 import com.igrium.replaylab.camera.AnimatedCameraEntity;
+import com.igrium.replaylab.editor.EditorState;
 import com.igrium.replaylab.math.Transform3;
 import com.igrium.replaylab.scene.ReplayScene;
 import com.igrium.replaylab.scene.obj.EntityObject;
 import com.igrium.replaylab.scene.obj.ReplayObjectType;
 import net.minecraft.client.world.ClientWorld;
 import net.minecraft.entity.SpawnReason;
+import org.joml.Matrix4fc;
 import org.joml.Quaternionf;
+import org.joml.Vector3dc;
+
+import java.util.Objects;
 
 public class CameraObject extends EntityObject<AnimatedCameraEntity> {
 
@@ -33,17 +38,23 @@ public class CameraObject extends EntityObject<AnimatedCameraEntity> {
     @Override
     protected void applyToEntity(AnimatedCameraEntity entity, int timestamp) {
         setCameraTransform(entity, getTransform(new Transform3()));
-//        Transform3 transform = new Transform3();
-//        super.getTransform(transform);
-//        super.getCombinedTransform(posCache, rotCache, null);
-//        setCameraTransform(entity, posCache, rotCache);
-
-//        entity.setSelected(getScene().is);
     }
 
     private static void setCameraTransform(AnimatedCameraEntity camera, Transform3 transform) {
         camera.setCameraPosition(transform.pos());
         camera.setCameraRotation(transform.getRot(new Quaternionf()));
         // No scale
+    }
+
+    @Override
+    public void drawGizmos(EditorState editor, Vector3dc cameraPos, Matrix4fc viewMatrix, Matrix4fc projectionMatrix, boolean hideUI) {
+        super.drawGizmos(editor, cameraPos, viewMatrix, projectionMatrix, hideUI);
+        AnimatedCameraEntity entity = getInstantiatedEntity();
+        if (entity != null) {
+            String selected = editor.getSelectedObject();
+            boolean s = selected != null && selected.equals(getId());
+            entity.setSelected(s);
+            entity.setActive(s);
+        }
     }
 }

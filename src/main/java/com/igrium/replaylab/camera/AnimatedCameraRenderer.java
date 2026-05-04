@@ -1,5 +1,6 @@
 package com.igrium.replaylab.camera;
 
+import com.igrium.replaylab.ui.GizmoColors;
 import net.minecraft.client.render.*;
 import net.minecraft.client.render.entity.EntityRenderer;
 import net.minecraft.client.render.entity.EntityRendererFactory;
@@ -29,6 +30,9 @@ public class AnimatedCameraRenderer extends EntityRenderer<AnimatedCameraEntity,
         state.setPitch(entity.getPitch());
         state.setYaw(entity.getYaw());
         state.setRoll(entity.getRoll());
+
+        state.setSelected(entity.isSelected());
+        state.setActive(entity.isActive());
     }
 
     @SuppressWarnings("SuspiciousNameCombination")
@@ -51,39 +55,48 @@ public class AnimatedCameraRenderer extends EntityRenderer<AnimatedCameraEntity,
         float height = 1;
         float halfHeight = height / 2;
 
+        int color;
+        if (state.isActive()) {
+            color = GizmoColors.ACTIVE;
+        } else if (state.isSelected()) {
+            color = GizmoColors.SELECTED;
+        } else {
+            color = GizmoColors.DEFAULT;
+        }
+
         // Quad
         drawLine(matrices, lines,
                 -halfHeight, -halfHeight, 1,
-                halfHeight, -halfHeight, 1, -1);
+                halfHeight, -halfHeight, 1, color);
 
         drawLine(matrices, lines,
                 halfHeight, -halfHeight, 1,
-                halfHeight, halfHeight, 1, -1);
+                halfHeight, halfHeight, 1, color);
 
         drawLine(matrices, lines,
                 halfHeight, halfHeight, 1,
-                -halfHeight, halfHeight, 1, -1);
+                -halfHeight, halfHeight, 1, color);
 
         drawLine(matrices, lines,
                 -halfHeight, halfHeight, 1,
-                -halfHeight, -halfHeight, 1, -1);
+                -halfHeight, -halfHeight, 1, color);
 
         // Frustum
         drawLine(matrices, lines,
                 0, 0, 0,
-                -halfHeight, -halfHeight, 1, -1);
+                -halfHeight, -halfHeight, 1, color);
 
         drawLine(matrices, lines,
                 0, 0, 0,
-                -halfHeight, halfHeight, 1, -1);
+                -halfHeight, halfHeight, 1, color);
 
         drawLine(matrices, lines,
                 0, 0, 0,
-                halfHeight, -halfHeight, 1, -1);
+                halfHeight, -halfHeight, 1, color);
 
         drawLine(matrices, lines,
                 0, 0, 0,
-                halfHeight, halfHeight, 1, -1);
+                halfHeight, halfHeight, 1, color);
 
         matrices.pop();
     }

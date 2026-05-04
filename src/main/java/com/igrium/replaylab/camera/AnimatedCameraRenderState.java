@@ -11,4 +11,7 @@ public class AnimatedCameraRenderState extends EntityRenderState {
     private float pitch;
     private float yaw;
     private float roll;
+
+    private boolean selected;
+    private boolean active;
 }

@@ -2,6 +2,7 @@ package com.igrium.replaylab.scene.obj;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.gson.*;
+import com.igrium.replaylab.editor.EditorState;
 import com.igrium.replaylab.scene.ReplayScene;
 import com.igrium.replaylab.scene.key.KeyChannel;
 import com.igrium.replaylab.util.GsonSerializationContext;
@@ -216,12 +217,13 @@ public abstract class ReplayObject {
     /**
      * Called every frame in the editor to draw this object's gizmos.
      *
+     * @param editor           The current editor state.
      * @param cameraPos        World-space position of the camera.
      * @param viewMatrix       View matrix (rotation, etc.) of the camera. Does not include position.
      * @param projectionMatrix Projection matrix of the camera.
-     * @param hideUI           Don't draw any visual gizmos (some objects may still need to update things while disabled)
+     * @param hideUI           Don't draw any visual gizmos (some objects may still need to update things while UI disabled)
      */
-    public void drawGizmos(Vector3dc cameraPos, Matrix4fc viewMatrix, Matrix4fc projectionMatrix, boolean hideUI) {
+    public void drawGizmos(EditorState editor, Vector3dc cameraPos, Matrix4fc viewMatrix, Matrix4fc projectionMatrix, boolean hideUI) {
         // Default no-op
     }
 

@@ -42,8 +42,10 @@ public class SceneGizmos {
                 viewportBounds.height()
         );
 
+
+        boolean hidden = MinecraftClient.getInstance().currentScreen != null;
         for (var obj : editorState.getScene().getObjects().values()) {
-            obj.drawGizmos(cameraPos, viewMatrix, projectionMatrix, false);
+            obj.drawGizmos(editorState, cameraPos, viewMatrix, projectionMatrix, hidden);
         }
 
 //        viewMatrix.get(viewArray);

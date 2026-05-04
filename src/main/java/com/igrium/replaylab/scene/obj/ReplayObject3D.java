@@ -4,6 +4,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonDeserializationContext;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonSerializationContext;
+import com.igrium.replaylab.editor.EditorState;
 import com.igrium.replaylab.math.Transform3;
 import com.igrium.replaylab.scene.ReplayScene;
 import imgui.ImGui;
@@ -243,8 +244,13 @@ public abstract class ReplayObject3D extends ReplayObject implements TransformPr
     }
 
     @Override
-    public void drawGizmos(Vector3dc cameraPos, Matrix4fc viewMatrix, Matrix4fc projectionMatrix, boolean hideUI) {
+    public void drawGizmos(EditorState editor, Vector3dc cameraPos, Matrix4fc viewMatrix, Matrix4fc projectionMatrix, boolean hideUI) {
         // Yeah, there's some allocations here, but it's only once per frame. Not too bad.
+        if (hideUI) return;
+
+        String selObj = editor.getSelectedObject();
+        boolean selected = selObj != null && selObj.equals(getId());
+        if (!selected) return;
 
         Transform3 transform = getBaseTransform(new Transform3());
         Matrix4f modelMatrix = transform.getMatrix(cameraPos, new Matrix4f());
