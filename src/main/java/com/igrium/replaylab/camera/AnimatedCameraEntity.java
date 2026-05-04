@@ -1,5 +1,6 @@
 package com.igrium.replaylab.camera;
 
+import com.igrium.replaylab.math.MathUtils;
 import lombok.Getter;
 import lombok.Setter;
 import net.minecraft.client.world.ClientWorld;
@@ -78,8 +79,10 @@ public class AnimatedCameraEntity extends Entity implements RollProvider, FovPro
     }
 
     public void setCameraRotation(Quaternionfc rot) {
-        Vector3f euler = rot.getEulerAnglesYXZ(new Vector3f());
-        setCameraRotation(Math.toDegrees(euler.y), Math.toDegrees(euler.x), Math.toDegrees(euler.z));
+        Vector3f euler = MathUtils.entityRot(rot);
+        setCameraRotation(euler.x, euler.y, euler.z);
+//        Vector3f euler = rot.getEulerAnglesYXZ(new Vector3f());
+//        setCameraRotation(Math.toDegrees(euler.y), Math.toDegrees(euler.x), Math.toDegrees(euler.z));
     }
 
     @Override

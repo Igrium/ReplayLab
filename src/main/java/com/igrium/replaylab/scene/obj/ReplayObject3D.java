@@ -100,8 +100,8 @@ public abstract class ReplayObject3D extends ReplayObject implements TransformPr
         dest.identity();
         dest.rotScale()
                 .rotate(new Quaternionf().rotateYXZ(
-                        (float) Math.toRadians(rotation.x),
                         (float) Math.toRadians(rotation.y),
+                        (float) Math.toRadians(rotation.x),
                         (float) Math.toRadians(rotation.z)))
                 .scale((float) scale.x, (float) scale.y, (float) scale.z);
         dest.pos().set(position);

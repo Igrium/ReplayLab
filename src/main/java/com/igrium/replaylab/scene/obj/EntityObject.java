@@ -1,5 +1,6 @@
 package com.igrium.replaylab.scene.obj;
 
+import com.igrium.replaylab.math.MathUtils;
 import com.igrium.replaylab.math.Transform3;
 import com.igrium.replaylab.scene.ReplayScene;
 import net.minecraft.client.MinecraftClient;
@@ -11,6 +12,7 @@ import org.joml.Math;
 import org.joml.Quaternionf;
 import org.joml.Vector3d;
 import org.joml.Vector3f;
+import org.lwjgl.system.MathUtil;
 
 /**
  * A replay object that spawns a virtual "entity" in the scene. Used for cameras and display elements
@@ -106,10 +108,10 @@ public abstract class EntityObject<T extends Entity> extends ReplayObject3D impl
         entity.prevZ = pos.z;
 
         // TODO: double-check that this transform setup is compatible with entities
-        var rot = transform.getRot(new Quaternionf()).getEulerAnglesYXZ(new Vector3f());
+        var rot = MathUtils.entityRot(transform.getRot(new Quaternionf()));
 
-        float yaw = Math.toDegrees(rot.x);
-        float pitch = Math.toDegrees(rot.y);
+        float pitch = rot.x;
+        float yaw = rot.y;
 
         entity.setYaw(yaw);
         entity.setPitch(pitch);
