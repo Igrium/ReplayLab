@@ -1,12 +1,16 @@
 package com.igrium.replaylab.scene.obj;
 
+import com.igrium.replaylab.math.Transform3;
 import com.igrium.replaylab.scene.ReplayScene;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.world.ClientWorld;
 import net.minecraft.entity.Entity;
 import net.minecraft.world.World;
 import org.jetbrains.annotations.Nullable;
+import org.joml.Math;
+import org.joml.Quaternionf;
 import org.joml.Vector3d;
+import org.joml.Vector3f;
 
 /**
  * A replay object that spawns a virtual "entity" in the scene. Used for cameras and display elements
@@ -93,19 +97,25 @@ public abstract class EntityObject<T extends Entity> extends ReplayObject3D impl
      * @param timestamp Current timestamp. Transform values are already applied, so it's likely not used.
      */
     protected void applyToEntity(T entity, int timestamp) {
-        getCombinedTransform(globalPos, globalRot, null);
-        entity.setPos(globalPos.x(), globalPos.y(), globalPos.z());
-        entity.prevX = globalPos.x;
-        entity.prevY = globalPos.y;
-        entity.prevZ = globalPos.z;
+        var transform = getTransform(new Transform3());
+        var pos = transform.pos();
+
+        entity.setPos(pos.x, pos.y, pos.z);
+        entity.prevX = pos.x;
+        entity.prevY = pos.y;
+        entity.prevZ = pos.z;
 
         // TODO: double-check that this transform setup is compatible with entities
-        entity.setYaw((float) globalRot.y());
-        entity.setPitch((float) globalRot.x());
+        var rot = transform.getRot(new Quaternionf()).getEulerAnglesYXZ(new Vector3f());
 
-        entity.prevYaw = (float) globalRot.y;
-        entity.prevPitch = (float) globalRot.x;
+        float yaw = Math.toDegrees(rot.x);
+        float pitch = Math.toDegrees(rot.y);
 
+        entity.setYaw(yaw);
+        entity.setPitch(pitch);
+
+        entity.prevYaw = yaw;
+        entity.prevPitch = pitch;
     }
 
     /**

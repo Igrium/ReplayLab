@@ -10,6 +10,7 @@ import org.joml.Math;
  */
 @Accessors(fluent = true)
 @Getter
+@Deprecated
 public class Transform {
     private final Vector3d position;
     private final Quaternionf rotation;

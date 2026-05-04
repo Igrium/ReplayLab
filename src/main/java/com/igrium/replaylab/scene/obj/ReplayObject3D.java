@@ -4,6 +4,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonDeserializationContext;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonSerializationContext;
+import com.igrium.replaylab.math.Transform3;
 import com.igrium.replaylab.scene.ReplayScene;
 import imgui.ImGui;
 import lombok.Getter;
@@ -53,12 +54,6 @@ public abstract class ReplayObject3D extends ReplayObject implements TransformPr
     @Getter
     private final Vector3d scale = new Vector3d(1, 1, 1);
 
-    /**
-     * The name of this object's parent object.
-     */
-    @Getter @Setter
-    private @Nullable String parent;
-
     public void setPosition(Vector3dc pos) {
         position.set(pos);
     }
@@ -69,22 +64,6 @@ public abstract class ReplayObject3D extends ReplayObject implements TransformPr
 
     public void setPosition(Vec3d vec) {
         position.set(vec.getX(), vec.getY(), vec.getZ());
-    }
-
-    /**
-     * Find this object's parent in the scene, cast it to a TransformProvider, and return it.
-     * @return Parent object; <code>null</code> if the object could not be found, or it's not a TransformProvider
-     */
-    public @Nullable TransformProvider getParentObject() {
-        if (parent == null)
-            return null;
-
-        var obj = getScene().getObject(parent);
-        if (obj instanceof TransformProvider t) {
-            return t;
-        } else {
-            return null;
-        }
     }
 
     public ReplayObject3D(ReplayObjectType<?> type, ReplayScene scene) {
@@ -107,59 +86,28 @@ public abstract class ReplayObject3D extends ReplayObject implements TransformPr
     protected abstract boolean hasRotation();
     protected abstract boolean hasScale();
 
-    private static final ThreadLocal<Set<ReplayObject3D>> parentStack = ThreadLocal.withInitial(HashSet::new);
-
     @Override
-    public final void getCombinedTransform(Matrix4d dest) {
-        var parent = getParentObject();
-        // Prevent recursion
-        if (parent != null && parentStack.get().add(this)) {
-            try {
-                parent.getCombinedTransform(dest);
-            } finally {
-                parentStack.get().remove(this);
-            }
-        }
-        getLocalTransform(dest);
-    }
-
-    
-
-    public final void getLocalTransform(Matrix4d dest) {
-        dest.translate(position);
-        dest.rotateYXZ(Math.toRadians(rotation.x), Math.toRadians(rotation.y), Math.toRadians(rotation.z));
-        dest.scale(scale);
+    public Transform3 getTransform(Transform3 dest) {
+        return getBaseTransform(dest);
     }
 
     /**
-     * Get the final transform of this object in timeline-compatible components. Includes parents and constraints
-     *
-     * @param outPos   The global position of this object
-     * @param outRot   The YXZ euler rotation of this object in degrees
-     * @param outScale The scale of this object
+     * Get the base transform of this replay object from to its properties, ignoring all modifiers.
+     * @param dest Will hold the result.
+     * @return <code>dest</code>
      */
-    public final void getCombinedTransform(@Nullable Vector3d outPos, @Nullable Vector3d outRot, @Nullable Vector3d outScale) {
-        if (parent == null) {
-            if (outPos != null) outPos.set(position);
-            if (outRot != null) outRot.set(rotation);
-            if (outScale != null) outScale.set(scale);
-            return;
-        }
-
-        Matrix4d m = new Matrix4d();
-        getCombinedTransform(m);
-
-        if (outPos != null) m.getTranslation(outPos);
-        if (outScale != null) m.getScale(outScale);
-
-        if (outRot != null) {
-            Quaterniond rot = m.getNormalizedRotation(new Quaterniond());
-            rot.getEulerAnglesYXZ(outRot);
-            rot.x = Math.toDegrees(rot.x);
-            rot.y = Math.toDegrees(rot.y);
-            rot.z = Math.toDegrees(rot.z);
-        }
+    public Transform3 getBaseTransform(Transform3 dest) {
+        dest.identity();
+        dest.rotScale()
+                .rotate(new Quaternionf().rotateYXZ(
+                        (float) Math.toRadians(rotation.x),
+                        (float) Math.toRadians(rotation.y),
+                        (float) Math.toRadians(rotation.z)))
+                .scale((float) scale.x, (float) scale.y, (float) scale.z);
+        dest.pos().set(position);
+        return dest;
     }
+
 
     @Override
     public void onCreated() {
@@ -189,9 +137,6 @@ public abstract class ReplayObject3D extends ReplayObject implements TransformPr
             json.add("scale", writeJsonVec(scale));
         }
 
-        if (parent != null) {
-            json.addProperty("parent", getParent());
-        }
     }
 
     @Override
@@ -210,10 +155,6 @@ public abstract class ReplayObject3D extends ReplayObject implements TransformPr
             readJsonVec(json.getAsJsonArray("scale"), scale);
         } else {
             scale.set(1, 1, 1);
-        }
-
-        if (json.has("parent")) {
-            setParent(json.getAsJsonArray("parent").getAsString());
         }
     }
 
@@ -316,10 +257,6 @@ public abstract class ReplayObject3D extends ReplayObject implements TransformPr
         int RED = 0xFF0000FF;
         int GREEN = 0xFF00FF00;
         int BLUE = 0xFFFF6600;
-
-//        int RED = 0xFFFF0000;
-//        int GREEN = 0xFF00FF00;
-//        int BLUE = 0xFF00AAFF;
 
         return switch(chName) {
             case POS_X, ROT_X, SCALE_X -> RED;

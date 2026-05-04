@@ -1,12 +1,20 @@
 package com.igrium.replaylab.scene.obj;
 
+import com.igrium.replaylab.math.Transform3;
 import org.joml.Matrix4d;
 
 public interface TransformProvider {
+//    /**
+//     * Compute the final transform of this object, including all constraints and parents.
+//     * @param dest Destination matrix.
+//     * @apiNote Applies on top of any existing transform in <code>dest</code>.
+//     */
+//    void getCombinedTransform(Matrix4d dest);
+
     /**
-     * Compute the final transform of this object, including all constraints and parents.
-     * @param dest Destination matrix.
-     * @apiNote Applies on top of any existing transform in <code>dest</code>.
+     * Get the final transform of this object <em>with all modifiers applied!</em>
+     * @param dest Will hold the result.
+     * @return <code>dest</code>
      */
-    void getCombinedTransform(Matrix4d dest);
+    Transform3 getTransform(Transform3 dest);
 }

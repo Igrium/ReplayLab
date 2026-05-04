@@ -43,14 +43,14 @@ public class SceneGizmos {
         Matrix4d tmpMatrix = new Matrix4d();
         Matrix4f modelMatrix = new Matrix4f(tmpMatrix);
 
-        for (var obj : editorState.getScene().getObjects().values()) {
-            if (obj instanceof ReplayObject3D threeD) {
-                tmpMatrix.identity();
-                threeD.getCombinedTransform(tmpMatrix);
-                modelMatrix.set(tmpMatrix);
-                modelMatrix.get(modelArray);
-                ImGuizmo.manipulate(viewArray, projectionArray, Operation.TRANSLATE, Mode.LOCAL, modelArray);
-            }
-        }
+//        for (var obj : editorState.getScene().getObjects().values()) {
+//            if (obj instanceof ReplayObject3D threeD) {
+//                tmpMatrix.identity();
+//                threeD.getCombinedTransform(tmpMatrix);
+//                modelMatrix.set(tmpMatrix);
+//                modelMatrix.get(modelArray);
+//                ImGuizmo.manipulate(viewArray, projectionArray, Operation.TRANSLATE, Mode.LOCAL, modelArray);
+//            }
+//        }
     }
 }

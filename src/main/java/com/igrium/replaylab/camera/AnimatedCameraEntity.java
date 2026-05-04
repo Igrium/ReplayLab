@@ -13,6 +13,10 @@ import net.minecraft.network.packet.Packet;
 import net.minecraft.server.network.EntityTrackerEntry;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.world.World;
+import org.joml.Math;
+import org.joml.Quaternionfc;
+import org.joml.Vector3dc;
+import org.joml.Vector3f;
 
 /**
  * A camera entity designed to be used for fully-animated cameras (not entity spectating)
@@ -54,6 +58,10 @@ public class AnimatedCameraEntity extends Entity implements RollProvider, FovPro
         calculateDimensions();
     }
 
+    public void setCameraPosition(Vector3dc vec) {
+        setCameraPosition(vec.x(), vec.y(), vec.z());
+    }
+
     /**
      * Set the camera rotation without interpolation
      *
@@ -67,6 +75,11 @@ public class AnimatedCameraEntity extends Entity implements RollProvider, FovPro
         setPitch(pitch);
         setYaw(yaw);
         setRoll(roll);
+    }
+
+    public void setCameraRotation(Quaternionfc rot) {
+        Vector3f euler = rot.getEulerAnglesYXZ(new Vector3f());
+        setCameraRotation(Math.toDegrees(euler.y), Math.toDegrees(euler.x), Math.toDegrees(euler.z));
     }
 
     @Override

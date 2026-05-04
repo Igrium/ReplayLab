@@ -26,16 +26,39 @@ public record Transform3(Vector3d pos, Matrix3f rotScale) {
         this(new Vector3d(), new Matrix3f());
     }
 
+    public Vector3d getPos(Vector3d dest) {
+        return dest.set(pos);
+    }
+
+    public Quaternionf getRot(Quaternionf dest) {
+        return rotScale.getNormalizedRotation(dest);
+    }
+
+    public Vector3f getScale(Vector3f dest) {
+        return rotScale.getScale(dest);
+    }
+
     public Transform3 set(Transform3 src) {
         pos.set(src.pos);
         rotScale.set(src.rotScale);
         return this;
     }
 
-    public Transform3 set(Vector3dc srcPos, Matrix3fc srcRotScale) {
-        pos.set(srcPos);
+    public Transform3 set(Vector3dc pos, Matrix3fc srcRotScale) {
+        this.pos.set(pos);
         rotScale.set(srcRotScale);
         return this;
+    }
+
+    public Transform3 set(Vector3dc pos, Quaternionfc rot) {
+        identity();
+        this.pos.set(pos);
+        rotScale.set(rot);
+        return this;
+    }
+
+    public Transform3 set(Vector3dc pos, Quaternionfc rot, Vector3fc scale) {
+        return set(pos, rot).scale(scale);
     }
 
     public Transform3 identity() {
@@ -281,19 +304,21 @@ public record Transform3(Vector3d pos, Matrix3f rotScale) {
     }
 
     public Transform3 scale(float x, float y, float z, Transform3 dest) {
-        return scaleAround(x, y, z, 0.0, 0.0, 0.0, dest);
+        dest.pos.set(pos);
+        rotScale.scale(x, y, z, dest.rotScale);
+        return dest;
     }
 
     public Transform3 scale(float x, float y, float z) {
-        return scaleAround(x, y, z, 0.0, 0.0, 0.0, this);
+        return scale(x, y, z, this);
     }
 
-    public Transform3 scale(Vector3fc xyz, Transform3 dest) {
-        return scale(xyz.x(), xyz.y(), xyz.z(), dest);
+    public Transform3 scale(Vector3fc factor, Transform3 dest) {
+        return scale(factor.x(), factor.y(), factor.z(), dest);
     }
 
-    public Transform3 scale(Vector3fc xyz) {
-        return scale(xyz, this);
+    public Transform3 scale(Vector3fc factor) {
+        return scale(factor, this);
     }
 
     public Transform3 scale(float xyz, Transform3 dest) {
