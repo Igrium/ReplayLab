@@ -5,6 +5,7 @@ import com.google.gson.JsonDeserializationContext;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonSerializationContext;
 import com.igrium.replaylab.editor.EditorState;
+import com.igrium.replaylab.math.MathUtils;
 import com.igrium.replaylab.math.Transform3;
 import com.igrium.replaylab.scene.ReplayScene;
 import imgui.ImGui;
@@ -70,6 +71,7 @@ public abstract class ReplayObject3D extends ReplayObject implements TransformPr
         position.set(vec.getX(), vec.getY(), vec.getZ());
     }
 
+
     public ReplayObject3D(ReplayObjectType<?> type, ReplayScene scene) {
         super(type, scene);
 
@@ -111,6 +113,12 @@ public abstract class ReplayObject3D extends ReplayObject implements TransformPr
                 .scale((float) scale.x, (float) scale.y, (float) scale.z);
         dest.pos().set(position);
         return dest;
+    }
+
+    public void setBaseTransform(Transform3 transform) {
+        position.set(transform.pos());
+        rotation.set(MathUtils.entityRot(transform.getRot(new Quaternionf())));
+        scale.set(transform.getScale(new Vector3f()));
     }
 
 
@@ -243,23 +251,65 @@ public abstract class ReplayObject3D extends ReplayObject implements TransformPr
         }
     }
 
+    private boolean wasDragging;
+
+    private final Vector3f dragDeltaPos = new Vector3f();
+    private final Vector3f dragDeltaRot = new Vector3f();
+    private final Vector3f dragDeltaScale = new Vector3f();
+
+    // Cache to avoid reallocation
+    private final float[] viewMatrix = new float[16];
+    private final float[] projectionMatrix = new float[16];
+    private final float[] modelMatrix = new float[16];
+    private final float[] deltaMatrix = new float[16];
+
+    private final float[] posOutput = new float[3];
+    private final float[] rotOutput = new float[3];
+    private final float[] scaleOutput = new float[3];
+
+
     @Override
-    public void drawGizmos(EditorState editor, Vector3dc cameraPos, Matrix4fc viewMatrix, Matrix4fc projectionMatrix, boolean hideUI) {
+    public PropertiesPanelState drawGizmos(EditorState editor, Vector3dc cameraPos, Matrix4fc viewMatrix, Matrix4fc projectionMatrix, boolean hideUI) {
         // Yeah, there's some allocations here, but it's only once per frame. Not too bad.
-        if (hideUI) return;
+        if (hideUI) return PropertiesPanelState.NONE;
 
         String selObj = editor.getSelectedObject();
         boolean selected = selObj != null && selObj.equals(getId());
-        if (!selected) return;
+        if (!selected) return PropertiesPanelState.NONE;
 
         Transform3 transform = getBaseTransform(new Transform3());
         Matrix4f modelMatrix = transform.getMatrix(cameraPos, new Matrix4f());
 
-        float[] viewArray = viewMatrix.get(new float[16]);
-        float[] projectionArray = projectionMatrix.get(new float[16]);
-        float[] modelArray = modelMatrix.get(new float[16]);
+        viewMatrix.get(this.viewMatrix);
+        projectionMatrix.get(this.projectionMatrix);
+        modelMatrix.get(this.modelMatrix);
 
-        ImGuizmo.manipulate(viewArray, projectionArray, Operation.TRANSLATE, Mode.LOCAL, modelArray);
+        ImGuizmo.manipulate(this.viewMatrix, this.projectionMatrix, Operation.TRANSLATE, Mode.LOCAL, this.modelMatrix, this.deltaMatrix);
+        if (ImGuizmo.isUsing()) {
+            ImGuizmo.decomposeMatrixToComponents(this.deltaMatrix, posOutput, rotOutput, scaleOutput);
+            this.position.add(posOutput[0], posOutput[1], posOutput[2]);
+            this.rotation.add(rotOutput[0], rotOutput[1], rotOutput[2]);
+            this.scale.mul(scaleOutput[0], scaleOutput[1], scaleOutput[2]);
+
+            wasDragging = true;
+
+            dragDeltaPos.add(posOutput[0], posOutput[1], posOutput[2]);
+            dragDeltaRot.add(rotOutput[0], rotOutput[1], rotOutput[2]);
+            dragDeltaScale.mul(scaleOutput[0], scaleOutput[1], scaleOutput[2]);
+
+            return PropertiesPanelState.DRAGGING;
+        } else if (wasDragging) {
+            wasDragging = false;
+
+            var commit = vecNotZero(dragDeltaPos, 0) || vecNotZero(dragDeltaRot, 0) || vecNotZero(dragDeltaScale, 1f);
+
+            dragDeltaPos.set(0);
+            dragDeltaRot.set(0);
+            dragDeltaScale.set(1);
+
+            return commit ? PropertiesPanelState.COMMIT_KEYFRAME : PropertiesPanelState.NONE;
+        }
+        return PropertiesPanelState.NONE;
     }
 
     private static final float[] vecCache = new float[3];
@@ -275,6 +325,18 @@ public abstract class ReplayObject3D extends ReplayObject implements TransformPr
         }
         return false;
     }
+
+    private boolean vecNotZero(Vector3fc vec, float c) {
+        return vec.distanceSquared(c, c, c) > 0.01f;
+    }
+
+//    private boolean vecNotZero(float[] vec, float c) {
+//        for (float f : vec) {
+//            if (f - c >= 0.001f) return true;
+//        }
+//        return false;
+//    }
+
 
     @Override
     public int getChannelColor(String chName) {

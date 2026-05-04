@@ -13,10 +13,10 @@ import com.igrium.replaylab.scene.objs.ScenePropsObject;
 import com.igrium.replaylab.ui.panels.*;
 import com.igrium.replaylab.ui.util.ExceptionPopup;
 import com.igrium.replaylab.ui.util.ReplayLabControls;
+import com.igrium.replaylab.ui.util.GizmoRenderer;
 import com.replaymod.replay.ReplayHandler;
 import com.replaymod.replay.ReplayModReplay;
 import imgui.ImGui;
-import imgui.extension.imguizmo.ImGuizmo;
 import imgui.flag.*;
 import imgui.type.ImBoolean;
 import lombok.Getter;
@@ -29,9 +29,7 @@ import net.minecraft.util.hit.EntityHitResult;
 import net.minecraft.util.hit.HitResult;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Matrix4f;
-import org.joml.Matrix4fc;
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.List;
@@ -182,7 +180,7 @@ public class ReplayLabUI extends DockSpaceApp {
                 raycastSelect();
             }
 
-            SceneGizmos.drawGizmos(editorState, getCustomViewportBounds());
+            GizmoRenderer.drawGizmos(editorState, getCustomViewportBounds());
 
         }
         ImGui.end();

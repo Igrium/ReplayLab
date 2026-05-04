@@ -47,8 +47,7 @@ public class CameraObject extends EntityObject<AnimatedCameraEntity> {
     }
 
     @Override
-    public void drawGizmos(EditorState editor, Vector3dc cameraPos, Matrix4fc viewMatrix, Matrix4fc projectionMatrix, boolean hideUI) {
-        super.drawGizmos(editor, cameraPos, viewMatrix, projectionMatrix, hideUI);
+    public PropertiesPanelState drawGizmos(EditorState editor, Vector3dc cameraPos, Matrix4fc viewMatrix, Matrix4fc projectionMatrix, boolean hideUI) {
         AnimatedCameraEntity entity = getInstantiatedEntity();
         if (entity != null) {
             String selected = editor.getSelectedObject();
@@ -56,5 +55,6 @@ public class CameraObject extends EntityObject<AnimatedCameraEntity> {
             entity.setSelected(s);
             entity.setActive(s);
         }
+        return super.drawGizmos(editor, cameraPos, viewMatrix, projectionMatrix, hideUI);
     }
 }

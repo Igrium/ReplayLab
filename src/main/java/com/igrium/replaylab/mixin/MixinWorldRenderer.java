@@ -1,6 +1,6 @@
 package com.igrium.replaylab.mixin;
 
-import com.igrium.replaylab.ui.SceneGizmos;
+import com.igrium.replaylab.ui.util.GizmoRenderer;
 import com.llamalad7.mixinextras.sugar.Local;
 import net.minecraft.client.render.Camera;
 import net.minecraft.client.render.WorldRenderer;
@@ -19,8 +19,8 @@ public class MixinWorldRenderer {
                          @Local(argsOnly = true, ordinal = 1) Matrix4f projectionMatrix,
                          @Local(argsOnly = true) Camera camera) {
         Vec3d camPos = camera.getPos();
-        SceneGizmos.viewMatrix().set(positionMatrix);
-        SceneGizmos.projectionMatrix().set(projectionMatrix);
-        SceneGizmos.cameraPos().set(camPos.x, camPos.y, camPos.z);
+        GizmoRenderer.viewMatrix().set(positionMatrix);
+        GizmoRenderer.projectionMatrix().set(projectionMatrix);
+        GizmoRenderer.cameraPos().set(camPos.x, camPos.y, camPos.z);
     }
 }

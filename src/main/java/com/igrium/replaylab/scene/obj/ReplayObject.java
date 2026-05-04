@@ -223,8 +223,9 @@ public abstract class ReplayObject {
      * @param projectionMatrix Projection matrix of the camera.
      * @param hideUI           Don't draw any visual gizmos (some objects may still need to update things while UI disabled)
      */
-    public void drawGizmos(EditorState editor, Vector3dc cameraPos, Matrix4fc viewMatrix, Matrix4fc projectionMatrix, boolean hideUI) {
+    public PropertiesPanelState drawGizmos(EditorState editor, Vector3dc cameraPos, Matrix4fc viewMatrix, Matrix4fc projectionMatrix, boolean hideUI) {
         // Default no-op
+        return PropertiesPanelState.NONE;
     }
 
     /**
