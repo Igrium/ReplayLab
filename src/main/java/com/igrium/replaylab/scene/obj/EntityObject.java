@@ -8,11 +8,7 @@ import net.minecraft.client.world.ClientWorld;
 import net.minecraft.entity.Entity;
 import net.minecraft.world.World;
 import org.jetbrains.annotations.Nullable;
-import org.joml.Math;
 import org.joml.Quaternionf;
-import org.joml.Vector3d;
-import org.joml.Vector3f;
-import org.lwjgl.system.MathUtil;
 
 /**
  * A replay object that spawns a virtual "entity" in the scene. Used for cameras and display elements
@@ -87,10 +83,6 @@ public abstract class EntityObject<T extends Entity> extends ReplayObject3D impl
             ent.remove(Entity.RemovalReason.KILLED);
         }
     }
-
-    // Cache so we're not re-allocating every frame
-    private final Vector3d globalPos = new Vector3d();
-    private final Vector3d globalRot = new Vector3d();
 
     /**
      * Apply this object's properties to the entity.

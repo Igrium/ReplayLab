@@ -19,9 +19,8 @@ public class MixinWorldRenderer {
                          @Local(argsOnly = true, ordinal = 1) Matrix4f projectionMatrix,
                          @Local(argsOnly = true) Camera camera) {
         Vec3d camPos = camera.getPos();
-        SceneGizmos.getViewMatrix()
-                .set(positionMatrix)
-                .translate((float) -camPos.x, (float) -camPos.y, (float) -camPos.z);
-        SceneGizmos.getProjectionMatrix().set(projectionMatrix);
+        SceneGizmos.viewMatrix().set(positionMatrix);
+        SceneGizmos.projectionMatrix().set(projectionMatrix);
+        SceneGizmos.cameraPos().set(camPos.x, camPos.y, camPos.z);
     }
 }

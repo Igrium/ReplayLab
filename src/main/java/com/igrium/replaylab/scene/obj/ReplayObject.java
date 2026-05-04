@@ -10,6 +10,9 @@ import imgui.ImColor;
 import imgui.ImGui;
 import lombok.Getter;
 import org.jetbrains.annotations.Nullable;
+import org.joml.Matrix4f;
+import org.joml.Matrix4fc;
+import org.joml.Vector3dc;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -210,6 +213,17 @@ public abstract class ReplayObject {
         apply(timestamp);
     }
 
+    /**
+     * Called every frame in the editor to draw this object's gizmos.
+     *
+     * @param cameraPos        World-space position of the camera.
+     * @param viewMatrix       View matrix (rotation, etc.) of the camera. Does not include position.
+     * @param projectionMatrix Projection matrix of the camera.
+     * @param hideUI           Don't draw any visual gizmos (some objects may still need to update things while disabled)
+     */
+    public void drawGizmos(Vector3dc cameraPos, Matrix4fc viewMatrix, Matrix4fc projectionMatrix, boolean hideUI) {
+        // Default no-op
+    }
 
     /**
      * Called during the ImGui render process to draw the object's configurable properties.

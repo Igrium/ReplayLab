@@ -9,8 +9,6 @@ import com.igrium.replaylab.scene.obj.ReplayObjectType;
 import net.minecraft.client.world.ClientWorld;
 import net.minecraft.entity.SpawnReason;
 import org.joml.Quaternionf;
-import org.joml.Vector3d;
-import org.joml.Vector3dc;
 
 public class CameraObject extends EntityObject<AnimatedCameraEntity> {
 

@@ -7,6 +7,9 @@ import com.google.gson.JsonSerializationContext;
 import com.igrium.replaylab.math.Transform3;
 import com.igrium.replaylab.scene.ReplayScene;
 import imgui.ImGui;
+import imgui.extension.imguizmo.ImGuizmo;
+import imgui.extension.imguizmo.flag.Mode;
+import imgui.extension.imguizmo.flag.Operation;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.Setter;
@@ -236,6 +239,20 @@ public abstract class ReplayObject3D extends ReplayObject implements TransformPr
         } else {
             return PropertiesPanelState.NONE;
         }
+    }
+
+    @Override
+    public void drawGizmos(Vector3dc cameraPos, Matrix4fc viewMatrix, Matrix4fc projectionMatrix, boolean hideUI) {
+        // Yeah, there's some allocations here, but it's only once per frame. Not too bad.
+
+        Transform3 transform = getBaseTransform(new Transform3());
+        Matrix4f modelMatrix = transform.getMatrix(cameraPos, new Matrix4f());
+
+        float[] viewArray = viewMatrix.get(new float[16]);
+        float[] projectionArray = projectionMatrix.get(new float[16]);
+        float[] modelArray = modelMatrix.get(new float[16]);
+
+        ImGuizmo.manipulate(viewArray, projectionArray, Operation.TRANSLATE, Mode.LOCAL, modelArray);
     }
 
     private static final float[] vecCache = new float[3];

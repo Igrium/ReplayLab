@@ -7,13 +7,18 @@ import imgui.extension.imguizmo.ImGuizmo;
 import imgui.extension.imguizmo.flag.Mode;
 import imgui.extension.imguizmo.flag.Operation;
 import lombok.Getter;
+import lombok.experimental.Accessors;
 import lombok.experimental.UtilityClass;
 import net.minecraft.client.MinecraftClient;
 import org.joml.Matrix4d;
 import org.joml.Matrix4f;
+import org.joml.Vector3d;
 
-@UtilityClass
+@UtilityClass @Accessors(fluent = true)
 public class SceneGizmos {
+
+    @Getter
+    private static final Vector3d cameraPos = new Vector3d();
     @Getter
     private static final Matrix4f viewMatrix = new Matrix4f();
     @Getter
@@ -37,12 +42,16 @@ public class SceneGizmos {
                 viewportBounds.height()
         );
 
-        viewMatrix.get(viewArray);
-        projectionMatrix.get(projectionArray);
+        for (var obj : editorState.getScene().getObjects().values()) {
+            obj.drawGizmos(cameraPos, viewMatrix, projectionMatrix, false);
+        }
 
-        Matrix4d tmpMatrix = new Matrix4d();
-        Matrix4f modelMatrix = new Matrix4f(tmpMatrix);
-
+//        viewMatrix.get(viewArray);
+//        projectionMatrix.get(projectionArray);
+//
+//        Matrix4d tmpMatrix = new Matrix4d();
+//        Matrix4f modelMatrix = new Matrix4f(tmpMatrix);
+//
 //        for (var obj : editorState.getScene().getObjects().values()) {
 //            if (obj instanceof ReplayObject3D threeD) {
 //                tmpMatrix.identity();
