@@ -118,6 +118,12 @@ public class EditorState {
     @Accessors(fluent = true)
     private boolean wantsApplyToGame;
 
+    /**
+     * If set, gizmos should display in local space rather than world space.
+     */
+    @Getter @Setter
+    private boolean localGizmos;
+
     /// ===== Constructors =====
     public EditorState() {
         scene.setExceptionCallback(this::onException);

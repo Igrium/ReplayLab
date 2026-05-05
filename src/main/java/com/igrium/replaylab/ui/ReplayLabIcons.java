@@ -7,30 +7,30 @@ import net.minecraft.util.Identifier;
 
 @UtilityClass
 public class ReplayLabIcons {
-    public static final Identifier FONT_ID = Identifier.of("replaylab:replaylab-icons");
+    public static final Identifier FONT_ID = Identifier.of("replaylab:font-awesome");
 
     public static ImFont getFont() {
         return CraftUIFonts.getFont(FONT_ID);
     }
 
-    public static final char ICON_VIDEOCAM = 0xe800;
-    public static final char ICON_LOCK = 0xe801;
-    public static final char ICON_LOCK_OPEN = 0xe802;
-    public static final char ICON_PLAY = 0xe803;
-    public static final char ICON_STOP = 0xe804;
-    public static final char ICON_PAUSE = 0xe805;
-    public static final char ICON_TO_END = 0xe806;
-    public static final char ICON_TO_START = 0xe807;
-    public static final char ICON_TO_START_ALT = 0xe808;
-    public static final char ICON_FAST_FW = 0xe809;
-    public static final char ICON_FAST_BW = 0xe80a;
-    public static final char ICON_TO_END_ALT = 0xe80b;
-    public static final char ICON_RESIZE_SMALL = 0xe80c;
-    public static final char ICON_RESIZE_FULL = 0xe80d;
-    public static final char ICON_MAGNET = 0xe80e;
-    public static final char ICON_EYE_OFF = 0xe80f;
-    public static final char ICON_EYE = 0xe810;
-    public static final char ICON_RESIZE_FULL_ALT = 0xf0b2;
-    public static final char ICON_EYEDROPPER = 0xf1fb;
+    public static final char ICON_VIDEOCAM = 0xF076;
+    public static final char ICON_LOCK = 0xF023;
+    public static final char ICON_LOCK_OPEN = 0xF3C1;
+    public static final char ICON_PLAY = 0x25B6;
+    public static final char ICON_STOP = 0x23F9;
+    public static final char ICON_PAUSE = 0x23F8;
+    public static final char ICON_TO_END = 0xF051;
+    public static final char ICON_TO_END_ALT = 0x23ED;
+    public static final char ICON_TO_START = 0xF048;
+    public static final char ICON_TO_START_ALT = 0x23EE;
+    public static final char ICON_FAST_FW = 0x23E9;
+    public static final char ICON_FAST_BW = 0x23EA;
+    public static final char ICON_RESIZE_SMALL = 0xF422;
+    public static final char ICON_RESIZE_FULL = 0xF424;
+    public static final char ICON_MAGNET = 0xF076;
+    public static final char ICON_EYE_OFF = 0xF06E;
+    public static final char ICON_EYE = 0xF070;
+    public static final char ICON_RESIZE_FULL_ALT = 0xF424;
+    public static final char ICON_EYEDROPPER = 0xF1FB;
 
 }

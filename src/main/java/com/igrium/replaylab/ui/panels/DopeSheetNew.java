@@ -721,7 +721,7 @@ public class DopeSheetNew extends UIPanel {
         switch (shape) {
             case DIAMOND -> drawList.addNgonFilled(x, y, radius, color, 4);
             case SQUARE -> drawList.addRectFilled(x - radius, y - radius, x + radius, y + radius, color);
-            case CIRCLE -> drawList.addCircle(x, y, radius, color, 0, radius / 1.1f);
+            case CIRCLE -> drawList.addCircle(x, y, radius, color, 0, radius / 1.5f);
             case CIRCLE_FILLED -> drawList.addCircleFilled(x, y, radius, color);
         }
     }
