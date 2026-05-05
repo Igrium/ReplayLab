@@ -27,6 +27,25 @@ public class GizmoRenderer {
     @Getter
     private static final Matrix4f projectionMatrix = new Matrix4f();
 
+    @Getter @Accessors(fluent = true)
+    public enum TransformMode {
+
+        NONE(false, false, false),
+        FREE(true, true, true),
+        LOC(true, false, false),
+        ROT(false, true, false),
+        SCALE(false, false, true);
+
+        final boolean showLocation;
+        final boolean showRotation;
+        final boolean showScale;
+
+        TransformMode(boolean showLocation, boolean showRotation, boolean showScale) {
+            this.showLocation = showLocation;
+            this.showRotation = showRotation;
+            this.showScale = showScale;
+        }
+    }
 
     public static void drawGizmos(EditorState editorState, CraftApp.ViewportBounds viewportBounds) {
         // TODO: this should really be initialized in CraftUI

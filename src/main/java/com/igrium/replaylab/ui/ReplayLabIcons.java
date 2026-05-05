@@ -36,4 +36,8 @@ public class ReplayLabIcons {
     public static final char ICON_GLOBE = 0xF0AC;
     public static final char ICON_CUBE = 0xF1B2;
 
+    public static final char ICON_MOVE = 0xF047;
+    public static final char ICON_ROTATE = 0xF021;
+    public static final char ICON_SCALE = 0xE4BA;
+    public static final char ICON_FREE_TRANSFORM = 0xE4F6;
 }

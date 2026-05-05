@@ -44,6 +44,7 @@ import java.util.function.Predicate;
 public class EditorState {
 
     /// ===== Static Members =====
+
     private static final Logger LOGGER = ReplayLab.getLogger("ReplayLabEditorState");
 
     public static @Nullable ReplayHandler getReplayHandler() {
@@ -124,6 +125,15 @@ public class EditorState {
     @Getter @Setter
     private boolean localGizmos;
 
+    @Getter @Setter @Accessors(fluent = true)
+    private boolean showGizmoPos = true;
+
+    @Getter @Setter @Accessors(fluent = true)
+    private boolean showGizmoRot;
+
+    @Getter @Setter @Accessors(fluent = true)
+    private boolean showGizmoScale;
+
     /// ===== Constructors =====
     public EditorState() {
         scene.setExceptionCallback(this::onException);
@@ -173,7 +183,7 @@ public class EditorState {
         }
     }
 
-    // ===== Scene Management =====
+    /// ===== Scene Management =====
 
     public ReplayScene newScene(String sceneName) {
         ReplayScene scene = new ReplayScene();

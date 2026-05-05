@@ -284,10 +284,17 @@ public abstract class ReplayObject3D extends ReplayObject implements TransformPr
         projectionMatrix.get(this.projectionMatrix);
         modelMatrix.get(this.modelMatrix);
 
+        int operation = 0;
+        if (editor.showGizmoPos() && hasPosition()) operation |= Operation.TRANSLATE;
+        if (editor.showGizmoRot() && hasRotation()) operation |= Operation.ROTATE;
+        if (editor.showGizmoScale() && hasScale()) operation |= Operation.SCALE;
+
+
         ImGuizmo.manipulate(this.viewMatrix, this.projectionMatrix,
-                Operation.TRANSLATE,
+                operation,
                 editor.isLocalGizmos() ? Mode.LOCAL : Mode.WORLD,
                 this.modelMatrix, this.deltaMatrix);
+
         if (ImGuizmo.isUsing()) {
             ImGuizmo.decomposeMatrixToComponents(this.deltaMatrix, posOutput, rotOutput, scaleOutput);
             this.position.add(posOutput[0], posOutput[1], posOutput[2]);
@@ -329,8 +336,20 @@ public abstract class ReplayObject3D extends ReplayObject implements TransformPr
         return false;
     }
 
-    private boolean vecNotZero(Vector3fc vec, float c) {
+    private static boolean vecNotZero(Vector3fc vec, float c) {
         return vec.distanceSquared(c, c, c) > 0.01f;
+    }
+
+    private static final int POS_MASK = Operation.TRANSLATE_X | Operation.TRANSLATE_Y | Operation.TRANSLATE_Z;
+    private static final int ROT_MASK = Operation.ROTATE_X | Operation.ROTATE_Y | Operation.ROTATE_Z | Operation.ROTATE_SCREEN;
+    private static final int SCALE_MASK = Operation.SCALE_X | Operation.SCALE_Y | Operation.SCALE_Z
+            | Operation.BOUNDS | Operation.SCALE_XU | Operation.SCALE_YU | Operation.SCALE_ZU;
+
+    private static int filterBitFlags(int in, boolean hasPos, boolean hasRot, boolean hasScale) {
+        int mask = (hasPos ? POS_MASK : 0)
+                | (hasRot ? ROT_MASK : 0)
+                | (hasScale ? SCALE_MASK : 0);
+        return in & mask;
     }
 
     @Override

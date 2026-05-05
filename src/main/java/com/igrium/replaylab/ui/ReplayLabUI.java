@@ -22,11 +22,13 @@ import imgui.type.ImBoolean;
 import lombok.Getter;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.Mouse;
+import net.minecraft.client.util.Window;
 import net.minecraft.client.world.ClientWorld;
 import net.minecraft.entity.Entity;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.hit.EntityHitResult;
 import net.minecraft.util.hit.HitResult;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Matrix4f;
 import org.slf4j.Logger;
@@ -179,7 +181,32 @@ public class ReplayLabUI extends DockSpaceApp {
                 raycastSelect();
             }
 
-            GizmoRenderer.drawGizmos(editorState, getCustomViewportBounds());
+            // Gizmo hotkeys (industry standard)
+            if (ImGui.shortcut(ImGuiKey.Q)) {
+                editorState.showGizmoPos(true);
+                editorState.showGizmoRot(true);
+                editorState.showGizmoScale(true);
+            }
+
+            if (ImGui.shortcut(ImGuiKey.W)) {
+                editorState.showGizmoPos(true);
+                editorState.showGizmoRot(false);
+                editorState.showGizmoScale(false);
+            }
+
+            if (ImGui.shortcut(ImGuiKey.E)) {
+                editorState.showGizmoPos(false);
+                editorState.showGizmoRot(true);
+                editorState.showGizmoScale(false);
+            }
+
+            if (ImGui.shortcut(ImGuiKey.R)) {
+                editorState.showGizmoPos(false);
+                editorState.showGizmoRot(false);
+                editorState.showGizmoScale(true);
+            }
+
+            GizmoRenderer.drawGizmos(editorState, getViewportBounds());
 
         }
         ImGui.end();
@@ -292,7 +319,7 @@ public class ReplayLabUI extends DockSpaceApp {
     // =========================================================================
 
     private final ImBoolean cameraViewInput = new ImBoolean();
-    private final ImBoolean localGizmosInput = new ImBoolean();
+    private final ImBoolean tmpBoolean = new ImBoolean();
 
     private void drawPlaybackControls() {
         ImGui.pushFont(ReplayLabIcons.getFont());
@@ -329,14 +356,40 @@ public class ReplayLabUI extends DockSpaceApp {
         playbackIcon(ReplayLabIcons.ICON_TO_END, "Next Keyframe", buttonSize);
         playbackIcon(ReplayLabIcons.ICON_TO_END_ALT, "Scene End", buttonSize);
 
-        // Camera controls (right-aligned)
+        // Camera controls & gizmos (right-aligned)
         ImGui.setCursorPosX(ImGui.getContentRegionMaxX() - prevCameraControlsGroupWidth);
         ImGui.beginGroup();
 
-        localGizmosInput.set(editorState.isLocalGizmos());
-        char localIcon = localGizmosInput.get() ? ReplayLabIcons.ICON_CUBE : ReplayLabIcons.ICON_GLOBE;
-        if (ReplayLabControls.toggleButton(localIcon, "Use local transforms", localGizmosInput)) {
-            editorState.setLocalGizmos(localGizmosInput.get());
+        tmpBoolean.set(editorState.showGizmoPos() && editorState.showGizmoRot() && editorState.showGizmoScale());
+        if (ReplayLabControls.toggleButton(ReplayLabIcons.ICON_FREE_TRANSFORM, "All Gizmos", tmpBoolean)) {
+            editorState.showGizmoPos(tmpBoolean.get());
+            editorState.showGizmoRot(tmpBoolean.get());
+            editorState.showGizmoScale(tmpBoolean.get());
+        }
+        ImGui.sameLine();
+
+        tmpBoolean.set(editorState.showGizmoPos());
+        if (ReplayLabControls.toggleButton(ReplayLabIcons.ICON_MOVE, "Translation Gizmo", tmpBoolean)) {
+            editorState.showGizmoPos(tmpBoolean.get());
+        }
+        ImGui.sameLine();
+
+        tmpBoolean.set(editorState.showGizmoRot());
+        if (ReplayLabControls.toggleButton(ReplayLabIcons.ICON_ROTATE, "Rotation Gizmo", tmpBoolean)) {
+            editorState.showGizmoRot(tmpBoolean.get());
+        }
+        ImGui.sameLine();
+
+        tmpBoolean.set(editorState.showGizmoScale());
+        if (ReplayLabControls.toggleButton(ReplayLabIcons.ICON_SCALE, "Scale Gizmo", tmpBoolean)) {
+            editorState.showGizmoScale(tmpBoolean.get());
+        }
+        ImGui.sameLine();
+
+        tmpBoolean.set(editorState.isLocalGizmos());
+        char localIcon = tmpBoolean.get() ? ReplayLabIcons.ICON_CUBE : ReplayLabIcons.ICON_GLOBE;
+        if (ReplayLabControls.toggleButton(localIcon, "Use local transforms", tmpBoolean)) {
+            editorState.setLocalGizmos(tmpBoolean.get());
         }
         ImGui.sameLine();
 
@@ -424,6 +477,15 @@ public class ReplayLabUI extends DockSpaceApp {
         if (height < 2) height = 2;
 
         return new ViewportBounds(offsetX, offsetY, width, height);
+    }
+
+    /**
+     * Not-null version of getCustomViewportBounds with fallback
+     */
+    private @NotNull ViewportBounds getViewportBounds() {
+        var bounds = getCustomViewportBounds();
+        Window window = MinecraftClient.getInstance().getWindow();
+        return bounds != null ? bounds : new ViewportBounds(0, 0, window.getWidth(), window.getHeight());
     }
 
     @Override
