@@ -284,7 +284,10 @@ public abstract class ReplayObject3D extends ReplayObject implements TransformPr
         projectionMatrix.get(this.projectionMatrix);
         modelMatrix.get(this.modelMatrix);
 
-        ImGuizmo.manipulate(this.viewMatrix, this.projectionMatrix, Operation.TRANSLATE, Mode.LOCAL, this.modelMatrix, this.deltaMatrix);
+        ImGuizmo.manipulate(this.viewMatrix, this.projectionMatrix,
+                Operation.TRANSLATE,
+                editor.isLocalGizmos() ? Mode.LOCAL : Mode.WORLD,
+                this.modelMatrix, this.deltaMatrix);
         if (ImGuizmo.isUsing()) {
             ImGuizmo.decomposeMatrixToComponents(this.deltaMatrix, posOutput, rotOutput, scaleOutput);
             this.position.add(posOutput[0], posOutput[1], posOutput[2]);
@@ -329,14 +332,6 @@ public abstract class ReplayObject3D extends ReplayObject implements TransformPr
     private boolean vecNotZero(Vector3fc vec, float c) {
         return vec.distanceSquared(c, c, c) > 0.01f;
     }
-
-//    private boolean vecNotZero(float[] vec, float c) {
-//        for (float f : vec) {
-//            if (f - c >= 0.001f) return true;
-//        }
-//        return false;
-//    }
-
 
     @Override
     public int getChannelColor(String chName) {

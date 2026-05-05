@@ -97,7 +97,6 @@ public class ReplayLabUI extends DockSpaceApp {
      */
     private float viewportFooterHeight;
 
-    private final ImBoolean cameraViewInput = new ImBoolean();
     private float prevCameraControlsGroupWidth = 0;
 
     private final VideoRenderSettings tmpExportSettings = new VideoRenderSettings();
@@ -292,6 +291,9 @@ public class ReplayLabUI extends DockSpaceApp {
     // Playback controls
     // =========================================================================
 
+    private final ImBoolean cameraViewInput = new ImBoolean();
+    private final ImBoolean localGizmosInput = new ImBoolean();
+
     private void drawPlaybackControls() {
         ImGui.pushFont(ReplayLabIcons.getFont());
         float buttonSize = ImGui.getTextLineHeightWithSpacing() * 1.25f;
@@ -330,10 +332,20 @@ public class ReplayLabUI extends DockSpaceApp {
         // Camera controls (right-aligned)
         ImGui.setCursorPosX(ImGui.getContentRegionMaxX() - prevCameraControlsGroupWidth);
         ImGui.beginGroup();
+
+        localGizmosInput.set(editorState.isLocalGizmos());
+        char localIcon = localGizmosInput.get() ? ReplayLabIcons.ICON_CUBE : ReplayLabIcons.ICON_GLOBE;
+        if (ReplayLabControls.toggleButton(localIcon, "Use local transforms", localGizmosInput)) {
+            editorState.setLocalGizmos(localGizmosInput.get());
+        }
+        ImGui.sameLine();
+
         cameraViewInput.set(editorState.isCameraView());
         if (ReplayLabControls.toggleButton(ReplayLabIcons.ICON_VIDEOCAM, "Toggle Camera View", cameraViewInput)) {
             editorState.setCameraView(cameraViewInput.get());
         }
+
+
         ImGui.endGroup();
         prevCameraControlsGroupWidth = ImGui.getItemRectSizeX();
 

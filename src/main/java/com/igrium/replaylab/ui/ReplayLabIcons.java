@@ -13,7 +13,7 @@ public class ReplayLabIcons {
         return CraftUIFonts.getFont(FONT_ID);
     }
 
-    public static final char ICON_VIDEOCAM = 0xF076;
+    public static final char ICON_VIDEOCAM = 0xF03D;
     public static final char ICON_LOCK = 0xF023;
     public static final char ICON_LOCK_OPEN = 0xF3C1;
     public static final char ICON_PLAY = 0x25B6;
@@ -32,5 +32,8 @@ public class ReplayLabIcons {
     public static final char ICON_EYE = 0xF070;
     public static final char ICON_RESIZE_FULL_ALT = 0xF424;
     public static final char ICON_EYEDROPPER = 0xF1FB;
+
+    public static final char ICON_GLOBE = 0xF0AC;
+    public static final char ICON_CUBE = 0xF1B2;
 
 }
