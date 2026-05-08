@@ -371,18 +371,30 @@ public class ReplayLabUI extends DockSpaceApp {
         tmpBoolean.set(editorState.showGizmoPos());
         if (ReplayLabControls.toggleButton(ReplayLabIcons.ICON_MOVE, "Translation Gizmo", tmpBoolean)) {
             editorState.showGizmoPos(tmpBoolean.get());
+            if (!ImGui.getIO().getKeyCtrl()) {
+                editorState.showGizmoRot(false);
+                editorState.showGizmoScale(false);
+            }
         }
         ImGui.sameLine();
 
         tmpBoolean.set(editorState.showGizmoRot());
         if (ReplayLabControls.toggleButton(ReplayLabIcons.ICON_ROTATE, "Rotation Gizmo", tmpBoolean)) {
             editorState.showGizmoRot(tmpBoolean.get());
+            if (!ImGui.getIO().getKeyCtrl()) {
+                editorState.showGizmoPos(false);
+                editorState.showGizmoScale(false);
+            }
         }
         ImGui.sameLine();
 
         tmpBoolean.set(editorState.showGizmoScale());
         if (ReplayLabControls.toggleButton(ReplayLabIcons.ICON_SCALE, "Scale Gizmo", tmpBoolean)) {
             editorState.showGizmoScale(tmpBoolean.get());
+            if (!ImGui.getIO().getKeyCtrl()) {
+                editorState.showGizmoPos(false);
+                editorState.showGizmoRot(false);
+            }
         }
         ImGui.sameLine();
 

@@ -60,7 +60,7 @@ public class GizmoRenderer {
                 viewportBounds.width(),
                 viewportBounds.height()
         );
-
+        ImGuizmo.allowAxisFlip(false);
 
         boolean hidden = MinecraftClient.getInstance().currentScreen != null;
         int numObjects = editorState.getScene().getObjects().size();
