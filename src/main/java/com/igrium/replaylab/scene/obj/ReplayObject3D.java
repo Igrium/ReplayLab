@@ -102,7 +102,7 @@ public abstract class ReplayObject3D extends ReplayObject implements TransformPr
      * @param dest Will hold the result.
      * @return <code>dest</code>
      */
-    public Transform3 getBaseTransform(Transform3 dest) {
+    public final Transform3 getBaseTransform(Transform3 dest) {
         dest.identity();
         dest.rotScale()
                 // Joml uses right-handed coordinates
@@ -113,6 +113,33 @@ public abstract class ReplayObject3D extends ReplayObject implements TransformPr
                 .scale((float) scale.x, (float) scale.y, (float) scale.z);
         dest.pos().set(position);
         return dest;
+    }
+
+    public final Matrix4f getBaseTransformMatrix(Matrix4f dest, double centerX, double centerY, double centerZ) {
+        dest.identity();
+        dest.setRotationYXZ(
+                (float) -Math.toRadians(rotation.y),
+                (float) Math.toRadians(rotation.x),
+                (float) Math.toRadians(rotation.z)
+        );
+        dest.scale((float) scale.x, (float) scale.y, (float) scale.z);
+
+        dest.setTranslation((float) (position.x - centerX), (float) (position.y - centerY), (float) (position.z - centerZ));
+        return dest;
+    }
+
+    public final Matrix4f getBaseTransformMatrix(Matrix4f dest, Vector3dc center) {
+        return getBaseTransformMatrix(dest, center.x(), center.y(), center.z());
+    }
+
+    public final void setBaseTransformMatrix(Matrix4fc matrix, double centerX, double centerY, double centerZ) {
+        getMTranslation(matrix, position).add(centerX, centerY, centerZ);
+        rotation.set(MathUtils.entityRot(matrix.getNormalizedRotation(new Quaternionf())));
+        getMScale(matrix, scale);
+    }
+
+    public final void setBaseTransformMatrix(Matrix4fc matrix, Vector3dc center) {
+        setBaseTransformMatrix(matrix, center.x(), center.y(), center.z());
     }
 
     public void setBaseTransform(Transform3 transform) {
@@ -267,7 +294,7 @@ public abstract class ReplayObject3D extends ReplayObject implements TransformPr
     private final float[] rotOutput = new float[3];
     private final float[] scaleOutput = new float[3];
 
-
+    // UNFINISHED: DO NOT AUDIT
     @Override
     public PropertiesPanelState drawGizmos(EditorState editor, Vector3dc cameraPos, Matrix4fc viewMatrix, Matrix4fc projectionMatrix, boolean hideUI) {
         // Yeah, there's some allocations here, but it's only once per frame. Not too bad.
@@ -338,6 +365,23 @@ public abstract class ReplayObject3D extends ReplayObject implements TransformPr
 
     private static boolean vecNotZero(Vector3fc vec, float c) {
         return vec.distanceSquared(c, c, c) > 0.01f;
+    }
+
+    /**
+     * Re-implementation of {@link Matrix4f#getTranslation}
+     */
+    private static Vector3d getMTranslation(Matrix4fc m, Vector3d dest) {
+        dest.x = m.m30();
+        dest.y = m.m31();
+        dest.z = m.m32();
+        return dest;
+    }
+
+    private static Vector3d getMScale(Matrix4fc m, Vector3d dest) {
+        dest.x = Math.sqrt(m.m00() * m.m00() + m.m01() * m.m01() + m.m02() * m.m02());
+        dest.y = Math.sqrt(m.m10() * m.m10() + m.m11() * m.m11() + m.m12() * m.m12());
+        dest.z = Math.sqrt(m.m20() * m.m20() + m.m21() * m.m21() + m.m22() * m.m22());
+        return dest;
     }
 
     private static final int POS_MASK = Operation.TRANSLATE_X | Operation.TRANSLATE_Y | Operation.TRANSLATE_Z;
