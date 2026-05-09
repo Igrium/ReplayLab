@@ -13,8 +13,6 @@ import org.joml.Matrix4fc;
 import org.joml.Quaternionf;
 import org.joml.Vector3dc;
 
-import java.util.Objects;
-
 public class CameraObject extends EntityObject<AnimatedCameraEntity> {
 
     public CameraObject(ReplayObjectType<?> type, ReplayScene scene) {
@@ -50,7 +48,7 @@ public class CameraObject extends EntityObject<AnimatedCameraEntity> {
     public PropertiesPanelState drawGizmos(EditorState editor, Vector3dc cameraPos, Matrix4fc viewMatrix, Matrix4fc projectionMatrix, boolean hideUI) {
         AnimatedCameraEntity entity = getInstantiatedEntity();
         if (entity != null) {
-            String selected = editor.getSelectedObject();
+            String selected = editor.getActiveObject();
             boolean s = selected != null && selected.equals(getId());
             entity.setSelected(s);
             entity.setActive(s);

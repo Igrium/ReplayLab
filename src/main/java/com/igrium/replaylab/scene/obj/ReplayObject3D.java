@@ -285,7 +285,7 @@ public abstract class ReplayObject3D extends ReplayObject implements TransformPr
     public PropertiesPanelState drawGizmos(EditorState editor, Vector3dc cameraPos, Matrix4fc viewMatrix, Matrix4fc projectionMatrix, boolean hideUI) {
         if (hideUI) return PropertiesPanelState.NONE;
 
-        String selObj = editor.getSelectedObject();
+        String selObj = editor.getActiveObject();
         boolean selected = selObj != null && selObj.equals(getId());
         if (!selected) return PropertiesPanelState.NONE;
 
@@ -334,10 +334,6 @@ public abstract class ReplayObject3D extends ReplayObject implements TransformPr
         return false;
     }
 
-    private static boolean vecNotZero(Vector3fc vec, float c) {
-        return vec.distanceSquared(c, c, c) > 0.01f;
-    }
-
     /**
      * Re-implementation of {@link Matrix4f#getTranslation}
      */
@@ -348,6 +344,9 @@ public abstract class ReplayObject3D extends ReplayObject implements TransformPr
         return dest;
     }
 
+    /**
+     * Re-implementation of {@link Matrix4f#getScale}
+     */
     private static Vector3d getMScale(Matrix4fc m, Vector3d dest) {
         dest.x = Math.sqrt(m.m00() * m.m00() + m.m01() * m.m01() + m.m02() * m.m02());
         dest.y = Math.sqrt(m.m10() * m.m10() + m.m11() * m.m11() + m.m12() * m.m12());

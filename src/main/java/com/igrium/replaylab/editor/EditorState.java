@@ -30,9 +30,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
@@ -78,8 +76,16 @@ public class EditorState {
     @Getter @Setter @Nullable
     private String sceneName;
 
+    /**
+     * The current "active" object: what shows in the properties panel
+     */
     @Getter @Setter @Nullable
-    private String selectedObject;
+    private String activeObject;
+
+    /**
+     * All selected objects in the scene: some operators will use these.
+     */
+    private final Set<String> selectedObjects = new HashSet<>();
 
     @Setter @Nullable
     private Consumer<? super Throwable> exceptionCallback;
@@ -180,6 +186,40 @@ public class EditorState {
             spectateCamera();
         } else {
             MinecraftClient.getInstance().setCameraEntity(MinecraftClient.getInstance().player);
+        }
+    }
+
+    /**
+     * Check if a given object is currently selected.
+     * @param objId The object ID to test.
+     * @return <code>true</code> if the object is selected.
+     */
+    public boolean isObjectSelected(String objId) {
+        return selectedObjects.contains(objId);
+    }
+
+    /**
+     * Check if a given object is currently selected.
+     * @param replayObject The object to test.
+     * @return <code>true</code> if the object is selected.
+     * @apiNote This method also checks if the target object is in the current scene.
+     */
+    public boolean isObjectSelected(ReplayObject replayObject) {
+        String id = replayObject.getId();
+        return (id != null && replayObject.getScene() == getScene() && isObjectSelected(id));
+    }
+
+    /**
+     * Set an object's selection state.
+     * @param objId The object ID.
+     * @param selected Selection state to set.
+     * @return Whether the object was previously selected.
+     */
+    public boolean setObjectSelected(String objId, boolean selected) {
+        if (selected) {
+            return !selectedObjects.add(objId); // If add was successful, it wasn't previously selected.
+        } else {
+            return selectedObjects.remove(objId);
         }
     }
 

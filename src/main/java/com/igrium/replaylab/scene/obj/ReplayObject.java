@@ -302,4 +302,5 @@ public abstract class ReplayObject {
 
         return ImColor.hsl(hue, .8f, .5f);
     }
+
 }

@@ -251,7 +251,7 @@ public class ReplayLabUI extends DockSpaceApp {
             Entity ent = hit.getEntity();
             ReplayObject replayObject = editorState.getScene().firstReferencingObject(ent);
             if (replayObject != null) {
-                editorState.setSelectedObject(replayObject.getId());
+                editorState.setActiveObject(replayObject.getId());
             }
         }
     }
@@ -276,7 +276,7 @@ public class ReplayLabUI extends DockSpaceApp {
 
             ImGui.separator();
 
-            ImGui.beginDisabled(editorState.getSelectedObject() == null);
+            ImGui.beginDisabled(editorState.getActiveObject() == null);
             if (ImGui.menuItem("Delete Selected", "Del")) deleteObject();
             ImGui.endDisabled();
 
@@ -431,14 +431,14 @@ public class ReplayLabUI extends DockSpaceApp {
 
 
     private void insertKeyframe() {
-        String selected = editorState.getSelectedObject();
+        String selected = editorState.getActiveObject();
         if (selected != null) {
             editorState.applyOperator(new InsertKeyframeOperator(selected, editorState.getPlayhead()));
         }
     }
 
     private void deleteObject() {
-        String selected = editorState.getSelectedObject();
+        String selected = editorState.getActiveObject();
         if (selected != null) {
             editorState.applyOperator(new RemoveObjectOperator(selected));
         }

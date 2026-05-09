@@ -82,7 +82,7 @@ public abstract class UIPanel {
         }
 
         if (ImGui.shortcut(ImGuiKey.I)) {
-            String selected = editorState.getSelectedObject();
+            String selected = editorState.getActiveObject();
             if (selected != null) {
                 editorState.applyOperator(new InsertKeyframeOperator(selected, editorState.getPlayhead()));
             }

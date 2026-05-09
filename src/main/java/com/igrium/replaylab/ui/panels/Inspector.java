@@ -14,7 +14,7 @@ public class Inspector extends UIPanel {
 
     @Override
     protected void drawContents(EditorState editorState) {
-        String selId = editorState.getSelectedObject();
+        String selId = editorState.getActiveObject();
         ReplayObject selected = selId != null ? editorState.getScene().getObject(selId) : null;
 
         if (selected == null) {

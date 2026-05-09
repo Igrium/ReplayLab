@@ -61,9 +61,9 @@ public class Outliner extends UIPanel {
                         }
                         firstRenamingFrame = false;
                     } else {
-                        boolean isSelected = id.equals(editorState.getSelectedObject());
+                        boolean isSelected = id.equals(editorState.getActiveObject());
                         if (ImGui.selectable(id, isSelected)) {
-                            editorState.setSelectedObject(id);
+                            editorState.setActiveObject(id);
                         }
                         if (ImGui.beginPopupContextItem()) {
                             drawContextMenu(id);
@@ -130,7 +130,7 @@ public class Outliner extends UIPanel {
     }
 
     private static void drawRemoveObjectButton(EditorState editorState) {
-        String selected = editorState.getSelectedObject();
+        String selected = editorState.getActiveObject();
         ImGui.beginDisabled(selected == null);
 
         if (ImGui.button("-") && selected != null) {
