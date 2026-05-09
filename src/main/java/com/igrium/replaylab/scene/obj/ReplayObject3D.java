@@ -13,16 +13,10 @@ import imgui.extension.imguizmo.ImGuizmo;
 import imgui.extension.imguizmo.flag.Mode;
 import imgui.extension.imguizmo.flag.Operation;
 import lombok.Getter;
-import lombok.NonNull;
-import lombok.Setter;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.util.math.Vec3d;
-import org.jetbrains.annotations.Nullable;
 import org.joml.*;
 import org.joml.Math;
-
-import java.util.HashSet;
-import java.util.Set;
 
 /**
  * An object with a 3-dimensional transform
@@ -115,31 +109,31 @@ public abstract class ReplayObject3D extends ReplayObject implements TransformPr
         return dest;
     }
 
-    public final Matrix4f getBaseTransformMatrix(Matrix4f dest, double centerX, double centerY, double centerZ) {
+    public final Matrix4f getBaseTransformMatrix(double centerX, double centerY, double centerZ, Matrix4f dest) {
         dest.identity();
         dest.setRotationYXZ(
                 (float) -Math.toRadians(rotation.y),
                 (float) Math.toRadians(rotation.x),
                 (float) Math.toRadians(rotation.z)
         );
-        dest.scale((float) scale.x, (float) scale.y, (float) scale.z);
+//        dest.scale((float) scale.x, (float) scale.y, (float) scale.z);
 
         dest.setTranslation((float) (position.x - centerX), (float) (position.y - centerY), (float) (position.z - centerZ));
         return dest;
     }
 
-    public final Matrix4f getBaseTransformMatrix(Matrix4f dest, Vector3dc center) {
-        return getBaseTransformMatrix(dest, center.x(), center.y(), center.z());
+    public Matrix4f getBaseTransformMatrix(Vector3dc center, Matrix4f dest) {
+        return getBaseTransformMatrix(center.x(), center.y(), center.z(), dest);
     }
 
-    public final void setBaseTransformMatrix(Matrix4fc matrix, double centerX, double centerY, double centerZ) {
+    public final void setBaseTransformMatrix(double centerX, double centerY, double centerZ, Matrix4fc matrix) {
         getMTranslation(matrix, position).add(centerX, centerY, centerZ);
         rotation.set(MathUtils.entityRot(matrix.getNormalizedRotation(new Quaternionf())));
         getMScale(matrix, scale);
     }
 
-    public final void setBaseTransformMatrix(Matrix4fc matrix, Vector3dc center) {
-        setBaseTransformMatrix(matrix, center.x(), center.y(), center.z());
+    public final void setBaseTransformMatrix(Vector3dc center, Matrix4fc matrix) {
+        setBaseTransformMatrix(center.x(), center.y(), center.z(), matrix);
     }
 
     public void setBaseTransform(Transform3 transform) {
@@ -280,32 +274,25 @@ public abstract class ReplayObject3D extends ReplayObject implements TransformPr
 
     private boolean wasDragging;
 
-    private final Vector3f dragDeltaPos = new Vector3f();
-    private final Vector3f dragDeltaRot = new Vector3f();
-    private final Vector3f dragDeltaScale = new Vector3f();
-
-    // Cache to avoid reallocation
     private final float[] viewMatrix = new float[16];
     private final float[] projectionMatrix = new float[16];
     private final float[] modelMatrix = new float[16];
     private final float[] deltaMatrix = new float[16];
 
-    private final float[] posOutput = new float[3];
-    private final float[] rotOutput = new float[3];
-    private final float[] scaleOutput = new float[3];
+    private final Matrix4f dragStartMatrix = new Matrix4f();
 
-    // UNFINISHED: DO NOT AUDIT
     @Override
     public PropertiesPanelState drawGizmos(EditorState editor, Vector3dc cameraPos, Matrix4fc viewMatrix, Matrix4fc projectionMatrix, boolean hideUI) {
-        // Yeah, there's some allocations here, but it's only once per frame. Not too bad.
         if (hideUI) return PropertiesPanelState.NONE;
 
         String selObj = editor.getSelectedObject();
         boolean selected = selObj != null && selObj.equals(getId());
         if (!selected) return PropertiesPanelState.NONE;
 
-        Transform3 transform = getBaseTransform(new Transform3());
-        Matrix4f modelMatrix = transform.getMatrix(cameraPos, new Matrix4f());
+        Matrix4f modelMatrix = getBaseTransformMatrix(cameraPos, new Matrix4f());
+        if (!wasDragging) {
+            dragStartMatrix.set(modelMatrix);
+        }
 
         viewMatrix.get(this.viewMatrix);
         projectionMatrix.get(this.projectionMatrix);
@@ -316,34 +303,18 @@ public abstract class ReplayObject3D extends ReplayObject implements TransformPr
         if (editor.showGizmoRot() && hasRotation()) operation |= Operation.ROTATE;
         if (editor.showGizmoScale() && hasScale()) operation |= Operation.SCALE;
 
-
-        ImGuizmo.manipulate(this.viewMatrix, this.projectionMatrix,
-                operation,
+        ImGuizmo.manipulate(this.viewMatrix, this.projectionMatrix, operation,
                 editor.isLocalGizmos() ? Mode.LOCAL : Mode.WORLD,
                 this.modelMatrix, this.deltaMatrix);
 
         if (ImGuizmo.isUsing()) {
-            ImGuizmo.decomposeMatrixToComponents(this.deltaMatrix, posOutput, rotOutput, scaleOutput);
-            this.position.add(posOutput[0], posOutput[1], posOutput[2]);
-            this.rotation.add(rotOutput[0], rotOutput[1], rotOutput[2]);
-            this.scale.mul(scaleOutput[0], scaleOutput[1], scaleOutput[2]);
-
             wasDragging = true;
-
-            dragDeltaPos.add(posOutput[0], posOutput[1], posOutput[2]);
-            dragDeltaRot.add(rotOutput[0], rotOutput[1], rotOutput[2]);
-            dragDeltaScale.mul(scaleOutput[0], scaleOutput[1], scaleOutput[2]);
-
+            modelMatrix.set(this.modelMatrix);
+            setBaseTransformMatrix(cameraPos, modelMatrix);
             return PropertiesPanelState.DRAGGING;
         } else if (wasDragging) {
+            boolean commit = !dragStartMatrix.equals(modelMatrix, .01f);
             wasDragging = false;
-
-            var commit = vecNotZero(dragDeltaPos, 0) || vecNotZero(dragDeltaRot, 0) || vecNotZero(dragDeltaScale, 1f);
-
-            dragDeltaPos.set(0);
-            dragDeltaRot.set(0);
-            dragDeltaScale.set(1);
-
             return commit ? PropertiesPanelState.COMMIT_KEYFRAME : PropertiesPanelState.NONE;
         }
         return PropertiesPanelState.NONE;

@@ -15,12 +15,9 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public class MixinWorldRenderer {
     @Inject(method = "render", at = @At("HEAD"))
     public void onRender(CallbackInfo ci,
-                         @Local(argsOnly = true, ordinal = 0) Matrix4f positionMatrix,
+                         @Local(argsOnly = true, ordinal = 0) Matrix4f modelVIew,
                          @Local(argsOnly = true, ordinal = 1) Matrix4f projectionMatrix,
                          @Local(argsOnly = true) Camera camera) {
-        Vec3d camPos = camera.getPos();
-        GizmoRenderer.viewMatrix().set(positionMatrix);
-        GizmoRenderer.projectionMatrix().set(projectionMatrix);
-        GizmoRenderer.cameraPos().set(camPos.x, camPos.y, camPos.z);
+        GizmoRenderer.setupCameraProjection(modelVIew, projectionMatrix, camera);
     }
 }

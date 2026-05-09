@@ -9,7 +9,10 @@ import lombok.Getter;
 import lombok.experimental.Accessors;
 import lombok.experimental.UtilityClass;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.render.Camera;
+import net.minecraft.util.math.Vec3d;
 import org.joml.Matrix4f;
+import org.joml.Matrix4fc;
 import org.joml.Vector3d;
 
 import java.util.ArrayList;
@@ -45,6 +48,13 @@ public class GizmoRenderer {
             this.showRotation = showRotation;
             this.showScale = showScale;
         }
+    }
+
+    public static void setupCameraProjection(Matrix4fc positionMatrix, Matrix4fc projectionMatrix, Camera camera) {
+        Vec3d camPos = camera.getPos();
+        GizmoRenderer.viewMatrix().set(positionMatrix);
+        GizmoRenderer.projectionMatrix().set(projectionMatrix);
+        GizmoRenderer.cameraPos().set(camPos.x, camPos.y, camPos.z);
     }
 
     public static void drawGizmos(EditorState editorState, CraftApp.ViewportBounds viewportBounds) {
