@@ -7,6 +7,7 @@ import com.igrium.replaylab.ReplayLab;
 import com.igrium.replaylab.editor.EditorState;
 import com.igrium.replaylab.operator.InsertKeyframeOperator;
 import com.igrium.replaylab.operator.RemoveObjectOperator;
+import com.igrium.replaylab.operator.RemoveObjectsOperator;
 import com.igrium.replaylab.render.VideoRenderSettings;
 import com.igrium.replaylab.scene.obj.ReplayObject;
 import com.igrium.replaylab.scene.objs.ScenePropsObject;
@@ -176,7 +177,7 @@ public class ReplayLabUI extends DockSpaceApp {
             ImGui.pushStyleColor(ImGuiCol.ChildBg, bgColor);
             drawPlaybackControls();
             ImGui.popStyleColor();
-            processGlobalHotkeys();
+            ScenePropsPanel.processGlobalHotkeys(editorState);
 
             if (ImGui.isWindowHovered() && ImGui.isMouseClicked(0)) {
                 raycastSelect();
@@ -208,6 +209,10 @@ public class ReplayLabUI extends DockSpaceApp {
             }
 
             GizmoRenderer.drawGizmos(editorState, getViewportBounds());
+
+            if (ImGui.shortcut(ImGuiKey.Delete)) {
+                editorState.applyOperator(new RemoveObjectsOperator(editorState.getSelectedObjects()));
+            }
 
         }
         ImGui.end();
@@ -328,21 +333,6 @@ public class ReplayLabUI extends DockSpaceApp {
         ImGui.endMainMenuBar();
     }
 
-    private void processGlobalHotkeys() {
-        var io = ImGui.getIO();
-        if (io.getWantTextInput()) return;
-
-        if (ImGui.shortcut(ImGuiKey.ImGuiMod_Ctrl | ImGuiKey.ImGuiMod_Shift | ImGuiKey.Z)) {
-            editorState.redo();
-        } else if (ImGui.shortcut(ImGuiKey.ImGuiMod_Ctrl | ImGuiKey.Z)) {
-            editorState.undo();
-        }
-
-        if (ImGui.shortcut(ImGuiKey.I)) {
-            insertKeyframe();
-        }
-    }
-
     // =========================================================================
     // Playback controls
     // =========================================================================
@@ -379,7 +369,7 @@ public class ReplayLabUI extends DockSpaceApp {
 
         char playPauseIcon = editorState.isPlaying() ? ReplayLabIcons.ICON_PAUSE : ReplayLabIcons.ICON_PLAY;
         if (playbackIcon(playPauseIcon, "Play/Pause", buttonSize)) {
-            onPlayPauseClicked();
+            editorState.togglePlayback();
         }
 
         playbackIcon(ReplayLabIcons.ICON_TO_END, "Next Keyframe", buttonSize);
@@ -444,14 +434,6 @@ public class ReplayLabUI extends DockSpaceApp {
         prevCameraControlsGroupWidth = ImGui.getItemRectSizeX();
 
         ImGui.endChild();
-    }
-
-    private void onPlayPauseClicked() {
-        if (editorState.isPlaying()) {
-            editorState.stopPlaying();
-        } else {
-            editorState.startPlaying(editorState.getPlayhead());
-        }
     }
 
     // =========================================================================

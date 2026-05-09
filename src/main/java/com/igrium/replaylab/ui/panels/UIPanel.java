@@ -71,7 +71,7 @@ public abstract class UIPanel {
 
     protected abstract void drawContents(EditorState editorState);
 
-    private static void processGlobalHotkeys(EditorState editorState) {
+    public static void processGlobalHotkeys(EditorState editorState) {
         var io = ImGui.getIO();
         if (io.getWantTextInput()) return;
 
@@ -86,6 +86,10 @@ public abstract class UIPanel {
             if (selected != null) {
                 editorState.applyOperator(new InsertKeyframeOperator(selected, editorState.getPlayhead()));
             }
+        }
+
+        if (ImGui.shortcut(ImGuiKey.Space)) {
+            editorState.togglePlayback();
         }
     }
 }

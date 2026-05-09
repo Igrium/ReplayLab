@@ -386,9 +386,12 @@ public class EditorState {
         }
     }
 
-    private static void tpEyePos(Entity srcEnt, Entity destEnt) {
-        Vec3d srcPos = srcEnt.getEyePos();
-        destEnt.setPos(srcPos.getX(), srcPos.getY() - destEnt.getStandingEyeHeight(), srcPos.getZ());
+    public void togglePlayback() {
+        if (isPlaying()) {
+            stopPlaying();
+        } else {
+            startPlaying(getPlayhead());
+        }
     }
 
     public boolean isPlaying() {
