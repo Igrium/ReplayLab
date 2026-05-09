@@ -28,6 +28,7 @@ import net.minecraft.entity.Entity;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.hit.EntityHitResult;
 import net.minecraft.util.hit.HitResult;
+import org.apache.commons.lang3.mutable.MutableBoolean;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Matrix4f;
@@ -249,9 +250,37 @@ public class ReplayLabUI extends DockSpaceApp {
         HitResult raycast = RaycastUtils.raycastViewport((float) mouse.getX(), (float) mouse.getY(), 1000, e -> true, false);
         if (raycast instanceof EntityHitResult hit) {
             Entity ent = hit.getEntity();
-            ReplayObject replayObject = editorState.getScene().firstReferencingObject(ent);
-            if (replayObject != null) {
-                editorState.setActiveObject(replayObject.getId());
+            if (ImGui.getIO().getKeyCtrl()) {
+                /*
+                    When the user ctrl-clicks an entity in the viewport:When the user ctrl-clicks an entity in the viewport:
+                    If any scene object referencing that entity is currently the active object, the entire group is deselected and the active object is cleared.
+                    Otherwise, all scene objects referencing that entity are selected, and the first one in the group becomes the active object.
+                 */
+                Iterable<ReplayObject> iter = () -> editorState.getScene().referencingObjects(ent).iterator();
+                boolean anyIsActive = false;
+                for (ReplayObject replayObject : iter) {
+                    String id = replayObject.getId();
+                    if (editorState.isObjectActive(id)) {
+                        anyIsActive = true;
+                        break;
+                    }
+                }
+                String firstId = null;
+                for (ReplayObject replayObject : iter) {
+                    String id = replayObject.getId();
+                    editorState.setObjectSelected(id, !anyIsActive);
+                    if (firstId == null)
+                        firstId = id;
+                }
+                editorState.setActiveObject(anyIsActive ? null : firstId);
+            } else {
+                ReplayObject replayObject = editorState.getScene().firstReferencingObject(ent);
+                if (replayObject != null) {
+                    String id = replayObject.getId();
+                    editorState.getSelectedObjects().clear();
+                    editorState.getSelectedObjects().add(id);
+                    editorState.setActiveObject(id);
+                }
             }
         }
     }

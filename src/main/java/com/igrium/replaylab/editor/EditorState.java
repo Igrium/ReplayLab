@@ -85,6 +85,7 @@ public class EditorState {
     /**
      * All selected objects in the scene: some operators will use these.
      */
+    @Getter
     private final Set<String> selectedObjects = new HashSet<>();
 
     @Setter @Nullable
@@ -187,6 +188,10 @@ public class EditorState {
         } else {
             MinecraftClient.getInstance().setCameraEntity(MinecraftClient.getInstance().player);
         }
+    }
+
+    public boolean isObjectActive(String objId) {
+        return activeObject != null && activeObject.equals(objId);
     }
 
     /**
