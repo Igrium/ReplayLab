@@ -1,4 +1,4 @@
-package com.igrium.replaylab.ui.util;
+package com.igrium.replaylab.ui.gizmos;
 
 import com.igrium.craftui.app.CraftApp;
 import com.igrium.replaylab.editor.EditorState;
@@ -11,14 +11,13 @@ import lombok.experimental.UtilityClass;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.render.Camera;
 import net.minecraft.util.math.Vec3d;
+import org.jetbrains.annotations.Nullable;
 import org.joml.Matrix4f;
 import org.joml.Matrix4fc;
 import org.joml.Vector3d;
 
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 @UtilityClass @Accessors(fluent = true)
 public class GizmoRenderer {
@@ -30,26 +29,7 @@ public class GizmoRenderer {
     @Getter
     private static final Matrix4f projectionMatrix = new Matrix4f();
 
-    @Getter @Accessors(fluent = true)
-    public enum TransformMode {
-
-        NONE(false, false, false),
-        FREE(true, true, true),
-        LOC(true, false, false),
-        ROT(false, true, false),
-        SCALE(false, false, true);
-
-        final boolean showLocation;
-        final boolean showRotation;
-        final boolean showScale;
-
-        TransformMode(boolean showLocation, boolean showRotation, boolean showScale) {
-            this.showLocation = showLocation;
-            this.showRotation = showRotation;
-            this.showScale = showScale;
-        }
-    }
-
+    // TODO: Fix gizmo projection matrix issue. I've been working on this for three days, and I'm tired.
     public static void setupCameraProjection(Matrix4fc positionMatrix, Matrix4fc projectionMatrix, Camera camera) {
         Vec3d camPos = camera.getPos();
         GizmoRenderer.viewMatrix().set(positionMatrix);
@@ -98,6 +78,50 @@ public class GizmoRenderer {
         if (!wantUndoStep.isEmpty()) {
             editorState.applyOperator(new CommitObjectUpdateOperator(wantUndoStep));
         }
+    }
 
+    private final float[] viewMatrixRender = new float[16];
+    private final float[] projectionMatrixRender = new float[16];
+    private final float[] modelMatrixRender = new float[16];
+    private final float[] deltaMatrixRender = new float[16];
+
+    /**
+     * Wrapper over {@link ImGuizmo#manipulate} which uses joml matrices
+     *
+     * @param viewMatrix       target camera view
+     * @param projectionMatrix target camera projection
+     * @param operation        target operation
+     * @param mode             target mode
+     * @param modelMatrix      model matrix
+     * @param deltaMatrix      delta matrix
+     */
+    public static void manipulate(Matrix4fc viewMatrix, Matrix4fc projectionMatrix,
+                                  int operation, int mode,
+                                  Matrix4f modelMatrix, @Nullable Matrix4f deltaMatrix) {
+        viewMatrix.get(viewMatrixRender);
+        projectionMatrix.get(projectionMatrixRender);
+        modelMatrix.get(modelMatrixRender);
+        if (deltaMatrix != null) deltaMatrix.get(deltaMatrixRender);
+
+        ImGuizmo.manipulate(viewMatrixRender, projectionMatrixRender,
+                operation, mode,
+                modelMatrixRender, deltaMatrixRender);
+
+        modelMatrix.set(modelMatrixRender);
+        if (deltaMatrix != null) deltaMatrix.set(deltaMatrixRender);
+    }
+
+    /**
+     * Wrapper over {@link ImGuizmo#manipulate} which uses joml matrices
+     *
+     * @param viewMatrix       target camera view
+     * @param projectionMatrix target camera projection
+     * @param operation        target operation
+     * @param mode             target mode
+     * @param modelMatrix      model matrix
+     */
+    public static void manipulate(Matrix4fc viewMatrix, Matrix4fc projectionMatrix,
+                                  int operation, int mode, Matrix4f modelMatrix) {
+        manipulate(viewMatrix, projectionMatrix, operation, mode, modelMatrix, null);
     }
 }

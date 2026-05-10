@@ -1,11 +1,10 @@
 package com.igrium.replaylab.camera;
 
-import com.igrium.replaylab.ui.GizmoColors;
+import com.igrium.replaylab.ui.gizmos.GizmoColors;
 import net.minecraft.client.render.*;
 import net.minecraft.client.render.entity.EntityRenderer;
 import net.minecraft.client.render.entity.EntityRendererFactory;
 import net.minecraft.client.util.math.MatrixStack;
-import net.minecraft.util.math.Box;
 import org.joml.*;
 import org.joml.Math;
 

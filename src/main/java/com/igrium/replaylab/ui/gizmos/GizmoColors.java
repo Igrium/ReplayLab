@@ -1,4 +1,4 @@
-package com.igrium.replaylab.ui;
+package com.igrium.replaylab.ui.gizmos;
 
 import lombok.experimental.UtilityClass;
 import net.minecraft.util.math.ColorHelper;

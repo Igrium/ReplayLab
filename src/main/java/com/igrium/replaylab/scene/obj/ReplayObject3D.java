@@ -8,6 +8,7 @@ import com.igrium.replaylab.editor.EditorState;
 import com.igrium.replaylab.math.MathUtils;
 import com.igrium.replaylab.math.Transform3;
 import com.igrium.replaylab.scene.ReplayScene;
+import com.igrium.replaylab.ui.gizmos.GizmoRenderer;
 import imgui.ImGui;
 import imgui.extension.imguizmo.ImGuizmo;
 import imgui.extension.imguizmo.flag.Mode;
@@ -283,33 +284,23 @@ public abstract class ReplayObject3D extends ReplayObject implements TransformPr
 
     @Override
     public PropertiesPanelState drawGizmos(EditorState editor, Vector3dc cameraPos, Matrix4fc viewMatrix, Matrix4fc projectionMatrix, boolean hideUI) {
-        if (hideUI) return PropertiesPanelState.NONE;
+        if (hideUI || !editor.isObjectActive(getId())) return PropertiesPanelState.NONE;
 
-        String selObj = editor.getActiveObject();
-        boolean selected = selObj != null && selObj.equals(getId());
-        if (!selected) return PropertiesPanelState.NONE;
 
         Matrix4f modelMatrix = getBaseTransformMatrix(cameraPos, new Matrix4f());
         if (!wasDragging) {
             dragStartMatrix.set(modelMatrix);
         }
-
-        viewMatrix.get(this.viewMatrix);
-        projectionMatrix.get(this.projectionMatrix);
-        modelMatrix.get(this.modelMatrix);
-
         int operation = 0;
         if (editor.showGizmoPos() && hasPosition()) operation |= Operation.TRANSLATE;
         if (editor.showGizmoRot() && hasRotation()) operation |= Operation.ROTATE;
         if (editor.showGizmoScale() && hasScale()) operation |= Operation.SCALE;
 
-        ImGuizmo.manipulate(this.viewMatrix, this.projectionMatrix, operation,
-                editor.isLocalGizmos() ? Mode.LOCAL : Mode.WORLD,
-                this.modelMatrix, this.deltaMatrix);
+        GizmoRenderer.manipulate(viewMatrix, projectionMatrix, operation,
+                editor.isLocalGizmos() ? Mode.LOCAL : Mode.WORLD, modelMatrix);
 
         if (ImGuizmo.isUsing()) {
             wasDragging = true;
-            modelMatrix.set(this.modelMatrix);
             setBaseTransformMatrix(cameraPos, modelMatrix);
             return PropertiesPanelState.DRAGGING;
         } else if (wasDragging) {
@@ -318,6 +309,7 @@ public abstract class ReplayObject3D extends ReplayObject implements TransformPr
             return commit ? PropertiesPanelState.COMMIT_KEYFRAME : PropertiesPanelState.NONE;
         }
         return PropertiesPanelState.NONE;
+
     }
 
     private static final float[] vecCache = new float[3];

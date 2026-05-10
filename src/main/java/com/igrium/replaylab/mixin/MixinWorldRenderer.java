@@ -1,10 +1,9 @@
 package com.igrium.replaylab.mixin;
 
-import com.igrium.replaylab.ui.util.GizmoRenderer;
+import com.igrium.replaylab.ui.gizmos.GizmoRenderer;
 import com.llamalad7.mixinextras.sugar.Local;
 import net.minecraft.client.render.Camera;
 import net.minecraft.client.render.WorldRenderer;
-import net.minecraft.util.math.Vec3d;
 import org.joml.Matrix4f;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
