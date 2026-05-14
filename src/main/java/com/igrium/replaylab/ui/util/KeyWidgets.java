@@ -4,6 +4,8 @@ import com.google.common.primitives.ImmutableIntArray;
 import imgui.ImGui;
 import imgui.flag.ImGuiCol;
 import imgui.flag.ImGuiKey;
+import it.unimi.dsi.fastutil.ints.IntArrayList;
+import it.unimi.dsi.fastutil.ints.IntList;
 import lombok.NonNull;
 import lombok.experimental.UtilityClass;
 import net.minecraft.util.math.ColorHelper;
@@ -62,10 +64,86 @@ public final class KeyWidgets {
         return WidgetState.of(updated, shortcut);
     }
 
+    public static WidgetState dragFloatN(String label, double[] v, float vSpeed, KeyState... states) {
+        boolean updated = false;
+        ImGui.beginGroup();
+        ImGui.pushID(label);
+
+        double[] active = new double[1];
+
+        float itemWidth = ImGui.calcItemWidth() / 3f;
+        float innerSpacingX = ImGui.getStyle().getItemInnerSpacingX();
+
+        IntList newKeys = null;
+        boolean allNewKeys = !ImGui.getIO().getKeyAlt();
+        boolean anyNewKey = false;
+
+        for (int i = 0; i < v.length; i++) {
+            ImGui.pushID(i);
+            ImGui.pushItemWidth(itemWidth);
+
+            if (i > 0) {
+                ImGui.sameLine(0, innerSpacingX);
+            }
+
+            KeyState state;
+            if (states.length > 0) {
+                state = states[Math.min(states.length - 1, i)];
+            } else {
+                state = KeyState.DEFAULT;
+            }
+
+            active[0] = v[i];
+
+            pushStyle(state);
+            updated |= ImGui.dragScalar("", active, vSpeed);
+            boolean wantNewKey = shortcut();
+            boolean wantNewKeyAlt = shortcutAlt();
+            popStyle(state);
+
+            v[i] = active[0];
+            if (wantNewKeyAlt) {
+                // Don't allocate list unless we need it.
+                if (newKeys == null) newKeys = new IntArrayList(v.length);
+                newKeys.add(i);
+            } else if (wantNewKey) {
+                anyNewKey = true;
+            }
+
+            ImGui.popItemWidth();
+            ImGui.popID();
+        }
+
+        ImGui.popID();
+
+        int labelEnd = findRenderedTextEnd(label);
+        if (labelEnd > 0) {
+            ImGui.sameLine(0, innerSpacingX);
+            ImGui.text(label);
+        }
+        ImGui.endGroup();
+
+        int[] newKeyArray = null;
+        if (allNewKeys && anyNewKey) {
+            newKeyArray = new int[v.length];
+            for (int i = 0; i < v.length; i++) {
+                newKeyArray[i] = i;
+            }
+        } else if (newKeys != null) {
+            newKeyArray = newKeys.toIntArray();
+        }
+
+        return newKeyArray != null ? new WidgetState(updated, ImmutableIntArray.copyOf(newKeyArray)) : WidgetState.of(updated, false);
+    }
+
     /// === UTILITY ===
 
     private static boolean shortcut() {
         return ImGui.isItemHovered() && ImGui.shortcut(ImGuiKey.I);
+    }
+
+    private static boolean shortcutAlt() {
+        return ImGui.isItemHovered() && ImGui.shortcut(ImGuiKey.ImGuiMod_Alt | ImGuiKey.I);
     }
 
     private static void pushStyle(KeyState state) {
@@ -92,5 +170,13 @@ public final class KeyWidgets {
         if (state != KeyState.DEFAULT) {
             ImGui.popStyleColor(3);
         }
+    }
+
+    private static int findRenderedTextEnd(String text) {
+        for (int i = 0; i < text.length()-1; i++) {
+            if (text.charAt(i) == '#' && text.charAt(i+1) == '#')
+                return i;
+        }
+        return text.length();
     }
 }

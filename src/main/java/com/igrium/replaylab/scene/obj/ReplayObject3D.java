@@ -308,21 +308,17 @@ public abstract class ReplayObject3D extends ReplayObject implements TransformPr
 
     }
 
-    private static final float[] vecCache = new float[3];
+    private static final double[] vecCache = new double[3];
 
     private static boolean inputVec3(String label, Vector3d vec, float speed){
         vecCache[0] = (float) vec.x;
         vecCache[1] = (float) vec.y;
         vecCache[2] = (float) vec.z;
 
-        var state = KeyWidgets.dragFloat3(label, vecCache, speed, KeyWidgets.KeyState.DEFAULT);
-        if (state.newKey()) {
-            ReplayLab.getLogger().info("Add keyframe to {}", label);
-        }
+        var state = KeyWidgets.dragFloatN(label, vecCache, speed, KeyWidgets.KeyState.INVALID, KeyWidgets.KeyState.DEFAULT);
 
-        if (state.updated()) {
-            vec.set(vecCache);
-            return true;
+        for (int i : state.newKeys().toArray()) {
+            ReplayLab.getLogger().info("Added keyframe to {} ({})", label, i);
         }
 
 
