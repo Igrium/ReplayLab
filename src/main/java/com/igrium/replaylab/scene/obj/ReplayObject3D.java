@@ -4,11 +4,13 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonDeserializationContext;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonSerializationContext;
+import com.igrium.replaylab.ReplayLab;
 import com.igrium.replaylab.editor.EditorState;
 import com.igrium.replaylab.math.MathUtils;
 import com.igrium.replaylab.math.Transform3;
 import com.igrium.replaylab.scene.ReplayScene;
 import com.igrium.replaylab.ui.gizmos.GizmoRenderer;
+import com.igrium.replaylab.ui.util.KeyWidgets;
 import imgui.ImGui;
 import imgui.extension.imguizmo.ImGuizmo;
 import imgui.extension.imguizmo.flag.Mode;
@@ -274,12 +276,6 @@ public abstract class ReplayObject3D extends ReplayObject implements TransformPr
     }
 
     private boolean wasDragging;
-
-    private final float[] viewMatrix = new float[16];
-    private final float[] projectionMatrix = new float[16];
-    private final float[] modelMatrix = new float[16];
-    private final float[] deltaMatrix = new float[16];
-
     private final Matrix4f dragStartMatrix = new Matrix4f();
 
     @Override
@@ -319,10 +315,21 @@ public abstract class ReplayObject3D extends ReplayObject implements TransformPr
         vecCache[1] = (float) vec.y;
         vecCache[2] = (float) vec.z;
 
-        if (ImGui.dragFloat3(label, vecCache, speed)) {
+        var state = KeyWidgets.dragFloat3(label, vecCache, speed, KeyWidgets.KeyState.DEFAULT);
+        if (state.newKey()) {
+            ReplayLab.getLogger().info("Add keyframe to {}", label);
+        }
+
+        if (state.updated()) {
             vec.set(vecCache);
             return true;
         }
+
+
+//        if (ImGui.dragFloat3(label, vecCache, speed)) {
+//            vec.set(vecCache);
+//            return true;
+//        }
         return false;
     }
 
