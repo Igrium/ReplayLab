@@ -13,5 +13,8 @@
   "panel.replaylab.sceneprops": "Scene Properties",
 
   "gui.replaylab.tooltip_snap": "Snap Keyframes",
-  "gui.replaylab.tooltip_fit": "Fit to Selected"
+  "gui.replaylab.tooltip_fit": "Fit to Selected",
+
+  "gui.replaylab.add_key": "Insert Keyframe",
+  "gui.replaylab.add_key_s" : "Insert Keyframe (Single)"
 }

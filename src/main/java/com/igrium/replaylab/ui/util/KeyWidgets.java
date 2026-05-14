@@ -8,6 +8,7 @@ import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
 import lombok.NonNull;
 import lombok.experimental.UtilityClass;
+import net.minecraft.util.Language;
 import net.minecraft.util.math.ColorHelper;
 
 /**
@@ -24,6 +25,9 @@ public final class KeyWidgets {
 
     public static final int COLOR_KEYED_INVALID_HOVER = 0xFF3184DF;
     public static final int COLOR_KEYED_INVALID = ColorHelper.withAlpha(128, COLOR_KEYED_INVALID_HOVER);
+
+    private static final int CONTEXT_ADD_KEY = 1;
+    private static final int CONTEXT_ADD_KEY_S = 2;
 
     public enum KeyState {
         DEFAULT, NOW, ELSEWHERE, INVALID
@@ -98,11 +102,19 @@ public final class KeyWidgets {
             pushStyle(state);
             updated |= ImGui.dragScalar("", active, vSpeed);
             boolean wantNewKey = shortcut();
-            boolean wantNewKeyAlt = shortcutAlt();
+            boolean wantNewKeySingle = shortcutAlt();
             popStyle(state);
 
+            int ctxResult = drawContextMenu();
+            if (hasFlag(ctxResult, CONTEXT_ADD_KEY)) {
+                wantNewKey = true;
+            }
+            if (hasFlag(ctxResult, CONTEXT_ADD_KEY_S)) {
+                wantNewKeySingle = true;
+            }
+
             v[i] = active[0];
-            if (wantNewKeyAlt) {
+            if (wantNewKeySingle) {
                 // Don't allocate list unless we need it.
                 if (newKeys == null) newKeys = new IntArrayList(v.length);
                 newKeys.add(i);
@@ -137,6 +149,20 @@ public final class KeyWidgets {
     }
 
     /// === UTILITY ===
+
+    private static int drawContextMenu() {
+        int result = 0;
+        if (ImGui.beginPopupContextItem()) {
+            if (ImGui.menuItem(t("gui.replaylab.add_key")))
+                result |= CONTEXT_ADD_KEY;
+
+            if (ImGui.menuItem(t("Insert Keyframe (Single)")))
+                result |= CONTEXT_ADD_KEY_S;
+
+            ImGui.endPopup();
+        }
+        return result;
+    }
 
     private static boolean shortcut() {
         return ImGui.isItemHovered() && ImGui.shortcut(ImGuiKey.I);
@@ -178,5 +204,14 @@ public final class KeyWidgets {
                 return i;
         }
         return text.length();
+    }
+
+    // Translate
+    private static String t(String key) {
+        return Language.getInstance().get(key) + "###" + key;
+    }
+
+    private static boolean hasFlag(int flags, int flag) {
+        return (flags & flag) == flag;
     }
 }

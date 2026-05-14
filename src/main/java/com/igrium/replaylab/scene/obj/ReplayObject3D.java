@@ -321,12 +321,9 @@ public abstract class ReplayObject3D extends ReplayObject implements TransformPr
             ReplayLab.getLogger().info("Added keyframe to {} ({})", label, i);
         }
 
+        vec.set(vecCache);
 
-//        if (ImGui.dragFloat3(label, vecCache, speed)) {
-//            vec.set(vecCache);
-//            return true;
-//        }
-        return false;
+        return state.updated();
     }
 
     /**
