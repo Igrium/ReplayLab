@@ -201,16 +201,25 @@ public abstract class ReplayObject {
     public abstract void apply(int timestamp);
 
     /**
-     * Sample all channels and apply properties to the game.
+     * Sample all keyframed properties in this object, writing them into the object's internal memory.
      * @param timestamp Timestamp to sample.
+     * @apiNote Does NOT apply properties to the game! Use {@link #sampleAndApply}.
      */
-    public void sampleAndApply(int timestamp) {
+    public void sample(int timestamp) {
         for (var entry : channels.entrySet()) {
             if (!entry.getValue().getKeyframes().isEmpty()) {
                 double val = entry.getValue().sample(timestamp);
                 setProperty(entry.getKey(), val);
             }
         }
+    }
+
+    /**
+     * Sample all channels and apply properties to the game.
+     * @param timestamp Timestamp to sample.
+     */
+    public final void sampleAndApply(int timestamp) {
+        sample(timestamp);
         apply(timestamp);
     }
 

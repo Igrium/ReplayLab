@@ -10,6 +10,7 @@ import lombok.NonNull;
 import lombok.experimental.UtilityClass;
 import net.minecraft.util.Language;
 import net.minecraft.util.math.ColorHelper;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * A collection of widgets which can accept the "insert keyframe" keybind
@@ -33,15 +34,35 @@ public final class KeyWidgets {
         DEFAULT, NOW, ELSEWHERE, INVALID
     }
 
-    public record WidgetState(boolean updated, @NonNull ImmutableIntArray newKeys) {
+    /**
+     * The state of a keyframable widget after it has been rendered.
+     * @param updated The indices of the values which have been updated this frame.
+     * @param newKeys The indices of the values that should have a keyframe inserted.
+     */
+    public record WidgetState(int @NonNull [] updated, int @NonNull[] newKeys) {
 
-        public static final WidgetState DEFAULT = new WidgetState(false, ImmutableIntArray.of());
-        public static final WidgetState UPDATED = new WidgetState(true, ImmutableIntArray.of());
-        public static final WidgetState NEW_KEY = new WidgetState(false, ImmutableIntArray.of(0));
-        public static final WidgetState UPDATED_NEW_KEY = new WidgetState(true, ImmutableIntArray.of(0));
+        private static final int[] EMPTY = new int[0];
+        private static final int[] SINGLE = new int[] {0};
 
-        public boolean newKey() {
-            return !newKeys.isEmpty();
+        public static final WidgetState DEFAULT = new WidgetState(EMPTY, EMPTY);
+        public static final WidgetState UPDATED = new WidgetState(SINGLE, EMPTY);
+        public static final WidgetState NEW_KEY = new WidgetState(EMPTY, SINGLE);
+        public static final WidgetState UPDATED_NEW_KEY = new WidgetState(SINGLE, SINGLE);
+
+        public boolean isUpdated() {
+            return updated.length > 0;
+        }
+
+        public boolean isUpdated(int idx) {
+            // Data set is likely very small, so complexity doesn't matter
+            for (var i : updated) {
+                if (i == idx) return true;
+            }
+            return false;
+        }
+
+        public boolean hasNewKey() {
+            return newKeys.length > 0;
         }
 
         public static WidgetState of(boolean updated, boolean newKey) {
@@ -52,9 +73,10 @@ public final class KeyWidgets {
             }
         }
 
-        public static WidgetState of(boolean updated, int... newKeys) {
-            return new WidgetState(updated, ImmutableIntArray.copyOf(newKeys));
+        public static WidgetState of(int @Nullable [] updated, int @Nullable [] newKeys) {
+            return new WidgetState(updated != null ? updated : EMPTY, newKeys != null ? newKeys : EMPTY);
         }
+
     }
 
     /// === WIDGETS ===
@@ -69,7 +91,6 @@ public final class KeyWidgets {
     }
 
     public static WidgetState dragFloatN(String label, double[] v, float vSpeed, KeyState... states) {
-        boolean updated = false;
         ImGui.beginGroup();
         ImGui.pushID(label);
 
@@ -81,6 +102,8 @@ public final class KeyWidgets {
         IntList newKeys = null;
         boolean allNewKeys = !ImGui.getIO().getKeyAlt();
         boolean anyNewKey = false;
+
+        IntList updatedValues = null;
 
         for (int i = 0; i < v.length; i++) {
             ImGui.pushID(i);
@@ -100,10 +123,18 @@ public final class KeyWidgets {
             active[0] = v[i];
 
             pushStyle(state);
-            updated |= ImGui.dragScalar("", active, vSpeed);
+            boolean updated = ImGui.dragScalar("", active, vSpeed);
             boolean wantNewKey = shortcut();
             boolean wantNewKeySingle = shortcutAlt();
             popStyle(state);
+
+            if (updated) {
+                // Don't allocate unless we need it.
+                if (updatedValues == null)
+                    updatedValues = new IntArrayList(v.length);
+
+                updatedValues.add(i);
+            }
 
             int ctxResult = drawContextMenu();
             if (hasFlag(ctxResult, CONTEXT_ADD_KEY)) {
@@ -116,7 +147,8 @@ public final class KeyWidgets {
             v[i] = active[0];
             if (wantNewKeySingle) {
                 // Don't allocate list unless we need it.
-                if (newKeys == null) newKeys = new IntArrayList(v.length);
+                if (newKeys == null)
+                    newKeys = new IntArrayList(v.length);
                 newKeys.add(i);
             } else if (wantNewKey) {
                 anyNewKey = true;
@@ -145,7 +177,8 @@ public final class KeyWidgets {
             newKeyArray = newKeys.toIntArray();
         }
 
-        return newKeyArray != null ? new WidgetState(updated, ImmutableIntArray.copyOf(newKeyArray)) : WidgetState.of(updated, false);
+
+        return WidgetState.of(updatedValues != null ? updatedValues.toIntArray() : null, newKeyArray);
     }
 
     /// === UTILITY ===

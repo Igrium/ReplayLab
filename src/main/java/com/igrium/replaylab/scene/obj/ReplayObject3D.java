@@ -317,13 +317,13 @@ public abstract class ReplayObject3D extends ReplayObject implements TransformPr
 
         var state = KeyWidgets.dragFloatN(label, vecCache, speed, KeyWidgets.KeyState.INVALID, KeyWidgets.KeyState.DEFAULT);
 
-        for (int i : state.newKeys().toArray()) {
+        for (int i : state.newKeys()) {
             ReplayLab.getLogger().info("Added keyframe to {} ({})", label, i);
         }
 
         vec.set(vecCache);
 
-        return state.updated();
+        return state.isUpdated();
     }
 
     /**
