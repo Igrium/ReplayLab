@@ -81,13 +81,6 @@ public abstract class UIPanel {
             editorState.undo();
         }
 
-        if (ImGui.shortcut(ImGuiKey.I)) {
-            String selected = editorState.getActiveObject();
-            if (selected != null) {
-                editorState.applyOperator(new InsertKeyframeOperator(selected, editorState.getPlayhead()));
-            }
-        }
-
         if (ImGui.shortcut(ImGuiKey.Space)) {
             editorState.togglePlayback();
         }

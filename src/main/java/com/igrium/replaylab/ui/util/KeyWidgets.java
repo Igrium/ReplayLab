@@ -198,11 +198,11 @@ public final class KeyWidgets {
     }
 
     private static boolean shortcut() {
-        return ImGui.isItemHovered() && ImGui.shortcut(ImGuiKey.I);
+        return ImGui.isItemHovered() && ImGui.shortcut(ImGuiKey.I, 1 << 12); // ImGuiInputFlags_RouteGlobal (why is this not in the bindings???)
     }
 
     private static boolean shortcutAlt() {
-        return ImGui.isItemHovered() && ImGui.shortcut(ImGuiKey.ImGuiMod_Alt | ImGuiKey.I);
+        return ImGui.isItemHovered() && ImGui.shortcut(ImGuiKey.ImGuiMod_Alt | ImGuiKey.I, 1 << 12);
     }
 
     private static void pushStyle(KeyState state) {

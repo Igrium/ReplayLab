@@ -275,7 +275,8 @@ public abstract class ReplayObject3D extends ReplayObject implements TransformPr
 
     // Wrapper to reduce code bloat
     private boolean dragFloatN(String name, float speed, int playhead, String... properties) {
-        return PropertyWidgets.dragFloatN(this, name, speed, playhead, properties).isUpdated();
+        var state = PropertyWidgets.dragFloatN(this, name, speed, playhead, properties);
+        return state.isUpdated() || state.hasNewKey();
     }
 
 
