@@ -11,6 +11,8 @@ import com.igrium.replaylab.math.Transform3;
 import com.igrium.replaylab.scene.ReplayScene;
 import com.igrium.replaylab.ui.gizmos.GizmoRenderer;
 import com.igrium.replaylab.ui.util.KeyWidgets;
+import com.igrium.replaylab.ui.util.KeyWidgets.KeyState;
+import com.igrium.replaylab.ui.util.PropertyWidgets;
 import imgui.ImGui;
 import imgui.extension.imguizmo.ImGuizmo;
 import imgui.extension.imguizmo.flag.Mode;
@@ -253,27 +255,29 @@ public abstract class ReplayObject3D extends ReplayObject implements TransformPr
     boolean startedDragging = false;
 
     @Override
-    public PropertiesPanelState drawPropertiesPanel() {
-        boolean modified = hasPosition() && inputVec3("Position", position, .125f);
-
-        if (hasRotation() && inputVec3("Rotation", rotation, 1)) {
-            modified = true;
-        }
-
-        if (hasScale() && inputVec3("Scale", scale, .25f)) {
-            modified = true;
-        }
+    public PropertiesPanelState drawPropertiesPanel(EditorState editor) {
+        int pHead = editor.getPlayhead();
+        boolean modified = false;
+        modified |= hasPosition() && dragFloatN("Position", .125f, pHead, POS_X, POS_Y, POS_Z);
+        modified |= hasRotation() && dragFloatN("Rotation", 1, pHead, ROT_X, ROT_Y, ROT_Z);
+        modified |= hasScale() && dragFloatN("Scale", 1, pHead, SCALE_X, SCALE_Y, SCALE_Z);
 
         if (modified || (startedDragging && ImGui.isMouseDown(0))) {
             startedDragging = true;
             return PropertiesPanelState.DRAGGING;
         } else if (startedDragging) {
             startedDragging = false;
-            return PropertiesPanelState.COMMIT_KEYFRAME;
+            return PropertiesPanelState.COMMIT;
         } else {
             return PropertiesPanelState.NONE;
         }
     }
+
+    // Wrapper to reduce code bloat
+    private boolean dragFloatN(String name, float speed, int playhead, String... properties) {
+        return PropertyWidgets.dragFloatN(this, name, speed, playhead, properties).isUpdated();
+    }
+
 
     private boolean wasDragging;
     private final Matrix4f dragStartMatrix = new Matrix4f();
@@ -302,28 +306,10 @@ public abstract class ReplayObject3D extends ReplayObject implements TransformPr
         } else if (wasDragging) {
             boolean commit = !dragStartMatrix.equals(modelMatrix, .01f);
             wasDragging = false;
-            return commit ? PropertiesPanelState.COMMIT_KEYFRAME : PropertiesPanelState.NONE;
+            return commit ? PropertiesPanelState.COMMIT : PropertiesPanelState.NONE;
         }
         return PropertiesPanelState.NONE;
 
-    }
-
-    private static final double[] vecCache = new double[3];
-
-    private static boolean inputVec3(String label, Vector3d vec, float speed){
-        vecCache[0] = (float) vec.x;
-        vecCache[1] = (float) vec.y;
-        vecCache[2] = (float) vec.z;
-
-        var state = KeyWidgets.dragFloatN(label, vecCache, speed, KeyWidgets.KeyState.INVALID, KeyWidgets.KeyState.DEFAULT);
-
-        for (int i : state.newKeys()) {
-            ReplayLab.getLogger().info("Added keyframe to {} ({})", label, i);
-        }
-
-        vec.set(vecCache);
-
-        return state.isUpdated();
     }
 
     /**

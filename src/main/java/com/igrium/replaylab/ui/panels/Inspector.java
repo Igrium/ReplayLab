@@ -28,7 +28,7 @@ public class Inspector extends UIPanel {
     }
 
     protected void drawObjectProperties(ReplayObject object, EditorState editorState) {
-        ReplayObject.PropertiesPanelState state = object.drawPropertiesPanel();
+        ReplayObject.PropertiesPanelState state = object.drawPropertiesPanel(editorState);
         if (state.wantsInsertKeyframe()) {
             object.insertKey(editorState.getPlayhead());
         }

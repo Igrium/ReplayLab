@@ -9,6 +9,9 @@ import com.igrium.replaylab.util.GsonSerializationContext;
 import com.igrium.replaylab.util.MutableDouble;
 import imgui.ImColor;
 import imgui.ImGui;
+import it.unimi.dsi.fastutil.objects.Object2DoubleArrayMap;
+import it.unimi.dsi.fastutil.objects.Object2DoubleMap;
+import it.unimi.dsi.fastutil.objects.Object2DoubleOpenHashMap;
 import lombok.Getter;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Matrix4f;
@@ -57,6 +60,7 @@ public abstract class ReplayObject {
         /**
          * There was an update that warrants the insertion of a keyframe if auto-key is enabled.
          */
+        @Deprecated
         COMMIT_KEYFRAME;
 
         public boolean wantsUpdateScene() {
@@ -95,6 +99,12 @@ public abstract class ReplayObject {
     @Getter
     private final Map<String, KeyChannel> channels = new HashMap<>();
 
+    /**
+     * The value of each property last time it was sampled.
+     */
+    @Getter
+    private final Object2DoubleMap<String> sampledValues = new Object2DoubleArrayMap<>();
+
     public ReplayObject(ReplayObjectType<?> type, ReplayScene scene) {
         this.type = type;
         this.scene = scene;
@@ -132,6 +142,10 @@ public abstract class ReplayObject {
         return false;
     }
 
+    public final @Nullable KeyChannel getChannel(String name) {
+        return channels.get(name);
+    }
+
     public final KeyChannel getOrCreateChannel(String name) {
         return channels.computeIfAbsent(name, n -> new KeyChannel());
     }
@@ -149,12 +163,9 @@ public abstract class ReplayObject {
     }
 
     public final double getPropertyOrThrow(String propName) throws UnknownPropertyException {
-        Double val = getProperty(propName);
-        if (val != null) {
-            return val;
-        } else {
-            throw new UnknownPropertyException(propName);
-        }
+        MutableDouble prop = properties.get(propName);
+        if (prop == null) throw new UnknownPropertyException(propName);
+        return prop.getDoubleValue();
     }
 
     public @Nullable Double getProperty(String propName) {
@@ -209,6 +220,7 @@ public abstract class ReplayObject {
         for (var entry : channels.entrySet()) {
             if (!entry.getValue().getKeyframes().isEmpty()) {
                 double val = entry.getValue().sample(timestamp);
+                sampledValues.put(entry.getKey(), val);
                 setProperty(entry.getKey(), val);
             }
         }
@@ -232,7 +244,8 @@ public abstract class ReplayObject {
      * @param projectionMatrix Projection matrix of the camera.
      * @param hideUI           Don't draw any visual gizmos (some objects may still need to update things while UI disabled)
      */
-    public PropertiesPanelState drawGizmos(EditorState editor, Vector3dc cameraPos, Matrix4fc viewMatrix, Matrix4fc projectionMatrix, boolean hideUI) {
+    public PropertiesPanelState drawGizmos(EditorState editor, Vector3dc cameraPos,
+                                           Matrix4fc viewMatrix, Matrix4fc projectionMatrix, boolean hideUI) {
         // Default no-op
         return PropertiesPanelState.NONE;
     }
@@ -241,7 +254,7 @@ public abstract class ReplayObject {
      * Called during the ImGui render process to draw the object's configurable properties.
      * @return The state of the properties panel after drawing.
      */
-    public PropertiesPanelState drawPropertiesPanel() {
+    public PropertiesPanelState drawPropertiesPanel(EditorState editor) {
         ImGui.text("This object has no editable properties.");
         return PropertiesPanelState.NONE;
     }

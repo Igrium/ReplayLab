@@ -3,6 +3,7 @@ package com.igrium.replaylab.scene.objs;
 import com.google.gson.JsonDeserializationContext;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonSerializationContext;
+import com.igrium.replaylab.editor.EditorState;
 import com.igrium.replaylab.render.VideoRenderSettings;
 import com.igrium.replaylab.scene.ReplayScene;
 import com.igrium.replaylab.scene.obj.EntityObject;
@@ -148,7 +149,7 @@ public final class ScenePropsObject extends ReplayObject {
     boolean editingFps = false;
 
     @Override
-    public PropertiesPanelState drawPropertiesPanel() {
+    public PropertiesPanelState drawPropertiesPanel(EditorState editor) {
 
         boolean modified = false;
 
