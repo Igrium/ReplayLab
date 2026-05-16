@@ -1,8 +1,8 @@
 package com.igrium.replaylab;
 
 import com.igrium.craftui.app.AppManager;
-import com.igrium.replaylab.camera.AnimatedCameraEntity;
 import com.igrium.replaylab.camera.AnimatedCameraRenderer;
+import com.igrium.replaylab.config.ReplayLabConfig;
 import com.igrium.replaylab.debug.PrintCameraCommand;
 import com.igrium.replaylab.ui.ReplayLabUI;
 import com.replaymod.core.ReplayMod;
@@ -38,6 +38,9 @@ public class ReplayLab implements ModInitializer, ClientModInitializer {
     @Getter
     private static ReplayLab instance;
 
+    @Getter
+    private ReplayLabConfig config = new ReplayLabConfig();
+
     @Getter @Nullable
     private ReplayLabUI appInstance;
 
@@ -48,6 +51,7 @@ public class ReplayLab implements ModInitializer, ClientModInitializer {
     @Override
     public void onInitialize() {
         ReplayLabEntities.register();
+        config = ReplayLabConfig.loadOrInit(FabricLoader.getInstance().getConfigDir().resolve("replaylab.json"));
     }
 
     @Override

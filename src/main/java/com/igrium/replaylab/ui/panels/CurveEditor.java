@@ -1,5 +1,6 @@
 package com.igrium.replaylab.ui.panels;
 
+import com.igrium.replaylab.config.Keybinds;
 import com.igrium.replaylab.editor.EditorState;
 import com.igrium.replaylab.editor.KeySelectionSet;
 import com.igrium.replaylab.editor.KeySelectionSet.KeyframeReference;
@@ -179,15 +180,19 @@ public class CurveEditor extends UIPanel {
             editorState.queueApplyToGame();
         }
 
-        if (ImGui.shortcut(ImGuiKey.Delete)) {
+        if (ImGui.shortcut(Keybinds.deleteSelected())) {
             // we need to clear selected keyframes
             var selected = editorState.getKeySelection().getSelectedKeyframes();
             editorState.getKeySelection().deselectAll();
             editorState.applyOperator(new RemoveKeyframesOperator(selected));
         }
 
-        if (ImGui.shortcut(ImGuiKey.ModCtrl | ImGuiKey.A)) {
+        if (ImGui.shortcut(Keybinds.selectAll())) {
             editorState.getKeySelection().selectAll(editorState.getScene().getObjects());
+        }
+
+        if (ImGui.shortcut(Keybinds.selectNone())) {
+            editorState.getKeySelection().deselectAll();
         }
     }
 

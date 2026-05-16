@@ -4,6 +4,7 @@ package com.igrium.replaylab.ui;
 import com.igrium.craftui.app.DockSpaceApp;
 import com.igrium.craftui.util.RaycastUtils;
 import com.igrium.replaylab.ReplayLab;
+import com.igrium.replaylab.config.Keybinds;
 import com.igrium.replaylab.editor.EditorState;
 import com.igrium.replaylab.operator.InsertKeyframeOperator;
 import com.igrium.replaylab.operator.RemoveObjectOperator;
@@ -183,25 +184,25 @@ public class ReplayLabUI extends DockSpaceApp {
             }
 
             // Gizmo hotkeys (industry standard)
-            if (ImGui.shortcut(ImGuiKey.Q)) {
+            if (ImGui.shortcut(Keybinds.gizmoAll())) {
                 editorState.showGizmoPos(true);
                 editorState.showGizmoRot(true);
                 editorState.showGizmoScale(true);
             }
 
-            if (ImGui.shortcut(ImGuiKey.W)) {
+            if (ImGui.shortcut(Keybinds.gizmoPos())) {
                 editorState.showGizmoPos(true);
                 editorState.showGizmoRot(false);
                 editorState.showGizmoScale(false);
             }
 
-            if (ImGui.shortcut(ImGuiKey.E)) {
+            if (ImGui.shortcut(Keybinds.gizmoRot())) {
                 editorState.showGizmoPos(false);
                 editorState.showGizmoRot(true);
                 editorState.showGizmoScale(false);
             }
 
-            if (ImGui.shortcut(ImGuiKey.R)) {
+            if (ImGui.shortcut(Keybinds.gizmoScale())) {
                 editorState.showGizmoPos(false);
                 editorState.showGizmoRot(false);
                 editorState.showGizmoScale(true);
@@ -209,7 +210,7 @@ public class ReplayLabUI extends DockSpaceApp {
 
             GizmoRenderer.drawGizmos(editorState, getViewportBounds());
 
-            if (ImGui.shortcut(ImGuiKey.Delete)) {
+            if (ImGui.shortcut(Keybinds.deleteSelected())) {
                 editorState.applyOperator(new RemoveObjectsOperator(editorState.getSelectedObjects()));
             }
 

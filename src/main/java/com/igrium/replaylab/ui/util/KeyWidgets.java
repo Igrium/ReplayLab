@@ -1,9 +1,9 @@
 package com.igrium.replaylab.ui.util;
 
-import com.google.common.primitives.ImmutableIntArray;
+import com.igrium.replaylab.config.Keybinds;
+import com.igrium.replaylab.config.ReplayLabConfig;
 import imgui.ImGui;
 import imgui.flag.ImGuiCol;
-import imgui.flag.ImGuiKey;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
 import lombok.NonNull;
@@ -189,7 +189,7 @@ public final class KeyWidgets {
             if (ImGui.menuItem(t("gui.replaylab.add_key")))
                 result |= CONTEXT_ADD_KEY;
 
-            if (ImGui.menuItem(t("Insert Keyframe (Single)")))
+            if (ImGui.menuItem(t("gui.replaylab.add_key_s")))
                 result |= CONTEXT_ADD_KEY_S;
 
             ImGui.endPopup();
@@ -198,14 +198,15 @@ public final class KeyWidgets {
     }
 
     private static boolean shortcut() {
-        return ImGui.isItemHovered() && ImGui.shortcut(ImGuiKey.I, 1 << 12); // ImGuiInputFlags_RouteGlobal (why is this not in the bindings???)
+        return ImGui.isItemHovered() && ImGui.shortcut(Keybinds.addKey(), 1 << 12); // ImGuiInputFlags_RouteGlobal (why is this not in the bindings???)
     }
 
     private static boolean shortcutAlt() {
-        return ImGui.isItemHovered() && ImGui.shortcut(ImGuiKey.ImGuiMod_Alt | ImGuiKey.I, 1 << 12);
+        return ImGui.isItemHovered() && ImGui.shortcut(Keybinds.addKeySingle(), 1 << 12);
     }
 
     private static void pushStyle(KeyState state) {
+
         switch (state) {
             case NOW -> {
                 ImGui.pushStyleColor(ImGuiCol.FrameBg, COLOR_KEYED_NOW);

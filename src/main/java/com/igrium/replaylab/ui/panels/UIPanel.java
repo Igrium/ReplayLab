@@ -1,9 +1,9 @@
 package com.igrium.replaylab.ui.panels;
 
+import com.igrium.replaylab.config.Keybinds;
+import com.igrium.replaylab.config.ReplayLabConfig;
 import com.igrium.replaylab.editor.EditorState;
-import com.igrium.replaylab.operator.InsertKeyframeOperator;
 import imgui.ImGui;
-import imgui.flag.ImGuiKey;
 import imgui.type.ImBoolean;
 import lombok.Getter;
 import net.minecraft.util.Identifier;
@@ -75,14 +75,20 @@ public abstract class UIPanel {
         var io = ImGui.getIO();
         if (io.getWantTextInput()) return;
 
-        if (ImGui.shortcut(ImGuiKey.ImGuiMod_Ctrl | ImGuiKey.ImGuiMod_Shift | ImGuiKey.Z)) {
+        if (ImGui.shortcut(Keybinds.redo())) {
             editorState.redo();
-        } else if (ImGui.shortcut(ImGuiKey.ImGuiMod_Ctrl | ImGuiKey.Z)) {
+        }
+
+        if (ImGui.shortcut(Keybinds.undo())) {
             editorState.undo();
         }
 
-        if (ImGui.shortcut(ImGuiKey.Space)) {
+        if (ImGui.shortcut(Keybinds.playPause())) {
             editorState.togglePlayback();
+        }
+
+        if (ImGui.shortcut(Keybinds.cameraView())) {
+            editorState.setCameraView(!editorState.isCameraView());
         }
     }
 }
