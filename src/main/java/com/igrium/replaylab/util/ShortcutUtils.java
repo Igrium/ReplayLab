@@ -4,6 +4,8 @@ import static imgui.flag.ImGuiKey.*;
 
 import com.google.common.collect.ImmutableMap;
 import imgui.flag.ImGuiKey;
+import it.unimi.dsi.fastutil.ints.IntArrayList;
+import it.unimi.dsi.fastutil.ints.IntList;
 import lombok.experimental.UtilityClass;
 import net.minecraft.util.Language;
 
@@ -159,9 +161,9 @@ public final class ShortcutUtils {
     }
 
     /**
-     * Get the ImGuiKey portion of a key chord
+     * Get the ImGuiKey component of a key chord
      * @param chord Full key chord
-     * @return The ImGuiKey portion of the chord
+     * @return The ImGuiKey component of the chord
      */
     public static int getChordKey(int chord) {
         return chord & ~ImGuiKey.ImGuiMod_Mask_;
@@ -170,7 +172,7 @@ public final class ShortcutUtils {
     /**
      * Trigger a consumer for every modifier key in a chord.
      * @param chord Full key chord
-     * @param consumer Accepts the ImGuiMod portions of the chord.
+     * @param consumer Accepts the ImGuiMod component of the chord.
      */
     public static void forChordMods(int chord, IntConsumer consumer) {
         if (hasFlag(chord, ImGuiMod_Ctrl)) consumer.accept(ImGuiMod_Ctrl);
@@ -178,6 +180,17 @@ public final class ShortcutUtils {
         if (hasFlag(chord, ImGuiMod_Alt)) consumer.accept(ImGuiMod_Alt);
         if (hasFlag(chord, ImGuiMod_Alt)) consumer.accept(ImGuiMod_Alt);
         if (hasFlag(chord, ImGuiMod_Super)) consumer.accept(ImGuiMod_Super);
+    }
+
+    /**
+     * Get all the modifiers in a chord.
+     * @param chord Full key chord.
+     * @return Individual ImGuiMod components of the chord
+     */
+    public static int[] getChordMods(int chord) {
+        IntList mods = new IntArrayList(5);
+        forChordMods(chord, mods::add);
+        return mods.toIntArray();
     }
 
     private static boolean hasFlag(int flags, int flag) {
