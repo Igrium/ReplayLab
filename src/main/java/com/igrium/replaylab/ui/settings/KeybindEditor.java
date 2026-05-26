@@ -1,51 +1,55 @@
-package com.igrium.replaylab.ui.panels;
+package com.igrium.replaylab.ui.settings;
 
-import com.igrium.replaylab.ReplayLab;
 import com.igrium.replaylab.config.Keybinds;
 import com.igrium.replaylab.config.ReplayLabConfig;
-import com.igrium.replaylab.editor.EditorState;
 import com.igrium.replaylab.util.ShortcutUtils;
 import imgui.ImGui;
 import imgui.flag.ImGuiKey;
 import imgui.flag.ImGuiTableColumnFlags;
-import net.minecraft.util.Identifier;
+import imgui.flag.ImGuiTableFlags;
+import lombok.Getter;
 import net.minecraft.util.Language;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.function.IntConsumer;
 
-public class KeybindEditor extends UIModal {
+public class KeybindEditor {
     // Tracks which binding is actively being remapped
     private String currentlyEditing = null;
 
-    public KeybindEditor(Identifier id) {
-        super(id);
+    private final ReplayLabConfig mutableConfig;
+
+    public KeybindEditor(ReplayLabConfig mutableConfig) {
+        this.mutableConfig = mutableConfig;
     }
 
-    @Override
-    protected void drawContents(EditorState editor) {
-        Keybinds current = ReplayLabConfig.getInstance().getKeybinds();
-        Keybinds defBinds = new Keybinds();
 
-        if (ImGui.beginTable("Keybinds", 2)) {
+    protected boolean draw() {
+        Keybinds current = mutableConfig.getKeybinds();
+        Keybinds defBinds = new Keybinds();
+        boolean changed = false;
+
+        if (ImGui.beginTable("Keybinds", 2, ImGuiTableFlags.Borders)) {
             ImGui.tableSetupColumn("Action", ImGuiTableColumnFlags.WidthFixed);
             ImGui.tableSetupColumn("Shortcut", ImGuiTableColumnFlags.WidthStretch);
-
-            drawBinding("Undo", current.getUndo(), defBinds.getUndo(), current::setUndo);
-            drawBinding("Redo", current.getRedo(), defBinds.getRedo(), current::setRedo);
+            changed |= drawBinding(t("key.replaylab.undo"), current.getUndo(), defBinds.getUndo(), current::setUndo);
+            changed |= drawBinding(t("key.replaylab.redo"), current.getRedo(), defBinds.getRedo(), current::setRedo);
             ImGui.endTable();
         }
+        return changed;
     }
 
-    private void drawBinding(String label, int value, int defaultValue, @Nullable IntConsumer onChanged) {
+    private boolean drawBinding(String label, int value, int defaultValue, @Nullable IntConsumer onChanged) {
+        boolean changed = false;
         ImGui.tableNextColumn();
+        ImGui.alignTextToFramePadding();
         ImGui.text(Language.getInstance().get(label));
 
         ImGui.tableNextColumn();
         ImGui.setNextItemWidth(ImGui.getContentRegionAvailX());
         if (label.equals(currentlyEditing)) {
             // If we're currently editing this binding
-            ImGui.button("> Press new key <###" + label);
+            ImGui.button(Language.getInstance().get("gui.replaylab.new_keybind") + "###" + label, -1, 0);
 
             int newKey = -1;
             // Iterate through valid ImGui keys to see what was pressed
@@ -62,7 +66,10 @@ public class KeybindEditor extends UIModal {
                 } else {
                     // Save edit
                     int mods = ImGui.getIO().getKeyMods();
-                    if (onChanged != null) onChanged.accept(newKey | mods);
+                    if (onChanged != null) {
+                        onChanged.accept(newKey | mods);
+                        changed = true;
+                    }
                     currentlyEditing = null;
                 }
             }
@@ -77,10 +84,13 @@ public class KeybindEditor extends UIModal {
             }
             btnText.append(ShortcutUtils.getKeyName(key));
 
-            if (ImGui.button(btnText + "###" + label)) {
+            if (ImGui.button(btnText + "###" + label, -1, 0)) {
                 currentlyEditing = label; // Switch into edit mode
             }
+
+
         }
+        return changed;
     }
 
     /**
@@ -93,5 +103,9 @@ public class KeybindEditor extends UIModal {
                 key == ImGuiKey.LeftSuper || key == ImGuiKey.RightSuper ||
                 key == ImGuiKey.ModCtrl || key == ImGuiKey.ModShift ||
                 key == ImGuiKey.ModAlt || key == ImGuiKey.ModSuper;
+    }
+
+    private static String t(String key) {
+        return Language.getInstance().get(key);
     }
 }

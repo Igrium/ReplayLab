@@ -81,7 +81,7 @@ public class ReplayLabUI extends DockSpaceApp {
     private final SceneBrowser sceneBrowser = new SceneBrowser(Identifier.of("replaylab:scenebrowser"));
 
     @Getter
-    private final KeybindEditor keybindEditor = new KeybindEditor(Identifier.of("replaylab:keybindeditor"));
+    private final SettingsWindow settingsWindow = new SettingsWindow(Identifier.of("replaylab:settings"));
 
 
     // =========================================================================
@@ -229,9 +229,9 @@ public class ReplayLabUI extends DockSpaceApp {
         ExportProgressWindow.drawExportProgress(editorState);
 
         if (!firstFrame) {
-            exceptionPopup.render();
             sceneBrowser.draw(editorState);
-            keybindEditor.draw(editorState);
+            settingsWindow.draw(editorState);
+            exceptionPopup.render();
         }
 
         firstFrame = false;
@@ -305,7 +305,7 @@ public class ReplayLabUI extends DockSpaceApp {
             if (ImGui.menuItem("Open Scene")) sceneBrowser.openPopup();
             if (ImGui.menuItem("Export")) ExportWindow.open();
             ImGui.separator();
-            if (ImGui.menuItem("Edit Keybinds")) keybindEditor.openPopup();
+            if (ImGui.menuItem("Settings")) settingsWindow.openPopup();
             if (ImGui.menuItem("Exit")) wantsExit = true;
             ImGui.endMenu();
         }

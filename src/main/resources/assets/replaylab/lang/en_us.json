@@ -11,10 +11,17 @@
   "panel.replaylab.outliner": "Outliner",
   "panel.replaylab.inspector": "Inspector",
   "panel.replaylab.sceneprops": "Scene Properties",
+  "panel.replaylab.settings": "Settings",
 
   "gui.replaylab.tooltip_snap": "Snap Keyframes",
   "gui.replaylab.tooltip_fit": "Fit to Selected",
 
   "gui.replaylab.add_key": "Insert Keyframe",
-  "gui.replaylab.add_key_s" : "Insert Keyframe (Single)"
+  "gui.replaylab.add_key_s" : "Insert Keyframe (Single)",
+
+  "gui.replaylab.keybinds": "Keybinds",
+  "gui.replaylab.new_keybind": "> Press a new key <",
+
+  "key.replaylab.undo": "Undo",
+  "key.replaylab.redo": "Redo"
 }
