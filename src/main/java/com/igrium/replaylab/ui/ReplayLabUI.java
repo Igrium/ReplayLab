@@ -77,8 +77,8 @@ public class ReplayLabUI extends DockSpaceApp {
             new ScenePropsPanel(Identifier.of("replaylab:sceneprops"))
     );
 
-
-    private final SceneBrowser sceneBrowser = new SceneBrowser();
+    @Getter
+    private final SceneBrowser sceneBrowser = new SceneBrowser(Identifier.of("replaylab:scenebrowser"));
 
 
     // =========================================================================
@@ -227,7 +227,7 @@ public class ReplayLabUI extends DockSpaceApp {
 
         if (!firstFrame) {
             exceptionPopup.render();
-            sceneBrowser.render(editorState);
+            sceneBrowser.draw(editorState);
         }
 
         firstFrame = false;
@@ -298,7 +298,7 @@ public class ReplayLabUI extends DockSpaceApp {
         if (!ImGui.beginMainMenuBar()) return;
 
         if (ImGui.beginMenu("File")) {
-            if (ImGui.menuItem("Open Scene")) sceneBrowser.open();
+            if (ImGui.menuItem("Open Scene")) sceneBrowser.openPopup();
             if (ImGui.menuItem("Export")) ExportWindow.open();
             if (ImGui.menuItem("Exit")) wantsExit = true;
             ImGui.endMenu();
