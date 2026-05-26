@@ -67,32 +67,32 @@ public final class ShortcutUtils {
             .put(ImGuiKey._8, "key.keyboard.8")
             .put(ImGuiKey._9, "key.keyboard.9")
             // Letters
-            .put(ImGuiKey.A, "key.keyboard.a")
-            .put(ImGuiKey.B, "key.keyboard.b")
-            .put(ImGuiKey.C, "key.keyboard.c")
-            .put(ImGuiKey.D, "key.keyboard.d")
-            .put(ImGuiKey.E, "key.keyboard.e")
-            .put(ImGuiKey.F, "key.keyboard.f")
-            .put(ImGuiKey.G, "key.keyboard.g")
-            .put(ImGuiKey.H, "key.keyboard.h")
-            .put(ImGuiKey.I, "key.keyboard.i")
-            .put(ImGuiKey.J, "key.keyboard.j")
-            .put(ImGuiKey.K, "key.keyboard.k")
-            .put(ImGuiKey.L, "key.keyboard.l")
-            .put(ImGuiKey.M, "key.keyboard.m")
-            .put(ImGuiKey.N, "key.keyboard.n")
-            .put(ImGuiKey.O, "key.keyboard.o")
-            .put(ImGuiKey.P, "key.keyboard.p")
-            .put(ImGuiKey.Q, "key.keyboard.q")
-            .put(ImGuiKey.R, "key.keyboard.r")
-            .put(ImGuiKey.S, "key.keyboard.s")
-            .put(ImGuiKey.T, "key.keyboard.t")
-            .put(ImGuiKey.U, "key.keyboard.u")
-            .put(ImGuiKey.V, "key.keyboard.v")
-            .put(ImGuiKey.W, "key.keyboard.w")
-            .put(ImGuiKey.X, "key.keyboard.x")
-            .put(ImGuiKey.Y, "key.keyboard.y")
-            .put(ImGuiKey.Z, "key.keyboard.z")
+            .put(ImGuiKey.A, "A")
+            .put(ImGuiKey.B, "B")
+            .put(ImGuiKey.C, "C")
+            .put(ImGuiKey.D, "D")
+            .put(ImGuiKey.E, "E")
+            .put(ImGuiKey.F, "F")
+            .put(ImGuiKey.G, "G")
+            .put(ImGuiKey.H, "H")
+            .put(ImGuiKey.I, "I")
+            .put(ImGuiKey.J, "J")
+            .put(ImGuiKey.K, "K")
+            .put(ImGuiKey.L, "L")
+            .put(ImGuiKey.M, "M")
+            .put(ImGuiKey.N, "N")
+            .put(ImGuiKey.O, "O")
+            .put(ImGuiKey.P, "P")
+            .put(ImGuiKey.Q, "Q")
+            .put(ImGuiKey.R, "R")
+            .put(ImGuiKey.S, "S")
+            .put(ImGuiKey.T, "T")
+            .put(ImGuiKey.U, "U")
+            .put(ImGuiKey.V, "V")
+            .put(ImGuiKey.W, "W")
+            .put(ImGuiKey.X, "X")
+            .put(ImGuiKey.Y, "Y")
+            .put(ImGuiKey.Z, "Z")
             // Function keys
             .put(ImGuiKey.F1, "key.keyboard.f1")
             .put(ImGuiKey.F2, "key.keyboard.f2")
@@ -157,7 +157,7 @@ public final class ShortcutUtils {
             .build();
 
     public static String getKeyName(int keyCode) {
-        return Language.getInstance().get(KEY_NAMES.get(keyCode), "key.keyboard.unknown");
+        return Language.getInstance().get(KEY_NAMES.getOrDefault(keyCode, "key.keyboard.unknown"));
     }
 
     /**
@@ -169,15 +169,9 @@ public final class ShortcutUtils {
         return chord & ~ImGuiKey.ImGuiMod_Mask_;
     }
 
-    /**
-     * Trigger a consumer for every modifier key in a chord.
-     * @param chord Full key chord
-     * @param consumer Accepts the ImGuiMod component of the chord.
-     */
     public static void forChordMods(int chord, IntConsumer consumer) {
         if (hasFlag(chord, ImGuiMod_Ctrl)) consumer.accept(ImGuiMod_Ctrl);
         if (hasFlag(chord, ImGuiMod_Shift)) consumer.accept(ImGuiMod_Shift);
-        if (hasFlag(chord, ImGuiMod_Alt)) consumer.accept(ImGuiMod_Alt);
         if (hasFlag(chord, ImGuiMod_Alt)) consumer.accept(ImGuiMod_Alt);
         if (hasFlag(chord, ImGuiMod_Super)) consumer.accept(ImGuiMod_Super);
     }

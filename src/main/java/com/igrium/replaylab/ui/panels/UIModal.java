@@ -70,7 +70,6 @@ public abstract class UIModal {
             if (callback != null) {
                 callback.run();
             }
-            UIPanel.processGlobalHotkeys(editorState);
             ImGui.endPopup();
             return true;
         } else {

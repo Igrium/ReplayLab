@@ -80,6 +80,9 @@ public class ReplayLabUI extends DockSpaceApp {
     @Getter
     private final SceneBrowser sceneBrowser = new SceneBrowser(Identifier.of("replaylab:scenebrowser"));
 
+    @Getter
+    private final KeybindEditor keybindEditor = new KeybindEditor(Identifier.of("replaylab:keybindeditor"));
+
 
     // =========================================================================
     // Deferred action flags (set during render, executed in preRender)
@@ -228,6 +231,7 @@ public class ReplayLabUI extends DockSpaceApp {
         if (!firstFrame) {
             exceptionPopup.render();
             sceneBrowser.draw(editorState);
+            keybindEditor.draw(editorState);
         }
 
         firstFrame = false;
@@ -300,6 +304,8 @@ public class ReplayLabUI extends DockSpaceApp {
         if (ImGui.beginMenu("File")) {
             if (ImGui.menuItem("Open Scene")) sceneBrowser.openPopup();
             if (ImGui.menuItem("Export")) ExportWindow.open();
+            ImGui.separator();
+            if (ImGui.menuItem("Edit Keybinds")) keybindEditor.openPopup();
             if (ImGui.menuItem("Exit")) wantsExit = true;
             ImGui.endMenu();
         }
