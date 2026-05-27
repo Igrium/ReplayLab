@@ -6,8 +6,6 @@ import lombok.Getter;
 import net.minecraft.util.Language;
 
 public class SettingsEditor {
-    @Getter
-    private boolean modified;
 
     @Getter
     private final ReplayLabConfig mutableConfig;

@@ -26,6 +26,8 @@ public abstract class UIModal {
 
     private boolean wantsOpenPopup;
 
+    private boolean wasOpen;
+
     protected UIModal(Identifier id) {
         this.id = id;
     }
@@ -66,6 +68,7 @@ public abstract class UIModal {
         }
 
         if (ImGui.beginPopupModal(getPopupName(), open, imGuiWindowFlags | ImGuiWindowFlags.NoSavedSettings)) {
+            wasOpen = true;
             drawContents(editorState);
             if (callback != null) {
                 callback.run();
@@ -74,9 +77,20 @@ public abstract class UIModal {
             return true;
         } else {
             open.set(false);
+            if (wasOpen) {
+                wasOpen = false;
+                onClosed(editorState);
+            }
             return false;
         }
     }
 
     protected abstract void drawContents(EditorState editor);
+
+    /**
+     * Called after the UI modal has closed.
+     * @param editor Current editor state.
+     * @apiNote For technical reasons, called the frame <em>after</em> the modal is closed.
+     */
+    protected void onClosed(EditorState editor) {}
 }

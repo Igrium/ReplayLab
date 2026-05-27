@@ -47,7 +47,7 @@ public class ReplayLabConfig {
 
     private final Keybinds keybinds = new Keybinds();
 
-    public void saveConfig(Path path) throws IOException {
+    public synchronized void saveConfig(Path path) throws IOException {
         LOGGER.info("Saving ReplayLab config to {}", path);
         try(BufferedWriter writer = Files.newBufferedWriter(path)) {
             GSON.toJson(this, writer);

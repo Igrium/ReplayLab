@@ -554,7 +554,7 @@ public class EditorState {
 
     /// ===== Error Handling =====
 
-    private void onException(Throwable e) {
+    public void onException(Throwable e) {
         if (exceptionCallback != null) {
             exceptionCallback.accept(e);
         }

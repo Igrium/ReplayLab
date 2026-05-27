@@ -21,6 +21,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.concurrent.CompletableFuture;
 
 public class ReplayLab implements ModInitializer, ClientModInitializer {
 
@@ -44,14 +45,15 @@ public class ReplayLab implements ModInitializer, ClientModInitializer {
     @Getter @Nullable
     private ReplayLabUI appInstance;
 
-    public ReplayLab() {
-        instance = this;
+    public CompletableFuture<?> saveConfig() {
+        return config.saveConfigAsync(getConfigPath());
     }
 
     @Override
     public void onInitialize() {
+        instance = this;
         ReplayLabEntities.register();
-        config = ReplayLabConfig.loadOrInit(FabricLoader.getInstance().getConfigDir().resolve("replaylab.json"));
+        config = ReplayLabConfig.loadOrInit(getConfigPath());
     }
 
     @Override
@@ -82,5 +84,9 @@ public class ReplayLab implements ModInitializer, ClientModInitializer {
         appInstance = new ReplayLabUI();
         AppManager.openApp(appInstance);
         appInstance.afterOpen();
+    }
+
+    private static Path getConfigPath() {
+        return FabricLoader.getInstance().getConfigDir().resolve("replaylab.json");
     }
 }
