@@ -8,13 +8,13 @@ import imgui.flag.ImGuiWindowFlags;
 import imgui.type.ImInt;
 import it.unimi.dsi.fastutil.floats.FloatUnaryOperator;
 import lombok.Getter;
-import lombok.Value;
 import lombok.experimental.Accessors;
 import org.jetbrains.annotations.Nullable;
 
 public class TimelineHeader {
 
     private static final int TICK_MULTIPLE = 10;
+    private static final float SNAP_THRESHOLD_PX = 8f;
 
     /**
      * Compute the distance between each major interval in a timeline header.
@@ -64,10 +64,11 @@ public class TimelineHeader {
      * @param length         Total length of the scene (ms)
      * @param playhead       Current playhead position (ms). Updated as the user scrubs.
      * @param windowHeight   Vertical height of the editor (pixels). Used for drawing the playhead line.
+     * @param keys           Every frame that has a keyframe on it
      * @param flags          Render flags.
      */
     public void drawHeader(float headerHeight, float zoomFactor, float offsetX, int length,
-                                  @Nullable ImInt playhead, float windowHeight, int flags) {
+                           @Nullable ImInt playhead, float windowHeight, int @Nullable [] keys, int flags) {
         stoppedScrubbing = false;
 
         FloatUnaryOperator msToPixel = ms -> (ms - offsetX) * zoomFactor;
@@ -162,8 +163,22 @@ public class TimelineHeader {
                 if (newPlayhead > length)
                     newPlayhead = length;
 
-                if (hasFlag(TimelineFlags.SNAP_PLAYHEAD, flags)) {
+
+                boolean ctrlPressed = ImGui.getIO().getKeyCtrl();
+                boolean shiftPressed = ImGui.getIO().getKeyShift();
+
+                // If we're inverting or ctrl is pressed, but not both
+                if (hasFlag(TimelineFlags.INVERT_TICK_SNAP, flags) != ctrlPressed) {
                     newPlayhead = Math.round((float) newPlayhead / snapTargetMs) * snapTargetMs;
+                }
+
+                if (keys != null && keys.length > 0 && hasFlag(TimelineFlags.INVERT_KEY_SNAP, flags) != shiftPressed) {
+                    float snapThresholdMs = SNAP_THRESHOLD_PX / zoomFactor;
+                    int closestKeyIDx = getClosestInt(keys, newPlayhead);
+
+                    if (closestKeyIDx >= 0 && Math.abs(keys[closestKeyIDx] - newPlayhead) < snapThresholdMs) {
+                        newPlayhead = keys[closestKeyIDx];
+                    }
                 }
 
                 playhead.set(newPlayhead);
@@ -189,6 +204,26 @@ public class TimelineHeader {
 
             ImGui.endChild();
         }
+    }
+
+    /**
+     * Identify the index of the value item in the int array closest to the specified value
+     *
+     * @param ints The array of integers to test
+     * @param val  The value to test against
+     * @return The index in the array of the closest integer. <code>-1</code> if the array was empty.
+     */
+    private static int getClosestInt(int[] ints, int val) {
+        int idx = -1;
+        int closestAbs = 0;
+        for (int i = 0; i < ints.length; i++) {
+            int abs = Math.abs(ints[i] - val);
+            if (idx < 0 || abs < closestAbs) {
+                closestAbs = abs;
+                idx = i;
+            }
+        }
+        return idx;
     }
 
     private static boolean hasFlag(int flag, int flags) {

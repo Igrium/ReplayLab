@@ -15,6 +15,7 @@ import com.igrium.replaylab.scene.obj.ReplayObject;
 import com.igrium.replaylab.ui.ReplayLabIcons;
 import com.igrium.replaylab.ui.util.ChannelList;
 import com.igrium.replaylab.ui.util.ReplayLabControls;
+import com.igrium.replaylab.ui.util.TimelineFlags;
 import com.igrium.replaylab.ui.util.TimelineHeader;
 import imgui.ImColor;
 import imgui.ImDrawList;
@@ -26,6 +27,8 @@ import imgui.type.ImInt;
 import it.unimi.dsi.fastutil.Pair;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
+import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
+import it.unimi.dsi.fastutil.ints.IntSet;
 import it.unimi.dsi.fastutil.objects.ObjectObjectImmutablePair;
 import lombok.Getter;
 import lombok.Setter;
@@ -232,6 +235,9 @@ public class DopeSheetNew extends UIPanel {
 
         boolean wantStartDragging = false;
 
+        // All keyframes rendered (used for playhead snapping)
+        IntSet keyTimes = new IntOpenHashSet();
+
         /// === MAIN ===
         // We'll manually implement scrolling so keyframe graph can "consume" it.
         ImGui.beginChild("main", ImGui.getContentRegionAvailX(), -1, false, ImGuiWindowFlags.NoScrollWithMouse);
@@ -299,7 +305,11 @@ public class DopeSheetNew extends UIPanel {
                                     selected,
                                     getKeyShape(handleTypes.toArray(Keyframe.HandleType[]::new)));
                             i++;
+
+                            // Add to map of all frames with a keyframe on them (used for header)
+                            keyTimes.add(msEntry.getIntKey());
                         }
+
 
                         if (drawKeyChannel(drawData, rowIndex, (selIdx, button) -> {
                             if (button != 0) return; // TODO: right-click
@@ -623,8 +633,10 @@ public class DopeSheetNew extends UIPanel {
         }
 
         /// === HEADER ===
+
         ImGui.setCursorPos(headerCursorX, headerCursorY);
-        header.drawHeader(headerHeight, zoomFactor, (float) offsetX, scene.getLength(), playhead, graphHeight, 0);
+        header.drawHeader(headerHeight, zoomFactor, (float) offsetX, scene.getLength(), playhead,
+                graphHeight, keyTimes.toIntArray(), TimelineFlags.INVERT_KEY_SNAP);
     }
 
     /**

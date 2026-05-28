@@ -27,17 +27,23 @@ public class TimelineFlags {
     public static final int READONLY_PLAYHEAD = 16;
 
     /**
-     * Snap the playhead to increments of 1 while scrubbing
-     */
-    public static final int SNAP_PLAYHEAD = 32;
-
-    /**
      * Don't draw ticks
      */
-    public static final int NO_TICKS = 64;
+    public static final int NO_TICKS = 32;
 
     /**
      * Don't attempt to merge overlapping keyframes
      */
-    public static final int ALLOW_DUPLICATE_KEYS = 128;
+    public static final int ALLOW_DUPLICATE_KEYS = 64;
+
+    /**
+     * Snap to ticks when the user is NOT holding ctrl
+     */
+    public static final int INVERT_TICK_SNAP = 128;
+
+    /**
+     * Snap to keyframes when the user is NOT holding shift
+     */
+    public static final int INVERT_KEY_SNAP = 256;
+
 }

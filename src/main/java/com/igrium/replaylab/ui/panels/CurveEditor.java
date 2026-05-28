@@ -23,6 +23,8 @@ import imgui.ImVec2;
 import imgui.flag.*;
 import imgui.type.ImBoolean;
 import imgui.type.ImInt;
+import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
+import it.unimi.dsi.fastutil.ints.IntSet;
 import lombok.Getter;
 import lombok.Setter;
 import net.minecraft.util.Identifier;
@@ -293,6 +295,8 @@ public class CurveEditor extends UIPanel {
 
         /// === GRAPH ===
 
+        IntSet keyTimes = new IntOpenHashSet();
+
         if (ImGui.beginChild("keygraph", ImGui.getContentRegionAvailX(), graphHeight, false)) {
             float graphX = ImGui.getCursorScreenPosX();
             float graphY = ImGui.getCursorScreenPosY();
@@ -416,6 +420,8 @@ public class CurveEditor extends UIPanel {
                     if (!chEntry.getValue().isLocked()) {
                         for (int keyIdx = 0; keyIdx < keyArray.length; keyIdx++) {
                             Keyframe key = keyArray[keyIdx];
+                            keyTimes.add(key.getTimeInt());
+
                             boolean cSelected = selectedKeys.isHandleSelected(objName, chEntry.getKey(), keyIdx, 0);
                             boolean lSelected = selectedKeys.isHandleSelected(objName, chEntry.getKey(), keyIdx, 1);
                             boolean rSelected = selectedKeys.isHandleSelected(objName, chEntry.getKey(), keyIdx, 2);
@@ -871,7 +877,7 @@ public class CurveEditor extends UIPanel {
         if (!hasFlag(TimelineFlags.NO_HEADER, flags)) {
             ImGui.setCursorPosX(headerCursorX);
             ImGui.setCursorPosY(headerCursorY);
-            header.drawHeader(headerHeight, zoomFactorX, (float) offsetX, scene.getLength(), playhead, graphHeight, flags);
+            header.drawHeader(headerHeight, zoomFactorX, (float) offsetX, scene.getLength(), playhead, graphHeight, keyTimes.toIntArray(), flags);
         }
 
     }
