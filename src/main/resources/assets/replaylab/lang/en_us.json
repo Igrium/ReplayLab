@@ -20,8 +20,27 @@
   "gui.replaylab.add_key_s" : "Insert Keyframe (Single)",
 
   "gui.replaylab.keybinds": "Keybinds",
-  "gui.replaylab.new_keybind": "> Press a new key <",
+  "gui.replaylab.keybind.new": "> Press a new key <",
+  "gui.replaylab.keybind.reset": "Reset to default",
+  "gui.replaylab.keybind.clear": "Clear binding",
+  "gui.replaylab.keybinds.reset": "Reset All",
+  "gui.replaylab.keybinds.reset_confirm": "Reset all keybinds to default?",
 
   "key.replaylab.undo": "Undo",
-  "key.replaylab.redo": "Redo"
+  "key.replaylab.redo": "Redo",
+
+  "key.replaylab.playpause": "Play/Pause",
+  "key.replaylab.cameraview": "Toggle Camera View",
+
+  "key.replaylab.select_all": "Select All",
+  "key.replaylab.select_none": "Deselect All",
+  "key.replaylab.delete": "Delete Selected",
+  "key.replaylab.add_key": "Insert Keyframe",
+  "key.replaylab.add_key_s": "Insert Keyframe (Single)",
+
+  "key.replaylab.gizmo_all": "Combined Transform Gizmo",
+  "key.replaylab.gizmo_pos": "Translation Gizmo",
+  "key.replaylab.gizmo_rot": "Rotation Gizmo",
+  "key.replaylab.gizmo_scale": "Scale Gizmo"
+
 }

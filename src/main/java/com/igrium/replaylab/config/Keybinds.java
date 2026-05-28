@@ -14,19 +14,19 @@ public class Keybinds {
     private int playPause = ImGuiKey.Space;
     private int cameraView = ImGuiKey.C;
 
-    private int addKey = ImGuiKey.I;
-    private int addKeySingle = ImGuiKey.ModAlt | ImGuiKey.I;
-
     private int selectAll = ImGuiKey.ModCtrl | ImGuiKey.A;
     private int selectNone = ImGuiKey.ModAlt | ImGuiKey.A;
     private int deleteSelected = ImGuiKey.Delete;
 
+    private int addKey = ImGuiKey.I;
+    private int addKeySingle = ImGuiKey.ModAlt | ImGuiKey.I;
+
     private int gizmoAll = ImGuiKey.Q;
     private int gizmoPos = ImGuiKey.W;
     private int gizmoRot = ImGuiKey.E;
-    private int gizmoScale = ImGuiKey.S;
+    private int gizmoScale = ImGuiKey.R;
 
-    public void set(Keybinds other) {
+    public void copyFrom(Keybinds other) {
         this.undo = other.undo;
         this.redo = other.redo;
 
@@ -47,7 +47,7 @@ public class Keybinds {
     }
 
     public void reset() {
-        set(new Keybinds());
+        copyFrom(new Keybinds());
     }
 
     public static int undo() {

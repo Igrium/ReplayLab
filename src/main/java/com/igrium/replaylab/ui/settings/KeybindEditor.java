@@ -32,24 +32,60 @@ public class KeybindEditor {
         if (ImGui.beginTable("Keybinds", 2, ImGuiTableFlags.Borders)) {
             ImGui.tableSetupColumn("Action", ImGuiTableColumnFlags.WidthFixed);
             ImGui.tableSetupColumn("Shortcut", ImGuiTableColumnFlags.WidthStretch);
-            changed |= drawBinding(t("key.replaylab.undo"), current.getUndo(), defBinds.getUndo(), current::setUndo);
-            changed |= drawBinding(t("key.replaylab.redo"), current.getRedo(), defBinds.getRedo(), current::setRedo);
+
+            changed |= drawBinding("key.replaylab.undo", current.getUndo(), defBinds.getUndo(), current::setUndo);
+            changed |= drawBinding("key.replaylab.redo", current.getRedo(), defBinds.getRedo(), current::setRedo);
+
+            ImGui.separator();
+
+            changed |= drawBinding("key.replaylab.playpause", current.getPlayPause(), defBinds.getPlayPause(), current::setPlayPause);
+            changed |= drawBinding("key.replaylab.cameraview", current.getCameraView(), defBinds.getCameraView(), current::setCameraView);
+
+            ImGui.separator();
+
+            changed |= drawBinding("key.replaylab.select_all", current.getSelectAll(), defBinds.getSelectAll(), current::setSelectAll);
+            changed |= drawBinding("key.replaylab.select_none", current.getSelectNone(), defBinds.getSelectNone(), current::setSelectNone);
+            changed |= drawBinding("key.replaylab.delete", current.getDeleteSelected(), defBinds.getDeleteSelected(), current::setDeleteSelected);
+            changed |= drawBinding("key.replaylab.add_key", current.getAddKey(), defBinds.getAddKey(), current::setAddKey);
+            changed |= drawBinding("key.replaylab.add_key_s", current.getAddKeySingle(), defBinds.getAddKeySingle(), current::setAddKeySingle);
+
+            ImGui.separator();
+
+            changed |= drawBinding("key.replaylab.gizmo_all", current.getGizmoAll(), defBinds.getGizmoAll(), current::setGizmoAll);
+            changed |= drawBinding("key.replaylab.gizmo_pos", current.getGizmoPos(), defBinds.getGizmoPos(), current::setGizmoPos);
+            changed |= drawBinding("key.replaylab.gizmo_rot", current.getGizmoRot(), defBinds.getGizmoRot(), current::setGizmoRot);
+            changed |= drawBinding("key.replaylab.gizmo_scale", current.getGizmoScale(), defBinds.getGizmoScale(), current::setGizmoScale);
+
             ImGui.endTable();
         }
+
+        if (ImGui.button(t("gui.replaylab.keybinds.reset"))) {
+            ImGui.openPopup("resetConfirm");
+        }
+
+        if (ImGui.beginPopup("resetConfirm")) {
+            ImGui.text(t("gui.replaylab.keybinds.reset_confirm"));
+            if (ImGui.button(t("gui.ok"))) {
+                current.copyFrom(defBinds);
+                ImGui.closeCurrentPopup();
+            }
+            ImGui.endPopup();
+        }
+
         return changed;
     }
 
-    private boolean drawBinding(String label, int value, int defaultValue, @Nullable IntConsumer onChanged) {
+    private boolean drawBinding(String labelKey, int value, int defaultValue, @Nullable IntConsumer onChanged) {
         boolean changed = false;
         ImGui.tableNextColumn();
         ImGui.alignTextToFramePadding();
-        ImGui.text(Language.getInstance().get(label));
+        ImGui.text(t(labelKey));
 
         ImGui.tableNextColumn();
         ImGui.setNextItemWidth(ImGui.getContentRegionAvailX());
-        if (label.equals(currentlyEditing)) {
+        if (labelKey.equals(currentlyEditing)) {
             // If we're currently editing this binding
-            ImGui.button(Language.getInstance().get("gui.replaylab.new_keybind") + "###" + label, -1, 0);
+            ImGui.button(t("gui.replaylab.keybind.new") + "###" + labelKey, -1, 0);
 
             int newKey = -1;
             // Iterate through valid ImGui keys to see what was pressed
@@ -84,11 +120,17 @@ public class KeybindEditor {
             }
             btnText.append(ShortcutUtils.getKeyName(key));
 
-            if (ImGui.button(btnText + "###" + label, -1, 0)) {
-                currentlyEditing = label; // Switch into edit mode
+            if (ImGui.button(btnText + "###" + labelKey, -1, 0)) {
+                currentlyEditing = labelKey; // Switch into edit mode
             }
 
-
+            if (onChanged != null && ImGui.beginPopupContextItem()) {
+                if (ImGui.menuItem(t("gui.replaylab.keybind.reset"))) {
+                    onChanged.accept(defaultValue);
+                    changed = true;
+                }
+                ImGui.endPopup();
+            }
         }
         return changed;
     }

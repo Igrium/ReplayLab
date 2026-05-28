@@ -18,8 +18,8 @@ public class SettingsWindow extends UIModal {
     public SettingsWindow(Identifier id) {
         super(id);
 
-        setDefaultWidth(400);
-        setDefaultHeight(300);
+        setDefaultWidth(640);
+        setDefaultHeight(480);
     }
 
     @Override
