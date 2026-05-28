@@ -188,27 +188,23 @@ public class ReplayLabUI extends DockSpaceApp {
 
             // Gizmo hotkeys (industry standard)
             if (ImGui.shortcut(Keybinds.gizmoAll())) {
-                editorState.showGizmoPos(true);
-                editorState.showGizmoRot(true);
-                editorState.showGizmoScale(true);
+                editorState.toggleGizmos(true, true, true);
             }
 
             if (ImGui.shortcut(Keybinds.gizmoPos())) {
-                editorState.showGizmoPos(true);
-                editorState.showGizmoRot(false);
-                editorState.showGizmoScale(false);
+                editorState.toggleGizmos(true, false, false);
             }
 
             if (ImGui.shortcut(Keybinds.gizmoRot())) {
-                editorState.showGizmoPos(false);
-                editorState.showGizmoRot(true);
-                editorState.showGizmoScale(false);
+                editorState.toggleGizmos(false, true, false);
             }
 
             if (ImGui.shortcut(Keybinds.gizmoScale())) {
-                editorState.showGizmoPos(false);
-                editorState.showGizmoRot(false);
-                editorState.showGizmoScale(true);
+                editorState.toggleGizmos(false, false, true);
+            }
+
+            if (ImGui.shortcut(Keybinds.localTransforms())) {
+                editorState.setLocalGizmos(!editorState.isLocalGizmos());
             }
 
             GizmoRenderer.drawGizmos(editorState, getViewportBounds());
@@ -551,10 +547,5 @@ public class ReplayLabUI extends DockSpaceApp {
 
     private static ReplayHandler getReplayHandler() {
         return ReplayModReplay.instance.getReplayHandler();
-    }
-
-    private static boolean isCtrlPressed() {
-        var io = ImGui.getIO();
-        return MinecraftClient.IS_SYSTEM_MAC ? io.getKeySuper() : io.getKeyCtrl();
     }
 }

@@ -16,10 +16,10 @@ import java.util.function.IntConsumer;
 public final class ShortcutUtils {
     public static final Map<Integer, String> MOD_NAMES = ImmutableMap.of(
             ImGuiKey.ImGuiMod_None, "key.keyboard.unknown",
-            ImGuiKey.ImGuiMod_Ctrl, "key.keyboard.left.control",
-            ImGuiKey.ImGuiMod_Shift, "key.keyboard.left.shift",
-            ImGuiKey.ImGuiMod_Alt, "key.keyboard.left.alt",
-            ImGuiKey.ImGuiMod_Super, "key.keyboard.left.win"
+            ImGuiKey.ImGuiMod_Ctrl, "key.shortcut.ctrl",
+            ImGuiKey.ImGuiMod_Shift, "key.shortcut.shift",
+            ImGuiKey.ImGuiMod_Alt, "key.shortcut.alt",
+            ImGuiKey.ImGuiMod_Super, "key.shortcut.win"
     );
 
     public static String getModName(int modCode) {

@@ -228,6 +228,24 @@ public class EditorState {
         }
     }
 
+    /**
+     * Toggles the visibility of position, rotation, and scale gizmos.
+     * <p>
+     * If the requested gizmo configuration matches the current state, all gizmos are hidden.
+     * Otherwise, the specified gizmos are shown and others are hidden.
+     *
+     * @param pos   whether to show the position gizmo
+     * @param rot   whether to show the rotation gizmo
+     * @param scale whether to show the scale gizmo
+     */
+    public void toggleGizmos(boolean pos, boolean rot, boolean scale) {
+        boolean turnOff = pos == showGizmoPos && rot == showGizmoRot && scale == showGizmoScale;
+
+        showGizmoPos = pos && !turnOff;
+        showGizmoRot = rot && !turnOff;
+        showGizmoScale = scale && !turnOff;
+    }
+
     /// ===== Scene Management =====
 
     public ReplayScene newScene(String sceneName) {

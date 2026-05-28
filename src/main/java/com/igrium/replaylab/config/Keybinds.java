@@ -21,6 +21,7 @@ public class Keybinds {
     private int addKey = ImGuiKey.I;
     private int addKeySingle = ImGuiKey.ModAlt | ImGuiKey.I;
 
+    private int localTransforms = ImGuiKey.Tab;
     private int gizmoAll = ImGuiKey.Q;
     private int gizmoPos = ImGuiKey.W;
     private int gizmoRot = ImGuiKey.E;
@@ -40,6 +41,7 @@ public class Keybinds {
         this.selectNone = other.selectNone;
         this.deleteSelected = other.deleteSelected;
 
+        this.localTransforms = other.localTransforms;
         this.gizmoAll = other.gizmoAll;
         this.gizmoPos = other.gizmoPos;
         this.gizmoRot = other.gizmoRot;
@@ -84,6 +86,10 @@ public class Keybinds {
 
     public static int deleteSelected() {
         return ReplayLabConfig.getInstance().getKeybinds().getDeleteSelected();
+    }
+
+    public static int localTransforms() {
+        return ReplayLabConfig.getInstance().getKeybinds().getLocalTransforms();
     }
 
     public static int gizmoAll() {

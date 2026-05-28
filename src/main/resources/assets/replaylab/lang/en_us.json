@@ -38,9 +38,14 @@
   "key.replaylab.add_key": "Insert Keyframe",
   "key.replaylab.add_key_s": "Insert Keyframe (Single)",
 
+  "key.replaylab.local_transforms": "Toggle Local Transform Mode",
   "key.replaylab.gizmo_all": "Combined Transform Gizmo",
   "key.replaylab.gizmo_pos": "Translation Gizmo",
   "key.replaylab.gizmo_rot": "Rotation Gizmo",
-  "key.replaylab.gizmo_scale": "Scale Gizmo"
+  "key.replaylab.gizmo_scale": "Scale Gizmo",
 
+  "key.shortcut.ctrl": "Ctrl",
+  "key.shortcut.shift": "Shift",
+  "key.shortcut.alt": "Alt",
+  "key.shortcut.win": "Win"
 }

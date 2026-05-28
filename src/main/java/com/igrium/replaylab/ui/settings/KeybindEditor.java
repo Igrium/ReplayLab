@@ -51,6 +51,7 @@ public class KeybindEditor {
 
             ImGui.separator();
 
+            changed |= drawBinding("key.replaylab.local_transforms", current.getLocalTransforms(), defBinds.getLocalTransforms(), current::setLocalTransforms);
             changed |= drawBinding("key.replaylab.gizmo_all", current.getGizmoAll(), defBinds.getGizmoAll(), current::setGizmoAll);
             changed |= drawBinding("key.replaylab.gizmo_pos", current.getGizmoPos(), defBinds.getGizmoPos(), current::setGizmoPos);
             changed |= drawBinding("key.replaylab.gizmo_rot", current.getGizmoRot(), defBinds.getGizmoRot(), current::setGizmoRot);
@@ -68,6 +69,7 @@ public class KeybindEditor {
             if (ImGui.button(t("gui.ok"))) {
                 current.copyFrom(defBinds);
                 ImGui.closeCurrentPopup();
+                changed = true;
             }
             ImGui.endPopup();
         }
