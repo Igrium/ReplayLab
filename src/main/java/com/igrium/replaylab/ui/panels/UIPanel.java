@@ -87,8 +87,17 @@ public abstract class UIPanel {
             editorState.togglePlayback();
         }
 
+        if (ImGui.shortcut(Keybinds.sceneStart())) {
+            editorState.jumpSceneStart();
+        }
+
+        if (ImGui.shortcut(Keybinds.sceneEnd())) {
+            editorState.jumpSceneEnd();
+        }
+
         if (ImGui.shortcut(Keybinds.cameraView())) {
             editorState.setCameraView(!editorState.isCameraView());
         }
+
     }
 }

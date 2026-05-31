@@ -43,6 +43,13 @@ public class KeybindEditor {
 
             ImGui.separator();
 
+            changed |= drawBinding("key.replaylab.scene_start", current.getSceneStart(), defBinds.getSceneStart(), current::setSceneStart);
+            changed |= drawBinding("key.replaylab.scene_end", current.getSceneEnd(), defBinds.getSceneEnd(), current::setSceneEnd);
+            changed |= drawBinding("key.replaylab.prev_key", current.getPrevKey(), defBinds.getPrevKey(), current::setPrevKey);
+            changed |= drawBinding("key.replaylab.next_key", current.getNextKey(), defBinds.getNextKey(), current::setNextKey);
+
+            ImGui.separator();
+
             changed |= drawBinding("key.replaylab.select_all", current.getSelectAll(), defBinds.getSelectAll(), current::setSelectAll);
             changed |= drawBinding("key.replaylab.select_none", current.getSelectNone(), defBinds.getSelectNone(), current::setSelectNone);
             changed |= drawBinding("key.replaylab.delete", current.getDeleteSelected(), defBinds.getDeleteSelected(), current::setDeleteSelected);

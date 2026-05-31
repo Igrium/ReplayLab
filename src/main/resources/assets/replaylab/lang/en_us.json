@@ -32,6 +32,11 @@
   "key.replaylab.playpause": "Play/Pause",
   "key.replaylab.cameraview": "Toggle Camera View",
 
+  "key.replaylab.scene_start": "Scene Start",
+  "key.replaylab.scene_end": "Scene End",
+  "key.replaylab.prev_key": "Previous Keyframe",
+  "key.replaylab.next_key": "Next Keyframe",
+
   "key.replaylab.select_all": "Select All",
   "key.replaylab.select_none": "Deselect All",
   "key.replaylab.delete": "Delete Selected",

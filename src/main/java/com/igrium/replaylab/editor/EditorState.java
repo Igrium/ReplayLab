@@ -467,6 +467,16 @@ public class EditorState {
         wantsTimeJump = false;
     }
 
+    public void jumpSceneStart() {
+        setPlayhead(0);
+        queueTimeJump();
+    }
+
+    public void jumpSceneEnd() {
+        setPlayhead(getScene().getLength());
+        queueTimeJump();
+    }
+
     /// ===== Game Integration =====
 
     /**

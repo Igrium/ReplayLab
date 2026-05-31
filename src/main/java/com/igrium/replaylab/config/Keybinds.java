@@ -27,6 +27,11 @@ public class Keybinds {
     private int gizmoRot = ImGuiKey.E;
     private int gizmoScale = ImGuiKey.R;
 
+    private int sceneStart = ImGuiKey.I;
+    private int sceneEnd = ImGuiKey.O;
+    private int prevKey = ImGuiKey.J;
+    private int nextKey = ImGuiKey.K;
+
     public void copyFrom(Keybinds other) {
         this.undo = other.undo;
         this.redo = other.redo;
@@ -46,6 +51,11 @@ public class Keybinds {
         this.gizmoPos = other.gizmoPos;
         this.gizmoRot = other.gizmoRot;
         this.gizmoScale = other.gizmoScale;
+
+        this.sceneStart = other.sceneStart;
+        this.sceneEnd = other.sceneEnd;
+        this.prevKey = other.prevKey;
+        this.nextKey = other.nextKey;
     }
 
     public void reset() {
@@ -53,58 +63,78 @@ public class Keybinds {
     }
 
     public static int undo() {
-        return ReplayLabConfig.getInstance().getKeybinds().getUndo();
+        return getKeybinds().getUndo();
     }
 
     public static int redo() {
-        return ReplayLabConfig.getInstance().getKeybinds().getRedo();
+        return getKeybinds().getRedo();
     }
 
     public static int playPause() {
-        return ReplayLabConfig.getInstance().getKeybinds().getPlayPause();
+        return getKeybinds().getPlayPause();
     }
 
     public static int cameraView() {
-        return ReplayLabConfig.getInstance().getKeybinds().getCameraView();
+        return getKeybinds().getCameraView();
     }
 
     public static int addKey() {
-        return ReplayLabConfig.getInstance().getKeybinds().getAddKey();
+        return getKeybinds().getAddKey();
     }
 
     public static int addKeySingle() {
-        return ReplayLabConfig.getInstance().getKeybinds().getAddKeySingle();
+        return getKeybinds().getAddKeySingle();
     }
 
     public static int selectAll() {
-        return ReplayLabConfig.getInstance().getKeybinds().getSelectAll();
+        return getKeybinds().getSelectAll();
     }
 
     public static int selectNone() {
-        return ReplayLabConfig.getInstance().getKeybinds().getSelectNone();
+        return getKeybinds().getSelectNone();
     }
 
     public static int deleteSelected() {
-        return ReplayLabConfig.getInstance().getKeybinds().getDeleteSelected();
+        return getKeybinds().getDeleteSelected();
     }
 
     public static int localTransforms() {
-        return ReplayLabConfig.getInstance().getKeybinds().getLocalTransforms();
+        return getKeybinds().getLocalTransforms();
     }
 
     public static int gizmoAll() {
-        return ReplayLabConfig.getInstance().getKeybinds().getGizmoAll();
+        return getKeybinds().getGizmoAll();
     }
 
     public static int gizmoPos() {
-        return ReplayLabConfig.getInstance().getKeybinds().getGizmoPos();
+        return getKeybinds().getGizmoPos();
     }
 
     public static int gizmoRot() {
-        return ReplayLabConfig.getInstance().getKeybinds().getGizmoRot();
+        return getKeybinds().getGizmoRot();
     }
 
     public static int gizmoScale() {
-        return ReplayLabConfig.getInstance().getKeybinds().getGizmoScale();
+        return getKeybinds().getGizmoScale();
+    }
+
+    public static int sceneStart() {
+        return getKeybinds().getSceneStart();
+    }
+
+    public static int sceneEnd() {
+        return getKeybinds().getSceneEnd();
+    }
+
+    public static int prevKey() {
+        return getKeybinds().getPrevKey();
+    }
+
+    public static int nextKey() {
+        return getKeybinds().getNextKey();
+    }
+
+    private static Keybinds getKeybinds() {
+        return ReplayLabConfig.getInstance().getKeybinds();
     }
 }
