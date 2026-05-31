@@ -170,6 +170,12 @@ public class EditorState {
         this.scene.setExceptionCallback(null);
         this.scene = scene;
         this.scene.setExceptionCallback(this::onException);
+        if (getPlayhead() < scene.getStartTime()) {
+            setPlayhead(scene.getStartTime());
+            queueTimeJump();
+        } else if (getPlayhead() >= scene.getEndTime()) {
+            setPlayhead(scene.getEndTime() - 1);
+        }
     }
 
     public void setScene(@NonNull ReplayScene scene, String sceneName) {

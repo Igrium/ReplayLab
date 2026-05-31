@@ -546,8 +546,8 @@ public class CurveEditor extends UIPanel {
             /// === OUT-OF-BOUNDS GRAYOUT
 
             {
-                float pixelIn = msToPixelX(0);
-                float pixelOut = msToPixelX(scene.getLength());
+                float pixelIn = msToPixelX(scene.getStartTime());
+                float pixelOut = msToPixelX(scene.getEndTime());
 
                 if (pixelIn > 0) {
                     float pixelInGlobal = pixelIn + graphX;

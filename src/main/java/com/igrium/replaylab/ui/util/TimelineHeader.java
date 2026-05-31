@@ -68,7 +68,8 @@ public class TimelineHeader {
      * @param flags          Render flags.
      */
     public void drawHeader(float headerHeight, float zoomFactor, float offsetX, int length,
-                           @Nullable ImInt playhead, float windowHeight, int @Nullable [] keys, int flags) {
+                           @Nullable ImInt playhead, float windowHeight, int @Nullable [] keys,
+                           int sceneStart, int sceneEnd, int flags) {
         stoppedScrubbing = false;
 
         FloatUnaryOperator msToPixel = ms -> (ms - offsetX) * zoomFactor;
@@ -156,9 +157,6 @@ public class TimelineHeader {
 
             if (scrubbing) {
                 int newPlayhead = (int) pixelToMs.apply(ImGui.getMousePosX() - cursorX);
-
-                if (newPlayhead < 0)
-                    newPlayhead = 0;
 
                 if (newPlayhead > length)
                     newPlayhead = length;

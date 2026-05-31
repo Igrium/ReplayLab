@@ -16,6 +16,7 @@ import imgui.type.ImFloat;
 import imgui.type.ImInt;
 import lombok.Getter;
 import lombok.Setter;
+import net.minecraft.util.Language;
 import org.apache.commons.lang3.mutable.Mutable;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
@@ -31,11 +32,15 @@ public final class ScenePropsObject extends ReplayObject {
     @Getter @Setter @Nullable
     private String cameraObject;
 
+
     @Getter
     private int startTime;
 
     @Getter
-    private int length = 10000; // 10 seconds default
+    private int endTime = 10000; // 10 seconds
+
+//    @Getter
+//    private int length = 10000; // 10 seconds default
 
     @Getter
     private float fps = 24f;
@@ -60,10 +65,16 @@ public final class ScenePropsObject extends ReplayObject {
 
     public void setStartTime(int startTime) {
         this.startTime = Math.max(startTime, 0);
+        if (endTime < this.startTime) endTime = this.startTime;
     }
 
-    public void setLength(int length) {
-        this.length = Math.max(length, 0);
+    public void setEndTime(int endTime) {
+        this.endTime = Math.max(endTime, 0);
+        if (this.endTime < startTime) startTime = this.endTime;
+    }
+
+    public int getLength() {
+        return endTime - startTime;
     }
 
     public void setFps(float fps) {
@@ -107,8 +118,8 @@ public final class ScenePropsObject extends ReplayObject {
         if (json.has("startTime")) {
             setStartTime(json.getAsJsonPrimitive("startTime").getAsInt());
         }
-        if (json.has("length")) {
-            setLength(json.getAsJsonPrimitive("length").getAsInt());
+        if (json.has("endTime")) {
+            setEndTime(json.getAsJsonPrimitive("endTime").getAsInt());
         }
         if (json.has("fps")) {
             setFps(json.getAsJsonPrimitive("fps").getAsInt());
@@ -129,7 +140,7 @@ public final class ScenePropsObject extends ReplayObject {
     protected void writeJson(JsonObject json, JsonSerializationContext context) {
         json.addProperty("cameraObject", getCameraObject());
         json.addProperty("startTime", getStartTime());
-        json.addProperty("length", getLength());
+        json.addProperty("endTime", getEndTime());
         json.addProperty("fps", getFps());
         json.addProperty("resolutionX", getResolutionX());
         json.addProperty("resolutionY", getResolutionY());
@@ -139,13 +150,13 @@ public final class ScenePropsObject extends ReplayObject {
 
     private final Mutable<String> cameraObjectInput = new SimpleMutable<>();
     private final ImInt startTimeInput = new ImInt();
-    private final ImInt lengthInput = new ImInt();
+    private final ImInt endTimeInput = new ImInt();
     private final ImFloat fpsInput = new ImFloat();
 
     boolean editingRes = false;
     final int[] resInput = new int[2];
     boolean editingStartTime = false;
-    boolean editingLength = false;
+    boolean editingEndTime = false;
     boolean editingFps = false;
 
     @Override
@@ -153,12 +164,13 @@ public final class ScenePropsObject extends ReplayObject {
 
         boolean modified = false;
 
+        // RESOLUTION
         if (!editingRes) {
             resInput[0] = getResolutionX();
             resInput[1] = getResolutionY();
         }
 
-        if (ImGui.inputInt2("Resolution", resInput)) {
+        if (ImGui.inputInt2(t("gui.replaylab.res"), resInput)) {
             editingRes = true;
             if (resInput[0] < 2)
                 resInput[0] = 2;
@@ -171,8 +183,9 @@ public final class ScenePropsObject extends ReplayObject {
             editingRes = false;
         }
 
+        // FPS
         fpsInput.set(fps);
-        if (ImGui.inputFloat("FPS", fpsInput)) {
+        if (ImGui.inputFloat(t("gui.replaylab.fps"), fpsInput)) {
             editingFps = true;
         }
         setFps(fpsInput.get());
@@ -182,41 +195,49 @@ public final class ScenePropsObject extends ReplayObject {
             modified = true;
         }
 
+        // CAMERA OBJECT
         cameraObjectInput.setValue(cameraObject);
-        if (ReplayLabControls.objectSelector("Camera Object", cameraObjectInput,
+        if (ReplayLabControls.objectSelector(t("gui.replaylab.camobj"), cameraObjectInput,
                 obj -> obj instanceof EntityObject<?>, getScene().getObjects())) {
             modified = true;
             setCameraObject(cameraObjectInput.getValue());
         }
 
-        startTimeInput.set(startTime);
-        if (ImGui.inputInt("Start Time", startTimeInput)) {
+        // START TIME
+        if (!editingStartTime) {
+            startTimeInput.set(startTime);
+        }
+
+        if (ImGui.inputInt(t("gui.replaylab.starttime"), startTimeInput)) {
             editingStartTime = true;
         }
-        startTime = startTimeInput.get();
-        if (startTime < 0)
-            startTime = 0;
 
         if (editingStartTime && !ImGui.isItemActive()) {
+            setStartTime(startTimeInput.get());
             editingStartTime = false;
             modified = true;
         }
 
-        lengthInput.set(length);
-        if (ImGui.inputInt("Length (ms)", lengthInput)) {
-            editingLength = true;
-        }
-        length = lengthInput.get();
-        if (length < 0) {
-            length = 0;
+        // END TIME
+        if (!editingEndTime) {
+            endTimeInput.set(endTime);
         }
 
-        if (editingLength && !ImGui.isItemActive()) {
-            editingLength = false;
+        if (ImGui.inputInt(t("gui.replaylab.endtime"), endTimeInput)) {
+            editingEndTime = true;
+        }
+
+        if (editingEndTime && !ImGui.isItemActive()) {
+            setEndTime(endTimeInput.get());
+            editingEndTime = false;
             modified = true;
         }
 
-
         return modified ? PropertiesPanelState.COMMIT : PropertiesPanelState.NONE;
     }
+
+    private static String t(String key) {
+        return Language.getInstance().get(key);
+    }
+
 }

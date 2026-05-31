@@ -67,6 +67,10 @@ public class ReplayScene {
         return sceneProps;
     }
 
+    /**
+     * Get the length of the scene
+     * @return Scene length (ms)
+     */
     public int getLength() {
         return getSceneProps().getLength();
     }
@@ -77,6 +81,30 @@ public class ReplayScene {
      */
     public int getStartTime() {
         return getSceneProps().getStartTime();
+    }
+
+    /**
+     * Set the time in the replay where the scene starts.
+     * @param startTime New global start time (ms)
+     */
+    public void setStartTime(int startTime) {
+        getSceneProps().setStartTime(startTime);
+    }
+
+    /**
+     * Get the time in the replay where the scene ends.
+     * @return Global replay end time (ms)
+     */
+    public int getEndTime() {
+        return getSceneProps().getEndTime();
+    }
+
+    /**
+     * Set the time in the replay where the scene ends.
+     * @param endTime Global replay end time (ms)
+     */
+    public void setEndTime(int endTime) {
+        getSceneProps().setEndTime(endTime);
     }
 
     /**

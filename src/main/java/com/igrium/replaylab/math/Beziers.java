@@ -64,7 +64,7 @@ public class Beziers {
     public static double intersectX(Bezier2dc bezier, double xSample) {
         // Initial guess assumes a linear mapping
         double t = (xSample - bezier.p0x()) / (bezier.p3x() - bezier.p0x());
-        t = Math.max(0.0, Math.min(1.0, t)); // Clamp to [0, 1]
+        t = Math.clamp(t, 0.0, 1.0); // Clamp to [0, 1]
 
         // Newton-Raphson iterations
         final int MAX_ITER = 7;
@@ -82,7 +82,7 @@ public class Beziers {
                 break;
             }
             t -= err / dbx;
-            t = Math.max(0.0, Math.min(1.0, t));
+            t = Math.clamp(t, 0.0, 1.0);
         }
         return t;
     }

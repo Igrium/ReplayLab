@@ -19,6 +19,17 @@
   "gui.replaylab.add_key": "Insert Keyframe",
   "gui.replaylab.add_key_s" : "Insert Keyframe (Single)",
 
+  "gui.replaylab.sceneStart": "Scene Start",
+  "gui.replaylab.prevKey": "Previous Keyframe",
+  "gui.replaylab.nextKey": "Next Keyframe",
+  "gui.replaylab.sceneEnd": "Scene End",
+
+  "gui.replaylab.res": "Resolution",
+  "gui.replaylab.fps": "Frame Rate",
+  "gui.replaylab.camobj": "Camera Object",
+  "gui.replaylab.starttime": "Start Time (ms)",
+  "gui.replaylab.endtime": "End Time (ms)",
+
   "gui.replaylab.keybinds": "Keybinds",
   "gui.replaylab.keybind.new": "> Press a new key <",
   "gui.replaylab.keybind.reset": "Reset to default",
@@ -38,7 +49,7 @@
   "key.replaylab.add_key": "Insert Keyframe",
   "key.replaylab.add_key_s": "Insert Keyframe (Single)",
 
-  "key.replaylab.local_transforms": "Toggle Local Transform Mode",
+  "key.replaylab.local_transforms": "Toggle Local Transforms",
   "key.replaylab.gizmo_all": "Combined Transform Gizmo",
   "key.replaylab.gizmo_pos": "Translation Gizmo",
   "key.replaylab.gizmo_rot": "Rotation Gizmo",

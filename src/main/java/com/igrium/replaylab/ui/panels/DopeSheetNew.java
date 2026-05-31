@@ -379,9 +379,8 @@ public class DopeSheetNew extends UIPanel {
 
                 /// === OUT-OF-BOUNDS GRAYOUT ===
                 {
-                    // TODO: respect scene in point
-                    float pixelIn = msToPixelX(0);
-                    float pixelOut = msToPixelX(scene.getLength());
+                    float pixelIn = msToPixelX(scene.getStartTime());
+                    float pixelOut = msToPixelX(scene.getEndTime());
 
                     if (pixelIn > 0) {
                         float pixelInGlobal = pixelIn + graphX;
