@@ -3,7 +3,10 @@ package com.igrium.replaylab.scene.obj;
 import com.google.gson.JsonDeserializationContext;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonSerializationContext;
+import com.igrium.replaylab.config.ReplayLabConfig;
 import com.igrium.replaylab.editor.EditorState;
+import com.igrium.replaylab.math.RotationHolder;
+import com.igrium.replaylab.math.RotationHolder.RotationMode;
 import com.igrium.replaylab.math.Transform3;
 import com.igrium.replaylab.scene.ReplayScene;
 import com.igrium.replaylab.ui.util.PropertyWidgets;
@@ -11,7 +14,6 @@ import com.igrium.replaylab.util.JsonUtils;
 import imgui.ImGui;
 import imgui.type.ImBoolean;
 import lombok.Getter;
-import lombok.Setter;
 import lombok.experimental.Accessors;
 import net.minecraft.util.Language;
 import org.joml.*;
@@ -19,12 +21,8 @@ import org.joml.*;
 /**
  * An object with a 3-dimensional transform
  */
+@Accessors(fluent = true)
 public abstract class ReplayObject3D extends ReplayObject implements TransformProvider {
-
-    public enum RotationMode {
-        QUATERNION,
-        EULER_YXZ
-    }
 
     private static final String POS_X = "posX";
     private static final String POS_Y = "posY";
@@ -43,25 +41,25 @@ public abstract class ReplayObject3D extends ReplayObject implements TransformPr
     private static final String SCALE_Y = "scaleY";
     private static final String SCALE_Z = "scaleZ";
 
-    @Getter @Accessors(fluent = true)
-    private boolean supportsPos = true;
+    @Getter
+    private boolean hasPos = true;
 
-    protected void setSupportsPos(boolean supportsPos) {
-        this.supportsPos = supportsPos;
+    protected void setHasPos(boolean hasPos) {
+        this.hasPos = hasPos;
     }
 
-    @Getter @Accessors(fluent = true)
-    private boolean supportsRot = true;
+    @Getter
+    private boolean hasRot = true;
 
-    protected void setSupportsRot(boolean supportsRot) {
-        this.supportsRot = supportsRot;
+    protected void setHasRot(boolean hasRot) {
+        this.hasRot = hasRot;
     }
 
-    @Getter @Accessors(fluent = true)
-    private boolean supportsScale = false;
+    @Getter
+    private boolean hasScale = false;
 
-    protected void setSupportsScale(boolean supportsScale) {
-        this.supportsScale = supportsScale;
+    protected void setHasScale(boolean hasScale) {
+        this.hasScale = hasScale;
     }
 
     /**
@@ -71,16 +69,10 @@ public abstract class ReplayObject3D extends ReplayObject implements TransformPr
     private final Vector3d position = new Vector3d();
 
     /**
-     * The quaternion rotation of this object (mutable)
+     * The rotation of this object (mutable)
      */
     @Getter
-    private final Quaternionf rotationQuat = new Quaternionf();
-
-    /**
-     * The euler rotation of this object in radians (mutable)
-     */
-    @Getter
-    private final Vector3f rotationEuler = new Vector3f();
+    private final RotationHolder rotation = new RotationHolder();
 
     /**
      * The XYZ scale of this object (mutable)
@@ -88,54 +80,50 @@ public abstract class ReplayObject3D extends ReplayObject implements TransformPr
     @Getter
     private final Vector3f scale = new Vector3f(1);
 
-    @Getter @Setter
-    private RotationMode rotationMode = RotationMode.QUATERNION;
-
     public ReplayObject3D(ReplayObjectType<?> type, ReplayScene scene) {
         super(type, scene);
+
+        // Will get overwritten during deserialization
+        setRotationMode(ReplayLabConfig.getInstance().getDefaultRotMode());
 
         addProperty(POS_X, position::x, v -> position.x = v);
         addProperty(POS_Y, position::y, v -> position.y = v);
         addProperty(POS_Z, position::z, v -> position.z = v);
 
-        addProperty(ROT_QUAT_W, rotationQuat::w, v -> rotationQuat.w = (float) v);
-        addProperty(ROT_QUAT_X, rotationQuat::x, v -> rotationQuat.x = (float) v);
-        addProperty(ROT_QUAT_Y, rotationQuat::y, v -> rotationQuat.y = (float) v);
-        addProperty(ROT_QUAT_Z, rotationQuat::z, v -> rotationQuat.z = (float) v);
+        addProperty(ROT_QUAT_W, rotation.quaternion()::w, v -> rotation.quaternion().w = (float) v);
+        addProperty(ROT_QUAT_X, rotation.quaternion()::x, v -> rotation.quaternion().x = (float) v);
+        addProperty(ROT_QUAT_Y, rotation.quaternion()::y, v -> rotation.quaternion().y = (float) v);
+        addProperty(ROT_QUAT_Z, rotation.quaternion()::z, v -> rotation.quaternion().z = (float) v);
 
-        addProperty(ROT_EULER_X, rotationEuler::x, v -> rotationEuler.x = (float) v);
-        addProperty(ROT_EULER_Y, rotationEuler::y, v -> rotationEuler.y = (float) v);
-        addProperty(ROT_EULER_Z, rotationEuler::z, v -> rotationEuler.z = (float) v);
+        addProperty(ROT_EULER_X, rotation.euler()::x, v -> rotation.euler().x = (float) v);
+        addProperty(ROT_EULER_Y, rotation.euler()::y, v -> rotation.euler().y = (float) v);
+        addProperty(ROT_EULER_Z, rotation.euler()::z, v -> rotation.euler().z = (float) v);
 
         addProperty(SCALE_X, scale::x, v -> scale.x = (float) v);
         addProperty(SCALE_Y, scale::y, v -> scale.y = (float) v);
         addProperty(SCALE_Z, scale::z, v -> scale.z = (float) v);
+
     }
 
-
-    @Override
-    public Transform3 getTransform(Transform3 dest) {
-        return getBaseTransform(dest);
+    public RotationMode getRotationMode() {
+        return rotation.mode();
     }
 
-    public final Transform3 getBaseTransform(Transform3 dest) {
+    public void setRotationMode(RotationMode mode) {
+        rotation.setMode(mode);
+    }
+
+    public final Transform3 getBaseTransform3(Transform3 dest) {
         dest.identity();
-        if (supportsPos) {
+        if (hasPos()) {
             dest.pos().set(position);
         }
 
-        if (supportsRot) {
-            switch (rotationMode) {
-                case QUATERNION -> dest.rotate(rotationQuat);
-                // Joml uses right-handed coordinates
-                case EULER_YXZ -> dest.rotate(new Quaternionf().rotateYXZ(
-                        -rotationEuler.y,
-                        rotationEuler.x,
-                        rotationEuler.z));
-            }
+        if (hasRot()) {
+            dest.rotate(rotation.getQuaternion(new Quaternionf()));
         }
 
-        if (supportsScale) {
+        if (hasScale()) {
             dest.scale(scale);
         }
 
@@ -143,54 +131,11 @@ public abstract class ReplayObject3D extends ReplayObject implements TransformPr
     }
 
     @Override
-    protected void writeJson(JsonObject json, JsonSerializationContext context) {
-        if (supportsPos) {
-            json.add("position", JsonUtils.writeJsonVec(position));
-        }
-        if (supportsRot) {
-            json.add("rotation_quat", JsonUtils.writeJsonQuat(rotationQuat));
-            json.add("rotation_euler", JsonUtils.writeJsonVec(rotationEuler));
-        }
-        if (supportsScale) {
-            json.add("scale", JsonUtils.writeJsonVec(scale));
-        }
-
-        json.addProperty("rotationMode", rotationMode.name());
-    }
-
-    @Override
-    protected void readJson(JsonObject json, JsonDeserializationContext context) {
-        if (json.has("position")) {
-            JsonUtils.readJsonVec(json.getAsJsonArray("position"), position);
-        } else {
-            position.set(0);
-        }
-
-        if (json.has("rotation_quat")) {
-            JsonUtils.readJsonQuat(json.getAsJsonArray("rotation_quat"), rotationQuat);
-        } else {
-            rotationQuat.identity();
-        }
-
-        if (json.has("rotation_euler")) {
-            JsonUtils.readJsonVec(json.getAsJsonArray("rotation_euler"), rotationEuler);
-        } else {
-            rotationEuler.set(0);
-        }
-
-        if (json.has("scale")) {
-            JsonUtils.readJsonVec(json.getAsJsonArray("scale"), scale);
-        } else {
-            scale.set(1);
-        }
-
-        if (json.has("rotationMode")) {
-            setRotationMode(RotationMode.valueOf(json.getAsJsonPrimitive("rotationMode").getAsString()));
-        }
+    public Transform3 getTransform(Transform3 dest) {
+        return getBaseTransform3(dest);
     }
 
     boolean startedDragging = false;
-
     private final ImBoolean tmpBool = new ImBoolean();
 
     @Override
@@ -198,22 +143,23 @@ public abstract class ReplayObject3D extends ReplayObject implements TransformPr
         int pHead = editor.getPlayhead();
         boolean modified = false;
 
-        modified |= supportsPos && dragFloatN("Position", .125f, pHead, POS_X, POS_Y, POS_Z);
-        if (rotationMode == RotationMode.QUATERNION) {
-            modified |= supportsRot && dragFloatN("Rotation", 1, pHead, ROT_QUAT_W, ROT_QUAT_X, ROT_QUAT_Y, ROT_QUAT_Z);
+        modified |= hasPos && dragFloatN("Position", .125f, pHead, POS_X, POS_Y, POS_Z);
+
+        if (getRotationMode() == RotationMode.QUATERNION) {
+            modified |= hasRot && dragFloatN("Rotation", 1, pHead, ROT_QUAT_W, ROT_QUAT_X, ROT_QUAT_Y, ROT_QUAT_Z);
         } else {
-            modified |= supportsRot && dragFloatN("Rotation", 1, pHead, ROT_EULER_X, ROT_EULER_Y, ROT_EULER_Z);
+            modified |= hasRot && dragFloatN("Rotation", 1, pHead, ROT_EULER_X, ROT_EULER_Y, ROT_EULER_Z);
         }
 
-        modified |= supportsScale && dragFloatN("Scale", 1, pHead, SCALE_X, SCALE_Y, SCALE_Z);
+        modified |= hasScale && dragFloatN("Scale", 1, pHead, SCALE_X, SCALE_Y, SCALE_Z);
 
-        if (ImGui.beginCombo("Rotation Mode", rotModeLabel(rotationMode))) {
+        ImGui.separator();
+
+        if (ImGui.beginCombo("Rotation Mode", t(getRotationMode().getLabel()))) {
             for (RotationMode mode : RotationMode.values()) {
-                tmpBool.set(mode == rotationMode);
-
-                if (ImGui.selectable(rotModeLabel(mode), tmpBool)) {
+                if (ImGui.selectable(t(mode.getLabel()), mode == getRotationMode())) {
+                    rotation.setMode(mode, ReplayLabConfig.getInstance().isRotModeConvert());
                     modified = true;
-                    setRotationMode(mode);
                 }
             }
             ImGui.endCombo();
@@ -229,8 +175,55 @@ public abstract class ReplayObject3D extends ReplayObject implements TransformPr
             return PropertiesPanelState.NONE;
         }
 
+    }
 
-//        if (ImGui.beginCombo("Rotation Mode"))
+    @Override
+    protected void writeJson(JsonObject json, JsonSerializationContext context) {
+        if (hasPos()) {
+            json.add("position", JsonUtils.writeJsonVec(position));
+        }
+        if (hasRot()) {
+            // TODO: Do we want to be storing the value of the unused rotation mode?
+            json.add("rotationQuat", JsonUtils.writeJsonQuat(rotation.quaternion()));
+            json.add("rotationEuler", JsonUtils.writeJsonVec(rotation.euler()));
+
+            json.addProperty("rotationMode", rotation.mode().name());
+        }
+        if (hasScale()) {
+            json.add("scale", JsonUtils.writeJsonVec(scale));
+        }
+    }
+
+    @Override
+    protected void readJson(JsonObject json, JsonDeserializationContext context) {
+        if (json.has("position")) {
+            JsonUtils.readJsonVec(json.getAsJsonArray("position"), position);
+        } else {
+            position.set(9);
+        }
+
+        if (json.has("rotationQuat")) {
+            JsonUtils.readJsonQuat(json.getAsJsonArray("rotationQuat"), rotation.quaternion());
+        } else {
+            rotation.quaternion().identity();
+        }
+
+        if (json.has("rotationEuler")) {
+            JsonUtils.readJsonVec(json.getAsJsonArray("rotationEuler"), rotation.euler());
+        } else {
+            rotation.euler().set(0);
+        }
+
+        if (json.has("rotationMode")) {
+            String mode = json.getAsJsonPrimitive("rotationMode").getAsString();
+            rotation.setMode(RotationMode.valueOf(mode), false);
+        } else {
+            rotation.setMode(ReplayLabConfig.getInstance().getDefaultRotMode(), false);
+        }
+
+        if (json.has("scale")) {
+            JsonUtils.readJsonVec(json.getAsJsonArray("scale"), scale);
+        }
     }
 
     // Wrapper to reduce code bloat
@@ -239,7 +232,7 @@ public abstract class ReplayObject3D extends ReplayObject implements TransformPr
         return state.isUpdated() || state.hasNewKey();
     }
 
-    private static String rotModeLabel(RotationMode mode) {
-        return Language.getInstance().get("rot_mode." + mode.name().toLowerCase());
+    private static String t(String key) {
+        return Language.getInstance().get(key) + "###" + key;
     }
 }

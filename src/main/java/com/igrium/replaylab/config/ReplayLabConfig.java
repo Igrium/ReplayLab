@@ -3,6 +3,7 @@ package com.igrium.replaylab.config;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.igrium.replaylab.ReplayLab;
+import com.igrium.replaylab.math.RotationHolder;
 import lombok.Getter;
 import lombok.Setter;
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -46,6 +47,11 @@ public class ReplayLabConfig {
 
 
     private final Keybinds keybinds = new Keybinds();
+
+    // 3D objects
+    private RotationHolder.RotationMode defaultRotMode = RotationHolder.RotationMode.EULER_YXZ;
+    private boolean rotModeConvert = true;
+    private boolean displayDegrees = true;
 
     public synchronized void saveConfig(Path path) throws IOException {
         LOGGER.info("Saving ReplayLab config to {}", path);

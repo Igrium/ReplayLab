@@ -3,6 +3,7 @@ package com.igrium.replaylab.scene.objs;
 import com.igrium.replaylab.ReplayLabEntities;
 import com.igrium.replaylab.camera.AnimatedCameraEntity;
 import com.igrium.replaylab.editor.EditorState;
+import com.igrium.replaylab.math.RotationHolder;
 import com.igrium.replaylab.math.Transform3;
 import com.igrium.replaylab.scene.ReplayScene;
 import com.igrium.replaylab.scene.obj.EntityObject;
@@ -17,6 +18,7 @@ public class CameraObject extends EntityObject<AnimatedCameraEntity> {
 
     public CameraObject(ReplayObjectType<?> type, ReplayScene scene) {
         super(type, scene);
+//        setRotationMode(RotationHolder.RotationMode.QUATERNION); // Cameras use quaternion by default
     }
 //
 //    private final Vector3d posCache = new Vector3d();
