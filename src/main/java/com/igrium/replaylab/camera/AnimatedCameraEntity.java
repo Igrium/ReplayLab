@@ -16,6 +16,7 @@ import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.math.Box;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
+import org.joml.Quaternionf;
 import org.joml.Quaternionfc;
 import org.joml.Vector3dc;
 import org.joml.Vector3f;
@@ -24,12 +25,12 @@ import org.joml.Vector3f;
  * A camera entity designed to be used for fully-animated cameras (not entity spectating)
  * In ReplayLab, RM's CameraEntity has been relegated to the work camera only/
  */
-public class AnimatedCameraEntity extends Entity implements RollProvider, FovProvider {
+public class AnimatedCameraEntity extends Entity implements RollProvider, FovProvider, RotationProvider {
 
     @Getter @Setter
     private float fov;
 
-    @Getter @Setter
+    @Getter @Setter @Deprecated
     private float roll;
 
     @Getter @Setter
@@ -38,11 +39,24 @@ public class AnimatedCameraEntity extends Entity implements RollProvider, FovPro
     @Getter @Setter
     private boolean active;
 
+    @Getter
+    private final Quaternionf rotationQuat = new Quaternionf();
+
     public AnimatedCameraEntity(EntityType<?> type, World world) {
         super(type, world);
         if (!world.isClient) {
             throw new IllegalStateException("Animated camera should never be spawned on the server!");
         }
+    }
+
+    public void setRotationQuat(Quaternionfc rotationQuat) {
+        this.rotationQuat.set(rotationQuat);
+    }
+
+    @Override
+    public Quaternionf getRotationQuat(Quaternionf dest) {
+        this.rotationQuat.get(dest);
+        return dest;
     }
 
     /**

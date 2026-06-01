@@ -380,11 +380,11 @@ public class EditorState {
             // Pilot the camera if cursor is locked
             if (mc.mouse.isCursorLocked() && cameraObj instanceof ReplayObject3D cam3d && player != null) {
                 pilotingCamera = true;
-                cam3d.setPosition(player.getEyePos());
-                cam3d.getRotation().x = player.getPitch();
-                cam3d.getRotation().y = player.getYaw();
-
-                cam3d.apply(getPlayhead());
+//                cam3d.setPosition(player.getEyePos());
+//                cam3d.getRotation().x = player.getPitch();
+//                cam3d.getRotation().y = player.getYaw();
+//
+//                cam3d.apply(getPlayhead());
 
             }
             else if (pilotingCamera && cameraObj != null) {

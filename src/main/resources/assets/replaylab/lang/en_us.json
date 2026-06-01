@@ -52,5 +52,8 @@
   "key.shortcut.ctrl": "Ctrl",
   "key.shortcut.shift": "Shift",
   "key.shortcut.alt": "Alt",
-  "key.shortcut.win": "Win"
+  "key.shortcut.win": "Win",
+
+  "rot_mode.quaternion": "Quaternion",
+  "rot_mode.euler_yxz": "YXZ Euler"
 }

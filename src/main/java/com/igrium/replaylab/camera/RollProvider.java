@@ -3,6 +3,7 @@ package com.igrium.replaylab.camera;
 /**
  * An entity that can provide a roll value for the camera.
  */
+@Deprecated
 public interface RollProvider {
 
     /**

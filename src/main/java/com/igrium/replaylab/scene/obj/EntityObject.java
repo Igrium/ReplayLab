@@ -38,20 +38,20 @@ public abstract class EntityObject<T extends Entity> extends ReplayObject3D impl
         return entity;
     }
 
-    @Override
-    protected boolean hasPosition() {
-        return true;
-    }
-
-    @Override
-    protected boolean hasRotation() {
-        return true;
-    }
-
-    @Override
-    protected boolean hasScale() {
-        return false;
-    }
+//    @Override
+//    protected boolean hasPosition() {
+//        return true;
+//    }
+//
+//    @Override
+//    protected boolean hasRotation() {
+//        return true;
+//    }
+//
+//    @Override
+//    protected boolean hasScale() {
+//        return false;
+//    }
 
     private boolean isEntValid(Entity entity, World world) {
         return entity != null && !entity.isRemoved() && entity.getWorld() == world;
