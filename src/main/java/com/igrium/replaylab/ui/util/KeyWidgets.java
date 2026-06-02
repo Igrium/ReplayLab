@@ -163,10 +163,12 @@ public final class KeyWidgets {
         ImGui.popID();
 
         int labelEnd = findRenderedTextEnd(label);
-        if (labelEnd > 0) {
+        String drawnLabel = labelEnd > 0 ? label.substring(0, labelEnd) : label;
+        if (!drawnLabel.isBlank()) {
             ImGui.sameLine(0, innerSpacingX);
-            ImGui.text(label);
+            ImGui.text(drawnLabel);
         }
+
         ImGui.endGroup();
 
         int[] newKeyArray = null;
@@ -239,7 +241,7 @@ public final class KeyWidgets {
             if (text.charAt(i) == '#' && text.charAt(i+1) == '#')
                 return i;
         }
-        return text.length();
+        return -1;
     }
 
     // Translate
