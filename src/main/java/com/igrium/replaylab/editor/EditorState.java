@@ -21,10 +21,10 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.entity.Entity;
 import net.minecraft.util.Util;
-import net.minecraft.util.math.Vec3d;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
+import org.joml.Math;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -380,6 +380,12 @@ public class EditorState {
             // Pilot the camera if cursor is locked
             if (mc.mouse.isCursorLocked() && cameraObj instanceof ReplayObject3D cam3d && player != null) {
                 pilotingCamera = true;
+                double posX = player.getX();
+                double posY = player.getEyeY();
+                double posZ = player.getZ();
+                cam3d.position().set(posX, posY, posZ);
+                cam3d.rotation().setEulerYXZ(Math.toRadians(player.getYaw()), Math.toRadians(-player.getPitch()), 0);
+                cam3d.apply(getPlayhead());
 //                cam3d.setPosition(player.getEyePos());
 //                cam3d.getRotation().x = player.getPitch();
 //                cam3d.getRotation().y = player.getYaw();

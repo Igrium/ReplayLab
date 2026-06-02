@@ -44,14 +44,12 @@ public class MixinGameRenderer {
         }
     }
 
-    @SuppressWarnings("DiscouragedShift") // All that matters is we do this at some point before it's called
-    @Inject(method = "renderWorld", at = @At(value = "INVOKE", target = "Lorg/joml/Matrix4f;rotation(Lorg/joml/Quaternionfc;)Lorg/joml/Matrix4f;", shift=At.Shift.BEFORE))
-    void overrideRotation(RenderTickCounter rtc, CallbackInfo ci, @Local Quaternionf quaternionf) {
+    @Inject(method = "renderWorld", at = @At(value = "INVOKE", target = "Lcom/mojang/blaze3d/systems/RenderSystem;setProjectionMatrix(Lorg/joml/Matrix4f;Lcom/mojang/blaze3d/systems/ProjectionType;)V"))
+    void overrideRotation(RenderTickCounter rtc, CallbackInfo ci, @Local Camera camera) {
         Entity entity = getCamEnt();
-        if (entity instanceof RotationProvider rProvider) {
-            rProvider.getRotationQuat(quaternionf);
+        if (entity instanceof RotationProvider camEnt) {
+            camEnt.getRotationQuat(camera.getRotation());
         }
-
     }
 
     @Unique
