@@ -28,6 +28,12 @@ public class MixinGameRenderer {
     @Shadow @Final
     private MinecraftClient client;
 
+    @Shadow
+    private float fovMultiplier;
+
+    @Shadow
+    private float lastFovMultiplier;
+
     @Inject(method = "onCameraEntitySet", at = @At("RETURN"))
     void onCameraEntitySet(@Nullable Entity entity, CallbackInfo ci) {
         if (entity != null) {
@@ -44,8 +50,19 @@ public class MixinGameRenderer {
         }
     }
 
+    @Inject(method = "updateFovMultiplier", at = @At("HEAD"), cancellable = true)
+    void onUpdateFovMultiplier(CallbackInfo ci) {
+        // Don't interpolate FOV if it's driven by animation
+        if (getCamEnt() instanceof FovProvider) {
+            fovMultiplier = 1;
+            lastFovMultiplier = 1;
+            ci.cancel();
+        }
+    }
+
     @Unique
     private @Nullable Entity getCamEnt() {
         return this.client.getCameraEntity() == null ? this.client.player : this.client.getCameraEntity();
     }
+
 }
