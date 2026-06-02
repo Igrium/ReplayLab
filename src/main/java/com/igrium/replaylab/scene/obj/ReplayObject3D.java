@@ -9,9 +9,13 @@ import com.igrium.replaylab.math.DynamicRotation;
 import com.igrium.replaylab.math.DynamicRotation.RotationMode;
 import com.igrium.replaylab.math.Transform3;
 import com.igrium.replaylab.scene.ReplayScene;
+import com.igrium.replaylab.ui.gizmos.GizmoRenderer;
 import com.igrium.replaylab.ui.util.PropertyWidgets;
 import com.igrium.replaylab.util.JsonUtils;
 import imgui.ImGui;
+import imgui.extension.imguizmo.ImGuizmo;
+import imgui.extension.imguizmo.flag.Mode;
+import imgui.extension.imguizmo.flag.Operation;
 import imgui.type.ImBoolean;
 import lombok.Getter;
 import lombok.experimental.Accessors;
@@ -114,30 +118,83 @@ public abstract class ReplayObject3D extends ReplayObject implements TransformPr
         rotation.setMode(mode);
     }
 
-    public final Transform3 getBaseTransform3(Transform3 dest) {
+    @Override
+    public Transform3 getTransform(Transform3 dest) {
+        return getBaseTransform(dest);
+    }
+
+    public final Transform3 getBaseTransform(Transform3 dest) {
         dest.identity();
-        if (hasPos()) {
-            dest.pos().set(position);
-        }
 
-        if (hasRot()) {
-            dest.rotate(rotation.getQuaternion(new Quaternionf()));
-        }
-
-        if (hasScale()) {
-            dest.scale(scale);
-        }
+        dest.pos().set(position);
+        dest.rotate(rotation.getQuaternion(new Quaternionf()));
+        dest.scale(scale);
 
         return dest;
     }
 
+    public final void setBaseTransform(Transform3 transform) {
+        transform.getPos(position);
+        rotation.setQuaternion(transform.getRot(new Quaternionf()));
+        transform.getScale(scale);
+    }
+
+    public final Matrix4f getBaseTransformMatrix(double centerX, double centerY, double centerZ, Matrix4f dest) {
+        dest.identity();
+
+        dest.setTranslation((float) (position.x - centerX), (float) (position.y - centerY), (float) (position.z - centerZ));
+        dest.rotate(rotation.getQuaternion(new Quaternionf()));
+        dest.scale(scale);
+
+        return dest;
+    }
+
+    public final Matrix4f getBaseTransformMatrix(Vector3dc center, Matrix4f dest) {
+        return getBaseTransformMatrix(center.x(), center.y(), center.z(), dest);
+    }
+
+    public final void setBaseTransformMatrix(double centerX, double centerY, double centerZ, Matrix4f matrix) {
+        getMTranslation(matrix, position).add(centerX, centerY, centerZ);
+        rotation.setQuaternion(matrix.getNormalizedRotation(new Quaternionf()));
+        matrix.getScale(scale);
+    }
+
+    public final void setBaseTransformMatrix(Vector3dc center, Matrix4f matrix) {
+        setBaseTransformMatrix(center.x(), center.y(), center.z(), matrix);
+    }
+
+    private boolean wasDragging;
+    private final Matrix4f dragStartMatrix = new Matrix4f();
+
     @Override
-    public Transform3 getTransform(Transform3 dest) {
-        return getBaseTransform3(dest);
+    public PropertiesPanelState drawGizmos(EditorState editor, Vector3dc cameraPos, Matrix4fc viewMatrix, Matrix4fc projectionMatrix, boolean hideUI) {
+        if (hideUI || !editor.isObjectActive(getId())) return PropertiesPanelState.NONE;
+
+        Matrix4f modelMatrix = getBaseTransformMatrix(cameraPos, new Matrix4f());
+        if (!wasDragging) {
+            dragStartMatrix.set(modelMatrix);
+        }
+        int operation = 0;
+        if (editor.showGizmoPos() && hasPos()) operation |= Operation.TRANSLATE;
+        if (editor.showGizmoRot() && hasRot) operation |= Operation.ROTATE;
+        if (editor.showGizmoScale() && hasScale()) operation |= Operation.SCALE;
+
+        GizmoRenderer.manipulate(viewMatrix, projectionMatrix, operation,
+                editor.isLocalGizmos() ? Mode.LOCAL : Mode.WORLD, modelMatrix);
+
+        if (ImGuizmo.isUsing()) {
+            wasDragging = true;
+            setBaseTransformMatrix(cameraPos, modelMatrix);
+            return PropertiesPanelState.DRAGGING;
+        } else if (wasDragging) {
+            boolean commit = !dragStartMatrix.equals(modelMatrix, .01f);
+            wasDragging = false;
+            return commit ? PropertiesPanelState.COMMIT : PropertiesPanelState.NONE;
+        }
+        return PropertiesPanelState.NONE;
     }
 
     boolean startedDragging = false;
-    private final ImBoolean tmpBool = new ImBoolean();
 
     @Override
     public PropertiesPanelState drawPropertiesPanel(EditorState editor) {
@@ -201,7 +258,7 @@ public abstract class ReplayObject3D extends ReplayObject implements TransformPr
         if (json.has("position")) {
             JsonUtils.readJsonVec(json.getAsJsonArray("position"), position);
         } else {
-            position.set(9);
+            position.set(0);
         }
 
         if (json.has("rotationQuat")) {
@@ -237,4 +294,16 @@ public abstract class ReplayObject3D extends ReplayObject implements TransformPr
     private static String t(String key) {
         return Language.getInstance().get(key) + "###" + key;
     }
+
+    /**
+     * Re-implementation of {@link Matrix4f#getTranslation} that uses Vector3d
+     */
+    private static Vector3d getMTranslation(Matrix4fc m, Vector3d dest) {
+        dest.x = m.m30();
+        dest.y = m.m31();
+        dest.z = m.m32();
+        return dest;
+    }
+
+
 }
