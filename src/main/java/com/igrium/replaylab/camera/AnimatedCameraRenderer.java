@@ -26,9 +26,7 @@ public class AnimatedCameraRenderer extends EntityRenderer<AnimatedCameraEntity,
         super.updateRenderState(entity, state, tickDelta);
         state.setFov(entity.getFov());
 
-        state.setPitch(entity.getPitch());
-        state.setYaw(entity.getYaw());
-        state.setRoll(entity.getRoll());
+        state.setRotation(entity.getRotationQuat());
 
         state.setSelected(entity.isSelected());
         state.setActive(entity.isActive());
@@ -40,13 +38,7 @@ public class AnimatedCameraRenderer extends EntityRenderer<AnimatedCameraEntity,
         super.render(state, matrices, vertexConsumers, light);
 
         matrices.push();
-
-        Quaternionf rot = new Quaternionf().rotationYXZ(
-                Math.toRadians(-state.getYaw()),
-                Math.toRadians(state.getPitch()),
-                Math.toRadians(state.getRoll())
-        );
-        matrices.multiply(rot);
+        matrices.multiply(state.getRotation());
 
         VertexConsumer lines = vertexConsumers.getBuffer(RenderLayer.LINES);
 

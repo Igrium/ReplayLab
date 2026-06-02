@@ -9,14 +9,17 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(WorldRenderer.class)
 public class MixinWorldRenderer {
     @Inject(method = "render", at = @At("HEAD"))
-    public void onRender(CallbackInfo ci,
+    void onRender(CallbackInfo ci,
                          @Local(argsOnly = true, ordinal = 0) Matrix4f modelVIew,
                          @Local(argsOnly = true, ordinal = 1) Matrix4f projectionMatrix,
                          @Local(argsOnly = true) Camera camera) {
         GizmoRenderer.setupCameraProjection(modelVIew, projectionMatrix, camera);
     }
+
+
 }

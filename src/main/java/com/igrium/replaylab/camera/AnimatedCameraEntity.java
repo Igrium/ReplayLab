@@ -25,13 +25,11 @@ import org.joml.Vector3f;
  * A camera entity designed to be used for fully-animated cameras (not entity spectating)
  * In ReplayLab, RM's CameraEntity has been relegated to the work camera only/
  */
-public class AnimatedCameraEntity extends Entity implements RollProvider, FovProvider, RotationProvider {
+public class AnimatedCameraEntity extends Entity implements FovProvider, RotationProvider {
 
     @Getter @Setter
-    private float fov;
+    private float fov = 60;
 
-    @Getter @Setter @Deprecated
-    private float roll;
 
     @Getter @Setter
     private boolean selected;
@@ -39,8 +37,8 @@ public class AnimatedCameraEntity extends Entity implements RollProvider, FovPro
     @Getter @Setter
     private boolean active;
 
-    @Getter
     private final Quaternionf rotationQuat = new Quaternionf();
+
 
     public AnimatedCameraEntity(EntityType<?> type, World world) {
         super(type, world);
@@ -49,14 +47,14 @@ public class AnimatedCameraEntity extends Entity implements RollProvider, FovPro
         }
     }
 
-    public void setRotationQuat(Quaternionfc rotationQuat) {
-        this.rotationQuat.set(rotationQuat);
-    }
-
     @Override
     public Quaternionf getRotationQuat(Quaternionf dest) {
         this.rotationQuat.get(dest);
         return dest;
+    }
+
+    public Quaternionfc getRotationQuat() {
+        return this.rotationQuat;
     }
 
     /**
@@ -78,26 +76,18 @@ public class AnimatedCameraEntity extends Entity implements RollProvider, FovPro
         setCameraPosition(vec.x(), vec.y(), vec.z());
     }
 
-    /**
-     * Set the camera rotation without interpolation
-     *
-     * @param pitch Pitch in degrees
-     * @param yaw   Yaw in degrees
-     * @param roll  Roll in degrees
-     */
-    public void setCameraRotation(float pitch, float yaw, float roll) {
+    private void setCameraRotation(float pitch, float yaw, float roll) {
         this.prevPitch = pitch;
         this.prevYaw = yaw;
         setPitch(pitch);
         setYaw(yaw);
-        setRoll(roll);
     }
 
     public void setCameraRotation(Quaternionfc rot) {
         Vector3f euler = MathUtils.entityRot(rot);
+
         setCameraRotation(euler.x, euler.y, euler.z);
-//        Vector3f euler = rot.getEulerAnglesYXZ(new Vector3f());
-//        setCameraRotation(Math.toDegrees(euler.y), Math.toDegrees(euler.x), Math.toDegrees(euler.z));
+        rotationQuat.set(rot);
     }
 
     @Override

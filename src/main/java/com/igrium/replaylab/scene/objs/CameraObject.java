@@ -1,5 +1,8 @@
 package com.igrium.replaylab.scene.objs;
 
+import com.google.gson.JsonDeserializationContext;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonSerializationContext;
 import com.igrium.replaylab.ReplayLabEntities;
 import com.igrium.replaylab.camera.AnimatedCameraEntity;
 import com.igrium.replaylab.editor.EditorState;
@@ -7,21 +10,34 @@ import com.igrium.replaylab.math.Transform3;
 import com.igrium.replaylab.scene.ReplayScene;
 import com.igrium.replaylab.scene.obj.EntityObject;
 import com.igrium.replaylab.scene.obj.ReplayObjectType;
+import com.igrium.replaylab.ui.util.KeyWidgets;
+import com.igrium.replaylab.ui.util.PropertyWidgets;
+import imgui.ImGui;
+import lombok.Getter;
+import lombok.Setter;
 import net.minecraft.client.world.ClientWorld;
 import net.minecraft.entity.SpawnReason;
+import net.minecraft.util.Language;
 import org.joml.Matrix4fc;
 import org.joml.Quaternionf;
 import org.joml.Vector3dc;
 
 public class CameraObject extends EntityObject<AnimatedCameraEntity> {
 
+    private static final String FOV = "fov";
+
+    @Getter
+    private double fov = 60;
+
+    public void setFov(double fov) {
+        this.fov =  Math.max(1, fov);
+    }
+
     public CameraObject(ReplayObjectType<?> type, ReplayScene scene) {
         super(type, scene);
-//        setRotationMode(RotationHolder.RotationMode.QUATERNION); // Cameras use quaternion by default
+
+        addProperty(FOV, this::getFov, this::setFov);
     }
-//
-//    private final Vector3d posCache = new Vector3d();
-//    private final Vector3d rotCache = new Vector3d();
 
     @Override
     protected AnimatedCameraEntity createEntity(ClientWorld world) {
@@ -37,12 +53,12 @@ public class CameraObject extends EntityObject<AnimatedCameraEntity> {
     @Override
     protected void applyToEntity(AnimatedCameraEntity entity, int timestamp) {
         setCameraTransform(entity, getTransform(new Transform3()));
+        entity.setFov((float) fov);
     }
 
     private static void setCameraTransform(AnimatedCameraEntity camera, Transform3 transform) {
         camera.setCameraPosition(transform.pos());
         camera.setCameraRotation(transform.getRot(new Quaternionf()));
-        // No scale
     }
 
     @Override
@@ -54,5 +70,48 @@ public class CameraObject extends EntityObject<AnimatedCameraEntity> {
             entity.setActive(editor.isObjectActive(id));
         }
         return super.drawGizmos(editor, cameraPos, viewMatrix, projectionMatrix, hideUI);
+    }
+
+    private boolean startedDragging = false;
+
+    @Override
+    public PropertiesPanelState drawPropertiesPanel(EditorState editor) {
+        PropertiesPanelState pState = super.drawPropertiesPanel(editor);
+
+        ImGui.separatorText(t("gui.replaylab.camera"));
+        var wState = PropertyWidgets.dragFloatN(this, t("options.fov"), 1, editor.getPlayhead(), FOV);
+        boolean modified = wState.hasNewKey() || wState.isUpdated();
+
+        PropertiesPanelState newState;
+
+        if (modified || (startedDragging && ImGui.isMouseDown(0))) {
+            startedDragging = true;
+            newState = PropertiesPanelState.DRAGGING;
+        } else if (startedDragging) {
+            startedDragging = false;
+            newState = PropertiesPanelState.COMMIT;
+        } else {
+            newState = PropertiesPanelState.NONE;
+        }
+
+        return PropertiesPanelState.max(newState, pState);
+    }
+
+    @Override
+    protected void writeJson(JsonObject json, JsonSerializationContext context) {
+        super.writeJson(json, context);
+        json.addProperty(FOV, getFov());
+    }
+
+    @Override
+    protected void readJson(JsonObject json, JsonDeserializationContext context) {
+        super.readJson(json, context);
+        if (json.has(FOV)) {
+            setFov(json.get(FOV).getAsDouble());
+        }
+    }
+
+    private static String t(String key) {
+        return Language.getInstance().get(key) + "###" + key;
     }
 }

@@ -19,6 +19,13 @@
   "gui.replaylab.add_key": "Insert Keyframe",
   "gui.replaylab.add_key_s" : "Insert Keyframe (Single)",
 
+  "gui.replaylab.pos": "Position",
+  "gui.replaylab.rot": "Rotation",
+  "gui.replaylab.scale": "Scale",
+  "gui.replaylab.rot_mode": "Rotation Mode",
+
+  "gui.replaylab.camera": "Camera",
+
   "gui.replaylab.general": "General",
 
   "settings.replaylab.settings_3d": "3D Object Settings",

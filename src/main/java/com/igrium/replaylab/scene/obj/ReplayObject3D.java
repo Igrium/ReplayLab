@@ -16,7 +16,6 @@ import imgui.ImGui;
 import imgui.extension.imguizmo.ImGuizmo;
 import imgui.extension.imguizmo.flag.Mode;
 import imgui.extension.imguizmo.flag.Operation;
-import imgui.type.ImBoolean;
 import lombok.Getter;
 import lombok.experimental.Accessors;
 import net.minecraft.util.Language;
@@ -194,27 +193,27 @@ public abstract class ReplayObject3D extends ReplayObject implements TransformPr
         return PropertiesPanelState.NONE;
     }
 
-    boolean startedDragging = false;
+    private boolean startedDragging = false;
 
     @Override
     public PropertiesPanelState drawPropertiesPanel(EditorState editor) {
         int pHead = editor.getPlayhead();
         boolean modified = false;
 
-        modified |= hasPos && dragFloatN("Position", .125f, pHead, 1, POS_X, POS_Y, POS_Z);
+        modified |= hasPos && dragFloatN(t("gui.replaylab.pos"), .125f, pHead, 1, POS_X, POS_Y, POS_Z);
 
         if (getRotationMode() == RotationMode.QUATERNION) {
-            modified |= hasRot && dragFloatN("Rotation", .125f, pHead, 1, ROT_QUAT_W, ROT_QUAT_X, ROT_QUAT_Y, ROT_QUAT_Z);
+            modified |= hasRot && dragFloatN(t("gui.replaylab.rot"), .125f, pHead, 1, ROT_QUAT_W, ROT_QUAT_X, ROT_QUAT_Y, ROT_QUAT_Z);
         } else {
             float rotFactor = ReplayLabConfig.getInstance().isDisplayDegrees() ? MathHelper.DEGREES_PER_RADIAN : 1;
-            modified |= hasRot && dragFloatN("Rotation", 1, pHead, rotFactor, ROT_EULER_X, ROT_EULER_Y, ROT_EULER_Z);
+            modified |= hasRot && dragFloatN(t("gui.replaylab.rot"), 1, pHead, rotFactor, ROT_EULER_X, ROT_EULER_Y, ROT_EULER_Z);
         }
 
-        modified |= hasScale && dragFloatN("Scale", 1, pHead, 1, SCALE_X, SCALE_Y, SCALE_Z);
+        modified |= hasScale && dragFloatN(t("gui.replaylab.scale"), 1, pHead, 1, SCALE_X, SCALE_Y, SCALE_Z);
 
         ImGui.separator();
 
-        if (ImGui.beginCombo("Rotation Mode", t(getRotationMode().getLabel()))) {
+        if (ImGui.beginCombo(t("gui.replaylab.rot_mode"), t(getRotationMode().getLabel()))) {
             for (RotationMode mode : RotationMode.values()) {
                 if (ImGui.selectable(t(mode.getLabel()), mode == getRotationMode())) {
                     rotation.setMode(mode, ReplayLabConfig.getInstance().isRotModeConvert());
