@@ -5,8 +5,8 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonSerializationContext;
 import com.igrium.replaylab.config.ReplayLabConfig;
 import com.igrium.replaylab.editor.EditorState;
-import com.igrium.replaylab.math.RotationHolder;
-import com.igrium.replaylab.math.RotationHolder.RotationMode;
+import com.igrium.replaylab.math.DynamicRotation;
+import com.igrium.replaylab.math.DynamicRotation.RotationMode;
 import com.igrium.replaylab.math.Transform3;
 import com.igrium.replaylab.scene.ReplayScene;
 import com.igrium.replaylab.ui.util.PropertyWidgets;
@@ -16,6 +16,7 @@ import imgui.type.ImBoolean;
 import lombok.Getter;
 import lombok.experimental.Accessors;
 import net.minecraft.util.Language;
+import net.minecraft.util.math.MathHelper;
 import org.joml.*;
 
 /**
@@ -72,7 +73,7 @@ public abstract class ReplayObject3D extends ReplayObject implements TransformPr
      * The rotation of this object (mutable)
      */
     @Getter
-    private final RotationHolder rotation = new RotationHolder();
+    private final DynamicRotation rotation = new DynamicRotation();
 
     /**
      * The XYZ scale of this object (mutable)
@@ -143,15 +144,16 @@ public abstract class ReplayObject3D extends ReplayObject implements TransformPr
         int pHead = editor.getPlayhead();
         boolean modified = false;
 
-        modified |= hasPos && dragFloatN("Position", .125f, pHead, POS_X, POS_Y, POS_Z);
+        modified |= hasPos && dragFloatN("Position", .125f, pHead, 1, POS_X, POS_Y, POS_Z);
 
         if (getRotationMode() == RotationMode.QUATERNION) {
-            modified |= hasRot && dragFloatN("Rotation", 1, pHead, ROT_QUAT_W, ROT_QUAT_X, ROT_QUAT_Y, ROT_QUAT_Z);
+            modified |= hasRot && dragFloatN("Rotation", .125f, pHead, 1, ROT_QUAT_W, ROT_QUAT_X, ROT_QUAT_Y, ROT_QUAT_Z);
         } else {
-            modified |= hasRot && dragFloatN("Rotation", 1, pHead, ROT_EULER_X, ROT_EULER_Y, ROT_EULER_Z);
+            float rotFactor = ReplayLabConfig.getInstance().isDisplayDegrees() ? MathHelper.DEGREES_PER_RADIAN : 1;
+            modified |= hasRot && dragFloatN("Rotation", 1, pHead, rotFactor, ROT_EULER_X, ROT_EULER_Y, ROT_EULER_Z);
         }
 
-        modified |= hasScale && dragFloatN("Scale", 1, pHead, SCALE_X, SCALE_Y, SCALE_Z);
+        modified |= hasScale && dragFloatN("Scale", 1, pHead, 1, SCALE_X, SCALE_Y, SCALE_Z);
 
         ImGui.separator();
 
@@ -227,8 +229,8 @@ public abstract class ReplayObject3D extends ReplayObject implements TransformPr
     }
 
     // Wrapper to reduce code bloat
-    private boolean dragFloatN(String name, float speed, int playhead, String... properties) {
-        var state = PropertyWidgets.dragFloatN(this, name, speed, playhead, properties);
+    private boolean dragFloatN(String name, float speed, int playhead, double factor, String... properties) {
+        var state = PropertyWidgets.dragFloatN(this, name, speed, playhead, factor, properties);
         return state.isUpdated() || state.hasNewKey();
     }
 

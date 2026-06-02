@@ -3,7 +3,7 @@ package com.igrium.replaylab.config;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.igrium.replaylab.ReplayLab;
-import com.igrium.replaylab.math.RotationHolder;
+import com.igrium.replaylab.math.DynamicRotation;
 import lombok.Getter;
 import lombok.Setter;
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -49,7 +49,7 @@ public class ReplayLabConfig {
     private final Keybinds keybinds = new Keybinds();
 
     // 3D objects
-    private RotationHolder.RotationMode defaultRotMode = RotationHolder.RotationMode.EULER_YXZ;
+    private DynamicRotation.RotationMode defaultRotMode = DynamicRotation.RotationMode.EULER_YXZ;
     private boolean rotModeConvert = true;
     private boolean displayDegrees = true;
 

@@ -96,8 +96,10 @@ public final class KeyWidgets {
 
         double[] active = new double[1];
 
-        float itemWidth = ImGui.calcItemWidth() / 3f;
         float innerSpacingX = ImGui.getStyle().getItemInnerSpacingX();
+
+        float drawableWidth = ImGui.calcItemWidth() - innerSpacingX * (v.length - 1);
+        float itemWidth = (float) Math.floor(drawableWidth / v.length);
 
         IntList newKeys = null;
         boolean allNewKeys = !ImGui.getIO().getKeyAlt();

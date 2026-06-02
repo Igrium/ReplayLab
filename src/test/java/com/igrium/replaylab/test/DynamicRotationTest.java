@@ -1,6 +1,6 @@
 package com.igrium.replaylab.test;
 
-import com.igrium.replaylab.math.RotationHolder;
+import com.igrium.replaylab.math.DynamicRotation;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
 import org.junit.jupiter.api.BeforeEach;
@@ -10,7 +10,7 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * Unit tests for {@link RotationHolder}.
+ * Unit tests for {@link DynamicRotation}.
  *
  * <p>Storage convention used by this class (and JOML):
  * regardless of rotation order, angles are always stored as
@@ -18,16 +18,16 @@ import static org.junit.jupiter.api.Assertions.*;
  * Scalar setters accept parameters in rotation-application order
  * (e.g. {@code setEulerZYX(angleZ, angleY, angleX)}).
  */
-class RotationHolderTest {
+class DynamicRotationTest {
 
     /** Acceptable floating-point tolerance for angle comparisons. */
     private static final float DELTA = 1e-5f;
 
-    private RotationHolder holder;
+    private DynamicRotation holder;
 
     @BeforeEach
     void setUp() {
-        holder = new RotationHolder();
+        holder = new DynamicRotation();
     }
 
     // -------------------------------------------------------------------------
@@ -53,7 +53,7 @@ class RotationHolderTest {
 
     @Test
     void defaultModeIsQuaternion() {
-        assertEquals(RotationHolder.RotationMode.QUATERNION, holder.mode());
+        assertEquals(DynamicRotation.RotationMode.QUATERNION, holder.mode());
     }
 
     @Test
@@ -94,7 +94,7 @@ class RotationHolderTest {
 
         @BeforeEach
         void enterMode() {
-            holder.setMode(RotationHolder.RotationMode.EULER_XYZ);
+            holder.setMode(DynamicRotation.RotationMode.EULER_XYZ);
         }
 
         @Test
@@ -145,7 +145,7 @@ class RotationHolderTest {
 
         @BeforeEach
         void enterMode() {
-            holder.setMode(RotationHolder.RotationMode.EULER_ZYX);
+            holder.setMode(DynamicRotation.RotationMode.EULER_ZYX);
         }
 
         /**
@@ -205,7 +205,7 @@ class RotationHolderTest {
 
         @BeforeEach
         void enterMode() {
-            holder.setMode(RotationHolder.RotationMode.EULER_YXZ);
+            holder.setMode(DynamicRotation.RotationMode.EULER_YXZ);
         }
 
         /**
@@ -296,7 +296,7 @@ class RotationHolderTest {
 
         @Test
         void getEulerXYZ_fromEulerZYX_goesViaQuaternion() {
-            holder.setMode(RotationHolder.RotationMode.EULER_ZYX);
+            holder.setMode(DynamicRotation.RotationMode.EULER_ZYX);
             holder.setEulerZYX(0.1f, 0.3f, 0.5f); // Rz=0.1, Ry=0.3, Rx=0.5
 
             // Ground-truth: what JOML says the XYZ decomposition is
@@ -311,7 +311,7 @@ class RotationHolderTest {
 
         @Test
         void getEulerZYX_fromEulerXYZ_goesViaQuaternion() {
-            holder.setMode(RotationHolder.RotationMode.EULER_XYZ);
+            holder.setMode(DynamicRotation.RotationMode.EULER_XYZ);
             holder.setEulerXYZ(0.5f, 0.3f, 0.1f);
 
             Vector3f expected = new Quaternionf()
@@ -325,7 +325,7 @@ class RotationHolderTest {
 
         @Test
         void getEulerYXZ_fromEulerXYZ_goesViaQuaternion() {
-            holder.setMode(RotationHolder.RotationMode.EULER_XYZ);
+            holder.setMode(DynamicRotation.RotationMode.EULER_XYZ);
             holder.setEulerXYZ(0.5f, 0.3f, 0.1f);
 
             Vector3f expected = new Quaternionf()
@@ -350,19 +350,19 @@ class RotationHolderTest {
             holder.setQuaternion(new Quaternionf().rotateXYZ(0.5f, 0.3f, 0.1f));
             Quaternionf before = holder.getQuaternion(new Quaternionf());
 
-            holder.setMode(RotationHolder.RotationMode.QUATERNION); // already QUATERNION
-            assertEquals(RotationHolder.RotationMode.QUATERNION, holder.mode());
+            holder.setMode(DynamicRotation.RotationMode.QUATERNION); // already QUATERNION
+            assertEquals(DynamicRotation.RotationMode.QUATERNION, holder.mode());
             assertQuatEquals(before, holder.getQuaternion(new Quaternionf()));
         }
 
         @Test
         void setMode_toSameMode_isNoOp_withEuler() {
-            holder.setMode(RotationHolder.RotationMode.EULER_XYZ);
+            holder.setMode(DynamicRotation.RotationMode.EULER_XYZ);
             holder.setEulerXYZ(0.5f, 0.3f, 0.1f);
             Quaternionf before = holder.getQuaternion(new Quaternionf());
 
-            holder.setMode(RotationHolder.RotationMode.EULER_XYZ); // same
-            assertEquals(RotationHolder.RotationMode.EULER_XYZ, holder.mode());
+            holder.setMode(DynamicRotation.RotationMode.EULER_XYZ); // same
+            assertEquals(DynamicRotation.RotationMode.EULER_XYZ, holder.mode());
             assertQuatEquals(before, holder.getQuaternion(new Quaternionf()));
         }
 
@@ -373,8 +373,8 @@ class RotationHolderTest {
             holder.setQuaternion(new Quaternionf().rotateXYZ(0.5f, 0.3f, 0.1f));
             Quaternionf before = holder.getQuaternion(new Quaternionf());
 
-            holder.setMode(RotationHolder.RotationMode.EULER_XYZ, true);
-            assertEquals(RotationHolder.RotationMode.EULER_XYZ, holder.mode());
+            holder.setMode(DynamicRotation.RotationMode.EULER_XYZ, true);
+            assertEquals(DynamicRotation.RotationMode.EULER_XYZ, holder.mode());
             assertQuatEquals(before, holder.getQuaternion(new Quaternionf()));
         }
 
@@ -383,7 +383,7 @@ class RotationHolderTest {
             holder.setQuaternion(new Quaternionf().rotateZYX(0.1f, 0.3f, 0.5f));
             Quaternionf before = holder.getQuaternion(new Quaternionf());
 
-            holder.setMode(RotationHolder.RotationMode.EULER_ZYX, true);
+            holder.setMode(DynamicRotation.RotationMode.EULER_ZYX, true);
             assertQuatEquals(before, holder.getQuaternion(new Quaternionf()));
         }
 
@@ -392,38 +392,38 @@ class RotationHolderTest {
             holder.setQuaternion(new Quaternionf().rotateYXZ(0.3f, 0.5f, 0.1f));
             Quaternionf before = holder.getQuaternion(new Quaternionf());
 
-            holder.setMode(RotationHolder.RotationMode.EULER_YXZ, true);
+            holder.setMode(DynamicRotation.RotationMode.EULER_YXZ, true);
             assertQuatEquals(before, holder.getQuaternion(new Quaternionf()));
         }
 
         @Test
         void setMode_withConversion_eulerXYZ_toEulerZYX_preservesRotation() {
-            holder.setMode(RotationHolder.RotationMode.EULER_XYZ);
+            holder.setMode(DynamicRotation.RotationMode.EULER_XYZ);
             holder.setEulerXYZ(0.5f, 0.3f, 0.1f);
             Quaternionf before = holder.getQuaternion(new Quaternionf());
 
-            holder.setMode(RotationHolder.RotationMode.EULER_ZYX, true);
+            holder.setMode(DynamicRotation.RotationMode.EULER_ZYX, true);
             assertQuatEquals(before, holder.getQuaternion(new Quaternionf()));
         }
 
         @Test
         void setMode_withConversion_eulerZYX_toEulerYXZ_preservesRotation() {
-            holder.setMode(RotationHolder.RotationMode.EULER_ZYX);
+            holder.setMode(DynamicRotation.RotationMode.EULER_ZYX);
             holder.setEulerZYX(0.1f, 0.3f, 0.5f);
             Quaternionf before = holder.getQuaternion(new Quaternionf());
 
-            holder.setMode(RotationHolder.RotationMode.EULER_YXZ, true);
+            holder.setMode(DynamicRotation.RotationMode.EULER_YXZ, true);
             assertQuatEquals(before, holder.getQuaternion(new Quaternionf()));
         }
 
         @Test
         void setMode_withConversion_eulerBack_toQuaternion_preservesRotation() {
-            holder.setMode(RotationHolder.RotationMode.EULER_YXZ);
+            holder.setMode(DynamicRotation.RotationMode.EULER_YXZ);
             holder.setEulerYXZ(0.3f, 0.5f, 0.1f);
             Quaternionf before = holder.getQuaternion(new Quaternionf());
 
-            holder.setMode(RotationHolder.RotationMode.QUATERNION, true);
-            assertEquals(RotationHolder.RotationMode.QUATERNION, holder.mode());
+            holder.setMode(DynamicRotation.RotationMode.QUATERNION, true);
+            assertEquals(DynamicRotation.RotationMode.QUATERNION, holder.mode());
             assertQuatEquals(before, holder.getQuaternion(new Quaternionf()));
         }
 
@@ -435,7 +435,7 @@ class RotationHolderTest {
             holder.setQuaternion(new Quaternionf().rotateXYZ(0.5f, 0.3f, 0.1f));
             Quaternionf before = holder.getQuaternion(new Quaternionf());
 
-            holder.setMode(RotationHolder.RotationMode.EULER_ZYX); // implicit convert=true
+            holder.setMode(DynamicRotation.RotationMode.EULER_ZYX); // implicit convert=true
             assertQuatEquals(before, holder.getQuaternion(new Quaternionf()));
         }
 
@@ -448,12 +448,12 @@ class RotationHolderTest {
          */
         @Test
         void setMode_withoutConversion_onlyChangesMode() {
-            holder.setMode(RotationHolder.RotationMode.EULER_XYZ);
+            holder.setMode(DynamicRotation.RotationMode.EULER_XYZ);
             holder.setEulerXYZ(0.5f, 0.3f, 0.1f);
             Quaternionf xyzQuat = holder.getQuaternion(new Quaternionf());
 
-            holder.setMode(RotationHolder.RotationMode.EULER_ZYX, false);
-            assertEquals(RotationHolder.RotationMode.EULER_ZYX, holder.mode(),
+            holder.setMode(DynamicRotation.RotationMode.EULER_ZYX, false);
+            assertEquals(DynamicRotation.RotationMode.EULER_ZYX, holder.mode(),
                     "Mode label should have changed");
 
             // The same raw euler data (0.5, 0.3, 0.1) is now fed into rotateZYX,
@@ -471,10 +471,10 @@ class RotationHolderTest {
         @Test
         void setMode_withoutConversion_identityRotation_remainsIdentity() {
             // Identity (all-zero euler) is the same regardless of rotation order.
-            holder.setMode(RotationHolder.RotationMode.EULER_XYZ);
+            holder.setMode(DynamicRotation.RotationMode.EULER_XYZ);
             holder.setEulerXYZ(0f, 0f, 0f);
 
-            holder.setMode(RotationHolder.RotationMode.EULER_ZYX, false);
+            holder.setMode(DynamicRotation.RotationMode.EULER_ZYX, false);
 
             Quaternionf result = holder.getQuaternion(new Quaternionf());
             assertQuatEquals(new Quaternionf(), result);

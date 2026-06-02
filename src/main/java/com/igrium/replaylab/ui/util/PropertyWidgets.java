@@ -23,19 +23,35 @@ public final class PropertyWidgets {
      * @return The widget state returned by <code>dragFloatN</code>
      */
     public static KeyWidgets.WidgetState dragFloatN(ReplayObject obj, String label, float speed, int playhead, String... properties) {
+        return dragFloatN(obj, label, speed, playhead, 1, properties);
+    }
+
+    /**
+     * Draw a slider widget for a vector-like structure containing a number of properties.
+     * Automatically handles keyframe insertion and highlighting.
+     *
+     * @param obj        Object to reference
+     * @param label      Label to give the widget
+     * @param speed      Slider speed
+     * @param playhead   The editor's current playhead
+     * @param factor     Multiply the rendered amount by this factor (primarily used in degrees/radians conversion)
+     * @param properties The names of the properties to edit
+     * @return The widget state returned by <code>dragFloatN</code>
+     */
+    public static KeyWidgets.WidgetState dragFloatN(ReplayObject obj, String label, float speed, int playhead, double factor, String... properties) {
         // Yeaah, this is a lot of allocations and hash lookups, but it only gets called like 15 times per frame
         double[] values = new double[properties.length];
         KeyState[] keyStates = new KeyState[properties.length];
 
         for (int i = 0; i < properties.length; i++) {
-            values[i] = obj.getPropertyOrThrow(properties[i]);
+            values[i] = obj.getPropertyOrThrow(properties[i]) * factor;
             keyStates[i] = getKeyState(obj, properties[i], values[i], playhead);
         }
 
         var state = KeyWidgets.dragFloatN(label, values, speed, keyStates);
 
         for (int i = 0; i < properties.length; i++) {
-            obj.setProperty(properties[i], values[i]);
+            obj.setProperty(properties[i], values[i] / factor);
         }
 
         for (int idx : state.newKeys()) {

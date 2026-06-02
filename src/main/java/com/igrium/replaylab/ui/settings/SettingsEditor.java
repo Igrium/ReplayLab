@@ -1,14 +1,12 @@
 package com.igrium.replaylab.ui.settings;
 
 import com.igrium.replaylab.config.ReplayLabConfig;
-import com.igrium.replaylab.math.RotationHolder;
+import com.igrium.replaylab.math.DynamicRotation;
 import imgui.ImGui;
 import imgui.type.ImBoolean;
 import lombok.Getter;
 import net.minecraft.util.Language;
 import org.apache.commons.lang3.function.BooleanConsumer;
-
-import java.util.function.BooleanSupplier;
 
 public class SettingsEditor {
 
@@ -35,7 +33,7 @@ public class SettingsEditor {
                 ImGui.separatorText(t("settings.replaylab.settings_3d"));
 
                 if (ImGui.beginCombo(t("settings.replaylab.default_rot_mode"), t(c.getDefaultRotMode().getLabel()))) {
-                    for (RotationHolder.RotationMode mode : RotationHolder.RotationMode.values()) {
+                    for (DynamicRotation.RotationMode mode : DynamicRotation.RotationMode.values()) {
                         if (ImGui.selectable(t(mode.getLabel()), mode == c.getDefaultRotMode())) {
                             c.setDefaultRotMode(mode);
                             changed = true;

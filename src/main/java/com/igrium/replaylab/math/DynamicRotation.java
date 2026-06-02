@@ -11,7 +11,7 @@ import org.joml.Vector3fc;
  * A simple class that can store rotation in a number of different formats.
  */
 @Accessors(fluent = true)
-public class RotationHolder {
+public class DynamicRotation {
     public enum RotationMode {
         QUATERNION, EULER_XYZ, EULER_ZYX, EULER_YXZ;
 
@@ -86,7 +86,7 @@ public class RotationHolder {
      * @param quaternion Quaternion to use
      * @return <code>this</code>
      */
-    public RotationHolder setQuaternion(Quaternionfc quaternion) {
+    public DynamicRotation setQuaternion(Quaternionfc quaternion) {
         switch (mode) {
             case QUATERNION -> quaternion.get(this.quaternion);
             case EULER_XYZ -> quaternion.getEulerAnglesXYZ(this.euler);
@@ -149,7 +149,7 @@ public class RotationHolder {
      * @param angleZ Z angle in radians
      * @return <code>this</code>
      */
-    public RotationHolder setEulerXYZ(float angleX, float angleY, float angleZ) {
+    public DynamicRotation setEulerXYZ(float angleX, float angleY, float angleZ) {
         if (mode == RotationMode.EULER_XYZ) {
             euler.set(angleX, angleY, angleZ);
         } else {
@@ -164,7 +164,7 @@ public class RotationHolder {
      * @param angles Euler angles in radians
      * @return <code>this</code>
      */
-    public RotationHolder setEulerXYZ(Vector3fc angles) {
+    public DynamicRotation setEulerXYZ(Vector3fc angles) {
         return setEulerXYZ(angles.x(), angles.y(), angles.z());
     }
 
@@ -176,7 +176,7 @@ public class RotationHolder {
      * @param angleX X angle in radians
      * @return <code>this</code>
      */
-    public RotationHolder setEulerZYX(float angleZ, float angleY, float angleX) {
+    public DynamicRotation setEulerZYX(float angleZ, float angleY, float angleX) {
         if (mode == RotationMode.EULER_ZYX) {
             euler.set(angleX, angleY, angleZ);
         } else {
@@ -191,7 +191,7 @@ public class RotationHolder {
      * @param angles Euler angles in radians
      * @return <code>this</code>
      */
-    public RotationHolder setEulerZYX(Vector3fc angles) {
+    public DynamicRotation setEulerZYX(Vector3fc angles) {
         return setEulerZYX(angles.z(), angles.y(), angles.x());
     }
 
@@ -203,7 +203,7 @@ public class RotationHolder {
      * @param angleZ Z angle in radians
      * @return <code>this</code>
      */
-    public RotationHolder setEulerYXZ(float angleY, float angleX, float angleZ) {
+    public DynamicRotation setEulerYXZ(float angleY, float angleX, float angleZ) {
         if (mode == RotationMode.EULER_YXZ) {
             euler.set(angleX, angleY, angleZ);
         } else {
@@ -218,7 +218,7 @@ public class RotationHolder {
      * @param angles Euler angles in radians
      * @return <code>this</code>
      */
-    public RotationHolder setEulerYXZ(Vector3fc angles) {
+    public DynamicRotation setEulerYXZ(Vector3fc angles) {
         return setEulerYXZ(angles.y(), angles.x(), angles.z());
     }
 
