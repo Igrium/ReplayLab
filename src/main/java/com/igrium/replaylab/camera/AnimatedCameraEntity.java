@@ -16,6 +16,7 @@ import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.math.Box;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
+import org.joml.Math;
 import org.joml.Quaternionf;
 import org.joml.Quaternionfc;
 import org.joml.Vector3dc;
@@ -49,7 +50,7 @@ public class AnimatedCameraEntity extends Entity implements FovProvider, Rotatio
 
     @Override
     public Quaternionf getRotationQuat(Quaternionf dest) {
-        this.rotationQuat.get(dest);
+        this.rotationQuat.get(dest).rotateY(Math.PI_f);
         return dest;
     }
 

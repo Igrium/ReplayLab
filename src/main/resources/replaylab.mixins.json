@@ -13,8 +13,9 @@
   },
   "client": [
     "AccessorCamera",
+    "MixinCamera",
     "MixinClientPlayerEntity",
     "MixinGameRenderer",
     "MixinWorldRenderer"
-    ]
+  ]
 }

@@ -44,14 +44,6 @@ public class MixinGameRenderer {
         }
     }
 
-    @Inject(method = "renderWorld", at = @At(value = "INVOKE", target = "Lcom/mojang/blaze3d/systems/RenderSystem;setProjectionMatrix(Lorg/joml/Matrix4f;Lcom/mojang/blaze3d/systems/ProjectionType;)V"))
-    void overrideRotation(RenderTickCounter rtc, CallbackInfo ci, @Local Camera camera) {
-        Entity entity = getCamEnt();
-        if (entity instanceof RotationProvider camEnt) {
-            camEnt.getRotationQuat(camera.getRotation());
-        }
-    }
-
     @Unique
     private @Nullable Entity getCamEnt() {
         return this.client.getCameraEntity() == null ? this.client.player : this.client.getCameraEntity();
