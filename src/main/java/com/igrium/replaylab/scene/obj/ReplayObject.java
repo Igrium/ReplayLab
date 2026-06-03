@@ -41,45 +41,6 @@ public abstract class ReplayObject {
         }
     }
 
-    /**
-     * A "return value" from the properties panel UI draw code. Used to trigger undo steps and scene updates.
-     */
-    public enum PropertiesPanelState {
-        /**
-         * Nothing changed in the properties panel.
-         */
-        NONE,
-        /**
-         * Something is being dragged or actively updated. Update the scene but don't create an undo step.
-         */
-        DRAGGING,
-        /**
-         * There was an update. Update the scene and create an undo step.
-         */
-        COMMIT,
-        /**
-         * There was an update that warrants the insertion of a keyframe if auto-key is enabled.
-         */
-        @Deprecated
-        COMMIT_KEYFRAME;
-
-        public boolean wantsUpdateScene() {
-            return ordinal() >= 1;
-        }
-
-        public boolean wantsUndoStep() {
-            return ordinal() >= 2;
-        }
-
-        public boolean wantsInsertKeyframe() {
-            return ordinal() >= 3;
-        }
-
-        public static PropertiesPanelState max(PropertiesPanelState a, PropertiesPanelState b) {
-            return PropertiesPanelState.values()[Math.max(a.ordinal(), b.ordinal())];
-        }
-    }
-
     @Getter
     private final ReplayObjectType<?> type;
 
@@ -248,20 +209,21 @@ public abstract class ReplayObject {
      * @param viewMatrix       View matrix (rotation, etc.) of the camera. Does not include position.
      * @param projectionMatrix Projection matrix of the camera.
      * @param hideUI           Don't draw any visual gizmos (some objects may still need to update things while UI disabled)
+     * @return {@link ObjectEditState}
      */
-    public PropertiesPanelState drawGizmos(EditorState editor, Vector3dc cameraPos,
+    public int drawGizmos(EditorState editor, Vector3dc cameraPos,
                                            Matrix4fc viewMatrix, Matrix4fc projectionMatrix, boolean hideUI) {
         // Default no-op
-        return PropertiesPanelState.NONE;
+        return ObjectEditState.NONE;
     }
 
     /**
      * Called during the ImGui render process to draw the object's configurable properties.
-     * @return The state of the properties panel after drawing.
+     * @return {@link ObjectEditState}
      */
-    public PropertiesPanelState drawPropertiesPanel(EditorState editor) {
+    public int drawPropertiesPanel(EditorState editor) {
         ImGui.text("This object has no editable properties.");
-        return PropertiesPanelState.NONE;
+        return ObjectEditState.NONE;
     }
 
     private final GsonSerializationContext gsonContext = new GsonSerializationContext(new Gson());

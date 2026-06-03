@@ -9,20 +9,17 @@ import com.igrium.replaylab.editor.EditorState;
 import com.igrium.replaylab.math.Transform3;
 import com.igrium.replaylab.scene.ReplayScene;
 import com.igrium.replaylab.scene.obj.EntityObject;
+import com.igrium.replaylab.scene.obj.ObjectEditState;
 import com.igrium.replaylab.scene.obj.ReplayObjectType;
-import com.igrium.replaylab.ui.util.KeyWidgets;
 import com.igrium.replaylab.ui.util.PropertyWidgets;
 import imgui.ImGui;
 import lombok.Getter;
-import lombok.Setter;
 import net.minecraft.client.world.ClientWorld;
 import net.minecraft.entity.SpawnReason;
 import net.minecraft.util.Language;
 import org.joml.Matrix4fc;
 import org.joml.Quaternionf;
 import org.joml.Vector3dc;
-
-import java.util.Objects;
 
 public class CameraObject extends EntityObject<AnimatedCameraEntity> {
 
@@ -32,7 +29,7 @@ public class CameraObject extends EntityObject<AnimatedCameraEntity> {
     private double fov = 60;
 
     public void setFov(double fov) {
-        this.fov =  Math.max(1, fov);
+        this.fov =  Math.clamp(fov, 1, 179);
     }
 
     public CameraObject(ReplayObjectType<?> type, ReplayScene scene) {
@@ -64,7 +61,7 @@ public class CameraObject extends EntityObject<AnimatedCameraEntity> {
     }
 
     @Override
-    public PropertiesPanelState drawGizmos(EditorState editor, Vector3dc cameraPos, Matrix4fc viewMatrix, Matrix4fc projectionMatrix, boolean hideUI) {
+    public int drawGizmos(EditorState editor, Vector3dc cameraPos, Matrix4fc viewMatrix, Matrix4fc projectionMatrix, boolean hideUI) {
         AnimatedCameraEntity entity = getInstantiatedEntity();
         ScenePropsObject scene = editor.getScene().getSceneProps();
         if (entity != null) {
@@ -77,29 +74,29 @@ public class CameraObject extends EntityObject<AnimatedCameraEntity> {
         return super.drawGizmos(editor, cameraPos, viewMatrix, projectionMatrix, hideUI);
     }
 
-    private boolean startedDragging = false;
+    private boolean isDragging = false;
 
     @Override
-    public PropertiesPanelState drawPropertiesPanel(EditorState editor) {
-        PropertiesPanelState pState = super.drawPropertiesPanel(editor);
+    public int drawPropertiesPanel(EditorState editor) {
+        int pState = super.drawPropertiesPanel(editor);
 
         ImGui.separatorText(t("gui.replaylab.camera"));
         var wState = PropertyWidgets.dragFloatN(this, t("options.fov"), 1, editor.getPlayhead(), FOV);
         boolean modified = wState.hasNewKey() || wState.isUpdated();
 
-        PropertiesPanelState newState;
+        int newState;
 
-        if (modified || (startedDragging && ImGui.isMouseDown(0))) {
-            startedDragging = true;
-            newState = PropertiesPanelState.DRAGGING;
-        } else if (startedDragging) {
-            startedDragging = false;
-            newState = PropertiesPanelState.COMMIT;
+        if (modified || (isDragging && ImGui.isMouseDown(0))) {
+            isDragging = true;
+            newState = ObjectEditState.UPDATE_SCENE;
+        } else if (isDragging) {
+            isDragging = false;
+            newState = ObjectEditState.COMMIT;
         } else {
-            newState = PropertiesPanelState.NONE;
+            newState = ObjectEditState.NONE;
         }
 
-        return PropertiesPanelState.max(newState, pState);
+        return pState | newState;
     }
 
     @Override

@@ -2,6 +2,7 @@ package com.igrium.replaylab.ui.panels;
 
 import com.igrium.replaylab.editor.EditorState;
 import com.igrium.replaylab.operator.CommitObjectUpdateOperator;
+import com.igrium.replaylab.scene.obj.ObjectEditState;
 import com.igrium.replaylab.scene.obj.ReplayObject;
 import imgui.ImGui;
 import net.minecraft.util.Identifier;
@@ -28,15 +29,17 @@ public class Inspector extends UIPanel {
     }
 
     protected void drawObjectProperties(ReplayObject object, EditorState editorState) {
-        ReplayObject.PropertiesPanelState state = object.drawPropertiesPanel(editorState);
-        if (state.wantsInsertKeyframe()) {
-            object.insertKey(editorState.getPlayhead());
+        int state = object.drawPropertiesPanel(editorState);
+
+        if (hasFlag(state, ObjectEditState.UPDATE_SCENE)) {
+            editorState.applyToGame(hasFlag(state, ObjectEditState.RESAMPLE) ? o -> true : o -> o != object);
         }
-        if (state.wantsUndoStep()) {
+        if (hasFlag(state, ObjectEditState.CREATE_UNDO_STEP)) {
             editorState.applyOperator(new CommitObjectUpdateOperator(object.getId()), false);
         }
-        if (state.wantsUpdateScene()) {
-            editorState.applyToGame(o -> o != object);
-        }
+    }
+
+    private static boolean hasFlag(int flags, int flag) {
+        return (flags & flag) != 0;
     }
 }

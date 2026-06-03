@@ -166,8 +166,8 @@ public abstract class ReplayObject3D extends ReplayObject implements TransformPr
     private final Matrix4f dragStartMatrix = new Matrix4f();
 
     @Override
-    public PropertiesPanelState drawGizmos(EditorState editor, Vector3dc cameraPos, Matrix4fc viewMatrix, Matrix4fc projectionMatrix, boolean hideUI) {
-        if (hideUI || !editor.isObjectActive(getId())) return PropertiesPanelState.NONE;
+    public int drawGizmos(EditorState editor, Vector3dc cameraPos, Matrix4fc viewMatrix, Matrix4fc projectionMatrix, boolean hideUI) {
+        if (hideUI || !editor.isObjectActive(getId())) return ObjectEditState.NONE;
 
         Matrix4f modelMatrix = getBaseTransformMatrix(cameraPos, new Matrix4f());
         if (!wasDragging) {
@@ -184,19 +184,19 @@ public abstract class ReplayObject3D extends ReplayObject implements TransformPr
         if (ImGuizmo.isUsing()) {
             wasDragging = true;
             setBaseTransformMatrix(cameraPos, modelMatrix);
-            return PropertiesPanelState.DRAGGING;
+            return ObjectEditState.UPDATE_SCENE;
         } else if (wasDragging) {
             boolean commit = !dragStartMatrix.equals(modelMatrix, .01f);
             wasDragging = false;
-            return commit ? PropertiesPanelState.COMMIT : PropertiesPanelState.NONE;
+            return commit ? ObjectEditState.COMMIT : ObjectEditState.NONE;
         }
-        return PropertiesPanelState.NONE;
+        return ObjectEditState.NONE;
     }
 
-    private boolean startedDragging = false;
+    private boolean dragging = false;
 
     @Override
-    public PropertiesPanelState drawPropertiesPanel(EditorState editor) {
+    public int drawPropertiesPanel(EditorState editor) {
         int pHead = editor.getPlayhead();
         boolean modified = false;
 
@@ -223,14 +223,15 @@ public abstract class ReplayObject3D extends ReplayObject implements TransformPr
             ImGui.endCombo();
         }
 
-        if (modified || (startedDragging && ImGui.isMouseDown(0))) {
-            startedDragging = true;
-            return PropertiesPanelState.DRAGGING;
-        } else if (startedDragging) {
-            startedDragging = false;
-            return PropertiesPanelState.COMMIT;
+        boolean mouseDown = ImGui.isMouseDown(0);
+        if (modified || (dragging && mouseDown)) {
+            dragging = true;
+            return ObjectEditState.UPDATE_SCENE;
+        } else if (dragging) {
+            dragging = false;
+            return ObjectEditState.COMMIT;
         } else {
-            return PropertiesPanelState.NONE;
+            return ObjectEditState.NONE;
         }
 
     }
