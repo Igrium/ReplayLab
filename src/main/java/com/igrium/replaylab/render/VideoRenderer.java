@@ -257,7 +257,7 @@ public class VideoRenderer {
         }
 
         // TODO: camera path exporter
-        scene.spectateCamera(getVideoTime());
+        scene.spectateCamera();
         frameIdx++;
 
 //        drawGui();

@@ -93,7 +93,7 @@ public class ReplayScene {
         return getSceneProps().getFps();
     }
 
-    public @Nullable ReplayObject getSceneCameraObject(int timestamp) {
+    public @Nullable ReplayObject getSceneCameraObject() {
         String objName = getSceneProps().getCameraObject();
         if (objName == null)
             return null;
@@ -103,11 +103,10 @@ public class ReplayScene {
 
     /**
      * Get the entity responsible for providing the camera view on a given frame.
-     * @param timestamp Timestamp to use.
      * @return The scene camera entity. if there is any at that timestamp.
      */
-    public @Nullable Entity getSceneCamera(int timestamp) {
-        ReplayObject obj = getSceneCameraObject(timestamp);
+    public @Nullable Entity getSceneCamera() {
+        ReplayObject obj = getSceneCameraObject();
         if (obj instanceof EntityProvider<?> prov) {
             return prov.getEntity();
         } else {
@@ -115,8 +114,8 @@ public class ReplayScene {
         }
     }
 
-    public void spectateCamera(int timestamp) {
-        Entity cam = getSceneCamera(timestamp);
+    public void spectateCamera() {
+        Entity cam = getSceneCamera();
         if (cam != null) {
             MinecraftClient.getInstance().setCameraEntity(cam);
         }

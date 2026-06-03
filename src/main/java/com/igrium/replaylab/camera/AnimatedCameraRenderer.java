@@ -5,6 +5,8 @@ import net.minecraft.client.render.*;
 import net.minecraft.client.render.entity.EntityRenderer;
 import net.minecraft.client.render.entity.EntityRendererFactory;
 import net.minecraft.client.util.math.MatrixStack;
+import net.minecraft.util.Identifier;
+import net.minecraft.util.math.ColorHelper;
 import org.joml.*;
 import org.joml.Math;
 
@@ -30,6 +32,8 @@ public class AnimatedCameraRenderer extends EntityRenderer<AnimatedCameraEntity,
 
         state.setSelected(entity.isSelected());
         state.setActive(entity.isActive());
+        state.setSceneCamera(entity.isSceneCamera());
+        state.setAspectRatio(entity.getAspectRatio());
     }
 
     @SuppressWarnings("SuspiciousNameCombination")
@@ -42,9 +46,15 @@ public class AnimatedCameraRenderer extends EntityRenderer<AnimatedCameraEntity,
 
         VertexConsumer lines = vertexConsumers.getBuffer(RenderLayer.LINES);
 
-//        float height = computeCamHeight(Math.toRadians(state.getFov()));
-        float height = 1;
-        float halfHeight = height / 2;
+        float width = Math.min(1.0f, state.getAspectRatio());
+        float height = width / state.getAspectRatio();
+
+        float halfWidth = width / 2.0f;
+        float halfHeight = height / 2.0f;
+
+//        float height = 1;
+//        float halfHeight = height / 2;
+//        float halfWidth = halfHeight; // TODO: actually calculate width
 
         int color;
         if (state.isActive()) {
@@ -57,37 +67,80 @@ public class AnimatedCameraRenderer extends EntityRenderer<AnimatedCameraEntity,
 
         // Quad
         drawLine(matrices, lines,
-                -halfHeight, -halfHeight, 1,
-                halfHeight, -halfHeight, 1, color);
+                -halfWidth, -halfHeight, 1,
+                halfWidth, -halfHeight, 1, color);
 
         drawLine(matrices, lines,
-                halfHeight, -halfHeight, 1,
-                halfHeight, halfHeight, 1, color);
+                halfWidth, -halfHeight, 1,
+                halfWidth, halfHeight, 1, color);
 
         drawLine(matrices, lines,
-                halfHeight, halfHeight, 1,
-                -halfHeight, halfHeight, 1, color);
+                halfWidth, halfHeight, 1,
+                -halfWidth, halfHeight, 1, color);
 
         drawLine(matrices, lines,
-                -halfHeight, halfHeight, 1,
-                -halfHeight, -halfHeight, 1, color);
+                -halfWidth, halfHeight, 1,
+                -halfWidth, -halfHeight, 1, color);
 
         // Frustum
         drawLine(matrices, lines,
                 0, 0, 0,
-                -halfHeight, -halfHeight, 1, color);
+                -halfWidth, -halfHeight, 1, color);
 
         drawLine(matrices, lines,
                 0, 0, 0,
-                -halfHeight, halfHeight, 1, color);
+                -halfWidth, halfHeight, 1, color);
 
         drawLine(matrices, lines,
                 0, 0, 0,
-                halfHeight, -halfHeight, 1, color);
+                halfWidth, -halfHeight, 1, color);
 
         drawLine(matrices, lines,
                 0, 0, 0,
-                halfHeight, halfHeight, 1, color);
+                halfWidth, halfHeight, 1, color);
+
+
+        // Indicator Triangle
+        float triBottom = halfHeight + 0.05f;
+        float triHeight = Math.min(0.5f, width * .6f);
+        float triTop = halfHeight + triHeight;
+
+        float p1x = -halfWidth;
+        float p1y = triBottom;
+
+        float p2x = halfWidth;
+        float p2y = triBottom;
+
+        float p3x = 0;
+        float p3y = triTop;
+
+
+        if (state.isSceneCamera()) {
+            // Triangle doesn't play well with alpha
+            color = ColorHelper.withAlpha(255, color);
+
+            VertexConsumer solid = vertexConsumers.getBuffer(RenderLayer.getDebugFilledBox());
+            MatrixStack.Entry entry = matrices.peek();
+            Vector3f normal = new Vector3f(0, 0, 1);
+            Vector3f backNormal = new Vector3f(0, 0, -1);
+
+            solid.vertex(entry, p1x, p1y, 1).color(color).texture(0f, 0f).light(15).normal(entry, normal);
+            solid.vertex(entry, p2x, p2y, 1).color(color).texture(0f, 0f).light(15).normal(entry, normal);
+            solid.vertex(entry, p3x, p3y, 1).color(color).texture(0f, 0f).light(15).normal(entry, normal);
+            solid.vertex(entry, p3x, p3y, 1).color(color).texture(0f, 0f).light(15).normal(entry, normal);
+
+            solid.vertex(entry, p3x, p3y, 1).color(color).texture(0f, 0f).light(15).normal(entry, normal);
+            solid.vertex(entry, p2x, p2y, 1).color(color).texture(0f, 0f).light(15).normal(entry, normal);
+            solid.vertex(entry, p1x, p1y, 1).color(color).texture(0f, 0f).light(15).normal(entry, normal);
+            solid.vertex(entry, p1x, p1y, 1).color(color).texture(0f, 0f).light(15).normal(entry, normal);
+
+//            solid.vertex(0, 0, 0, color, 0, 0, 0, 15, 0, 0, 0);
+        } else {
+            drawLine(matrices, lines, p1x, p1y, 1, p2x, p2y, 1, color);
+            drawLine(matrices, lines, p2x, p2y, 1, p3x, p3y, 1, color);
+            drawLine(matrices, lines, p3x, p3y, 1, p1x, p1y, 1, color);
+        }
+
 
         matrices.pop();
     }

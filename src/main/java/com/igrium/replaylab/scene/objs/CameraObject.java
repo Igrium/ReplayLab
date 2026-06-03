@@ -22,6 +22,8 @@ import org.joml.Matrix4fc;
 import org.joml.Quaternionf;
 import org.joml.Vector3dc;
 
+import java.util.Objects;
+
 public class CameraObject extends EntityObject<AnimatedCameraEntity> {
 
     private static final String FOV = "fov";
@@ -64,10 +66,13 @@ public class CameraObject extends EntityObject<AnimatedCameraEntity> {
     @Override
     public PropertiesPanelState drawGizmos(EditorState editor, Vector3dc cameraPos, Matrix4fc viewMatrix, Matrix4fc projectionMatrix, boolean hideUI) {
         AnimatedCameraEntity entity = getInstantiatedEntity();
+        ScenePropsObject scene = editor.getScene().getSceneProps();
         if (entity != null) {
             String id = getId();
             entity.setSelected(editor.isObjectSelected(id));
             entity.setActive(editor.isObjectActive(id));
+            entity.setSceneCamera(isSceneCamera());
+            entity.setAspectRatio((float) scene.getResolutionX() / scene.getResolutionY());
         }
         return super.drawGizmos(editor, cameraPos, viewMatrix, projectionMatrix, hideUI);
     }

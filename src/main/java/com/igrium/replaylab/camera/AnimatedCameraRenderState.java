@@ -16,10 +16,9 @@ public class AnimatedCameraRenderState extends EntityRenderState {
     public void setRotation(Quaternionfc rotation) {
         this.rotation.set(rotation);
     }
-//    private float pitch;
-//    private float yaw;
-//    private float roll;
 
     private boolean selected;
     private boolean active;
+    private boolean sceneCamera;
+    private float aspectRatio = 1;
 }

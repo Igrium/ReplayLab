@@ -126,6 +126,11 @@ public abstract class ReplayObject {
      */
     public void onCreated() {}
 
+    public final boolean isSceneCamera() {
+        String id = getId();
+        return id != null && id.equals(scene.getSceneProps().getCameraObject());
+    }
+
     /**
      * Remap any property that references an object.
      * @param oldName Old name of the object.

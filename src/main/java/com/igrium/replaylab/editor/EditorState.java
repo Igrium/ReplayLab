@@ -372,8 +372,8 @@ public class EditorState {
         if (isCameraView()) {
             spectateCamera();
 
-            Entity cameraEnt = scene.getSceneCamera(getPlayhead());
-            ReplayObject cameraObj = scene.getSceneCameraObject(getPlayhead());
+            Entity cameraEnt = scene.getSceneCamera();
+            ReplayObject cameraObj = scene.getSceneCameraObject();
 
             ClientPlayerEntity player = mc.player;
 
@@ -499,7 +499,7 @@ public class EditorState {
 
     @Deprecated
     private void spectateCamera() {
-        scene.spectateCamera(getPlayhead());
+        scene.spectateCamera();
     }
 
     /**
@@ -509,7 +509,7 @@ public class EditorState {
      */
     @Deprecated
     public @Nullable Entity getSceneCamera(int timestamp) {
-        return scene.getSceneCamera(timestamp);
+        return scene.getSceneCamera();
     }
 
     // ===== Operators & Undo/Redo =====

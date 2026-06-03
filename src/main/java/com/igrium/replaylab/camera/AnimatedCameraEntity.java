@@ -38,6 +38,16 @@ public class AnimatedCameraEntity extends Entity implements FovProvider, Rotatio
     @Getter @Setter
     private boolean active;
 
+    @Getter @Setter
+    private boolean sceneCamera;
+
+    @Getter
+    private float aspectRatio = 1;
+
+    public void setAspectRatio(float aspectRatio) {
+        this.aspectRatio = Math.max(aspectRatio, .01f);
+    }
+
     private final Quaternionf rotationQuat = new Quaternionf();
 
 
