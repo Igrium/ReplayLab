@@ -20,13 +20,24 @@ public class CommitObjectUpdateOperator implements ReplayOperator {
     private final Map<String, Map<String, int[]>> preSelectionMapping;
     private final Map<String, Map<String, int[]>> postSelectionMapping;
 
+    private boolean sampleCurves;
+
     public CommitObjectUpdateOperator(Collection<? extends String> ids) {
+        this(true, ids);
+    }
+
+    public CommitObjectUpdateOperator(boolean sampleCurves, Collection<? extends String> ids) {
+        this.sampleCurves = sampleCurves;
         this.ids = ids.toArray(String[]::new);
         preSelectionMapping = new HashMap<>(this.ids.length);
         postSelectionMapping = new HashMap<>(this.ids.length);
     }
 
     public CommitObjectUpdateOperator(String... ids) {
+        this(true, ids);
+    }
+
+    public CommitObjectUpdateOperator(boolean sampleCurves, String... ids) {
         this.ids = ids.clone();
         preSelectionMapping = new HashMap<>(this.ids.length);
         postSelectionMapping = new HashMap<>(this.ids.length);
@@ -86,5 +97,10 @@ public class CommitObjectUpdateOperator implements ReplayOperator {
                 editor.getKeySelection().remapSelection(objEntry.getKey(), chEntry.getKey(), chEntry.getValue());
             }
         }
+    }
+
+    @Override
+    public boolean wantsSampleCurves() {
+        return sampleCurves;
     }
 }

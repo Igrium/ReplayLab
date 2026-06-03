@@ -9,6 +9,7 @@ import org.slf4j.LoggerFactory;
 /**
  * An operator that applies a modification to an object, handling the undo and redo automatically
  */
+@Deprecated
 public abstract class SimpleObjectOperator implements ReplayOperator {
 
     private static final Logger LOGGER = LoggerFactory.getLogger("ReplayLab/SimpleObjectOperator");

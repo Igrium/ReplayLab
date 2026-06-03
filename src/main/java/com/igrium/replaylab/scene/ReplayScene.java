@@ -329,10 +329,10 @@ public class ReplayScene {
 
     /**
      * Undo the previous operation.
-     * @return <code>true</code> if there was an operator to undo and it undid successfully.
+     * @return the operator that was undone, or <code>null</code> if there was none.
      */
-    public boolean undo(EditorState editorState) {
-        if (undoStack.isEmpty()) return false;
+    public @Nullable ReplayOperator undo(EditorState editorState) {
+        if (undoStack.isEmpty()) return null;
 
         ReplayOperator op = undoStack.pop();
         try {
@@ -344,18 +344,18 @@ public class ReplayScene {
             if (exceptionCallback != null) {
                 exceptionCallback.accept(e);
             }
-            return false;
+            return null;
         }
         redoStack.push(op);
-        return true;
+        return op;
     }
 
     /**
      * Redo the previous operation.
-     * @return <code>true</code> if there was an operator to redo and it redid successfully.
+     * @return the operator that was redone, or <code>null</code> if there was none.
      */
-    public boolean redo(EditorState editorState) {
-        if (redoStack.isEmpty()) return false;
+    public @Nullable ReplayOperator redo(EditorState editorState) {
+        if (redoStack.isEmpty()) return null;
 
         ReplayOperator op = redoStack.pop();
         try {
@@ -367,10 +367,10 @@ public class ReplayScene {
             if (exceptionCallback != null) {
                 exceptionCallback.accept(e);
             }
-            return false;
+            return null;
         }
         undoStack.push(op);
-        return true;
+        return op;
     }
 
     /**
@@ -381,6 +381,11 @@ public class ReplayScene {
      */
     public void applyToGame(int timestamp) {
         applyToGame(e -> true, timestamp);
+    }
+
+
+    public void applyToGame(int timestamp, boolean sample) {
+        applyToGame(o -> sample, timestamp);
     }
 
     /**

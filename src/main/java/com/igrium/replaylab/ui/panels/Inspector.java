@@ -35,7 +35,7 @@ public class Inspector extends UIPanel {
             editorState.applyToGame(hasFlag(state, ObjectEditState.RESAMPLE) ? o -> true : o -> o != object);
         }
         if (hasFlag(state, ObjectEditState.CREATE_UNDO_STEP)) {
-            editorState.applyOperator(new CommitObjectUpdateOperator(object.getId()), false);
+            editorState.applyOperator(new CommitObjectUpdateOperator(false, object.getId()), false);
         }
     }
 

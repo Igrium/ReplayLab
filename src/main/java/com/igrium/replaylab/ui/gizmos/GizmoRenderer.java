@@ -66,17 +66,10 @@ public class GizmoRenderer {
                 editorState.applyToGame(hasFlag(state, ObjectEditState.RESAMPLE) ? o -> true : o -> o != obj);
             }
             if (hasFlag(state, ObjectEditState.CREATE_UNDO_STEP)) {
-                editorState.applyOperator(new CommitObjectUpdateOperator(obj.getId()), false);
+                editorState.applyOperator(new CommitObjectUpdateOperator(false, obj.getId()), false);
             }
         }
 
-//        if (!wantUpdateScene.isEmpty()) {
-//            editorState.applyToGame(o -> !wantUpdateScene.contains(o));
-//        }
-//
-//        if (!wantUndoStep.isEmpty()) {
-//            editorState.applyOperator(new CommitObjectUpdateOperator(wantUndoStep));
-//        }
     }
 
     private final float[] viewMatrixRender = new float[16];
