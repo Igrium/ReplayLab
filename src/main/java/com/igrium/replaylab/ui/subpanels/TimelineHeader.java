@@ -1,5 +1,6 @@
-package com.igrium.replaylab.ui.util;
+package com.igrium.replaylab.ui.subpanels;
 
+import com.igrium.replaylab.ui.util.TimelineFlags;
 import imgui.ImDrawList;
 import imgui.ImGui;
 import imgui.ImVec2;

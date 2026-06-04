@@ -14,10 +14,11 @@ import com.igrium.replaylab.scene.key.KeyChannel;
 import com.igrium.replaylab.scene.key.Keyframe;
 import com.igrium.replaylab.scene.obj.ReplayObject;
 import com.igrium.replaylab.ui.ReplayLabIcons;
-import com.igrium.replaylab.ui.util.ChannelList;
+import com.igrium.replaylab.ui.subpanels.ChannelList;
 import com.igrium.replaylab.ui.util.ReplayLabControls;
 import com.igrium.replaylab.ui.util.TimelineFlags;
-import com.igrium.replaylab.ui.util.TimelineHeader;
+import com.igrium.replaylab.ui.subpanels.TimelineHeader;
+import com.replaymod.replaystudio.rar.state.Replay;
 import imgui.ImDrawList;
 import imgui.ImGui;
 import imgui.ImVec2;
@@ -280,7 +281,11 @@ public class CurveEditor extends UIPanel {
 
         droppedHandles.clear();
         updatedHandles.clear();
-        Collection<String> objs = selectedObjects != null ? selectedObjects : scene.getObjects().keySet();
+//        Collection<String> objs = selectedObjects != null ? selectedObjects : scene.getObjects().keySet();
+        Map<String, ReplayObject> objs = selectedObjects != null ? scene.getObjects()
+                .entrySet().stream()
+                .filter(entry -> selectedObjects.contains(entry.getKey()))
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)) : scene.getObjects();
 
         int majorIntervalX = (int) TimelineHeader.computeMajorInterval(zoomFactorX);
         int minorIntervalX = majorIntervalX / 2;
@@ -437,8 +442,9 @@ public class CurveEditor extends UIPanel {
             float keyHoverRadius = 12f + ImGui.getIO().getMouseDragThreshold() * 2;
 
             int chIndex = 0;
-            for (String objName : objs) {
-                ReplayObject obj = scene.getObject(objName);
+            for (var objEntry : objs.entrySet()) {
+                String objName = objEntry.getKey();
+                ReplayObject obj = objEntry.getValue();
                 if (obj == null)
                     continue;
 
@@ -676,8 +682,9 @@ public class CurveEditor extends UIPanel {
                 dl.addRectFilled(boxSelectStart.x, boxSelectStart.y, mouseGlobalX, mouseGlobalY, rectColor);
                 dl.addRect(boxSelectStart.x, boxSelectStart.y, mouseGlobalX, mouseGlobalY, ImGui.getColorU32(ImGuiCol.HeaderActive));
 
-                for (String objName : objs) {
-                    ReplayObject obj = scene.getObject(objName);
+                for (var objEntry : objs.entrySet()) {
+                    String objName = objEntry.getKey();
+                    ReplayObject obj = objEntry.getValue();
                     if (obj == null)
                         continue;
 
@@ -864,8 +871,9 @@ public class CurveEditor extends UIPanel {
                     double snapTargetY = Double.NaN;
                     double snapTargetYDist = Double.NaN;
 
-                    for (String objName : objs) {
-                        ReplayObject obj = scene.getObject(objName);
+                    for (var objEntry : objs.entrySet()) {
+                        String objName =  objEntry.getKey();
+                        ReplayObject obj = objEntry.getValue();
                         if (obj == null) continue;
 
                         for (var chEntry : obj.getChannels().entrySet()) {
@@ -1126,7 +1134,6 @@ public class CurveEditor extends UIPanel {
             }
         }
     }
-
 
     private static void computeBoundingBox(KeySelectionSet selected, ReplayScene scene, Vector2d dest1, Vector2d dest2) {
         Vector2d tmpVec = new Vector2d(Double.NaN);

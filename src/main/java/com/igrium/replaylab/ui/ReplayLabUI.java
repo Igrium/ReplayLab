@@ -14,7 +14,7 @@ import com.igrium.replaylab.scene.obj.ReplayObject;
 import com.igrium.replaylab.scene.objs.CameraObject;
 import com.igrium.replaylab.scene.objs.ScenePropsObject;
 import com.igrium.replaylab.ui.panels.*;
-import com.igrium.replaylab.ui.util.ExceptionPopup;
+import com.igrium.replaylab.ui.subpanels.ExceptionPopup;
 import com.igrium.replaylab.ui.util.ReplayLabControls;
 import com.igrium.replaylab.ui.gizmos.GizmoRenderer;
 import com.igrium.replaylab.util.ShortcutUtils;
@@ -436,7 +436,7 @@ public class ReplayLabUI extends DockSpaceApp {
         }
         ImGui.sameLine();
         cameraViewInput.set(editorState.isCameraView());
-        if (ReplayLabControls.toggleButton(ReplayLabIcons.ICON_VIDEOCAM, "freeTransform", tmpBoolean, "key.replaylab.cameraview")) {
+        if (ReplayLabControls.toggleButton(ReplayLabIcons.ICON_VIDEOCAM, "cameraView", cameraViewInput, "key.replaylab.cameraview")) {
             editorState.setCameraView(cameraViewInput.get());
         }
 
