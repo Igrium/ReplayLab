@@ -1,7 +1,6 @@
 package com.igrium.replaylab.editor;
 
 import com.google.common.collect.AbstractIterator;
-import com.igrium.replaylab.scene.ReplayScene;
 import com.igrium.replaylab.scene.key.KeyChannel;
 import com.igrium.replaylab.scene.key.Keyframe;
 import com.igrium.replaylab.scene.obj.ReplayObject;
@@ -703,20 +702,13 @@ public class KeySelectionSet {
         }
     }
 
-    public static Stream<KeyHandleReference> streamAllHandles(Map<? extends String, ? extends ReplayObject> objects) {
-        return objects.entrySet().stream().flatMap(objEntry -> {
-            String objName = objEntry.getKey();
-            return objEntry.getValue().getChannels().entrySet().stream().flatMap(chEntry -> {
-                ChannelReference chRef = new ChannelReference(objName, chEntry.getKey());
-                List<Keyframe> keys = chEntry.getValue().getKeyframes();
-                return IntStream.range(0, keys.size()).boxed().flatMap(keyIdx -> {
-                    KeyframeReference keyRef = new KeyframeReference(chRef, keyIdx);
-                    return Stream.of(new KeyHandleReference(keyRef, 0),
-                            new KeyHandleReference(keyRef, 1),
-                            new KeyHandleReference(keyRef, 2));
-                });
-            });
-        });
+    /**
+     * Iterate over all the handles of all the keyframes that exist in a scene.
+     * @param objects All objects in the scene
+     * @return An iterable for the key handles
+     */
+    public static Iterable<KeyHandleReference> iterateAllHandles(Map<? extends String, ? extends ReplayObject> objects) {
+        return () -> new AllHandlesIterator(objects.entrySet().iterator());
     }
 
     private static Map<String, Map<String, Int2ObjectMap<IntSet>>> deepCopy(Map<String, Map<String, Int2ObjectMap<IntSet>>> src) {
@@ -746,7 +738,7 @@ public class KeySelectionSet {
 
         @Nullable String curObjectName;
         @Nullable ChannelReference curChRef;
-        @Nullable KeyframeReference curKeyframe;
+        @Nullable KeyframeReference curKeyRef;
 
         /**
          * The number of keyframes in the current channel
@@ -758,42 +750,34 @@ public class KeySelectionSet {
 
         @Override
         protected @Nullable KeyHandleReference computeNext() {
-            if (curKeyframe != null && handleIdx < 3) {
-                var ref = new KeyHandleReference(curKeyframe, handleIdx);
-                handleIdx++;
-                return ref;
+            while (true) {
+                if (curKeyRef != null && handleIdx < 3) {
+                    return new KeyHandleReference(curKeyRef, handleIdx++);
+                }
+
+                if (curChRef != null && keyIdx < numKeys) {
+                    curKeyRef = new KeyframeReference(curChRef, keyIdx++);
+                    handleIdx = 0;
+                    continue;
+                }
+
+                if (chanIter != null && chanIter.hasNext()) {
+                    var chEntry = chanIter.next();
+                    curChRef = new ChannelReference(curObjectName, chEntry.getKey());
+                    numKeys = chEntry.getValue().getKeyframes().size();
+                    keyIdx = 0;
+                    continue;
+                }
+
+                if (objIter.hasNext()) {
+                    var objEntry = objIter.next();
+                    curObjectName = objEntry.getKey();
+                    chanIter = objEntry.getValue().getChannels().entrySet().iterator();
+                    continue;
+                }
+                return endOfData();
             }
 
-
         }
-
-        //        private final Iterator<? extends Map.Entry<? extends String, ? extends ReplayObject>> objIter;
-//
-//        Iterator<? extends Map.Entry<? extends String, ? extends KeyChannel>> chIter = Collections.emptyIterator();
-//
-//        // State trackers
-//        String currentObjName;
-//        ChannelReference currentChRef;
-//        KeyframeReference currentKeyRef;
-//
-//        int keyIdx = 0;
-//        int handleIdx = 3; // Init to 3 to trigger first fetch
-//
-//        AllHandlesIterator(Iterator<? extends Map.Entry<? extends String, ? extends ReplayObject>> objIter) {
-//            this.objIter = objIter;
-//        }
-//
-//        @Override
-//        protected @Nullable KeyHandleReference computeNext() {
-//            while (true) {
-//                // 3 handles per keyframe
-//                if (handleIdx < 3 && currentKeyRef != null) {
-//                    handleIdx++;
-//                    return new KeyHandleReference(currentKeyRef, handleIdx);
-//                }
-//
-//
-//            }
-//        }
     }
 }
