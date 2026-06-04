@@ -11,6 +11,7 @@ import com.igrium.replaylab.operator.RemoveObjectOperator;
 import com.igrium.replaylab.operator.RemoveObjectsOperator;
 import com.igrium.replaylab.render.VideoRenderSettings;
 import com.igrium.replaylab.scene.obj.ReplayObject;
+import com.igrium.replaylab.scene.objs.CameraObject;
 import com.igrium.replaylab.scene.objs.ScenePropsObject;
 import com.igrium.replaylab.ui.panels.*;
 import com.igrium.replaylab.ui.util.ExceptionPopup;
@@ -212,6 +213,11 @@ public class ReplayLabUI extends DockSpaceApp {
 
             if (ImGui.shortcut(Keybinds.deleteSelected())) {
                 editorState.applyOperator(new RemoveObjectsOperator(editorState.getSelectedObjects()));
+            }
+
+            // Zoom scrolling
+            if (editorState.isPilotingCamera() && editorState.getScene().getSceneCameraObject() instanceof CameraObject cam) {
+                cam.setFov(cam.getFov() + ImGui.getIO().getMouseWheel() * -2);
             }
 
         }

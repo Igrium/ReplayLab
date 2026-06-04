@@ -1,6 +1,7 @@
 package com.igrium.replaylab.editor;
 
 import com.igrium.replaylab.ReplayLab;
+import com.igrium.replaylab.operator.CommitObjectUpdateOperator;
 import com.igrium.replaylab.operator.ReplayOperator;
 import com.igrium.replaylab.playback.RealtimeScenePlayer;
 import com.igrium.replaylab.render.VideoRenderSettings;
@@ -392,7 +393,7 @@ public class EditorState {
             else if (pilotingCamera && cameraObj != null) {
                 // Apply camera move
                 pilotingCamera = false;
-
+                applyOperator(new CommitObjectUpdateOperator(false, cameraObj.getId()));
             }
             else if (cameraEnt != null && player != null) {
                 // TP player to camera
