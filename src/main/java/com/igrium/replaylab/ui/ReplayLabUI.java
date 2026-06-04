@@ -17,6 +17,7 @@ import com.igrium.replaylab.ui.panels.*;
 import com.igrium.replaylab.ui.util.ExceptionPopup;
 import com.igrium.replaylab.ui.util.ReplayLabControls;
 import com.igrium.replaylab.ui.gizmos.GizmoRenderer;
+import com.igrium.replaylab.util.ShortcutUtils;
 import com.replaymod.replay.ReplayHandler;
 import com.replaymod.replay.ReplayModReplay;
 import imgui.ImGui;
@@ -219,6 +220,8 @@ public class ReplayLabUI extends DockSpaceApp {
             if (editorState.isPilotingCamera() && editorState.getScene().getSceneCameraObject() instanceof CameraObject cam) {
                 cam.setFov(cam.getFov() + ImGui.getIO().getMouseWheel() * -2);
             }
+
+            editorState.setRollingCamera(editorState.isPilotingCamera() && ShortcutUtils.isKeyChordDown(Keybinds.cameraRoll()));
 
         }
         ImGui.end();

@@ -66,6 +66,9 @@
   "key.replaylab.gizmo_rot": "Rotation Gizmo",
   "key.replaylab.gizmo_scale": "Scale Gizmo",
 
+  "key.replaylab.camera_roll": "Roll Camera",
+  "key.replaylab.camera_roll.tooltip": "Hold to roll the camera while piloting.",
+
   "key.shortcut.ctrl": "Ctrl",
   "key.shortcut.shift": "Shift",
   "key.shortcut.alt": "Alt",

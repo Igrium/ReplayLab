@@ -1,6 +1,7 @@
 package com.igrium.replaylab.editor;
 
 import com.igrium.replaylab.ReplayLab;
+import com.igrium.replaylab.camera.RollProvider;
 import com.igrium.replaylab.operator.CommitObjectUpdateOperator;
 import com.igrium.replaylab.operator.ReplayOperator;
 import com.igrium.replaylab.playback.RealtimeScenePlayer;
@@ -64,6 +65,15 @@ public class EditorState {
         }
     }
 
+    /**
+     * Get the current get the currently-open editor.
+     * @apiNote Prefer passing editorState directly; primarily for use in mixins.
+     */
+    public static @Nullable EditorState getInstance() {
+        var app = ReplayLab.getInstance().getAppInstance();
+        return app != null ? app.getEditorState() : null;
+    }
+
     /// ===== Fields =====
 
     private final MinecraftClient mc = MinecraftClient.getInstance();
@@ -119,6 +129,12 @@ public class EditorState {
     @Getter
     private boolean pilotingCamera;
 
+    /**
+     * If we're piloting the camera and rolling it
+     */
+    @Getter @Setter
+    private boolean rollingCamera;
+
     @Getter
     @Accessors(fluent = true)
     private boolean wantsTimeJump;
@@ -141,6 +157,7 @@ public class EditorState {
 
     @Getter @Setter @Accessors(fluent = true)
     private boolean showGizmoScale;
+
 
     /// ===== Constructors =====
     public EditorState() {
@@ -385,8 +402,10 @@ public class EditorState {
                 double posY = player.getEyeY();
                 double posZ = player.getZ();
 
+                float roll = cameraEnt instanceof RollProvider r ? r.getRoll() : 0;
+
                 cam3d.position().set(posX, posY, posZ);
-                cam3d.rotation().setEulerYXZ(Math.toRadians(-player.getYaw()), Math.toRadians(player.getPitch()), 0);
+                cam3d.rotation().setEulerYXZ(Math.toRadians(-player.getYaw()), Math.toRadians(player.getPitch()), Math.toRadians(roll));
                 cam3d.apply(getPlayhead());
 
             }

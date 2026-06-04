@@ -1,5 +1,6 @@
 package com.igrium.replaylab.camera;
 
+import com.igrium.replaylab.ReplayLab;
 import com.igrium.replaylab.math.MathUtils;
 import lombok.Getter;
 import lombok.Setter;
@@ -26,7 +27,7 @@ import org.joml.Vector3f;
  * A camera entity designed to be used for fully-animated cameras (not entity spectating)
  * In ReplayLab, RM's CameraEntity has been relegated to the work camera only/
  */
-public class AnimatedCameraEntity extends Entity implements FovProvider, RotationProvider {
+public class AnimatedCameraEntity extends Entity implements FovProvider, RotationProvider, RollProvider {
 
     @Getter @Setter
     private float fov = 60;
@@ -41,8 +42,18 @@ public class AnimatedCameraEntity extends Entity implements FovProvider, Rotatio
     @Getter @Setter
     private boolean sceneCamera;
 
+    // Only used while piloting; NOT for rendering.
     @Getter
     private float aspectRatio = 1;
+
+    @Getter
+    private float roll;
+
+    @Override
+    public void setRoll(float roll) {
+        this.roll = roll;
+        ReplayLab.getLogger().info("setRoll: {}", roll);
+    }
 
     public void setAspectRatio(float aspectRatio) {
         this.aspectRatio = Math.max(aspectRatio, .01f);
@@ -92,6 +103,7 @@ public class AnimatedCameraEntity extends Entity implements FovProvider, Rotatio
         this.prevYaw = yaw;
         setPitch(pitch);
         setYaw(yaw);
+        this.roll = roll;
     }
 
     public void setCameraRotation(Quaternionfc rot) {
