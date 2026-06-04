@@ -28,8 +28,8 @@ public class ReplayLabIcons {
     public static final char ICON_RESIZE_SMALL = 0xF422;
     public static final char ICON_RESIZE_FULL = 0xF424;
     public static final char ICON_MAGNET = 0xF076;
-    public static final char ICON_EYE_OFF = 0xF06E;
-    public static final char ICON_EYE = 0xF070;
+    public static final char ICON_EYE_OFF = 0xF070;
+    public static final char ICON_EYE = 0xF06E;
     public static final char ICON_RESIZE_FULL_ALT = 0xF424;
     public static final char ICON_EYEDROPPER = 0xF1FB;
 
@@ -40,4 +40,6 @@ public class ReplayLabIcons {
     public static final char ICON_ROTATE = 0xF021;
     public static final char ICON_SCALE = 0xE4BA;
     public static final char ICON_FREE_TRANSFORM = 0xE4F6;
+
+    public static final char ICON_ARROWS_V = 0xF07D;
 }

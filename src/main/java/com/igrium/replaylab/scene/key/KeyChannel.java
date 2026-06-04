@@ -126,7 +126,7 @@ public class KeyChannel {
     public void sortKeys(@Nullable KeySelectionSet selection, @Nullable String objName, @Nullable String chName) {
         // Shortcut if we don't need to keep track of selection
         if (selection == null) {
-            keyframes.sort(Comparator.comparing(k -> k));
+            keyframes.sort(Comparator.comparing(Keyframe::getTime));
             return;
         }
 
@@ -182,6 +182,64 @@ public class KeyChannel {
         double t = Beziers.intersectX(bezier, timestamp);
         return bezier.sampleY(t);
     }
+
+    public boolean isEmpty() {
+        return keyframes.isEmpty();
+    }
+
+    /**
+     * Compute the maximum handle value.
+     * @return The maximum handle value. <code>0</code> if there are no keyframes.
+     */
+    public double getMaxHandle() {
+        boolean found = false;
+        double val = 0;
+
+        for (var key : keyframes) {
+            if (!found || key.getValue() > val) {
+                found = true;
+                val = key.getValue();
+            }
+            // Found is always true at this point
+            val = Math.max(val, key.getGlobalAY());
+            val = Math.max(val, key.getGlobalBY());
+        }
+        return val;
+    }
+
+    /**
+     * Compute the minimum handle value.
+     * @return The minimum handle value. <code>0</code> if there are no keyframes.
+     */
+    public double getMinHandle() {
+        boolean found = false;
+        double val = 0;
+
+        for (var key : keyframes) {
+            if (!found || key.getValue() < val) {
+                found = true;
+                val = key.getValue();
+            }
+            // Found is always true at this point
+            val = Math.min(val, key.getGlobalAY());
+            val = Math.min(val, key.getGlobalBY());
+        }
+        return val;
+    }
+
+    /**
+     * Make a deep copy of this channel.
+     */
+    public KeyChannel copy() {
+        List<Keyframe> copied = new ArrayList<>(keyframes.size());
+        for (Keyframe key : keyframes) {
+            copied.add(new Keyframe(key));
+        }
+        var ch = new KeyChannel(copied);
+        ch.locked = locked;
+        return ch;
+    }
+
     /**
      * Find the index of the keyframe directly to the left of the given timestamp.
      * Specifically, return the index of the greatest key less than or equal to the timestamp.
@@ -214,20 +272,6 @@ public class KeyChannel {
         return left;
     }
 
-
-    /**
-     * Make a deep copy of this channel.
-     */
-    public KeyChannel copy() {
-        List<Keyframe> copied = new ArrayList<>(keyframes.size());
-        for (Keyframe key : keyframes) {
-            copied.add(new Keyframe(key));
-        }
-        var ch = new KeyChannel(copied);
-        ch.locked = locked;
-        return ch;
-    }
-
 }
 
 class KeyChannelSerializer implements JsonSerializer<KeyChannel>, JsonDeserializer<KeyChannel> {
@@ -240,6 +284,7 @@ class KeyChannelSerializer implements JsonSerializer<KeyChannel>, JsonDeserializ
         for (var el : arr) {
             keys.add(context.deserialize(el, Keyframe.class));
         }
+        keys.sort(Comparator.comparing(Keyframe::getTime));
 
         return new KeyChannel(keys);
     }

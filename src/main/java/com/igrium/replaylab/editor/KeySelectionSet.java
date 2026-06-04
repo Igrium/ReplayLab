@@ -1,6 +1,7 @@
 package com.igrium.replaylab.editor;
 
 import com.google.common.collect.AbstractIterator;
+import com.igrium.replaylab.scene.ReplayScene;
 import com.igrium.replaylab.scene.key.KeyChannel;
 import com.igrium.replaylab.scene.key.Keyframe;
 import com.igrium.replaylab.scene.obj.ReplayObject;
@@ -12,6 +13,8 @@ import org.joml.Vector2dc;
 import java.util.*;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 /**
  * Provides easy access to a set of selected object, keyframes, and then keyframe handles
@@ -700,6 +703,22 @@ public class KeySelectionSet {
         }
     }
 
+    public static Stream<KeyHandleReference> streamAllHandles(Map<? extends String, ? extends ReplayObject> objects) {
+        return objects.entrySet().stream().flatMap(objEntry -> {
+            String objName = objEntry.getKey();
+            return objEntry.getValue().getChannels().entrySet().stream().flatMap(chEntry -> {
+                ChannelReference chRef = new ChannelReference(objName, chEntry.getKey());
+                List<Keyframe> keys = chEntry.getValue().getKeyframes();
+                return IntStream.range(0, keys.size()).boxed().flatMap(keyIdx -> {
+                    KeyframeReference keyRef = new KeyframeReference(chRef, keyIdx);
+                    return Stream.of(new KeyHandleReference(keyRef, 0),
+                            new KeyHandleReference(keyRef, 1),
+                            new KeyHandleReference(keyRef, 2));
+                });
+            });
+        });
+    }
+
     private static Map<String, Map<String, Int2ObjectMap<IntSet>>> deepCopy(Map<String, Map<String, Int2ObjectMap<IntSet>>> src) {
         Map<String, Map<String, Int2ObjectMap<IntSet>>> dest = new HashMap<>(src.size());
         for (var objEntry : src.entrySet()) {
@@ -714,5 +733,67 @@ public class KeySelectionSet {
             dest.put(objEntry.getKey(), object);
         }
         return dest;
+    }
+
+    private static class AllHandlesIterator extends AbstractIterator<KeyHandleReference> {
+        final Iterator<? extends Map.Entry<? extends String, ? extends ReplayObject>> objIter;
+
+        private AllHandlesIterator(Iterator<? extends Map.Entry<? extends String, ? extends ReplayObject>> objIter) {
+            this.objIter = objIter;
+        }
+
+        @Nullable Iterator<? extends Map.Entry<? extends String, ? extends KeyChannel>> chanIter;
+
+        @Nullable String curObjectName;
+        @Nullable ChannelReference curChRef;
+        @Nullable KeyframeReference curKeyframe;
+
+        /**
+         * The number of keyframes in the current channel
+         */
+        int numKeys = 0;
+
+        int keyIdx = 0;
+        int handleIdx = 3;
+
+        @Override
+        protected @Nullable KeyHandleReference computeNext() {
+            if (curKeyframe != null && handleIdx < 3) {
+                var ref = new KeyHandleReference(curKeyframe, handleIdx);
+                handleIdx++;
+                return ref;
+            }
+
+
+        }
+
+        //        private final Iterator<? extends Map.Entry<? extends String, ? extends ReplayObject>> objIter;
+//
+//        Iterator<? extends Map.Entry<? extends String, ? extends KeyChannel>> chIter = Collections.emptyIterator();
+//
+//        // State trackers
+//        String currentObjName;
+//        ChannelReference currentChRef;
+//        KeyframeReference currentKeyRef;
+//
+//        int keyIdx = 0;
+//        int handleIdx = 3; // Init to 3 to trigger first fetch
+//
+//        AllHandlesIterator(Iterator<? extends Map.Entry<? extends String, ? extends ReplayObject>> objIter) {
+//            this.objIter = objIter;
+//        }
+//
+//        @Override
+//        protected @Nullable KeyHandleReference computeNext() {
+//            while (true) {
+//                // 3 handles per keyframe
+//                if (handleIdx < 3 && currentKeyRef != null) {
+//                    handleIdx++;
+//                    return new KeyHandleReference(currentKeyRef, handleIdx);
+//                }
+//
+//
+//            }
+//        }
     }
 }

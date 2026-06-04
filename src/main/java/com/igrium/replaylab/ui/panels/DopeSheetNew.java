@@ -225,7 +225,7 @@ public class DopeSheetNew extends UIPanel {
         ImGui.sameLine();
 
         /// === BUTTONS ===
-        ReplayLabControls.toggleButton(ReplayLabIcons.ICON_MAGNET, "gui.replaylab.tooltip_snap", snapKeyframes);
+        ReplayLabControls.toggleButton(ReplayLabIcons.ICON_MAGNET, "snapKeyframes", snapKeyframes, "gui.replaylab.tooltip_snap");
         ImGui.sameLine();
         boolean wantsFit = ReplayLabControls.iconButton(ReplayLabIcons.ICON_RESIZE_FULL_ALT, "", "gui.replaylab.tooltip_fit");
 
