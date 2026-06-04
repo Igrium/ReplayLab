@@ -15,6 +15,7 @@
 
   "gui.replaylab.tooltip_snap": "Snap Keyframes",
   "gui.replaylab.tooltip_fit": "Fit to Selected",
+  "gui.replaylab.tooltip_normalize": "Normalize Curves",
 
   "gui.replaylab.add_key": "Insert Keyframe",
   "gui.replaylab.add_key_s" : "Insert Keyframe (Single)",
@@ -65,6 +66,9 @@
   "key.replaylab.gizmo_pos": "Translation Gizmo",
   "key.replaylab.gizmo_rot": "Rotation Gizmo",
   "key.replaylab.gizmo_scale": "Scale Gizmo",
+
+  "key.replaylab.camera_roll": "Roll Camera",
+  "key.replaylab.camera_roll.tooltip": "Hold to roll the camera while piloting.",
 
   "key.shortcut.ctrl": "Ctrl",
   "key.shortcut.shift": "Shift",

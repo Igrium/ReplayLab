@@ -1,4 +1,4 @@
-package com.igrium.replaylab.ui.util;
+package com.igrium.replaylab.ui.subpanels;
 
 import com.mojang.blaze3d.systems.RenderSystem;
 import imgui.ImGui;

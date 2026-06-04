@@ -6,6 +6,7 @@ import com.google.gson.JsonSerializationContext;
 import com.igrium.replaylab.editor.EditorState;
 import com.igrium.replaylab.scene.ReplayScene;
 import com.igrium.replaylab.scene.key.Keyframe;
+import com.igrium.replaylab.scene.obj.ObjectEditState;
 import com.igrium.replaylab.scene.obj.ReplayObject;
 import com.igrium.replaylab.scene.obj.ReplayObjectType;
 import imgui.ImGui;
@@ -45,19 +46,16 @@ public class DummyReplayObject extends ReplayObject {
     private final double[] dummyValInput = new double[1];
 
     @Override
-    public PropertiesPanelState drawPropertiesPanel(EditorState editor) {
+    public int drawPropertiesPanel(EditorState editor) {
         boolean modified = false;
 
         dummyValInput[0] = dummyValue;
         if (ImGui.dragScalar("Dummy Value", dummyValInput, 1)) {
             modified = true;
         }
-//        if (ImGui.inputDouble("Dummy Value", dummyValInput)) {
-//            modified = true;
-//        }
         dummyValue = dummyValInput[0];
 
-        return modified ? PropertiesPanelState.DRAGGING : PropertiesPanelState.NONE;
+        return modified ? ObjectEditState.UPDATE_SCENE : ObjectEditState.NONE;
     }
 
     @Override

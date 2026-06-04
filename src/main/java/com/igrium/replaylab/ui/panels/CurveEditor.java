@@ -3,6 +3,7 @@ package com.igrium.replaylab.ui.panels;
 import com.igrium.replaylab.config.Keybinds;
 import com.igrium.replaylab.editor.EditorState;
 import com.igrium.replaylab.editor.KeySelectionSet;
+import com.igrium.replaylab.editor.KeySelectionSet.ChannelReference;
 import com.igrium.replaylab.editor.KeySelectionSet.KeyframeReference;
 import com.igrium.replaylab.editor.KeySelectionSet.KeyHandleReference;
 import com.igrium.replaylab.operator.CommitObjectUpdateOperator;
@@ -13,10 +14,11 @@ import com.igrium.replaylab.scene.key.KeyChannel;
 import com.igrium.replaylab.scene.key.Keyframe;
 import com.igrium.replaylab.scene.obj.ReplayObject;
 import com.igrium.replaylab.ui.ReplayLabIcons;
-import com.igrium.replaylab.ui.util.ChannelList;
+import com.igrium.replaylab.ui.subpanels.ChannelList;
 import com.igrium.replaylab.ui.util.ReplayLabControls;
 import com.igrium.replaylab.ui.util.TimelineFlags;
-import com.igrium.replaylab.ui.util.TimelineHeader;
+import com.igrium.replaylab.ui.subpanels.TimelineHeader;
+import com.replaymod.replaystudio.rar.state.Replay;
 import imgui.ImDrawList;
 import imgui.ImGui;
 import imgui.ImVec2;
@@ -28,6 +30,7 @@ import it.unimi.dsi.fastutil.ints.IntSet;
 import lombok.Getter;
 import lombok.Setter;
 import net.minecraft.util.Identifier;
+import net.minecraft.util.math.ColorHelper;
 import org.jetbrains.annotations.Nullable;
 import org.joml.*;
 
@@ -36,6 +39,19 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 public class CurveEditor extends UIPanel {
+
+    private record ChannelExtents(double min, double max) {};
+
+    private final Map<ChannelReference, ChannelExtents> normalizationCache = new HashMap<>();
+    private final ImBoolean normalized = new ImBoolean(false);
+
+    public boolean isNormalized() {
+        return normalized.get();
+    }
+
+    public void setNormalized(boolean normalized) {
+        this.normalized.set(normalized);
+    }
 
     /**
      * The X pan amount in milliseconds
@@ -86,9 +102,7 @@ public class CurveEditor extends UIPanel {
     }
 
 
-    private record KeyOffsetPair(KeyHandleReference ref, Vector2dc offset) {
-    }
-
+    private record KeyOffsetPair(KeyHandleReference ref, Vector2dc offset) { }
     /**
      * The key drag offset that's closest to the mouse
      */
@@ -186,7 +200,11 @@ public class CurveEditor extends UIPanel {
             // we need to clear selected keyframes
             var selected = editorState.getKeySelection().getSelectedKeyframes();
             editorState.getKeySelection().deselectAll();
+
             editorState.applyOperator(new RemoveKeyframesOperator(selected));
+
+
+            updateNormalizationCache(editorState.getScene());
         }
 
         if (ImGui.shortcut(Keybinds.selectAll())) {
@@ -239,6 +257,8 @@ public class CurveEditor extends UIPanel {
 
             editorState.applyOperator(new CommitObjectUpdateOperator(updatedObjects));
             editorState.applyToGame();
+
+            updateNormalizationCache(editorState.getScene());
         } else if (isDragging()) {
             // Always apply to game if we're dragging
             editorState.applyToGame();
@@ -261,7 +281,11 @@ public class CurveEditor extends UIPanel {
 
         droppedHandles.clear();
         updatedHandles.clear();
-        Collection<String> objs = selectedObjects != null ? selectedObjects : scene.getObjects().keySet();
+//        Collection<String> objs = selectedObjects != null ? selectedObjects : scene.getObjects().keySet();
+        Map<String, ReplayObject> objs = selectedObjects != null ? scene.getObjects()
+                .entrySet().stream()
+                .filter(entry -> selectedObjects.contains(entry.getKey()))
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)) : scene.getObjects();
 
         int majorIntervalX = (int) TimelineHeader.computeMajorInterval(zoomFactorX);
         int minorIntervalX = majorIntervalX / 2;
@@ -276,15 +300,21 @@ public class CurveEditor extends UIPanel {
         ImGui.sameLine();
 
         /// === BUTTONS ===
-        ReplayLabControls.toggleButton(ReplayLabIcons.ICON_MAGNET, "gui.replaylab.tooltip_snap", snapKeyframes);
+        ReplayLabControls.toggleButton(ReplayLabIcons.ICON_MAGNET, "snapKeyframes", snapKeyframes, "gui.replaylab.tooltip_snap");
+
         ImGui.sameLine();
-        boolean wantsFit = ReplayLabControls.iconButton(ReplayLabIcons.ICON_RESIZE_FULL_ALT, "", "gui.replaylab.tooltip_fit");
+        boolean wantsFit = ReplayLabControls.iconButton(ReplayLabIcons.ICON_RESIZE_FULL_ALT, "wantsFit", "gui.replaylab.tooltip_fit");
+
+        boolean wasNormalized = isNormalized();
+
+        ImGui.sameLine();
+        ReplayLabControls.toggleButton(ReplayLabIcons.ICON_ARROWS_V, "normalize", normalized, "gui.replaylab.tooltip_normalize");
+
 
         /// === CHANNEL LIST ===
         ImGui.beginChild("channels", 192, -1, false, ImGuiWindowFlags.NoScrollbar);
         ChannelList.drawChannelList(scene, objs, 192);
         ImGui.endChild();
-
 
         ImGui.sameLine();
         float headerCursorX = ImGui.getCursorPosX();
@@ -292,6 +322,15 @@ public class CurveEditor extends UIPanel {
 
         float mouseGlobalX = ImGui.getMousePosX();
         float mouseGlobalY = ImGui.getMousePosY();
+
+        // Vertical auto-fit
+        if (!wasNormalized && isNormalized()) {
+            setOffsetY(-1.2);
+            setZoomFactorY(graphHeight / 2.4f);
+            updateNormalizationCache(scene);
+        } else if (wasNormalized && !isNormalized()) {
+            wantsFit = true;
+        }
 
         /// === GRAPH ===
 
@@ -309,16 +348,22 @@ public class CurveEditor extends UIPanel {
                 Vector2d boundsMin = new Vector2d();
                 Vector2d boundsMax = new Vector2d();
 
-                if (!doneInitialFit || selectedKeys.isEmpty()) {
-                    computeBoundingBox(scene.getObjects().values(), boundsMin, boundsMax);
-                } else {
-                    computeBoundingBox(selectedKeys, scene, boundsMin, boundsMax);
-                }
+                Iterable<KeyHandleReference> iter = selectedKeys.isEmpty()
+                        ? KeySelectionSet.iterateAllHandles(scene.getObjects())
+                        : selectedKeys.getSelectedHandles();
+
+                computeDisplayBoundingBox(scene.getObjects(), iter, boundsMin, boundsMax);
+
+//                if (!doneInitialFit || selectedKeys.isEmpty()) {
+//                    computeBoundingBox(scene.getObjects().values(), boundsMin, boundsMax);
+//                } else {
+//                    computeBoundingBox(selectedKeys, scene, boundsMin, boundsMax);
+//                }
 
                 if (boundsMin.x != boundsMax.x)
                     setZoomFactorX((float) (gWidth / (boundsMax.x - boundsMin.x)));
 
-                if (boundsMin.y != boundsMax.x)
+                if (boundsMin.y != boundsMax.y)
                     setZoomFactorY((float) (gHeight / (boundsMax.y - boundsMin.y)));
 
                 setOffsetX(boundsMin.x);
@@ -397,8 +442,9 @@ public class CurveEditor extends UIPanel {
             float keyHoverRadius = 12f + ImGui.getIO().getMouseDragThreshold() * 2;
 
             int chIndex = 0;
-            for (String objName : objs) {
-                ReplayObject obj = scene.getObject(objName);
+            for (var objEntry : objs.entrySet()) {
+                String objName = objEntry.getKey();
+                ReplayObject obj = objEntry.getValue();
                 if (obj == null)
                     continue;
 
@@ -406,6 +452,10 @@ public class CurveEditor extends UIPanel {
                 for (var chEntry : obj.getChannels().entrySet()) {
                     if (chEntry.getValue().isHidden())
                         continue;
+
+                    // Don't allocate new ChannelReference unless we need to
+                    ChannelExtents extents = isNormalized() ?
+                            normalizationCache.get(new ChannelReference(objName, chEntry.getKey())) : null;
 
                     int chColor = obj.getChannelColor(chEntry.getKey());
                     boolean chSelected = selectedKeys.isChannelSelected(objName, chEntry.getKey());
@@ -431,17 +481,20 @@ public class CurveEditor extends UIPanel {
                             int selColor = ImGui.getColorU32(ImGuiCol.Text);
 
                             float keyX = msToPixelX((float) key.getCenter().x()) + graphX;
-                            float keyY = valueToPixelY(key.getCenter().y()) + graphY;
+                            double display = rawToDisplay(key.getCenter().y, extents);
+                            float keyY = valueToPixelY(display) + graphY;
 
                             drawList.addCircleFilled(keyX, keyY, 3f, cSelected ? selColor : color);
 
-                            float handleAX = keyX + (float) key.getHandleA().x() * zoomFactorX;
-                            float handleAY = keyY + (float) key.getHandleA().y() * zoomFactorY;
+                            float handleAX = msToPixelX(key.getGlobalAX()) + graphX;
+                            double displayA = rawToDisplay(key.getGlobalAY(), extents);
+                            float handleAY = valueToPixelY(displayA) + graphY;
 
                             drawList.addCircle(handleAX, handleAY, 3f, lSelected ? selColor : handleEndColor);
 
-                            float handleBX = keyX + (float) key.getHandleB().x() * zoomFactorX;
-                            float handleBY = keyY + (float) key.getHandleB().y() * zoomFactorY;
+                            float handleBX = msToPixelX(key.getGlobalBX()) + graphX;
+                            double displayB = rawToDisplay(key.getGlobalBY(), extents);
+                            float handleBY = valueToPixelY(displayB) + graphY;
 
                             drawList.addCircle(handleBX, handleBY, 3f, rSelected ? selColor : handleEndColor);
 
@@ -514,16 +567,21 @@ public class CurveEditor extends UIPanel {
                         Keyframe next = keyArray[i + 1];
 
                         float keyX = msToPixelX((float) key.getCenter().x()) + graphX;
-                        float keyY = valueToPixelY(key.getCenter().y()) + graphY;
+                        double displayKey = rawToDisplay(key.getCenter().y(), extents);
+                        float keyY = valueToPixelY(displayKey) + graphY;
 
-                        float keyHandleX = keyX + (float) key.getHandleB().x() * zoomFactorX;
-                        float keyHandleY = keyY + (float) key.getHandleB().y() * zoomFactorY;
 
-                        float nextX = msToPixelX((float) next.getCenter().x()) + graphX;
-                        float nextY = valueToPixelY(next.getCenter().y()) + graphY;
+                        float keyHandleX = msToPixelX(key.getGlobalBX()) + graphX;
+                        double displayKeyHandle = rawToDisplay(key.getGlobalBY(), extents);
+                        float keyHandleY = valueToPixelY(displayKeyHandle) + graphY;
 
-                        float nextHandleX = nextX + (float) next.getHandleA().x() * zoomFactorX;
-                        float nextHandleY = nextY + (float) next.getHandleA().y() * zoomFactorY;
+                        float nextX = msToPixelX(next.getCenter().x()) + graphX;
+                        double displayNext = rawToDisplay(next.getCenter().y(), extents);
+                        float nextY =  valueToPixelY(displayNext) + graphY;
+
+                        float nextHandleX = msToPixelX(next.getGlobalAX()) + graphX;
+                        double displayNextHandle = rawToDisplay(next.getGlobalAY(), extents);
+                        float nextHandleY = valueToPixelY(displayNextHandle) + graphY;
 
                         drawList.addBezierCubic(keyX, keyY, keyHandleX, keyHandleY, nextHandleX, nextHandleY, nextX, nextY,
                                 chColor, chSelected ? 2 : 1);
@@ -531,12 +589,14 @@ public class CurveEditor extends UIPanel {
 
                     // Continue lines to edge of screen
                     float startX = msToPixelX(keyArray[0].getCenter().x()) + graphX;
-                    float startY = valueToPixelY(keyArray[0].getCenter().y()) + graphY;
+                    double displayStart = rawToDisplay(keyArray[0].getCenter().y(), extents);
+                    float startY = valueToPixelY(displayStart) + graphY;
                     drawList.addLine(graphX, startY, startX, startY, chColor, chSelected ? 2 : 1);
 
                     Keyframe endKey = keyArray[keyArray.length - 1];
                     float endX = msToPixelX(endKey.getCenter().x()) + graphX;
-                    float endY = valueToPixelY(endKey.getCenter().y()) + graphY;
+                    double displayEnd = rawToDisplay(endKey.getCenter().y(), extents);
+                    float endY = valueToPixelY(displayEnd) + graphY;
                     drawList.addLine(endX, endY, graphX + gWidth, endY, chColor, chSelected ? 2 : 1);
 
                     chIndex++;
@@ -544,21 +604,43 @@ public class CurveEditor extends UIPanel {
             }
 
             /// === OUT-OF-BOUNDS GRAYOUT
-
             {
-                float pixelIn = msToPixelX(0);
-                float pixelOut = msToPixelX(scene.getLength());
+                float pixelIn = msToPixelX(0) + graphX;
+                float pixelOut = msToPixelX(scene.getLength()) + graphX;
 
-                if (pixelIn > 0) {
-                    float pixelInGlobal = pixelIn + graphX;
-                    drawList.addLine(pixelInGlobal, graphY, pixelInGlobal, graphY + graphHeight, ImGui.getColorU32(ImGuiCol.Separator));
-                    drawList.addRectFilled(graphX, graphY, pixelInGlobal, graphY + graphHeight, ImGui.getColorU32(ImGuiCol.ModalWindowDimBg));
+                if (pixelIn > graphX) {
+                    drawList.addLine(pixelIn, graphY, pixelIn, graphY + graphHeight, ImGui.getColorU32(ImGuiCol.Separator));
+                    drawList.addRectFilled(graphX, graphY, pixelIn, graphY + graphHeight, ImGui.getColorU32(ImGuiCol.ModalWindowDimBg));
                 }
 
-                if (pixelOut < gWidth) {
-                    float pixelOutGlobal = pixelOut + graphX;
-                    drawList.addLine(pixelOutGlobal, graphY, pixelOutGlobal, graphY + graphHeight, ImGui.getColorU32(ImGuiCol.Separator));
-                    drawList.addRectFilled(pixelOutGlobal, graphY, graphX + gWidth, graphY + graphHeight, ImGui.getColorU32(ImGuiCol.ModalWindowDimBg));
+                if (pixelOut < graphX + gWidth) {
+                    drawList.addLine(pixelOut, graphY, pixelOut, graphY + graphHeight, ImGui.getColorU32(ImGuiCol.Separator));
+                    drawList.addRectFilled(pixelOut, graphY, graphX + gWidth, graphY + graphHeight, ImGui.getColorU32(ImGuiCol.ModalWindowDimBg));
+                }
+
+                if (isNormalized()) {
+                    // Resolve the actual U32 color integer from the theme style first
+                    int modalDimColor = ImGui.getColorU32(ImGuiCol.ModalWindowDimBg);
+                    int separatorColor = ImGui.getColorU32(ImGuiCol.Separator);
+
+                    int outOfNormalColor = ColorHelper.withAlpha(
+                            (int) (ColorHelper.getAlpha(modalDimColor) *.75f), modalDimColor);
+
+                    // Normalization bounds are -1 and 1
+                    float pixelNeg1 = valueToPixelY(-1) + graphY;
+                    float pixelPos1 = valueToPixelY(1) + graphY;
+
+                    // Gray out the area ABOVE -1 (from graphY down to the boundary line)
+                    if (pixelNeg1 > graphY) {
+                        drawList.addLine(pixelIn, pixelNeg1, pixelOut, pixelNeg1, separatorColor);
+                        drawList.addRectFilled(pixelIn, graphY, pixelOut, pixelNeg1, outOfNormalColor);
+                    }
+
+                    // Gray out the area BELOW 1 (from the boundary line down to graphY + graphHeight)
+                    if (pixelPos1 < graphY + graphHeight) {
+                        drawList.addLine(pixelIn, pixelPos1, pixelOut, pixelPos1, separatorColor);
+                        drawList.addRectFilled(pixelIn, pixelPos1, pixelOut, graphY + graphHeight, outOfNormalColor);
+                    }
                 }
             }
 
@@ -600,19 +682,24 @@ public class CurveEditor extends UIPanel {
                 dl.addRectFilled(boxSelectStart.x, boxSelectStart.y, mouseGlobalX, mouseGlobalY, rectColor);
                 dl.addRect(boxSelectStart.x, boxSelectStart.y, mouseGlobalX, mouseGlobalY, ImGui.getColorU32(ImGuiCol.HeaderActive));
 
-                for (String objName : objs) {
-                    ReplayObject obj = scene.getObject(objName);
+                for (var objEntry : objs.entrySet()) {
+                    String objName = objEntry.getKey();
+                    ReplayObject obj = objEntry.getValue();
                     if (obj == null)
                         continue;
 
                     for (var chEntry : obj.getChannels().entrySet()) {
                         if (chEntry.getValue().isHidden() || chEntry.getValue().isLocked())
                             continue;
+                        ChannelExtents extents = isNormalized() ?
+                                normalizationCache.get(new ChannelReference(objName, chEntry.getKey())) : null;
                         int keyIdx = 0;
                         for (Keyframe key : chEntry.getValue().getKeyframes()) {
 
+
                             float centerX = msToPixelX(key.getCenter().x);
-                            float centerY = valueToPixelY(key.getCenter().y);
+                            double display = rawToDisplay(key.getCenter().y, extents);
+                            float centerY = valueToPixelY(display);
 
                             if (boxMinX < centerX && centerX < boxMaxX
                                     && boxMinY < centerY && centerY < boxMaxY) {
@@ -620,7 +707,8 @@ public class CurveEditor extends UIPanel {
                             }
 
                             float handleAX = msToPixelX(key.getGlobalAX());
-                            float handleAY = valueToPixelY(key.getGlobalAY());
+                            double displayA = rawToDisplay(key.getGlobalAY(), extents);
+                            float handleAY = valueToPixelY(displayA);
 
                             if (boxMinX < handleAX && handleAX < boxMaxX
                                     && boxMinY < handleAY && handleAY < boxMaxY) {
@@ -628,7 +716,8 @@ public class CurveEditor extends UIPanel {
                             }
 
                             float handleBX = msToPixelX(key.getGlobalBX());
-                            float handleBY = valueToPixelY(key.getGlobalBY());
+                            double displayB = rawToDisplay(key.getGlobalBY(), extents);
+                            float handleBY = valueToPixelY(displayB);
 
                             if (boxMinX < handleBX && handleBX < boxMaxX
                                     && boxMinY < handleBY && handleBY < boxMaxY) {
@@ -725,6 +814,7 @@ public class CurveEditor extends UIPanel {
 
                 /// Start Dragging
                 float mouseXMs = pixelXToMs(mouseGlobalX - graphX);
+                // mouseYValue acts as the mouse position in Display Space
                 double mouseYValue = pixelYToValue(mouseGlobalY - graphY);
 
                 selectedKeys.forSelectedHandles(hRef -> {
@@ -734,7 +824,14 @@ public class CurveEditor extends UIPanel {
 
                     Vector2d pos = hRef.get(scene.getObjects());
                     if (pos == null) return;
-                    Vector2d offset = pos.sub(mouseXMs, mouseYValue, new Vector2d());
+
+                    // MODIFICATION: Convert raw Y positions to Display Space before calculating offsets
+//                    ChannelExtents extents = normalizationCache.get(new ChannelId(hRef.objectName(), hRef.channelName()));
+                    ChannelExtents extents = isNormalized() ?
+                            normalizationCache.get(new ChannelReference(hRef.objectName(), hRef.channelName())) : null;
+                    double displayY = rawToDisplay(pos.y, extents);
+
+                    Vector2d offset = new Vector2d(pos.x - mouseXMs, displayY - mouseYValue);
                     keyDragOffsets.put(hRef, offset);
 
                     if (isSmaller(offset, smallestKeyDragOffset)) {
@@ -753,6 +850,7 @@ public class CurveEditor extends UIPanel {
                 }
 
                 double mouseXMs = pixelXToMs(mouseGlobalX - graphX);
+                // mouseYValue acts as the mouse position in Display Space
                 double mouseYValue = pixelYToValue(mouseGlobalY - graphY);
 
                 // Snapping
@@ -765,7 +863,7 @@ public class CurveEditor extends UIPanel {
                     double closestKeyX = mouseXMs + smallestOffsetX;
 
                     double smallestOffsetY = smallestKeyDragOffset.offset().y();
-                    double closestKeyY = mouseYValue + smallestKeyDragOffset.offset().y();
+                    double closestKeyY = mouseYValue + smallestOffsetY;
 
                     double snapTargetX = Double.NaN;
                     double snapTargetXDist = Double.NaN;
@@ -773,22 +871,30 @@ public class CurveEditor extends UIPanel {
                     double snapTargetY = Double.NaN;
                     double snapTargetYDist = Double.NaN;
 
-                    for (String objName : objs) {
-                        ReplayObject obj = scene.getObject(objName);
+                    for (var objEntry : objs.entrySet()) {
+                        String objName =  objEntry.getKey();
+                        ReplayObject obj = objEntry.getValue();
                         if (obj == null) continue;
 
                         for (var chEntry : obj.getChannels().entrySet()) {
                             int keyIdx = 0;
+
+                            // MODIFICATION: Fetch extents for the target curve we are testing snap points against
+//                            ChannelExtents snapExtents = normalizationCache.get(new ChannelId(objName, chEntry.getKey()));
+                            ChannelExtents snapExtents = isNormalized() ?
+                                    normalizationCache.get(new ChannelReference(objName, chEntry.getKey())) : null;
+
                             for (Keyframe key : chEntry.getValue().getKeyframes()) {
                                 for (int i = 0; i < 3; i++) {
 
                                     // Don't attempt to lock to something we're also dragging
-                                    // Don't like that we're allocating, but whatever
                                     if (keyDragOffsets.containsKey(new KeyHandleReference(objName, chEntry.getKey(), keyIdx, i)))
                                         continue;
 
                                     double handleX = key.getHandleX(i);
-                                    double handleY = key.getHandleY(i);
+
+                                    // MODIFICATION: Normalize the static snap target value to match our Display Space
+                                    double handleY = rawToDisplay(key.getHandleY(i), snapExtents);
 
                                     double distX = Math.abs(closestKeyX - handleX);
                                     double distY = Math.abs(closestKeyY - handleY);
@@ -800,7 +906,7 @@ public class CurveEditor extends UIPanel {
 
                                     if (!Double.isFinite(snapTargetYDist) || distY < snapTargetYDist) {
                                         snapTargetYDist = distY;
-                                        snapTargetY = handleY;
+                                        snapTargetY = handleY; // Stores target in Display Space
                                     }
                                 }
                                 keyIdx++;
@@ -829,9 +935,13 @@ public class CurveEditor extends UIPanel {
                     Keyframe key = hRef.keyRef().get(scene.getObjects());
                     if (key == null) continue;
 
-                    double newGlobalTime = mouseXMs + offset.x();
-                    double newGlobalValue = mouseYValue + offset.y();
+                    ChannelExtents extents = isNormalized() ?
+                            normalizationCache.get(new ChannelReference(hRef.objectName(), hRef.channelName())) : null;
 
+                    double newGlobalTime = mouseXMs + offset.x();
+                    double newGlobalDisplayY = mouseYValue + offset.y();
+
+                    double newGlobalValue = displayToRaw(newGlobalDisplayY, extents);
 
                     switch (hRef.handleIndex()) {
                         case 0 -> {
@@ -882,6 +992,22 @@ public class CurveEditor extends UIPanel {
 
     }
 
+    /**
+     * Re-calculate the bounds for each channel to use when normalization is enabled.
+     * @param scene The active replay scene
+     */
+    public void updateNormalizationCache(ReplayScene scene) {
+        normalizationCache.clear();
+
+        for (var objEntry : scene.getObjects().entrySet()) {
+            for (var chEntry : objEntry.getValue().getChannels().entrySet()) {
+                if (chEntry.getValue().isEmpty()) continue;
+                normalizationCache.put(new ChannelReference(objEntry.getKey(), chEntry.getKey()),
+                        new ChannelExtents(chEntry.getValue().getMinHandle(), chEntry.getValue().getMaxHandle()));
+            }
+        }
+    }
+
     private float msToPixelX(double ms) {
         return (float) ((ms - offsetX) * zoomFactorX);
     }
@@ -896,6 +1022,46 @@ public class CurveEditor extends UIPanel {
 
     private double pixelYToValue(double pixel) {
         return pixel / zoomFactorY + offsetY;
+    }
+
+    /**
+     * Convert a raw curve value to a "display" value, mapped from zero to one.
+     * @param raw The original value in the curve
+     * @param extents The curves computed extents. Null if it does not have any.
+     * @return The display-space value
+     */
+    private double rawToDisplay(double raw, @Nullable ChannelExtents extents) {
+        if (extents == null) return raw;
+        if (Math.abs(extents.max - extents.min) < .001) return 0;
+        return ((raw - extents.min) / (extents.max - extents.min)) * 2 - 1;
+    }
+
+    private double displayToRaw(double display, @Nullable ChannelExtents extents) {
+        if (extents == null) return display;
+        return ((display + 1) / 2) * (extents.max - extents.min) + extents.min;
+    }
+
+    private void computeDisplayBoundingBox(Map<String, ReplayObject> objs, Iterable<? extends KeyHandleReference> selected,
+                                           Vector2d dest1, Vector2d dest2) {
+        boolean foundAny = false;
+
+        Vector2d vec = new Vector2d();
+
+        for (var handle : selected) {
+            var extents = isNormalized() ? normalizationCache.get(handle.keyRef().channelRef()) : null;
+            if (!handle.get(objs, vec)) continue;
+
+            vec.y = rawToDisplay(vec.y, extents);
+
+            if (foundAny) {
+                dest1.min(vec);
+                dest2.max(vec);
+            } else {
+                dest1.set(vec);
+                dest2.set(vec);
+                foundAny = true;
+            }
+        }
     }
 
     private static boolean hasFlag(int flag, int flags) {

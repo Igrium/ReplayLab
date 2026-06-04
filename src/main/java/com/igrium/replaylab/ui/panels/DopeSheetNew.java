@@ -1,7 +1,6 @@
 package com.igrium.replaylab.ui.panels;
 
 import com.igrium.replaylab.config.Keybinds;
-import com.igrium.replaylab.config.ReplayLabConfig;
 import com.igrium.replaylab.editor.EditorState;
 import com.igrium.replaylab.editor.KeySelectionSet;
 import com.igrium.replaylab.editor.KeySelectionSet.KeyframeReference;
@@ -13,10 +12,10 @@ import com.igrium.replaylab.scene.key.KeyChannel;
 import com.igrium.replaylab.scene.key.Keyframe;
 import com.igrium.replaylab.scene.obj.ReplayObject;
 import com.igrium.replaylab.ui.ReplayLabIcons;
-import com.igrium.replaylab.ui.util.ChannelList;
+import com.igrium.replaylab.ui.subpanels.ChannelList;
 import com.igrium.replaylab.ui.util.ReplayLabControls;
 import com.igrium.replaylab.ui.util.TimelineFlags;
-import com.igrium.replaylab.ui.util.TimelineHeader;
+import com.igrium.replaylab.ui.subpanels.TimelineHeader;
 import imgui.ImColor;
 import imgui.ImDrawList;
 import imgui.ImGui;
@@ -210,7 +209,18 @@ public class DopeSheetNew extends UIPanel {
         ReplayScene scene = editor.getScene();
         droppedKeys.clear();
         updatedKeys.clear();
-        Collection<String> objs = selectedObjects != null ? selectedObjects : scene.getObjects().keySet();
+//        Collection<String> objs = selectedObjects != null ? selectedObjects : scene.getObjects().keySet();
+        Map<String, ReplayObject> objs;
+        if (selectedObjects != null) {
+            objs = new HashMap<>(selectedObjects.size());
+            for (var objEntry : scene.getObjects().entrySet()) {
+                if (selectedObjects.contains(objEntry.getKey())) {
+                    objs.put(objEntry.getKey(), objEntry.getValue());
+                }
+            }
+        } else {
+            objs = scene.getObjects();
+        }
 
         boolean draggingNow = ImGui.isMouseDragging(0);
         mouseStartedDragging = draggingNow && !mouseDragging;
@@ -225,7 +235,7 @@ public class DopeSheetNew extends UIPanel {
         ImGui.sameLine();
 
         /// === BUTTONS ===
-        ReplayLabControls.toggleButton(ReplayLabIcons.ICON_MAGNET, "gui.replaylab.tooltip_snap", snapKeyframes);
+        ReplayLabControls.toggleButton(ReplayLabIcons.ICON_MAGNET, "snapKeyframes", snapKeyframes, "gui.replaylab.tooltip_snap");
         ImGui.sameLine();
         boolean wantsFit = ReplayLabControls.iconButton(ReplayLabIcons.ICON_RESIZE_FULL_ALT, "", "gui.replaylab.tooltip_fit");
 
@@ -267,8 +277,9 @@ public class DopeSheetNew extends UIPanel {
                 ImDrawList drawList = ImGui.getWindowDrawList();
                 int rowIndex = 0;
 
-                for (String objName : objs) {
-                    ReplayObject obj = scene.getObject(objName);
+                for (var objEntry : objs.entrySet()) {
+                    String objName =  objEntry.getKey();
+                    ReplayObject obj = objEntry.getValue();
                     if (obj == null) continue;
 
                     // COMBINED ROW

@@ -11,11 +11,13 @@ import com.igrium.replaylab.operator.RemoveObjectOperator;
 import com.igrium.replaylab.operator.RemoveObjectsOperator;
 import com.igrium.replaylab.render.VideoRenderSettings;
 import com.igrium.replaylab.scene.obj.ReplayObject;
+import com.igrium.replaylab.scene.objs.CameraObject;
 import com.igrium.replaylab.scene.objs.ScenePropsObject;
 import com.igrium.replaylab.ui.panels.*;
-import com.igrium.replaylab.ui.util.ExceptionPopup;
+import com.igrium.replaylab.ui.subpanels.ExceptionPopup;
 import com.igrium.replaylab.ui.util.ReplayLabControls;
 import com.igrium.replaylab.ui.gizmos.GizmoRenderer;
+import com.igrium.replaylab.util.ShortcutUtils;
 import com.replaymod.replay.ReplayHandler;
 import com.replaymod.replay.ReplayModReplay;
 import imgui.ImGui;
@@ -214,6 +216,13 @@ public class ReplayLabUI extends DockSpaceApp {
                 editorState.applyOperator(new RemoveObjectsOperator(editorState.getSelectedObjects()));
             }
 
+            // Zoom scrolling
+            if (editorState.isPilotingCamera() && editorState.getScene().getSceneCameraObject() instanceof CameraObject cam) {
+                cam.setFov(cam.getFov() + ImGui.getIO().getMouseWheel() * -2);
+            }
+
+            editorState.setRollingCamera(editorState.isPilotingCamera() && ShortcutUtils.isKeyChordDown(Keybinds.cameraRoll()));
+
         }
         ImGui.end();
 
@@ -387,15 +396,14 @@ public class ReplayLabUI extends DockSpaceApp {
         ImGui.beginGroup();
 
         tmpBoolean.set(editorState.showGizmoPos() && editorState.showGizmoRot() && editorState.showGizmoScale());
-        if (ReplayLabControls.toggleButton(ReplayLabIcons.ICON_FREE_TRANSFORM, "key.replaylab.gizmo_all", tmpBoolean)) {
+        if (ReplayLabControls.toggleButton(ReplayLabIcons.ICON_FREE_TRANSFORM, "gizmoAll", tmpBoolean, "key.replaylab.gizmo_all")) {
             editorState.showGizmoPos(tmpBoolean.get());
             editorState.showGizmoRot(tmpBoolean.get());
             editorState.showGizmoScale(tmpBoolean.get());
         }
         ImGui.sameLine();
-
         tmpBoolean.set(editorState.showGizmoPos());
-        if (ReplayLabControls.toggleButton(ReplayLabIcons.ICON_MOVE, t("key.replaylab.gizmo_pos"), tmpBoolean)) {
+        if (ReplayLabControls.toggleButton(ReplayLabIcons.ICON_MOVE, "gizmoPos", tmpBoolean, "key.replaylab.gizmo_pos")) {
             editorState.showGizmoPos(tmpBoolean.get());
             if (!ImGui.getIO().getKeyCtrl()) {
                 editorState.showGizmoRot(false);
@@ -403,9 +411,8 @@ public class ReplayLabUI extends DockSpaceApp {
             }
         }
         ImGui.sameLine();
-
         tmpBoolean.set(editorState.showGizmoRot());
-        if (ReplayLabControls.toggleButton(ReplayLabIcons.ICON_ROTATE, t("key.replaylab.gizmo_rot"), tmpBoolean)) {
+        if (ReplayLabControls.toggleButton(ReplayLabIcons.ICON_ROTATE, "gizmoRot", tmpBoolean, "key.replaylab.gizmo_rot")) {
             editorState.showGizmoRot(tmpBoolean.get());
             if (!ImGui.getIO().getKeyCtrl()) {
                 editorState.showGizmoPos(false);
@@ -413,9 +420,8 @@ public class ReplayLabUI extends DockSpaceApp {
             }
         }
         ImGui.sameLine();
-
         tmpBoolean.set(editorState.showGizmoScale());
-        if (ReplayLabControls.toggleButton(ReplayLabIcons.ICON_SCALE, "key.replaylab.gizmo_scale", tmpBoolean)) {
+        if (ReplayLabControls.toggleButton(ReplayLabIcons.ICON_SCALE, "gizmoScale", tmpBoolean, "key.replaylab.gizmo_scale")) {
             editorState.showGizmoScale(tmpBoolean.get());
             if (!ImGui.getIO().getKeyCtrl()) {
                 editorState.showGizmoPos(false);
@@ -423,16 +429,14 @@ public class ReplayLabUI extends DockSpaceApp {
             }
         }
         ImGui.sameLine();
-
         tmpBoolean.set(editorState.isLocalGizmos());
         char localIcon = tmpBoolean.get() ? ReplayLabIcons.ICON_CUBE : ReplayLabIcons.ICON_GLOBE;
-        if (ReplayLabControls.toggleButton(localIcon, t("key.replaylab.local_transforms"), tmpBoolean)) {
+        if (ReplayLabControls.toggleButton(localIcon, "freeTransform", tmpBoolean, "key.replaylab.local_transforms")) {
             editorState.setLocalGizmos(tmpBoolean.get());
         }
         ImGui.sameLine();
-
         cameraViewInput.set(editorState.isCameraView());
-        if (ReplayLabControls.toggleButton(ReplayLabIcons.ICON_VIDEOCAM, t("key.replaylab.cameraview"), cameraViewInput)) {
+        if (ReplayLabControls.toggleButton(ReplayLabIcons.ICON_VIDEOCAM, "cameraView", cameraViewInput, "key.replaylab.cameraview")) {
             editorState.setCameraView(cameraViewInput.get());
         }
 

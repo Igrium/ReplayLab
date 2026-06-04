@@ -7,6 +7,7 @@ import com.igrium.replaylab.editor.EditorState;
 import com.igrium.replaylab.render.VideoRenderSettings;
 import com.igrium.replaylab.scene.ReplayScene;
 import com.igrium.replaylab.scene.obj.EntityObject;
+import com.igrium.replaylab.scene.obj.ObjectEditState;
 import com.igrium.replaylab.scene.obj.ReplayObject;
 import com.igrium.replaylab.scene.obj.ReplayObjectType;
 import com.igrium.replaylab.ui.util.ReplayLabControls;
@@ -149,7 +150,7 @@ public final class ScenePropsObject extends ReplayObject {
     boolean editingFps = false;
 
     @Override
-    public PropertiesPanelState drawPropertiesPanel(EditorState editor) {
+    public int drawPropertiesPanel(EditorState editor) {
 
         boolean modified = false;
 
@@ -217,6 +218,6 @@ public final class ScenePropsObject extends ReplayObject {
         }
 
 
-        return modified ? PropertiesPanelState.COMMIT : PropertiesPanelState.NONE;
+        return modified ? ObjectEditState.COMMIT | ObjectEditState.RESAMPLE : ObjectEditState.NONE;
     }
 }

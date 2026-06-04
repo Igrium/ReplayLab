@@ -32,4 +32,11 @@ public interface ReplayOperator {
      * @throws Exception If the redo operation fails.
      */
     void redo(EditorState editor) throws Exception;
+
+    /**
+     * When this operator is applied (undo/redo, etc.), should we re-sample the curves?
+     */
+    default boolean wantsSampleCurves() {
+        return true;
+    }
 }

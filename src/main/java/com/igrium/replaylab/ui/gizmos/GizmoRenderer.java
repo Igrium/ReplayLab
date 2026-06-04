@@ -3,6 +3,7 @@ package com.igrium.replaylab.ui.gizmos;
 import com.igrium.craftui.app.CraftApp;
 import com.igrium.replaylab.editor.EditorState;
 import com.igrium.replaylab.operator.CommitObjectUpdateOperator;
+import com.igrium.replaylab.scene.obj.ObjectEditState;
 import com.igrium.replaylab.scene.obj.ReplayObject;
 import imgui.extension.imguizmo.ImGuizmo;
 import lombok.Getter;
@@ -60,24 +61,15 @@ public class GizmoRenderer {
 
         for (var obj : editorState.getScene().getObjects().values()) {
             var state = obj.drawGizmos(editorState, cameraPos, viewMatrix, projectionMatrix, hidden);
-            if (state.wantsInsertKeyframe()) {
-                obj.insertKey(editorState.getPlayhead());
+
+            if (hasFlag(state, ObjectEditState.UPDATE_SCENE)) {
+                editorState.applyToGame(hasFlag(state, ObjectEditState.RESAMPLE) ? o -> true : o -> o != obj);
             }
-            if (state.wantsUndoStep()) {
-                wantUndoStep.add(obj.getId());
-            }
-            if (state.wantsUpdateScene()) {
-                wantUpdateScene.add(obj);
+            if (hasFlag(state, ObjectEditState.CREATE_UNDO_STEP)) {
+                editorState.applyOperator(new CommitObjectUpdateOperator(false, obj.getId()), false);
             }
         }
 
-        if (!wantUpdateScene.isEmpty()) {
-            editorState.applyToGame(o -> !wantUpdateScene.contains(o));
-        }
-
-        if (!wantUndoStep.isEmpty()) {
-            editorState.applyOperator(new CommitObjectUpdateOperator(wantUndoStep));
-        }
     }
 
     private final float[] viewMatrixRender = new float[16];
@@ -123,5 +115,9 @@ public class GizmoRenderer {
     public static void manipulate(Matrix4fc viewMatrix, Matrix4fc projectionMatrix,
                                   int operation, int mode, Matrix4f modelMatrix) {
         manipulate(viewMatrix, projectionMatrix, operation, mode, modelMatrix, null);
+    }
+
+    private static boolean hasFlag(int flags, int flag) {
+        return (flags & flag) != 0;
     }
 }

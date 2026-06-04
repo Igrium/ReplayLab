@@ -5,12 +5,13 @@ import net.minecraft.client.render.*;
 import net.minecraft.client.render.entity.EntityRenderer;
 import net.minecraft.client.render.entity.EntityRendererFactory;
 import net.minecraft.client.util.math.MatrixStack;
+import net.minecraft.util.math.ColorHelper;
 import org.joml.*;
 import org.joml.Math;
 
 public class AnimatedCameraRenderer extends EntityRenderer<AnimatedCameraEntity, AnimatedCameraRenderState> {
 
-    private static final float LINE_WIDTH = 1.5f;
+    private static final Vector3f NORMAL = new Vector3f(0, 0, 1);
 
     public AnimatedCameraRenderer(EntityRendererFactory.Context context) {
         super(context);
@@ -30,9 +31,9 @@ public class AnimatedCameraRenderer extends EntityRenderer<AnimatedCameraEntity,
 
         state.setSelected(entity.isSelected());
         state.setActive(entity.isActive());
+        state.setSceneCamera(entity.isSceneCamera());
+        state.setAspectRatio(entity.getAspectRatio());
     }
-
-    @SuppressWarnings("SuspiciousNameCombination")
     @Override
     public void render(AnimatedCameraRenderState state, MatrixStack matrices, VertexConsumerProvider vertexConsumers, int light) {
         super.render(state, matrices, vertexConsumers, light);
@@ -42,9 +43,13 @@ public class AnimatedCameraRenderer extends EntityRenderer<AnimatedCameraEntity,
 
         VertexConsumer lines = vertexConsumers.getBuffer(RenderLayer.LINES);
 
-//        float height = computeCamHeight(Math.toRadians(state.getFov()));
-        float height = 1;
-        float halfHeight = height / 2;
+        float width = Math.min(1.0f, state.getAspectRatio());
+        float height = width / state.getAspectRatio();
+
+        float halfWidth = width / 2.0f;
+        float halfHeight = height / 2.0f;
+
+        float depth = halfHeight / Math.tan(Math.toRadians(state.getFov()) / 2f);
 
         int color;
         if (state.isActive()) {
@@ -57,39 +62,80 @@ public class AnimatedCameraRenderer extends EntityRenderer<AnimatedCameraEntity,
 
         // Quad
         drawLine(matrices, lines,
-                -halfHeight, -halfHeight, 1,
-                halfHeight, -halfHeight, 1, color);
+                -halfWidth, -halfHeight, depth,
+                halfWidth, -halfHeight, depth, color);
 
         drawLine(matrices, lines,
-                halfHeight, -halfHeight, 1,
-                halfHeight, halfHeight, 1, color);
+                halfWidth, -halfHeight, depth,
+                halfWidth, halfHeight, depth, color);
 
         drawLine(matrices, lines,
-                halfHeight, halfHeight, 1,
-                -halfHeight, halfHeight, 1, color);
+                halfWidth, halfHeight, depth,
+                -halfWidth, halfHeight, depth, color);
 
         drawLine(matrices, lines,
-                -halfHeight, halfHeight, 1,
-                -halfHeight, -halfHeight, 1, color);
+                -halfWidth, halfHeight, depth,
+                -halfWidth, -halfHeight, depth, color);
 
         // Frustum
         drawLine(matrices, lines,
                 0, 0, 0,
-                -halfHeight, -halfHeight, 1, color);
+                -halfWidth, -halfHeight, depth, color);
 
         drawLine(matrices, lines,
                 0, 0, 0,
-                -halfHeight, halfHeight, 1, color);
+                -halfWidth, halfHeight, depth, color);
 
         drawLine(matrices, lines,
                 0, 0, 0,
-                halfHeight, -halfHeight, 1, color);
+                halfWidth, -halfHeight, depth, color);
 
         drawLine(matrices, lines,
                 0, 0, 0,
-                halfHeight, halfHeight, 1, color);
+                halfWidth, halfHeight, depth, color);
+
+
+        // Indicator Triangle
+        float triBottom = halfHeight + 0.05f;
+        float triHeight = Math.min(0.5f, width * .6f);
+        float triTop = halfHeight + triHeight;
+
+        float p1x = -halfWidth;
+        float p1y = triBottom;
+
+        float p2x = halfWidth;
+        float p2y = triBottom;
+
+        float p3x = 0;
+        float p3y = triTop;
+
+
+        if (state.isSceneCamera()) {
+            // Triangle doesn't play well with alpha
+            color = ColorHelper.withAlpha(255, color);
+
+            VertexConsumer solid = vertexConsumers.getBuffer(RenderLayer.getDebugFilledBox());
+            MatrixStack.Entry entry = matrices.peek();
+
+            tri(depth, color, p1x, p1y, p2x, p2y, p3x, p3y, solid, entry);
+            tri(depth, color, p3x, p3y, p2x, p2y, p1x, p1y, solid, entry);
+
+        } else {
+            drawLine(matrices, lines, p1x, p1y, depth, p2x, p2y, depth, color);
+            drawLine(matrices, lines, p2x, p2y, depth, p3x, p3y, depth, color);
+            drawLine(matrices, lines, p3x, p3y, depth, p1x, p1y, depth, color);
+        }
+
 
         matrices.pop();
+    }
+
+    private static void tri(float depth, int color, float p1x, float p1y, float p2x, float p2y, float p3x, float p3y,
+                            VertexConsumer solid, MatrixStack.Entry entry) {
+        solid.vertex(entry, p1x, p1y, depth).color(color).texture(0f, 0f).light(15).normal(entry, NORMAL);
+        solid.vertex(entry, p2x, p2y, depth).color(color).texture(0f, 0f).light(15).normal(entry, NORMAL);
+        solid.vertex(entry, p3x, p3y, depth).color(color).texture(0f, 0f).light(15).normal(entry, NORMAL);
+        solid.vertex(entry, p3x, p3y, depth).color(color).texture(0f, 0f).light(15).normal(entry, NORMAL);
     }
 
     private static void drawLine(MatrixStack matrices, VertexConsumer vertexConsumer,

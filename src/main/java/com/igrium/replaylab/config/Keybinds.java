@@ -7,7 +7,6 @@ import lombok.Setter;
 @Getter @Setter
 public class Keybinds {
 
-
     private int undo = ImGuiKey.ModCtrl | ImGuiKey.Z;
     private int redo = ImGuiKey.ModCtrl | ImGuiKey.ModShift | ImGuiKey.Z;
 
@@ -26,6 +25,8 @@ public class Keybinds {
     private int gizmoPos = ImGuiKey.W;
     private int gizmoRot = ImGuiKey.E;
     private int gizmoScale = ImGuiKey.R;
+
+    private int cameraRoll = ImGuiKey.R;
 
     private int sceneStart = ImGuiKey.I;
     private int sceneEnd = ImGuiKey.O;
@@ -51,6 +52,8 @@ public class Keybinds {
         this.gizmoPos = other.gizmoPos;
         this.gizmoRot = other.gizmoRot;
         this.gizmoScale = other.gizmoScale;
+
+        this.cameraRoll = other.cameraRoll;
 
         this.sceneStart = other.sceneStart;
         this.sceneEnd = other.sceneEnd;
@@ -116,6 +119,11 @@ public class Keybinds {
 
     public static int gizmoScale() {
         return getKeybinds().getGizmoScale();
+    }
+
+
+    public static int cameraRoll() {
+        return getKeybinds().getCameraRoll();
     }
 
     public static int sceneStart() {

@@ -64,6 +64,11 @@ public class KeybindEditor {
             changed |= drawBinding("key.replaylab.gizmo_rot", current.getGizmoRot(), defBinds.getGizmoRot(), current::setGizmoRot);
             changed |= drawBinding("key.replaylab.gizmo_scale", current.getGizmoScale(), defBinds.getGizmoScale(), current::setGizmoScale);
 
+            ImGui.separator();
+
+            changed |= drawBinding("key.replaylab.camera_roll", current.getCameraRoll(), defBinds.getCameraRoll(), current::setCameraRoll);
+            ImGui.setItemTooltip(t("key.replaylab.camera_roll.tooltip"));
+
             ImGui.endTable();
         }
 

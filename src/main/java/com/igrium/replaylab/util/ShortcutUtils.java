@@ -3,6 +3,7 @@ package com.igrium.replaylab.util;
 import static imgui.flag.ImGuiKey.*;
 
 import com.google.common.collect.ImmutableMap;
+import imgui.ImGui;
 import imgui.flag.ImGuiKey;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
@@ -175,6 +176,19 @@ public final class ShortcutUtils {
         if (hasFlag(chord, ImGuiMod_Alt)) consumer.accept(ImGuiMod_Alt);
         if (hasFlag(chord, ImGuiMod_Super)) consumer.accept(ImGuiMod_Super);
     }
+
+    /**
+     * Why this isn't a default function beats me.
+     */
+    public static boolean isKeyChordDown(int chord) {
+        if (hasFlag(chord, ImGuiMod_Ctrl) && !ImGui.isKeyDown(ImGuiMod_Ctrl)) return false;
+        if (hasFlag(chord, ImGuiMod_Shift) && !ImGui.isKeyDown(ImGuiMod_Shift)) return false;
+        if (hasFlag(chord, ImGuiMod_Alt) && !ImGui.isKeyDown(ImGuiMod_Alt)) return false;
+        if (hasFlag(chord, ImGuiMod_Super) && !ImGui.isKeyDown(ImGuiMod_Super)) return false;
+
+        return ImGui.isKeyDown(getChordKey(chord));
+    }
+
 
     /**
      * Get all the modifiers in a chord.

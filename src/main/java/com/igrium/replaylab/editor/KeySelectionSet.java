@@ -12,6 +12,8 @@ import org.joml.Vector2dc;
 import java.util.*;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 /**
  * Provides easy access to a set of selected object, keyframes, and then keyframe handles
@@ -700,6 +702,15 @@ public class KeySelectionSet {
         }
     }
 
+    /**
+     * Iterate over all the handles of all the keyframes that exist in a scene.
+     * @param objects All objects in the scene
+     * @return An iterable for the key handles
+     */
+    public static Iterable<KeyHandleReference> iterateAllHandles(Map<? extends String, ? extends ReplayObject> objects) {
+        return () -> new AllHandlesIterator(objects.entrySet().iterator());
+    }
+
     private static Map<String, Map<String, Int2ObjectMap<IntSet>>> deepCopy(Map<String, Map<String, Int2ObjectMap<IntSet>>> src) {
         Map<String, Map<String, Int2ObjectMap<IntSet>>> dest = new HashMap<>(src.size());
         for (var objEntry : src.entrySet()) {
@@ -714,5 +725,59 @@ public class KeySelectionSet {
             dest.put(objEntry.getKey(), object);
         }
         return dest;
+    }
+
+    private static class AllHandlesIterator extends AbstractIterator<KeyHandleReference> {
+        final Iterator<? extends Map.Entry<? extends String, ? extends ReplayObject>> objIter;
+
+        private AllHandlesIterator(Iterator<? extends Map.Entry<? extends String, ? extends ReplayObject>> objIter) {
+            this.objIter = objIter;
+        }
+
+        @Nullable Iterator<? extends Map.Entry<? extends String, ? extends KeyChannel>> chanIter;
+
+        @Nullable String curObjectName;
+        @Nullable ChannelReference curChRef;
+        @Nullable KeyframeReference curKeyRef;
+
+        /**
+         * The number of keyframes in the current channel
+         */
+        int numKeys = 0;
+
+        int keyIdx = 0;
+        int handleIdx = 3;
+
+        @Override
+        protected @Nullable KeyHandleReference computeNext() {
+            while (true) {
+                if (curKeyRef != null && handleIdx < 3) {
+                    return new KeyHandleReference(curKeyRef, handleIdx++);
+                }
+
+                if (curChRef != null && keyIdx < numKeys) {
+                    curKeyRef = new KeyframeReference(curChRef, keyIdx++);
+                    handleIdx = 0;
+                    continue;
+                }
+
+                if (chanIter != null && chanIter.hasNext()) {
+                    var chEntry = chanIter.next();
+                    curChRef = new ChannelReference(curObjectName, chEntry.getKey());
+                    numKeys = chEntry.getValue().getKeyframes().size();
+                    keyIdx = 0;
+                    continue;
+                }
+
+                if (objIter.hasNext()) {
+                    var objEntry = objIter.next();
+                    curObjectName = objEntry.getKey();
+                    chanIter = objEntry.getValue().getChannels().entrySet().iterator();
+                    continue;
+                }
+                return endOfData();
+            }
+
+        }
     }
 }

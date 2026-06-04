@@ -45,6 +45,8 @@ public class RemoveKeyframesOperator extends MultiObjectOperator {
             ReplayObject obj = objects.get(objEntry.getKey());
             if (obj == null) continue;
 
+            boolean objSuccess = false;
+
             for (var chEntry : objEntry.getValue().entrySet()) {
                 KeyChannel chan = obj.getChannels().get(chEntry.getKey());
                 if (chan == null) continue;
@@ -57,9 +59,14 @@ public class RemoveKeyframesOperator extends MultiObjectOperator {
                     int idx = toRemove[i];
                     if (0 <= idx && idx < chan.getKeyframes().size()) {
                         chan.getKeyframes().remove(idx);
-                        success = true;
+                        objSuccess = true;
                     }
                 }
+            }
+
+            if (objSuccess) {
+                obj.removeEmptyChannels();
+                success = true;
             }
         }
         return success;
