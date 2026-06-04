@@ -51,7 +51,8 @@ public final class PropertyWidgets {
         var state = KeyWidgets.dragFloatN(label, values, speed, keyStates);
 
         for (int i = 0; i < properties.length; i++) {
-            obj.setProperty(properties[i], values[i] / factor);
+            values[i] /= factor;
+            obj.setProperty(properties[i], values[i]);
         }
 
         for (int idx : state.newKeys()) {
