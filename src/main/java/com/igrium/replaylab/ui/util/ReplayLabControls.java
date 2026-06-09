@@ -93,7 +93,7 @@ public class ReplayLabControls {
 
     @Deprecated
     public static boolean toggleButton(char icon, String id, ImBoolean pressed, @Nullable String tooltip) {
-        ImGui.pushFont(ReplayLabIcons.getFont(), ImGui.getFontSize());
+        ImGui.pushFont(ReplayLabIcons.getFont());
         boolean result = toggleButton(icon + "###" + id, pressed);
         ImGui.popFont();
 
@@ -105,7 +105,7 @@ public class ReplayLabControls {
 
     @Deprecated
     public static boolean iconButton(char icon, String id, @Nullable String tooltip) {
-        ImGui.pushFont(ReplayLabIcons.getFont(), ImGui.getFontSize());
+        ImGui.pushFont(ReplayLabIcons.getFont());
         boolean result = ImGui.button(icon + "###" + id);
         ImGui.popFont();
 

@@ -6,7 +6,6 @@ import lombok.experimental.UtilityClass;
 import net.minecraft.util.Identifier;
 
 @UtilityClass
-@Deprecated
 public class ReplayLabIcons {
     public static final Identifier FONT_ID = Identifier.of("replaylab:font-awesome");
 

@@ -1,5 +1,6 @@
 package com.igrium.replaylab.ui.subpanels;
 
+import com.igrium.craftui.MaterialIcons;
 import com.igrium.replaylab.editor.KeySelectionSet;
 import com.igrium.replaylab.editor.KeySelectionSet.ChannelReference;
 import com.igrium.replaylab.scene.ReplayScene;
@@ -22,11 +23,13 @@ import java.util.stream.StreamSupport;
 public class ChannelList {
     /**
      * Draw the channel list
+     *
      * @param scene Scene to use
-     * @param objs Object IDs to render
+     * @param objs  Object IDs to render
      * @return A collection of all objects which are currently expanded. Needed for the dope sheet.
      */
-    public static Collection<String> drawChannelList(ReplayScene scene, Map<? extends String, ? extends ReplayObject> objs, int width) {
+    public static Collection<String> drawChannelList(ReplayScene scene,
+                                                     Map<? extends String, ? extends ReplayObject> objs, int width) {
         Set<String> expandedObjs = new HashSet<>(objs.size());
 
         // Channels which have "toggle visible" clicked (don't allocate until needed)
@@ -39,9 +42,6 @@ public class ChannelList {
             ReplayObject obj = objEntry.getValue();
             if (obj == null)
                 continue;
-
-//            Boolean setAllLocked = null;
-//            Boolean setAllHidden = null;
 
             boolean anyUnlocked = false;
             for (KeyChannel channel : obj.getChannels().values()) {
@@ -64,6 +64,7 @@ public class ChannelList {
             if (renderObjDisabled) {
                 ImGui.pushStyleColor(ImGuiCol.Text, ImGui.getColorU32(ImGuiCol.TextDisabled));
             }
+            ImGui.alignTextToFramePadding();
             boolean open = ImGui.treeNodeEx(objName);
             if (renderObjDisabled) {
                 ImGui.popStyleColor();
@@ -75,8 +76,9 @@ public class ChannelList {
 
             ImGui.sameLine();
             ImGui.setCursorPosX(ImGui.getCursorStartPosX() + width - ImGui.getFontSize() * 3.5f);
-            boolean toggleObjHidden = ReplayLabControls.iconButton(anyVisible ? ReplayLabIcons.ICON_EYE : ReplayLabIcons.ICON_EYE_OFF,
-                    objName + "hide", null);
+
+            char objHideIcon = anyVisible ? MaterialIcons.ICON_VISIBILITY : MaterialIcons.ICON_VISIBILITY_OFF;
+            boolean toggleObjHidden = ImGui.button( objHideIcon + "###obj." + objName + "hide");
 
             if (toggleObjHidden) {
                 if (toggleHiddenChannels == null) toggleHiddenChannels = new HashSet<>();
@@ -87,8 +89,8 @@ public class ChannelList {
 
 
             ImGui.sameLine();
-            boolean toggleObjLock = ReplayLabControls.iconButton(anyUnlocked ? ReplayLabIcons.ICON_LOCK_OPEN : ReplayLabIcons.ICON_LOCK,
-                    objName + "lock", null);
+            char objLockIcon = anyUnlocked ? MaterialIcons.ICON_LOCK_OPEN : MaterialIcons.ICON_LOCK;
+            boolean toggleObjLock = ImGui.button(objLockIcon + "###obj." + objName + "lock");
 
             if (toggleObjLock) {
                 if (toggleLockedChannels == null) toggleLockedChannels = new HashSet<>();
@@ -107,6 +109,7 @@ public class ChannelList {
                     if (disable) {
                         ImGui.beginDisabled();
                     }
+                    ImGui.alignTextToFramePadding();
                     ImGui.text(chEntry.getKey());
                     ImGui.sameLine();
                     if (disable) {
@@ -118,11 +121,10 @@ public class ChannelList {
 
                     ImGui.pushStyleVar(ImGuiStyleVar.ItemSpacing, 0f, 0f);
                     ImGui.pushStyleColor(ImGuiCol.Button, 0);
-                    boolean wasHidden = chEntry.getValue().isHidden();
-                    boolean toggleHidden = ReplayLabControls.iconButton(wasHidden ? ReplayLabIcons.ICON_EYE_OFF : ReplayLabIcons.ICON_EYE,
-                            objName + chEntry.getKey() + "hide", null);
 
-                    if (toggleHidden) {
+                    boolean wasHidden = chEntry.getValue().isHidden();
+                    char hiddenIcon = wasHidden ? MaterialIcons.ICON_VISIBILITY_OFF : MaterialIcons.ICON_VISIBILITY;
+                    if (ImGui.button(hiddenIcon + "###" + objName + chEntry.getKey() + "hide")) {
                         if (toggleHiddenChannels == null) toggleHiddenChannels = new HashSet<>();
                         toggleHiddenChannels.add(new ChannelReference(objName, chEntry.getKey()));
                     }
@@ -130,10 +132,8 @@ public class ChannelList {
                     ImGui.sameLine();
 
                     boolean wasLocked = chEntry.getValue().isLocked();
-                    boolean toggleLock = ReplayLabControls.iconButton(wasLocked ? ReplayLabIcons.ICON_LOCK : ReplayLabIcons.ICON_LOCK_OPEN,
-                            objName + chEntry.getKey() + "lock", null);
-
-                    if (toggleLock) {
+                    char lockIcon = wasLocked ? MaterialIcons.ICON_LOCK : MaterialIcons.ICON_LOCK_OPEN;
+                    if (ImGui.button(lockIcon + "###" + objName + chEntry.getKey() + "lock")) {
                         if (toggleLockedChannels == null) toggleLockedChannels = new HashSet<>();
                         toggleLockedChannels.add(new ChannelReference(objName, chEntry.getKey()));
                     }
@@ -166,8 +166,6 @@ public class ChannelList {
                                         BiConsumer<KeyChannel, Boolean> setter) {
 
         // Not the fastest thing in the world, but it's only called when the user clicks a button.
-
-
 
         Collection<ChannelReference> finalChannels; // I hate lambda rules
         if (invert) {

@@ -353,7 +353,7 @@ public class ReplayLabUI extends DockSpaceApp {
     private final ImBoolean tmpBoolean = new ImBoolean();
 
     private void drawPlaybackControls() {
-        ImGui.pushFont(ReplayLabIcons.getFont(), ImGui.getFontSize());
+        ImGui.pushFont(ReplayLabIcons.getFont());
         float buttonSize = ImGui.getTextLineHeightWithSpacing() * 1.25f;
         viewportFooterHeight = buttonSize + ImGui.getStyle().getWindowPaddingY() * 2;
         ImGui.popFont();
@@ -532,7 +532,7 @@ public class ReplayLabUI extends DockSpaceApp {
     // =========================================================================
 
     private boolean playbackIcon(char icon, String tooltip, float buttonSize) {
-        ImGui.pushFont(ReplayLabIcons.getFont(), ImGui.getFontSize());
+        ImGui.pushFont(ReplayLabIcons.getFont());
         boolean res = ImGui.button(String.valueOf(icon), buttonSize, buttonSize);
         ImGui.popFont();
 
@@ -542,7 +542,7 @@ public class ReplayLabUI extends DockSpaceApp {
     }
 
     private boolean toggleButton(char icon, @Nullable String tooltip, ImBoolean value) {
-        ImGui.pushFont(ReplayLabIcons.getFont(), ImGui.getFontSize());
+        ImGui.pushFont(ReplayLabIcons.getFont());
         boolean result = ReplayLabControls.toggleButton(String.valueOf(icon), value);
         ImGui.popFont();
 
