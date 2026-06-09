@@ -1,5 +1,6 @@
 package com.igrium.replaylab.ui;
 
+import com.igrium.craftui.app.AppManager;
 import com.igrium.craftui.file.FileDialogs;
 import com.igrium.replaylab.editor.EditorState;
 import com.igrium.replaylab.render.VideoRenderSettings;
@@ -62,6 +63,7 @@ public class ExportWindow {
                 ImGui.closeCurrentPopup();
             }
 
+            AppManager.drawGlobalPopup();
             ImGui.endPopup();
         }
     }
