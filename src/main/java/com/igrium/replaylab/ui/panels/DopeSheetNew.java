@@ -237,7 +237,7 @@ public class DopeSheetNew extends UIPanel {
         /// === BUTTONS ===
         ReplayLabControls.toggleButton(ReplayLabIcons.ICON_MAGNET, "snapKeyframes", snapKeyframes, "gui.replaylab.tooltip_snap");
         ImGui.sameLine();
-        boolean wantsFit = ReplayLabControls.iconButton(ReplayLabIcons.ICON_RESIZE_FULL_ALT, "", "gui.replaylab.tooltip_fit");
+        boolean wantsFit = ReplayLabControls.iconButton(ReplayLabIcons.ICON_RESIZE_FULL_ALT, "fitKeys", "gui.replaylab.tooltip_fit");
 
 
         float graphHeight = ImGui.getContentRegionAvailY();
@@ -277,6 +277,7 @@ public class DopeSheetNew extends UIPanel {
                 ImDrawList drawList = ImGui.getWindowDrawList();
                 int rowIndex = 0;
 
+                drawList.pushClipRect(graphX, graphY, graphX + graphWidth, graphY + graphHeight);
                 for (var objEntry : objs.entrySet()) {
                     String objName =  objEntry.getKey();
                     ReplayObject obj = objEntry.getValue();
@@ -386,6 +387,7 @@ public class DopeSheetNew extends UIPanel {
                         rowIndex++;
                     }
                 }
+                drawList.popClipRect();
                 ImGui.popStyleVar();
 
                 /// === OUT-OF-BOUNDS GRAYOUT ===

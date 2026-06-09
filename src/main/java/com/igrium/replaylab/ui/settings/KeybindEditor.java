@@ -157,8 +157,8 @@ public class KeybindEditor {
                 key == ImGuiKey.LeftShift || key == ImGuiKey.RightShift ||
                 key == ImGuiKey.LeftAlt || key == ImGuiKey.RightAlt ||
                 key == ImGuiKey.LeftSuper || key == ImGuiKey.RightSuper ||
-                key == ImGuiKey.ModCtrl || key == ImGuiKey.ModShift ||
-                key == ImGuiKey.ModAlt || key == ImGuiKey.ModSuper;
+                key == ImGuiKey.ImGuiMod_Ctrl || key == ImGuiKey.ImGuiMod_Shift ||
+                key == ImGuiKey.ImGuiMod_Alt || key == ImGuiKey.ImGuiMod_Super;
     }
 
     private static String t(String key) {

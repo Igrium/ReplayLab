@@ -7,18 +7,18 @@ import lombok.Setter;
 @Getter @Setter
 public class Keybinds {
 
-    private int undo = ImGuiKey.ModCtrl | ImGuiKey.Z;
-    private int redo = ImGuiKey.ModCtrl | ImGuiKey.ModShift | ImGuiKey.Z;
+    private int undo = ImGuiKey.ImGuiMod_Ctrl | ImGuiKey.Z;
+    private int redo = ImGuiKey.ImGuiMod_Ctrl | ImGuiKey.ImGuiMod_Shift | ImGuiKey.Z;
 
     private int playPause = ImGuiKey.Space;
     private int cameraView = ImGuiKey.C;
 
-    private int selectAll = ImGuiKey.ModCtrl | ImGuiKey.A;
-    private int selectNone = ImGuiKey.ModAlt | ImGuiKey.A;
+    private int selectAll = ImGuiKey.ImGuiMod_Ctrl | ImGuiKey.A;
+    private int selectNone = ImGuiKey.ImGuiMod_Alt | ImGuiKey.A;
     private int deleteSelected = ImGuiKey.Delete;
 
     private int addKey = ImGuiKey.I;
-    private int addKeySingle = ImGuiKey.ModAlt | ImGuiKey.I;
+    private int addKeySingle = ImGuiKey.ImGuiMod_Alt | ImGuiKey.I;
 
     private int localTransforms = ImGuiKey.Tab;
     private int gizmoAll = ImGuiKey.Q;
