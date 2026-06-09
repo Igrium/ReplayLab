@@ -3,6 +3,7 @@ package com.igrium.replaylab.ui.panels;
 import com.igrium.replaylab.config.Keybinds;
 import com.igrium.replaylab.config.ReplayLabConfig;
 import com.igrium.replaylab.editor.EditorState;
+import com.igrium.replaylab.operator.ReplayOperator;
 import imgui.ImGui;
 import imgui.type.ImBoolean;
 import lombok.Getter;
@@ -100,4 +101,6 @@ public abstract class UIPanel {
         }
 
     }
+
+    public void onAppliedOperator(ReplayOperator op, EditorState editorState) {}
 }

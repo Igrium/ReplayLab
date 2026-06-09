@@ -9,6 +9,7 @@ import com.igrium.replaylab.editor.EditorState;
 import com.igrium.replaylab.operator.InsertKeyframeOperator;
 import com.igrium.replaylab.operator.RemoveObjectOperator;
 import com.igrium.replaylab.operator.RemoveObjectsOperator;
+import com.igrium.replaylab.operator.ReplayOperator;
 import com.igrium.replaylab.render.VideoRenderSettings;
 import com.igrium.replaylab.scene.obj.ReplayObject;
 import com.igrium.replaylab.scene.objs.CameraObject;
@@ -119,6 +120,7 @@ public class ReplayLabUI extends DockSpaceApp {
         setViewportInputMode(ViewportInputMode.HOLD);
         setViewportInputButtons(1);
         editorState.setExceptionCallback(exceptionPopup::displayException);
+        editorState.setOperatorCallback(this::onApplyOperator);
     }
 
     /**
@@ -254,6 +256,12 @@ public class ReplayLabUI extends DockSpaceApp {
             }
         }
         super.onClose();
+    }
+
+    private void onApplyOperator(ReplayOperator op) {
+        for (var panel : panels) {
+            panel.onAppliedOperator(op, editorState);
+        }
     }
 
     private void raycastSelect() {

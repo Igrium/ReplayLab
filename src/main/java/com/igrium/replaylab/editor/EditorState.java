@@ -102,6 +102,9 @@ public class EditorState {
     @Setter @Nullable
     private Consumer<? super Throwable> exceptionCallback;
 
+    @Setter
+    private @Nullable Consumer<? super ReplayOperator> operatorCallback;
+
     @Nullable
     private RealtimeScenePlayer scenePlayer;
 
@@ -552,6 +555,9 @@ public class EditorState {
             if (applyToGame) {
                 applyToGame(operator.wantsSampleCurves());
             }
+            if (operatorCallback != null) {
+                operatorCallback.accept(operator);
+            }
             return true;
         }
         return false;
@@ -562,6 +568,9 @@ public class EditorState {
         if (op != null) {
             saveSceneAsync();
             applyToGame(op.wantsSampleCurves());
+            if (operatorCallback != null) {
+                operatorCallback.accept(op);
+            }
             return true;
         }
         return false;
@@ -572,6 +581,9 @@ public class EditorState {
         if (op != null) {
             saveSceneAsync();
             applyToGame(op.wantsSampleCurves());
+            if (operatorCallback != null) {
+                operatorCallback.accept(op);
+            }
             return true;
         }
         return false;

@@ -8,6 +8,7 @@ import com.igrium.replaylab.editor.KeySelectionSet.KeyframeReference;
 import com.igrium.replaylab.editor.KeySelectionSet.KeyHandleReference;
 import com.igrium.replaylab.operator.CommitObjectUpdateOperator;
 import com.igrium.replaylab.operator.RemoveKeyframesOperator;
+import com.igrium.replaylab.operator.ReplayOperator;
 import com.igrium.replaylab.scene.ReplayScene;
 import com.igrium.replaylab.scene.key.ChannelUtils;
 import com.igrium.replaylab.scene.key.KeyChannel;
@@ -185,6 +186,11 @@ public class CurveEditor extends UIPanel {
     }
 
     @Override
+    public void onAppliedOperator(ReplayOperator op, EditorState editorState) {
+        updateNormalizationCache(editorState.getScene());
+    }
+
+    @Override
     protected void drawContents(EditorState editorState) {
         drawAndManageHandles(editorState, 0);
         long replayTime = editorState.getScene().sceneToReplayTime(editorState.getPlayhead());
@@ -354,12 +360,6 @@ public class CurveEditor extends UIPanel {
 
                 computeDisplayBoundingBox(scene.getObjects(), iter, boundsMin, boundsMax);
 
-//                if (!doneInitialFit || selectedKeys.isEmpty()) {
-//                    computeBoundingBox(scene.getObjects().values(), boundsMin, boundsMax);
-//                } else {
-//                    computeBoundingBox(selectedKeys, scene, boundsMin, boundsMax);
-//                }
-
                 if (boundsMin.x != boundsMax.x)
                     setZoomFactorX((float) (gWidth / (boundsMax.x - boundsMin.x)));
 
@@ -516,6 +516,10 @@ public class CurveEditor extends UIPanel {
                             drawList.addLine(handleBX, handleBY, keyX, keyY, rColor);
 
                             boolean channelSelected = selectedKeys.isChannelSelected(objName, chEntry.getKey());
+                            // Calculate the visual distance (in pixels) between the handles and the center keyframe
+                            float handleSnapThreshold = 12f; // Adjust this threshold to your liking
+                            boolean isHandleAClose = Math.hypot(handleAX - keyX, handleAY - keyY) <= handleSnapThreshold;
+                            boolean isHandleBClose = Math.hypot(handleBX - keyX, handleBY - keyY) <= handleSnapThreshold;
 
                             // Prioritize clicking on the selected channel unless the keyframe being clicked is already selected.
                             // In that case, don't let it be selected again so we can select overlapping keys.
@@ -529,9 +533,9 @@ public class CurveEditor extends UIPanel {
                                 if (keyHovered(keyX, keyY, mouseGlobalX, mouseGlobalY) && !selectedKeys.isHandleSelected(handle0Ref)) {
                                     clickedOn = handle0Ref;
                                 } else if (keyHovered(handleAX, handleAY, mouseGlobalX, mouseGlobalY) && !selectedKeys.isHandleSelected(handle1Ref)) {
-                                    clickedOn = handle1Ref;
+                                    clickedOn = isHandleAClose ? handle0Ref : handle1Ref;
                                 } else if (keyHovered(handleBX, handleBY, mouseGlobalX, mouseGlobalY) && !selectedKeys.isHandleSelected(handle2Ref)) {
-                                    clickedOn = handle2Ref;
+                                    clickedOn = isHandleBClose ? handle0Ref : handle2Ref;
                                 }
                             }
 
@@ -542,9 +546,9 @@ public class CurveEditor extends UIPanel {
                                 if (keyHovered(keyX, keyY, mouseGlobalX, mouseGlobalY)) {
                                     rightClickedOn = new KeyHandleReference(keyRef, 0);
                                 } else if (keyHovered(handleAX, handleAY, mouseGlobalX, mouseGlobalY)) {
-                                    rightClickedOn = new KeyHandleReference(keyRef, 1);
+                                    rightClickedOn = new KeyHandleReference(keyRef, isHandleAClose ? 0 : 1);
                                 } else if (keyHovered(handleBX, handleBY, mouseGlobalX, mouseGlobalY)) {
-                                    rightClickedOn = new KeyHandleReference(keyRef, 2);
+                                    rightClickedOn = new KeyHandleReference(keyRef, isHandleBClose ? 0 : 2);
                                 }
                             }
 
