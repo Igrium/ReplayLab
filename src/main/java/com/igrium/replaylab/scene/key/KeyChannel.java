@@ -59,21 +59,23 @@ public class KeyChannel {
      * If there is already a keyframe at that timestamp, replace its value with the new value.
      * @param timestamp Timestamp to add at.
      * @param value Value to give the new keyframe. <code>NaN</code> to automatically generate.
-     * @return A reference to the added keyframe. Use to adjust interpolation, etc.
+     * @return The index of the new keyframe (likely at the end)
      */
-    public Keyframe addKeyframe(int timestamp, double value) {
+    public int addKeyframe(int timestamp, double value) {
+        int i = 0;
         for (var key : keyframes) {
             if (key.getTimeInt() == timestamp) {
                 key.setValue(value);
-                return key;
+                return i;
             }
+            i++;
         }
 
         Keyframe keyframe = new Keyframe(timestamp, value);
         this.keyframes.add(keyframe);
         
         ChannelUtils.computeAutoHandles(this, null);
-        return keyframe;
+        return keyframes.size() - 1;
     }
 
     /**

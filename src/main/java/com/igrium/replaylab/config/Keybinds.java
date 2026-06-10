@@ -12,13 +12,18 @@ public class Keybinds {
 
     private int playPause = ImGuiKey.Space;
     private int cameraView = ImGuiKey.C;
+    private int frameSelected = ImGuiKey.F;
 
     private int selectAll = ImGuiKey.ImGuiMod_Ctrl | ImGuiKey.A;
     private int selectNone = ImGuiKey.ImGuiMod_Alt | ImGuiKey.A;
     private int deleteSelected = ImGuiKey.Delete;
 
-    private int addKey = ImGuiKey.I;
-    private int addKeySingle = ImGuiKey.ImGuiMod_Alt | ImGuiKey.I;
+    private int addKey = ImGuiKey.S;
+    private int addKeyPos = ImGuiKey.ImGuiMod_Shift | ImGuiKey.W;
+    private int addKeyRot = ImGuiKey.ImGuiMod_Shift | ImGuiKey.E;
+    private int addKeyScale = ImGuiKey.ImGuiMod_Shift | ImGuiKey.R;
+    private int addKeySingle = ImGuiKey.ImGuiMod_Shift | ImGuiKey.S;
+
 
     private int localTransforms = ImGuiKey.Tab;
     private int gizmoAll = ImGuiKey.Q;
@@ -39,8 +44,12 @@ public class Keybinds {
 
         this.playPause = other.playPause;
         this.cameraView = other.cameraView;
+        this.frameSelected = other.frameSelected;
 
         this.addKey = other.addKey;
+        this.addKeyPos = other.addKeyPos;
+        this.addKeyRot = other.addKeyRot;
+        this.addKeyScale = other.addKeyScale;
         this.addKeySingle = other.addKeySingle;
 
         this.selectAll = other.selectAll;
@@ -81,8 +90,24 @@ public class Keybinds {
         return getKeybinds().getCameraView();
     }
 
+    public static int frameSelected() {
+        return getKeybinds().getFrameSelected();
+    }
+
     public static int addKey() {
         return getKeybinds().getAddKey();
+    }
+
+    public static int addKeyPos() {
+        return getKeybinds().getAddKeyPos();
+    }
+
+    public static int addKeyRot() {
+        return getKeybinds().getAddKeyRot();
+    }
+
+    public static int addKeyScale() {
+        return getKeybinds().getAddKeyScale();
     }
 
     public static int addKeySingle() {

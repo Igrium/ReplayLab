@@ -40,6 +40,7 @@ public class KeybindEditor {
 
             changed |= drawBinding("key.replaylab.playpause", current.getPlayPause(), defBinds.getPlayPause(), current::setPlayPause);
             changed |= drawBinding("key.replaylab.cameraview", current.getCameraView(), defBinds.getCameraView(), current::setCameraView);
+            changed |= drawBinding("key.replaylab.frame", current.getFrameSelected(), defBinds.getFrameSelected(), current::setFrameSelected);
 
             ImGui.separator();
 
@@ -53,7 +54,13 @@ public class KeybindEditor {
             changed |= drawBinding("key.replaylab.select_all", current.getSelectAll(), defBinds.getSelectAll(), current::setSelectAll);
             changed |= drawBinding("key.replaylab.select_none", current.getSelectNone(), defBinds.getSelectNone(), current::setSelectNone);
             changed |= drawBinding("key.replaylab.delete", current.getDeleteSelected(), defBinds.getDeleteSelected(), current::setDeleteSelected);
+
+            ImGui.separator();
+
             changed |= drawBinding("key.replaylab.add_key", current.getAddKey(), defBinds.getAddKey(), current::setAddKey);
+            changed |= drawBinding("key.replaylab.add_key_pos", current.getAddKeyPos(), defBinds.getAddKeyPos(), current::setAddKeyPos);
+            changed |= drawBinding("key.replaylab.add_key_rot", current.getAddKeyRot(),  defBinds.getAddKeyRot(), current::setAddKeyRot);
+            changed |= drawBinding("key.replaylab.add_key_scale", current.getAddKeyScale(), defBinds.getAddKeyScale(), current::setAddKeyScale);
             changed |= drawBinding("key.replaylab.add_key_s", current.getAddKeySingle(), defBinds.getAddKeySingle(), current::setAddKeySingle);
 
             ImGui.separator();

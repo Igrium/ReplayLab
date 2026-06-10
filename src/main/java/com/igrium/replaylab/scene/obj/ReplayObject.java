@@ -3,6 +3,7 @@ package com.igrium.replaylab.scene.obj;
 import com.google.common.collect.ImmutableMap;
 import com.google.gson.*;
 import com.igrium.replaylab.editor.EditorState;
+import com.igrium.replaylab.editor.KeySelectionSet;
 import com.igrium.replaylab.scene.ReplayScene;
 import com.igrium.replaylab.scene.key.KeyChannel;
 import com.igrium.replaylab.util.GsonSerializationContext;
@@ -18,8 +19,7 @@ import org.joml.Matrix4f;
 import org.joml.Matrix4fc;
 import org.joml.Vector3dc;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 import java.util.function.DoubleConsumer;
 import java.util.function.DoubleSupplier;
 
@@ -104,6 +104,7 @@ public abstract class ReplayObject {
      * @param timestamp The current playback timestamp.
      * @return If the keyframe was created and an undo step should be created.
      */
+    @Deprecated
     public boolean insertKey(int timestamp) {
         return false;
     }
@@ -292,4 +293,19 @@ public abstract class ReplayObject {
         return ImColor.hsl(hue, .8f, .5f);
     }
 
+
+    /**
+     * Insert a keyframe at the playhead.
+     *
+     * @param editor    Current editor state.
+     * @param timestamp The scene timestamp to add the keyframe at
+     * @param pos       If a position keyframe is requested
+     * @param rot       If a rotation keyframe is requested
+     * @param scale     If a scale keyframe is requested
+     * @return The new keyframes.
+     */
+    public Collection<? extends KeySelectionSet.KeyframeReference> insertKeyframe(EditorState editor, int timestamp, boolean pos, boolean rot, boolean scale) {
+        // Default NOOP
+        return Collections.emptyList();
+    }
 }

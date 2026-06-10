@@ -3,12 +3,16 @@ package com.igrium.replaylab.scene.obj;
 import com.google.gson.JsonDeserializationContext;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonSerializationContext;
+import com.igrium.replaylab.ReplayLab;
 import com.igrium.replaylab.config.ReplayLabConfig;
 import com.igrium.replaylab.editor.EditorState;
+import com.igrium.replaylab.editor.KeySelectionSet;
+import com.igrium.replaylab.editor.KeySelectionSet.KeyframeReference;
 import com.igrium.replaylab.math.DynamicRotation;
 import com.igrium.replaylab.math.DynamicRotation.RotationMode;
 import com.igrium.replaylab.math.Transform3;
 import com.igrium.replaylab.scene.ReplayScene;
+import com.igrium.replaylab.scene.key.KeyChannel;
 import com.igrium.replaylab.ui.gizmos.GizmoRenderer;
 import com.igrium.replaylab.ui.util.PropertyWidgets;
 import com.igrium.replaylab.util.JsonUtils;
@@ -20,13 +24,21 @@ import lombok.Getter;
 import lombok.experimental.Accessors;
 import net.minecraft.util.Language;
 import net.minecraft.util.math.MathHelper;
+import org.jetbrains.annotations.Nullable;
 import org.joml.*;
+import org.slf4j.Logger;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
 
 /**
  * An object with a 3-dimensional transform
  */
 @Accessors(fluent = true)
 public abstract class ReplayObject3D extends ReplayObject implements TransformProvider {
+
+    private static final Logger LOGGER = ReplayLab.getLogger(ReplayObject3D.class);
 
     private static final String POS_X = "posX";
     private static final String POS_Y = "posY";
@@ -305,5 +317,64 @@ public abstract class ReplayObject3D extends ReplayObject implements TransformPr
         return dest;
     }
 
+    @Override
+    public Collection<? extends KeyframeReference> insertKeyframe(EditorState editor, int timestamp, boolean pos, boolean rot, boolean scale) {
+        List<KeyframeReference> newKeys = new ArrayList<>(10);
 
+        String myId = getId();
+        if (pos && hasPos()) {
+            var posXRef = insertChanKey(POS_X, timestamp, position().x);
+            if (posXRef != null) newKeys.add(posXRef);
+
+            var posYRef = insertChanKey(POS_Y, timestamp, position().y);
+            if (posYRef != null) newKeys.add(posYRef);
+
+            var posZRef = insertChanKey(POS_Z, timestamp, position().z);
+            if (posZRef != null) newKeys.add(posZRef);
+        }
+
+        if (rot && hasRot()) {
+            if (getRotationMode() == RotationMode.QUATERNION) {
+                var rotWRef = insertChanKey(ROT_QUAT_W, timestamp, rotation.quaternion().w);
+                if (rotWRef != null) newKeys.add(rotWRef);
+
+                var rotXRef = insertChanKey(ROT_QUAT_X, timestamp, rotation.quaternion().x);
+                if (rotXRef != null) newKeys.add(rotXRef);
+
+                var rotYRef = insertChanKey(ROT_QUAT_Y, timestamp, rotation.quaternion().y);
+                if (rotYRef != null) newKeys.add(rotYRef);
+
+                var rotZRef = insertChanKey(ROT_QUAT_Z, timestamp, rotation.quaternion().z);
+                if (rotZRef != null) newKeys.add(rotZRef);
+            } else {
+                var rotXRef = insertChanKey(ROT_EULER_X, timestamp, rotation.euler().x);
+                if (rotXRef != null) newKeys.add(rotXRef);
+
+                var rotYRef = insertChanKey(ROT_EULER_Y, timestamp, rotation.euler().y);
+                if (rotYRef != null) newKeys.add(rotYRef);
+
+                var rotZRef = insertChanKey(ROT_EULER_Z, timestamp, rotation.euler().z);
+                if (rotZRef != null) newKeys.add(rotZRef);
+            }
+        }
+
+        if (scale && hasScale()) {
+            var scaleXRef = insertChanKey(SCALE_X, timestamp, scale().x);
+            if (scaleXRef != null) newKeys.add(scaleXRef);
+
+            var scaleYRef = insertChanKey(SCALE_Y, timestamp, scale().y);
+            if (scaleYRef != null) newKeys.add(scaleYRef);
+
+            var scaleZRef = insertChanKey(SCALE_Z, timestamp, scale().z);
+            if (scaleZRef != null) newKeys.add(scaleZRef);
+        }
+
+        return newKeys;
+    }
+
+    private @Nullable KeyframeReference insertChanKey(String chName, int timestamp, double value) {
+        KeyChannel channel = getOrCreateChannel(chName);
+
+        return new KeyframeReference(getId(), chName, channel.addKeyframe(timestamp, value));
+    }
 }

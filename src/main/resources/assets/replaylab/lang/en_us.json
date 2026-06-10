@@ -49,6 +49,7 @@
 
   "key.replaylab.playpause": "Play/Pause",
   "key.replaylab.cameraview": "Toggle Camera View",
+  "key.replaylab.frame": "Frame Selected",
 
   "key.replaylab.scene_start": "Scene Start",
   "key.replaylab.scene_end": "Scene End",
@@ -58,7 +59,11 @@
   "key.replaylab.select_all": "Select All",
   "key.replaylab.select_none": "Deselect All",
   "key.replaylab.delete": "Delete Selected",
+
   "key.replaylab.add_key": "Insert Keyframe",
+  "key.replaylab.add_key_pos": "Insert Position Keyframe",
+  "key.replaylab.add_key_rot": "Insert Rotation Keyframe",
+  "key.replaylab.add_key_scale": "Insert Scale Keyframe",
   "key.replaylab.add_key_s": "Insert Keyframe (Single)",
 
   "key.replaylab.local_transforms": "Toggle Local Transform Mode",

@@ -32,8 +32,12 @@ public class ReplayLab implements ModInitializer, ClientModInitializer {
         return LoggerFactory.getLogger("ReplayLab/" + name);
     }
 
+    public static Logger getLogger(Class<?> clazz) {
+        return getLogger(clazz.getSimpleName());
+    }
+
     public static Logger getLogger() {
-        return LoggerFactory.getLogger("ReplayLab/" + STACK_WALKER.getCallerClass().getName());
+        return LoggerFactory.getLogger(STACK_WALKER.getCallerClass());
     }
 
     @Getter

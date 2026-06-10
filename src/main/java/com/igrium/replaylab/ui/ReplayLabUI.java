@@ -6,10 +6,7 @@ import com.igrium.craftui.util.RaycastUtils;
 import com.igrium.replaylab.ReplayLab;
 import com.igrium.replaylab.config.Keybinds;
 import com.igrium.replaylab.editor.EditorState;
-import com.igrium.replaylab.operator.InsertKeyframeOperator;
-import com.igrium.replaylab.operator.RemoveObjectOperator;
-import com.igrium.replaylab.operator.RemoveObjectsOperator;
-import com.igrium.replaylab.operator.ReplayOperator;
+import com.igrium.replaylab.operator.*;
 import com.igrium.replaylab.render.VideoRenderSettings;
 import com.igrium.replaylab.scene.obj.ReplayObject;
 import com.igrium.replaylab.scene.objs.CameraObject;
@@ -191,7 +188,7 @@ public class ReplayLabUI extends DockSpaceApp {
                 raycastSelect();
             }
 
-            // Gizmo hotkeys (industry standard)
+            /// === GIZMO HOTKEYS ===
             if (ImGui.shortcut(Keybinds.gizmoAll())) {
                 editorState.toggleGizmos(true, true, true);
             }
@@ -218,12 +215,32 @@ public class ReplayLabUI extends DockSpaceApp {
                 editorState.applyOperator(new RemoveObjectsOperator(editorState.getSelectedObjects()));
             }
 
-            // Zoom scrolling
+            /// === ZOOM SCROLLING / ROLL ===
             if (editorState.isPilotingCamera() && editorState.getScene().getSceneCameraObject() instanceof CameraObject cam) {
                 cam.setFov(cam.getFov() + ImGui.getIO().getMouseWheel() * -2);
             }
 
             editorState.setRollingCamera(editorState.isPilotingCamera() && ShortcutUtils.isKeyChordDown(Keybinds.cameraRoll()));
+
+            ///  === INSERT KEYFRAME ===
+
+            // Test keyframes before validating object so we still consume it keybind
+            boolean wantKeyPos = ImGui.shortcut(Keybinds.addKeyPos());
+            boolean wantKeyRot = ImGui.shortcut(Keybinds.addKeyRot());
+            boolean wantKeyScale = ImGui.shortcut(Keybinds.addKeyScale());
+            if (ImGui.shortcut(Keybinds.addKey())) {
+                wantKeyPos = true;
+                wantKeyRot = true;
+                wantKeyScale = true;
+            }
+            ReplayObject selected = editorState.getScene().getObject(editorState.getActiveObject());
+            if (selected != null && (wantKeyPos || wantKeyRot || wantKeyScale)) {
+                editorState.applyOperator(new InsertKeyframeOperator(editorState.getPlayhead(),
+                        wantKeyPos, wantKeyRot, wantKeyScale, selected.getId()));
+//                if (selected.insertKeyframe(editorState, wantKeyPos, wantKeyRot, wantKeyScale)) {
+//                    editorState.applyOperator(new CommitObjectUpdateOperator(selected.getId()));
+//                }
+            }
 
         }
         ImGui.end();
@@ -334,7 +351,7 @@ public class ReplayLabUI extends DockSpaceApp {
             if (ImGui.menuItem("Delete Selected", "Del")) deleteObject();
             ImGui.endDisabled();
 
-            if (ImGui.menuItem("Insert Keyframe", "I")) insertKeyframe();
+//            if (ImGui.menuItem("Insert Keyframe", "I")) insertKeyframe();
 
             ImGui.endMenu();
         }
@@ -458,14 +475,6 @@ public class ReplayLabUI extends DockSpaceApp {
     // =========================================================================
     // Object / operator helpers
     // =========================================================================
-
-
-    private void insertKeyframe() {
-        String selected = editorState.getActiveObject();
-        if (selected != null) {
-            editorState.applyOperator(new InsertKeyframeOperator(selected, editorState.getPlayhead()));
-        }
-    }
 
     private void deleteObject() {
         String selected = editorState.getActiveObject();

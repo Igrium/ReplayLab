@@ -52,7 +52,6 @@ public class AnimatedCameraEntity extends Entity implements FovProvider, Rotatio
     @Override
     public void setRoll(float roll) {
         this.roll = roll;
-        ReplayLab.getLogger().info("setRoll: {}", roll);
     }
 
     public void setAspectRatio(float aspectRatio) {
@@ -110,7 +109,7 @@ public class AnimatedCameraEntity extends Entity implements FovProvider, Rotatio
         Vector3f euler = MathUtils.entityRot(rot);
 
         setCameraRotation(euler.x, euler.y, euler.z);
-        rotationQuat.set(rot);
+        rotationQuat.set(rot).normalize();
     }
 
     @Override
