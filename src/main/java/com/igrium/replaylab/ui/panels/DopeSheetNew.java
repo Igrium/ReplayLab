@@ -644,8 +644,9 @@ public class DopeSheetNew extends UIPanel {
             smallestKeyDragOffset = null;
 
             selectedKeys.forSelectedKeyframes(ref -> {
-                Keyframe keyframe = ref.get(scene.getObjects());
-                if (keyframe == null) return;
+                KeyChannel chan = ref.channelRef().get(scene.getObjects());
+                if (chan == null || chan.isLocked()) return;
+                Keyframe keyframe = chan.getKeyframes().get(ref.keyIndex());
 
                 // Store each key's original time as its drag base.
                 // The update loop adds the raw pixel drag delta to this value.
