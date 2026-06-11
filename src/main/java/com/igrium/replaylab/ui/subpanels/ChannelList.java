@@ -1,20 +1,14 @@
 package com.igrium.replaylab.ui.subpanels;
 
-import com.igrium.craftui.CraftUI;
 import com.igrium.craftui.MaterialIcons;
-import com.igrium.replaylab.ReplayLab;
 import com.igrium.replaylab.editor.KeySelectionSet;
 import com.igrium.replaylab.editor.KeySelectionSet.ChannelReference;
-import com.igrium.replaylab.scene.ReplayScene;
 import com.igrium.replaylab.scene.key.KeyChannel;
 import com.igrium.replaylab.scene.obj.ReplayObject;
-import com.igrium.replaylab.ui.ReplayLabIcons;
-import com.igrium.replaylab.ui.util.ReplayLabControls;
 import imgui.ImGui;
 import imgui.flag.ImGuiCol;
 import imgui.flag.ImGuiStyleVar;
 import imgui.flag.ImGuiTreeNodeFlags;
-import it.unimi.dsi.fastutil.objects.Object2BooleanFunction;
 import lombok.experimental.UtilityClass;
 
 import java.util.*;
@@ -34,8 +28,8 @@ public class ChannelList {
      * @param objs      Object IDs to render
      * @return A collection of all objects which are currently expanded. Needed for the dope sheet.
      */
-    public static Collection<String> drawChannelList(KeySelectionSet selection, Map<? extends String, ?
-            extends ReplayObject> objs, int width) {
+    public static Collection<String> drawChannelList(KeySelectionSet selection, Map<
+            ? extends String, ? extends ReplayObject> objs, int width, int flags) {
         Set<String> expandedObjs = new HashSet<>(objs.size());
 
         // Channels which have "toggle visible" clicked (don't allocate until needed)
@@ -83,18 +77,18 @@ public class ChannelList {
             ImGui.sameLine();
             ImGui.setCursorPosX(ImGui.getCursorStartPosX() + width - ImGui.getFontSize() * 3.5f);
 
-            char objHideIcon = anyVisible ? MaterialIcons.ICON_VISIBILITY : MaterialIcons.ICON_VISIBILITY_OFF;
-            boolean toggleObjHidden = ImGui.button(objHideIcon + "###obj." + objName + "hide");
-
-            if (toggleObjHidden) {
-                if (toggleHiddenChannels == null) toggleHiddenChannels = new HashSet<>();
-                for (var chName : obj.getChannels().keySet()) {
-                    toggleHiddenChannels.add(new ChannelReference(objName, chName));
+            if (hasFlag(flags, ChannelListFlags.SHOW_HIDE)) {
+                char objHideIcon = anyVisible ? MaterialIcons.ICON_VISIBILITY : MaterialIcons.ICON_VISIBILITY_OFF;
+                boolean toggleObjHidden = ImGui.button(objHideIcon + "###obj." + objName + "hide");
+                if (toggleObjHidden) {
+                    if (toggleHiddenChannels == null) toggleHiddenChannels = new HashSet<>();
+                    for (var chName : obj.getChannels().keySet()) {
+                        toggleHiddenChannels.add(new ChannelReference(objName, chName));
+                    }
                 }
+                ImGui.sameLine();
             }
 
-
-            ImGui.sameLine();
             char objLockIcon = anyUnlocked ? MaterialIcons.ICON_LOCK_OPEN : MaterialIcons.ICON_LOCK;
             boolean toggleObjLock = ImGui.button(objLockIcon + "###obj." + objName + "lock");
 
@@ -116,9 +110,8 @@ public class ChannelList {
                         ImGui.beginDisabled();
                     }
                     ImGui.alignTextToFramePadding();
-//                    ImGui.text(chEntry.getKey());
 
-                    boolean selected = selection.isChannelSelected(objName, chEntry.getKey());
+                    boolean selected = hasFlag(flags, ChannelListFlags.HIGHLIGHT_SELECTION) && selection.isChannelSelected(objName, chEntry.getKey());
                     if (selected) {
                         ImGui.pushStyleColor(ImGuiCol.Text, SELECTED_COLOR);
                     }
@@ -129,7 +122,7 @@ public class ChannelList {
                         ImGui.popStyleColor();
                     }
                     // CLICKED ON CHANNEL
-                    if (ImGui.isItemClicked()) {
+                    if (hasFlag(flags, ChannelListFlags.ALLOW_SELECTION) && ImGui.isItemClicked()) {
                         if (!ImGui.getIO().getKeyCtrl()) {
                             selection.deselectAll();
                         }
@@ -143,18 +136,20 @@ public class ChannelList {
 
                     ImGui.setCursorPosX(ImGui.getCursorStartPosX() + width - ImGui.getFontSize() * 3.5f);
 
-
                     ImGui.pushStyleVar(ImGuiStyleVar.ItemSpacing, 0f, 0f);
                     ImGui.pushStyleColor(ImGuiCol.Button, 0);
 
-                    boolean wasHidden = chEntry.getValue().isHidden();
-                    char hiddenIcon = wasHidden ? MaterialIcons.ICON_VISIBILITY_OFF : MaterialIcons.ICON_VISIBILITY;
-                    if (ImGui.button(hiddenIcon + "###" + objName + chEntry.getKey() + "hide")) {
-                        if (toggleHiddenChannels == null) toggleHiddenChannels = new HashSet<>();
-                        toggleHiddenChannels.add(new ChannelReference(objName, chEntry.getKey()));
-                    }
+                    if (hasFlag(flags, ChannelListFlags.SHOW_HIDE)) {
+                        boolean wasHidden = chEntry.getValue().isHidden();
+                        char hiddenIcon = wasHidden ? MaterialIcons.ICON_VISIBILITY_OFF : MaterialIcons.ICON_VISIBILITY;
+                        if (ImGui.button(hiddenIcon + "###" + objName + chEntry.getKey() + "hide")) {
+                            if (toggleHiddenChannels == null) toggleHiddenChannels = new HashSet<>();
+                            toggleHiddenChannels.add(new ChannelReference(objName, chEntry.getKey()));
+                        }
 
-                    ImGui.sameLine();
+                        ImGui.sameLine();
+
+                    }
 
                     boolean wasLocked = chEntry.getValue().isLocked();
                     char lockIcon = wasLocked ? MaterialIcons.ICON_LOCK : MaterialIcons.ICON_LOCK_OPEN;
@@ -246,4 +241,7 @@ public class ChannelList {
         }
     }
 
+    private static boolean hasFlag(int flags, int flag) {
+        return (flags & flag) != 0;
+    }
 }

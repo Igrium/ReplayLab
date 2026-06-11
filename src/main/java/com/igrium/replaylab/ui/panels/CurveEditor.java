@@ -16,6 +16,7 @@ import com.igrium.replaylab.scene.key.Keyframe;
 import com.igrium.replaylab.scene.obj.ReplayObject;
 import com.igrium.replaylab.ui.ReplayLabIcons;
 import com.igrium.replaylab.ui.subpanels.ChannelList;
+import com.igrium.replaylab.ui.subpanels.ChannelListFlags;
 import com.igrium.replaylab.ui.util.ReplayLabControls;
 import com.igrium.replaylab.ui.util.TimelineFlags;
 import com.igrium.replaylab.ui.subpanels.TimelineHeader;
@@ -319,7 +320,8 @@ public class CurveEditor extends UIPanel {
 
         /// === CHANNEL LIST ===
         ImGui.beginChild("channels", 192, -1, false, ImGuiWindowFlags.NoScrollbar);
-        ChannelList.drawChannelList(selectedKeys, objs, 192);
+        ChannelList.drawChannelList(selectedKeys, objs, 192,
+                ChannelListFlags.SHOW_HIDE | ChannelListFlags.ALLOW_SELECTION | ChannelListFlags.HIGHLIGHT_SELECTION);
         ImGui.endChild();
 
         ImGui.sameLine();
@@ -522,7 +524,6 @@ public class CurveEditor extends UIPanel {
                             boolean isHandleBClose = Math.hypot(handleBX - keyX, handleBY - keyY) <= handleSnapThreshold;
 
                             // Prioritize clicking on the selected channel unless the keyframe being clicked is already selected.
-                            // In that case, don't let it be selected again so we can select overlapping keys.
                             if (mouseClicked && (channelSelected || clickedOn == null)) {
                                 KeyframeReference keyRef = new KeyframeReference(objName, chEntry.getKey(), keyIdx);
 
@@ -530,11 +531,11 @@ public class CurveEditor extends UIPanel {
                                 KeyHandleReference handle1Ref = new KeyHandleReference(keyRef, 1);
                                 KeyHandleReference handle2Ref = new KeyHandleReference(keyRef, 2);
 
-                                if (keyHovered(keyX, keyY, mouseGlobalX, mouseGlobalY) && !selectedKeys.isHandleSelected(handle0Ref)) {
+                                if (keyHovered(keyX, keyY, mouseGlobalX, mouseGlobalY)) {
                                     clickedOn = handle0Ref;
-                                } else if (keyHovered(handleAX, handleAY, mouseGlobalX, mouseGlobalY) && !selectedKeys.isHandleSelected(handle1Ref)) {
+                                } else if (keyHovered(handleAX, handleAY, mouseGlobalX, mouseGlobalY)) {
                                     clickedOn = isHandleAClose ? handle0Ref : handle1Ref;
-                                } else if (keyHovered(handleBX, handleBY, mouseGlobalX, mouseGlobalY) && !selectedKeys.isHandleSelected(handle2Ref)) {
+                                } else if (keyHovered(handleBX, handleBY, mouseGlobalX, mouseGlobalY)) {
                                     clickedOn = isHandleBClose ? handle0Ref : handle2Ref;
                                 }
                             }

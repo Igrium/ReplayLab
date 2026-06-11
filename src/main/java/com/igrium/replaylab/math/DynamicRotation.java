@@ -88,7 +88,7 @@ public class DynamicRotation {
      */
     public DynamicRotation setQuaternion(Quaternionfc quaternion) {
         switch (mode) {
-            case QUATERNION -> quaternion.get(this.quaternion);
+            case QUATERNION -> quaternion.get(this.quaternion).normalize();
             case EULER_XYZ -> quaternion.getEulerAnglesXYZ(this.euler);
             case EULER_YXZ -> quaternion.getEulerAnglesYXZ(this.euler);
             case EULER_ZYX -> quaternion.getEulerAnglesZYX(this.euler);

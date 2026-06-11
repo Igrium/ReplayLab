@@ -16,6 +16,7 @@ import com.igrium.replaylab.scene.key.KeyChannel;
 import com.igrium.replaylab.ui.gizmos.GizmoRenderer;
 import com.igrium.replaylab.ui.util.PropertyWidgets;
 import com.igrium.replaylab.util.JsonUtils;
+import imgui.ImColor;
 import imgui.ImGui;
 import imgui.extension.imguizmo.ImGuizmo;
 import imgui.extension.imguizmo.flag.Mode;
@@ -56,6 +57,12 @@ public abstract class ReplayObject3D extends ReplayObject implements TransformPr
     private static final String SCALE_X = "scaleX";
     private static final String SCALE_Y = "scaleY";
     private static final String SCALE_Z = "scaleZ";
+
+    private static final int COLOR_YELLOW = ImColor.rgb(255, 255, 0);
+    private static final int COLOR_RED = ImColor.rgb(255, 0, 0);
+    private static final int COLOR_GREEN = ImColor.rgb(0, 255, 0);
+    private static final int COLOR_BLUE = ImColor.rgb(0, 127, 255);
+
 
     @Getter
     private boolean hasPos = true;
@@ -324,57 +331,68 @@ public abstract class ReplayObject3D extends ReplayObject implements TransformPr
         String myId = getId();
         if (pos && hasPos()) {
             var posXRef = insertChanKey(POS_X, timestamp, position().x);
-            if (posXRef != null) newKeys.add(posXRef);
+            newKeys.add(posXRef);
 
             var posYRef = insertChanKey(POS_Y, timestamp, position().y);
-            if (posYRef != null) newKeys.add(posYRef);
+            newKeys.add(posYRef);
 
             var posZRef = insertChanKey(POS_Z, timestamp, position().z);
-            if (posZRef != null) newKeys.add(posZRef);
+            newKeys.add(posZRef);
         }
 
         if (rot && hasRot()) {
             if (getRotationMode() == RotationMode.QUATERNION) {
                 var rotWRef = insertChanKey(ROT_QUAT_W, timestamp, rotation.quaternion().w);
-                if (rotWRef != null) newKeys.add(rotWRef);
+                newKeys.add(rotWRef);
 
                 var rotXRef = insertChanKey(ROT_QUAT_X, timestamp, rotation.quaternion().x);
-                if (rotXRef != null) newKeys.add(rotXRef);
+                newKeys.add(rotXRef);
 
                 var rotYRef = insertChanKey(ROT_QUAT_Y, timestamp, rotation.quaternion().y);
-                if (rotYRef != null) newKeys.add(rotYRef);
+                newKeys.add(rotYRef);
 
                 var rotZRef = insertChanKey(ROT_QUAT_Z, timestamp, rotation.quaternion().z);
-                if (rotZRef != null) newKeys.add(rotZRef);
+                newKeys.add(rotZRef);
             } else {
                 var rotXRef = insertChanKey(ROT_EULER_X, timestamp, rotation.euler().x);
-                if (rotXRef != null) newKeys.add(rotXRef);
+                newKeys.add(rotXRef);
 
                 var rotYRef = insertChanKey(ROT_EULER_Y, timestamp, rotation.euler().y);
-                if (rotYRef != null) newKeys.add(rotYRef);
+                newKeys.add(rotYRef);
 
                 var rotZRef = insertChanKey(ROT_EULER_Z, timestamp, rotation.euler().z);
-                if (rotZRef != null) newKeys.add(rotZRef);
+                newKeys.add(rotZRef);
             }
         }
 
         if (scale && hasScale()) {
             var scaleXRef = insertChanKey(SCALE_X, timestamp, scale().x);
-            if (scaleXRef != null) newKeys.add(scaleXRef);
+            newKeys.add(scaleXRef);
 
             var scaleYRef = insertChanKey(SCALE_Y, timestamp, scale().y);
-            if (scaleYRef != null) newKeys.add(scaleYRef);
+            newKeys.add(scaleYRef);
 
             var scaleZRef = insertChanKey(SCALE_Z, timestamp, scale().z);
-            if (scaleZRef != null) newKeys.add(scaleZRef);
+            newKeys.add(scaleZRef);
         }
 
         return newKeys;
     }
 
-    private @Nullable KeyframeReference insertChanKey(String chName, int timestamp, double value) {
+    private KeyframeReference insertChanKey(String chName, int timestamp, double value) {
         KeyChannel channel = getOrCreateChannel(chName);
 
         return new KeyframeReference(getId(), chName, channel.addKeyframe(timestamp, value));
+    }
+
+    @Override
+    public int getChannelColor(String chName) {
+        return switch (chName) {
+            case POS_X, ROT_EULER_X, ROT_QUAT_X, SCALE_X -> COLOR_RED;
+            case POS_Y, ROT_EULER_Y, ROT_QUAT_Y, SCALE_Y -> COLOR_GREEN;
+            case POS_Z, ROT_EULER_Z, ROT_QUAT_Z, SCALE_Z -> COLOR_BLUE;
+            case ROT_QUAT_W -> COLOR_YELLOW;
+            default -> super.getChannelColor(chName);
+        };
     }
 }
