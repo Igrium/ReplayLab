@@ -13,6 +13,7 @@ import com.igrium.replaylab.scene.key.Keyframe;
 import com.igrium.replaylab.scene.obj.ReplayObject;
 import com.igrium.replaylab.ui.ReplayLabIcons;
 import com.igrium.replaylab.ui.subpanels.ChannelList;
+import com.igrium.replaylab.ui.subpanels.ChannelListFlags;
 import com.igrium.replaylab.ui.util.ReplayLabControls;
 import com.igrium.replaylab.ui.util.TimelineFlags;
 import com.igrium.replaylab.ui.subpanels.TimelineHeader;
@@ -52,12 +53,16 @@ public class DopeSheetNew extends UIPanel {
         CIRCLE_FILLED
     }
 
-    private record KeyDrawData(int ms, boolean selected, KeyframeShape shape) {};
+    private record KeyDrawData(int ms, boolean selected, KeyframeShape shape) {
+    }
+
+    ;
 
     /**
      * The X pan amount in milliseconds
      */
-    @Getter @Setter
+    @Getter
+    @Setter
     private double offsetX;
 
     /**
@@ -84,7 +89,10 @@ public class DopeSheetNew extends UIPanel {
      */
     private final Map<KeyframeReference, Double> keyDragOffsets = new HashMap<>();
 
-    private record KeyOffsetPair(KeyframeReference ref, double offset) {};
+    private record KeyOffsetPair(KeyframeReference ref, double offset) {
+    }
+
+    ;
 
     /**
      * The key drag offset that's closest to the mouse (ms)
@@ -159,7 +167,8 @@ public class DopeSheetNew extends UIPanel {
         if (targetZoom == this.zoomFactor) return;
 
         double newOffset = center - (center - offsetX) * (this.zoomFactor / targetZoom);
-        this.zoomFactor = targetZoom;;
+        this.zoomFactor = targetZoom;
+        ;
         this.offsetX = newOffset;
     }
 
@@ -235,9 +244,11 @@ public class DopeSheetNew extends UIPanel {
         ImGui.sameLine();
 
         /// === BUTTONS ===
-        ReplayLabControls.toggleButton(ReplayLabIcons.ICON_MAGNET, "snapKeyframes", snapKeyframes, "gui.replaylab.tooltip_snap");
+        ReplayLabControls.toggleButton(ReplayLabIcons.ICON_MAGNET, "snapKeyframes", snapKeyframes, "gui.replaylab" +
+                ".tooltip_snap");
         ImGui.sameLine();
-        boolean wantsFit = ReplayLabControls.iconButton(ReplayLabIcons.ICON_RESIZE_FULL_ALT, "fitKeys", "gui.replaylab.tooltip_fit");
+        boolean wantsFit = ReplayLabControls.iconButton(ReplayLabIcons.ICON_RESIZE_FULL_ALT, "fitKeys", "gui" +
+                ".replaylab.tooltip_fit");
 
 
         float graphHeight = ImGui.getContentRegionAvailY();
@@ -254,7 +265,8 @@ public class DopeSheetNew extends UIPanel {
         {
             ///  === CHANNEL LIST ===
             ImGui.beginGroup();
-            var expandedObjects = ChannelList.drawChannelList(selectedKeys, objs, 192, 0);
+            var expandedObjects = ChannelList.drawChannelList(selectedKeys, objs, 192,
+                    ChannelListFlags.ALLOW_SELECTION);
             ImGui.endGroup();
             float channelListHeight = ImGui.getItemRectSizeY();
             ImGui.sameLine();
@@ -279,14 +291,15 @@ public class DopeSheetNew extends UIPanel {
 
                 drawList.pushClipRect(graphX, graphY, graphX + graphWidth, graphY + graphHeight);
                 for (var objEntry : objs.entrySet()) {
-                    String objName =  objEntry.getKey();
+                    String objName = objEntry.getKey();
                     ReplayObject obj = objEntry.getValue();
                     if (obj == null) continue;
 
                     // COMBINED ROW
                     {
                         // Map all ms timestamps and the keyframes that land on said timestamp.
-                        Int2ObjectMap<Set<Pair<KeyframeReference, Keyframe>>> combinedKeys = new Int2ObjectOpenHashMap<>();
+                        Int2ObjectMap<Set<Pair<KeyframeReference, Keyframe>>> combinedKeys =
+                                new Int2ObjectOpenHashMap<>();
                         for (var chEntry : obj.getChannels().entrySet()) {
                             var chan = chEntry.getValue();
                             int i = 0;
@@ -398,14 +411,18 @@ public class DopeSheetNew extends UIPanel {
 
                     if (pixelIn > 0) {
                         float pixelInGlobal = pixelIn + graphX;
-                        drawList.addLine(pixelInGlobal, graphY, pixelInGlobal, graphY + channelListHeight, ImGui.getColorU32(ImGuiCol.Separator));
-                        drawList.addRectFilled(graphX, graphY, pixelInGlobal, graphY + channelListHeight, ImGui.getColorU32(ImGuiCol.ModalWindowDimBg));
+                        drawList.addLine(pixelInGlobal, graphY, pixelInGlobal, graphY + channelListHeight,
+                                ImGui.getColorU32(ImGuiCol.Separator));
+                        drawList.addRectFilled(graphX, graphY, pixelInGlobal, graphY + channelListHeight,
+                                ImGui.getColorU32(ImGuiCol.ModalWindowDimBg));
                     }
 
                     if (pixelOut < graphWidth) {
                         float pixelOutGlobal = pixelOut + graphX;
-                        drawList.addLine(pixelOutGlobal, graphY, pixelOutGlobal, graphY + channelListHeight, ImGui.getColorU32(ImGuiCol.Separator));
-                        drawList.addRectFilled(pixelOutGlobal, graphY, graphX + graphWidth, graphY + channelListHeight, ImGui.getColorU32(ImGuiCol.ModalWindowDimBg));
+                        drawList.addLine(pixelOutGlobal, graphY, pixelOutGlobal, graphY + channelListHeight,
+                                ImGui.getColorU32(ImGuiCol.Separator));
+                        drawList.addRectFilled(pixelOutGlobal, graphY, graphX + graphWidth,
+                                graphY + channelListHeight, ImGui.getColorU32(ImGuiCol.ModalWindowDimBg));
                     }
                 }
 
@@ -736,7 +753,7 @@ public class DopeSheetNew extends UIPanel {
                 return KeyframeShape.DIAMOND;
         }
 
-        return switch(handleTypes[0]) {
+        return switch (handleTypes[0]) {
             case AUTO -> KeyframeShape.CIRCLE;
             case AUTO_CLAMPED -> KeyframeShape.CIRCLE_FILLED;
             case VECTOR -> KeyframeShape.SQUARE;

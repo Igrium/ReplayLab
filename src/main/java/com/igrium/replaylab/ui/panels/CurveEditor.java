@@ -321,7 +321,8 @@ public class CurveEditor extends UIPanel {
         /// === CHANNEL LIST ===
         ImGui.beginChild("channels", 192, -1, false, ImGuiWindowFlags.NoScrollbar);
         ChannelList.drawChannelList(selectedKeys, objs, 192,
-                ChannelListFlags.SHOW_HIDE | ChannelListFlags.ALLOW_SELECTION | ChannelListFlags.HIGHLIGHT_SELECTION);
+                ChannelListFlags.SHOW_HIDE | ChannelListFlags.ALLOW_SELECTION
+                        | ChannelListFlags.HIGHLIGHT_SELECTION | ChannelListFlags.SHOW_COLORS);
         ImGui.endChild();
 
         ImGui.sameLine();

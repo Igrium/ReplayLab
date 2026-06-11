@@ -5,11 +5,14 @@ import com.igrium.replaylab.editor.KeySelectionSet;
 import com.igrium.replaylab.editor.KeySelectionSet.ChannelReference;
 import com.igrium.replaylab.scene.key.KeyChannel;
 import com.igrium.replaylab.scene.obj.ReplayObject;
+import imgui.ImColor;
+import imgui.ImDrawList;
 import imgui.ImGui;
 import imgui.flag.ImGuiCol;
 import imgui.flag.ImGuiStyleVar;
 import imgui.flag.ImGuiTreeNodeFlags;
 import lombok.experimental.UtilityClass;
+import net.minecraft.util.math.ColorHelper;
 
 import java.util.*;
 import java.util.function.BiConsumer;
@@ -111,10 +114,15 @@ public class ChannelList {
                     }
                     ImGui.alignTextToFramePadding();
 
-                    boolean selected = hasFlag(flags, ChannelListFlags.HIGHLIGHT_SELECTION) && selection.isChannelSelected(objName, chEntry.getKey());
+                    float cursorX = ImGui.getCursorScreenPosX();
+                    float cursorY = ImGui.getCursorScreenPosY();
+
+                    boolean selected =
+                            hasFlag(flags, ChannelListFlags.HIGHLIGHT_SELECTION) && selection.isChannelSelected(objName, chEntry.getKey());
                     if (selected) {
                         ImGui.pushStyleColor(ImGuiCol.Text, SELECTED_COLOR);
                     }
+
                     if (ImGui.treeNodeEx(chEntry.getKey(), ImGuiTreeNodeFlags.Leaf)) {
                         ImGui.treePop();
                     }
@@ -148,7 +156,6 @@ public class ChannelList {
                         }
 
                         ImGui.sameLine();
-
                     }
 
                     boolean wasLocked = chEntry.getValue().isLocked();
@@ -156,6 +163,14 @@ public class ChannelList {
                     if (ImGui.button(lockIcon + "###" + objName + chEntry.getKey() + "lock")) {
                         if (toggleLockedChannels == null) toggleLockedChannels = new HashSet<>();
                         toggleLockedChannels.add(new ChannelReference(objName, chEntry.getKey()));
+                    }
+
+                    // Color indicator
+                    if (hasFlag(flags, ChannelListFlags.SHOW_COLORS)) {
+                        ImDrawList drawList = ImGui.getWindowDrawList();
+                        drawList.addRectFilled(cursorX, cursorY + 2, cursorX + 8, cursorY + ImGui.getFrameHeight() - 2,
+                                ColorHelper.withAlpha(96, obj.getChannelColor(chEntry.getKey())));
+
                     }
 
                     ImGui.popStyleVar();
