@@ -121,7 +121,7 @@ public class SceneBrowser extends UIModal {
             ImGui.separator();
 
             String name = sceneRenameStr.get();
-            boolean nameValid = !editorState.getScenes().contains(name);
+            boolean nameValid = !name.isBlank() && !editorState.getScenes().contains(name);
 
             ImGui.beginDisabled(!nameValid);
             if (ImGui.button(isSelectionValid ? "Rename" : "Create")) {

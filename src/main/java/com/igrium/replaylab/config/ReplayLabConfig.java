@@ -4,6 +4,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.igrium.replaylab.ReplayLab;
 import com.igrium.replaylab.math.DynamicRotation;
+import com.igrium.replaylab.math.DynamicRotation.RotationMode;
 import lombok.Getter;
 import lombok.Setter;
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -48,8 +49,14 @@ public class ReplayLabConfig {
 
     private final Keybinds keybinds = new Keybinds();
 
+    // Behavior
+    /**
+     * The first camera added to the scene automatically becomes the scene camera
+     */
+    private boolean autoSetCamera = true;
+
     // 3D objects
-    private DynamicRotation.RotationMode defaultRotMode = DynamicRotation.RotationMode.EULER_YXZ;
+    private RotationMode defaultRotMode = RotationMode.EULER_YXZ;
     private boolean rotModeConvert = true;
     private boolean displayDegrees = true;
 

@@ -12,13 +12,15 @@ public class Keybinds {
 
     private int playPause = ImGuiKey.Space;
     private int cameraView = ImGuiKey.C;
+    private int cameraToView = ImGuiKey.ImGuiMod_Shift | ImGuiKey.C;
+    private int activeToCam = ImGuiKey.ImGuiMod_Alt | ImGuiKey.C;
     private int frameSelected = ImGuiKey.F;
 
     private int selectAll = ImGuiKey.ImGuiMod_Ctrl | ImGuiKey.A;
     private int selectNone = ImGuiKey.ImGuiMod_Alt | ImGuiKey.A;
     private int deleteSelected = ImGuiKey.Delete;
 
-    private int addKey = ImGuiKey.S;
+    private int addKey = ImGuiKey.I;
     private int addKeyPos = ImGuiKey.ImGuiMod_Shift | ImGuiKey.W;
     private int addKeyRot = ImGuiKey.ImGuiMod_Shift | ImGuiKey.E;
     private int addKeyScale = ImGuiKey.ImGuiMod_Shift | ImGuiKey.R;
@@ -33,10 +35,10 @@ public class Keybinds {
 
     private int cameraRoll = ImGuiKey.R;
 
-    private int sceneStart = ImGuiKey.I;
-    private int sceneEnd = ImGuiKey.O;
-    private int prevKey = ImGuiKey.J;
-    private int nextKey = ImGuiKey.K;
+    private int sceneStart = ImGuiKey.Home;
+    private int sceneEnd = ImGuiKey.End;
+    private int prevKey = ImGuiKey.Comma;
+    private int nextKey = ImGuiKey.Period;
 
     public void copyFrom(Keybinds other) {
         this.undo = other.undo;
@@ -44,6 +46,8 @@ public class Keybinds {
 
         this.playPause = other.playPause;
         this.cameraView = other.cameraView;
+        this.cameraToView = other.cameraToView;
+        this.activeToCam = other.activeToCam;
         this.frameSelected = other.frameSelected;
 
         this.addKey = other.addKey;
@@ -88,6 +92,14 @@ public class Keybinds {
 
     public static int cameraView() {
         return getKeybinds().getCameraView();
+    }
+
+    public static int cameraToView() {
+        return getKeybinds().getCameraToView();
+    }
+
+    public static int activeToCam() {
+        return getKeybinds().getActiveToCam();
     }
 
     public static int frameSelected() {

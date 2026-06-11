@@ -40,6 +40,7 @@ public class KeybindEditor {
 
             changed |= drawBinding("key.replaylab.playpause", current.getPlayPause(), defBinds.getPlayPause(), current::setPlayPause);
             changed |= drawBinding("key.replaylab.cameraview", current.getCameraView(), defBinds.getCameraView(), current::setCameraView);
+            changed |= drawBinding("key.replaylab.active_to_cam", current.getActiveToCam(), defBinds.getActiveToCam(), current::setActiveToCam);
             changed |= drawBinding("key.replaylab.frame", current.getFrameSelected(), defBinds.getFrameSelected(), current::setFrameSelected);
 
             ImGui.separator();

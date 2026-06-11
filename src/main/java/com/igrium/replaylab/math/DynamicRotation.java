@@ -1,6 +1,7 @@
 package com.igrium.replaylab.math;
 
 import lombok.Getter;
+import lombok.NonNull;
 import lombok.experimental.Accessors;
 import org.joml.Quaternionf;
 import org.joml.Quaternionfc;
@@ -11,7 +12,7 @@ import org.joml.Vector3fc;
  * A simple class that can store rotation in a number of different formats.
  */
 @Accessors(fluent = true)
-public class DynamicRotation {
+public final class DynamicRotation {
     public enum RotationMode {
         QUATERNION, EULER_XYZ, EULER_ZYX, EULER_YXZ;
 
@@ -39,6 +40,13 @@ public class DynamicRotation {
     private RotationMode mode = RotationMode.QUATERNION;
 
     private final Quaternionf tmpQuat = new Quaternionf();
+
+    public DynamicRotation set(@NonNull DynamicRotation other) {
+        this.quaternion.set(other.quaternion);
+        this.euler.set(other.euler);
+        this.mode = other.mode;
+        return this;
+    }
 
     /**
      * Change the rotation mode in use.

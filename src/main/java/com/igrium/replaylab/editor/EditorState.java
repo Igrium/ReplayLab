@@ -272,6 +272,9 @@ public class EditorState {
     public ReplayScene newScene(String sceneName) {
         ReplayScene scene = new ReplayScene();
         setScene(scene, sceneName);
+
+        // TODO: create camera and teleport to player
+
         try {
             saveScene();
             LOGGER.info("Created new scene: {}", sceneName);
@@ -655,5 +658,10 @@ public class EditorState {
         } finally {
             renderer = null;
         }
+    }
+
+    private static @Nullable Entity getCamEnt() {
+        MinecraftClient mc = MinecraftClient.getInstance();
+        return mc.cameraEntity != null ? mc.getCameraEntity() : mc.player;
     }
 }

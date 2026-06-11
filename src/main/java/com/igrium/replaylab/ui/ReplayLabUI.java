@@ -235,9 +235,6 @@ public class ReplayLabUI extends DockSpaceApp {
             if (selected != null && (wantKeyPos || wantKeyRot || wantKeyScale)) {
                 editorState.applyOperator(new InsertKeyframeOperator(editorState.getPlayhead(),
                         wantKeyPos, wantKeyRot, wantKeyScale, selected.getId()));
-//                if (selected.insertKeyframe(editorState, wantKeyPos, wantKeyRot, wantKeyScale)) {
-//                    editorState.applyOperator(new CommitObjectUpdateOperator(selected.getId()));
-//                }
             }
 
         }
@@ -348,8 +345,6 @@ public class ReplayLabUI extends DockSpaceApp {
             ImGui.beginDisabled(editorState.getActiveObject() == null);
             if (ImGui.menuItem("Delete Selected", "Del")) deleteObject();
             ImGui.endDisabled();
-
-//            if (ImGui.menuItem("Insert Keyframe", "I")) insertKeyframe();
 
             ImGui.endMenu();
         }

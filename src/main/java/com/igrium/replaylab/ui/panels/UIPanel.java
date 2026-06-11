@@ -4,6 +4,7 @@ import com.igrium.replaylab.config.Keybinds;
 import com.igrium.replaylab.config.ReplayLabConfig;
 import com.igrium.replaylab.editor.EditorState;
 import com.igrium.replaylab.operator.ReplayOperator;
+import com.igrium.replaylab.operator.SetSceneCameraOperator;
 import imgui.ImGui;
 import imgui.type.ImBoolean;
 import lombok.Getter;
@@ -98,6 +99,10 @@ public abstract class UIPanel {
 
         if (ImGui.shortcut(Keybinds.cameraView())) {
             editorState.setCameraView(!editorState.isCameraView());
+        }
+
+        if (ImGui.shortcut(Keybinds.activeToCam())) {
+            editorState.applyOperator(new SetSceneCameraOperator(editorState.getActiveObject()));
         }
 
     }

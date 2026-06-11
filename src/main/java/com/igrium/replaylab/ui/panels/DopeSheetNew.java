@@ -3,6 +3,7 @@ package com.igrium.replaylab.ui.panels;
 import com.igrium.replaylab.config.Keybinds;
 import com.igrium.replaylab.editor.EditorState;
 import com.igrium.replaylab.editor.KeySelectionSet;
+import com.igrium.replaylab.editor.KeySelectionSet.KeyHandleReference;
 import com.igrium.replaylab.editor.KeySelectionSet.KeyframeReference;
 import com.igrium.replaylab.operator.ChangeHandleTypeOperator;
 import com.igrium.replaylab.operator.CommitObjectUpdateOperator;
@@ -35,11 +36,13 @@ import lombok.Setter;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.Language;
 import org.jetbrains.annotations.Nullable;
+import org.joml.Vector2d;
 import org.joml.Vector2f;
 
 import java.util.*;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
+import java.util.stream.StreamSupport;
 
 public class DopeSheetNew extends UIPanel {
 
@@ -253,6 +256,7 @@ public class DopeSheetNew extends UIPanel {
         boolean wantsFit = ReplayLabControls.iconButton(ReplayLabIcons.ICON_RESIZE_FULL_ALT, "fitKeys",
                 "gui.replaylab.tooltip_fit");
 
+        wantsFit |= ImGui.shortcut(Keybinds.frameSelected());
 
         float graphHeight = ImGui.getContentRegionAvailY();
         float headerCursorX;
@@ -431,6 +435,37 @@ public class DopeSheetNew extends UIPanel {
 
             }
             ImGui.endGroup();
+            float graphWidth = ImGui.getItemRectSizeX();
+
+            /// === FITTING ===
+            if (wantsFit) {
+                Vector2d bounds = new Vector2d();
+//                Iterable<KeyHandleReference> iter = selectedKeys.isEmpty()
+//                        ? KeySelectionSet.iterateAllHandles(scene.getObjects())
+//                        : selectedKeys.getSelectedHandles();
+
+                // Don't need over-optimization cause it's only called when fitting
+                List<Keyframe> keys;
+                if (selectedKeys.isEmpty()) {
+                    keys = StreamSupport.stream(KeySelectionSet.iterateAllHandles(objs).spliterator(), false)
+                            .map(KeyHandleReference::keyRef)
+                            .distinct()
+                            .map(k -> k.get(objs))
+                            .filter(Objects::nonNull)
+                            .toList();
+                } else {
+                    keys = selectedKeys.getSelectedKeyframes().stream()
+                            .filter(k -> objs.containsKey(k.objectName()))
+                            .map(k -> k.get(objs))
+                            .filter(Objects::nonNull)
+                            .toList();
+                }
+
+                if (computeTimeBounds(keys, bounds)) {
+                    setOffsetX(bounds.x);
+                    setZoomFactor((float) (graphWidth / (bounds.y - offsetX)));
+                }
+            }
 
             /// === RIGHT CLICK ===
             boolean rightClicked = ImGui.isItemClicked(ImGuiMouseButton.Right);
@@ -484,9 +519,9 @@ public class DopeSheetNew extends UIPanel {
 
                     if (newHandleType != null) {
 
-                        List<KeySelectionSet.KeyHandleReference> handleRefs = new ArrayList<>(contextKeys.size() * 2);
+                        List<KeyHandleReference> handleRefs = new ArrayList<>(contextKeys.size() * 2);
                         for (var key : contextKeys.keySet()) {
-                            handleRefs.add(new KeySelectionSet.KeyHandleReference(key, 0));
+                            handleRefs.add(new KeyHandleReference(key, 0));
                         }
                         var handleOperator = new ChangeHandleTypeOperator(handleRefs, newHandleType);
                         editor.applyOperator(handleOperator);
@@ -788,6 +823,23 @@ public class DopeSheetNew extends UIPanel {
     private static int replaceAlpha(int colorArgb, int newAlpha) {
         newAlpha &= 0xFF;
         return (colorArgb & 0x00FFFFFF) | (newAlpha << 24);
+    }
+
+    private static boolean computeTimeBounds(Collection<? extends Keyframe> selected, Vector2d dest) {
+        if (selected.size() < 2) return false;
+        boolean foundAny = false;
+        for (var key : selected) {
+
+            if (!foundAny) {
+                dest.set(key.getCenter());
+                foundAny = true;
+            } else {
+                dest.x = Math.min(key.getTime(), dest.x);
+                dest.y = Math.max(key.getTime(), dest.y);
+            }
+        }
+
+        return foundAny;
     }
 
     private static String t(String key) {

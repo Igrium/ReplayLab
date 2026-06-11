@@ -23,8 +23,11 @@ import imgui.extension.imguizmo.flag.Mode;
 import imgui.extension.imguizmo.flag.Operation;
 import lombok.Getter;
 import lombok.experimental.Accessors;
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.entity.Entity;
 import net.minecraft.util.Language;
 import net.minecraft.util.math.MathHelper;
+import net.minecraft.util.math.Vec3d;
 import org.jetbrains.annotations.Nullable;
 import org.joml.*;
 import org.slf4j.Logger;
@@ -304,7 +307,23 @@ public abstract class ReplayObject3D extends ReplayObject implements TransformPr
         }
     }
 
-    // Wrapper to reduce code bloat
+    /**
+     * Spawn in front of camera
+     */
+    @Override
+    public void onCreated() {
+        super.onCreated();
+        MinecraftClient mc = MinecraftClient.getInstance();
+        Entity camEnt = mc.cameraEntity != null ? mc.cameraEntity : mc.player;
+        if (camEnt != null) {
+            Vec3d newPos = camEnt.getRotationVector().multiply(5).add(camEnt.getEyePos());
+            position().set(newPos.x, newPos.y, newPos.z);
+        }
+    }
+
+    /**
+     * Wrapper to reduce bloat
+     */
     private boolean dragFloatN(String name, float speed, int playhead, double factor, String... properties) {
         var state = PropertyWidgets.dragFloatN(this, name, speed, playhead, factor, properties);
         return state.isUpdated() || state.hasNewKey();
@@ -395,4 +414,5 @@ public abstract class ReplayObject3D extends ReplayObject implements TransformPr
             default -> super.getChannelColor(chName);
         };
     }
+
 }

@@ -26,6 +26,7 @@
   "gui.replaylab.rot": "Rotation",
   "gui.replaylab.scale": "Scale",
   "gui.replaylab.rot_mode": "Rotation Mode",
+  "gui.replaylab.tooltip_cameraview": "Toggle Camera View",
 
   "gui.replaylab.camera": "Camera",
 
@@ -51,6 +52,8 @@
 
   "key.replaylab.playpause": "Play/Pause",
   "key.replaylab.cameraview": "Toggle Camera View",
+  "key.replaylab.camera_to_view": "Set Camera to Viewport",
+  "key.replaylab.active_to_cam": "Set Scene Camera to Selected",
   "key.replaylab.frame": "Frame Selected",
 
   "key.replaylab.scene_start": "Scene Start",

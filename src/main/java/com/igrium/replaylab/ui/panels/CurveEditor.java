@@ -333,6 +333,8 @@ public class CurveEditor extends UIPanel {
         boolean wantsFit = ReplayLabControls.iconButton(ReplayLabIcons.ICON_RESIZE_FULL_ALT, "wantsFit",
                 "gui.replaylab.tooltip_fit");
 
+        wantsFit |= ImGui.shortcut(Keybinds.frameSelected());
+
         boolean wasNormalized = isNormalized();
 
         ImGui.sameLine();
