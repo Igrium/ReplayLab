@@ -1,6 +1,8 @@
 package com.igrium.replaylab.ui.subpanels;
 
+import com.igrium.craftui.CraftUI;
 import com.igrium.craftui.MaterialIcons;
+import com.igrium.replaylab.ReplayLab;
 import com.igrium.replaylab.editor.KeySelectionSet;
 import com.igrium.replaylab.editor.KeySelectionSet.ChannelReference;
 import com.igrium.replaylab.scene.ReplayScene;
@@ -11,6 +13,7 @@ import com.igrium.replaylab.ui.util.ReplayLabControls;
 import imgui.ImGui;
 import imgui.flag.ImGuiCol;
 import imgui.flag.ImGuiStyleVar;
+import imgui.flag.ImGuiTreeNodeFlags;
 import it.unimi.dsi.fastutil.objects.Object2BooleanFunction;
 import lombok.experimental.UtilityClass;
 
@@ -21,15 +24,18 @@ import java.util.stream.StreamSupport;
 
 @UtilityClass
 public class ChannelList {
+
+    private static final int SELECTED_COLOR = 0xFF22A2EB;
+
     /**
      * Draw the channel list
      *
-     * @param scene Scene to use
-     * @param objs  Object IDs to render
+     * @param selection Selected keyframes
+     * @param objs      Object IDs to render
      * @return A collection of all objects which are currently expanded. Needed for the dope sheet.
      */
-    public static Collection<String> drawChannelList(ReplayScene scene,
-                                                     Map<? extends String, ? extends ReplayObject> objs, int width) {
+    public static Collection<String> drawChannelList(KeySelectionSet selection, Map<? extends String, ?
+            extends ReplayObject> objs, int width) {
         Set<String> expandedObjs = new HashSet<>(objs.size());
 
         // Channels which have "toggle visible" clicked (don't allocate until needed)
@@ -78,7 +84,7 @@ public class ChannelList {
             ImGui.setCursorPosX(ImGui.getCursorStartPosX() + width - ImGui.getFontSize() * 3.5f);
 
             char objHideIcon = anyVisible ? MaterialIcons.ICON_VISIBILITY : MaterialIcons.ICON_VISIBILITY_OFF;
-            boolean toggleObjHidden = ImGui.button( objHideIcon + "###obj." + objName + "hide");
+            boolean toggleObjHidden = ImGui.button(objHideIcon + "###obj." + objName + "hide");
 
             if (toggleObjHidden) {
                 if (toggleHiddenChannels == null) toggleHiddenChannels = new HashSet<>();
@@ -110,7 +116,26 @@ public class ChannelList {
                         ImGui.beginDisabled();
                     }
                     ImGui.alignTextToFramePadding();
-                    ImGui.text(chEntry.getKey());
+//                    ImGui.text(chEntry.getKey());
+
+                    boolean selected = selection.isChannelSelected(objName, chEntry.getKey());
+                    if (selected) {
+                        ImGui.pushStyleColor(ImGuiCol.Text, SELECTED_COLOR);
+                    }
+                    if (ImGui.treeNodeEx(chEntry.getKey(), ImGuiTreeNodeFlags.Leaf)) {
+                        ImGui.treePop();
+                    }
+                    if (selected) {
+                        ImGui.popStyleColor();
+                    }
+                    // CLICKED ON CHANNEL
+                    if (ImGui.isItemClicked()) {
+                        if (!ImGui.getIO().getKeyCtrl()) {
+                            selection.deselectAll();
+                        }
+                        selection.selectChannel(objName, chEntry.getKey(),
+                                chEntry.getValue().getKeyframes().size());
+                    }
                     ImGui.sameLine();
                     if (disable) {
                         ImGui.endDisabled();
@@ -160,45 +185,65 @@ public class ChannelList {
     }
 
     private static void updateBoolValue(Map<? extends String, ? extends ReplayObject> objs,
-                                        Collection<ChannelReference> channels,
-                                        boolean invert,
-                                        Predicate<KeyChannel> getter,
-                                        BiConsumer<KeyChannel, Boolean> setter) {
+                                        Collection<ChannelReference> channels, boolean solo,
+                                        Predicate<KeyChannel> getter, BiConsumer<KeyChannel, Boolean> setter) {
 
-        // Not the fastest thing in the world, but it's only called when the user clicks a button.
-
-        Collection<ChannelReference> finalChannels; // I hate lambda rules
-        if (invert) {
-            finalChannels = StreamSupport.stream(KeySelectionSet.iterateAllHandles(objs).spliterator(), false)
+        // Not the fastest thing in the world, but it's only called when the user shows/hides something
+        if (solo) {
+            List<ChannelReference> otherRefs = StreamSupport
+                    .stream(KeySelectionSet.iterateAllHandles(objs).spliterator(), false)
                     .map(handle -> handle.keyRef().channelRef())
                     .distinct()
-                    .filter(v -> !channels.contains(v))
+                    .filter(ref -> !channels.contains(ref))
                     .toList();
-//            newVal = !newVal;
-        } else {
-            finalChannels = channels;
-        }
 
-        int numTrue = 0;
-        int numFalse = 0;
+            boolean allOthersHidden = true;
+            for (var otherRef : otherRefs) {
+                KeyChannel other = otherRef.get(objs);
+                if (other == null) continue;
+                if (!getter.test(other)) {
+                    allOthersHidden = false;
+                    break;
+                }
+            }
 
-        for (var chRef : finalChannels) {
-            KeyChannel ch = chRef.get(objs);
-            if (ch == null) continue;
-
-            if (getter.test(ch)) {
-                numTrue++;
+            // If all other channels are hidden, show everything
+            if (allOthersHidden) {
+                for (var obj : objs.values()) {
+                    for (var chan : obj.getChannels().values()) {
+                        setter.accept(chan, false);
+                    }
+                }
             } else {
-                numFalse++;
+                for (var otherRef : otherRefs) {
+                    KeyChannel other = otherRef.get(objs);
+                    if (other != null) setter.accept(other, true);
+                }
+                for (var chanRef : channels) {
+                    KeyChannel chan = chanRef.get(objs);
+                    if (chan != null) setter.accept(chan, false);
+                }
+            }
+
+        } else {
+            // TOGGLE MODE: Smart toggle based on the majority state.
+            int numTrue = 0, numFalse = 0;
+            List<KeyChannel> validChannels = new ArrayList<>();
+
+            for (ChannelReference chRef : channels) {
+                KeyChannel ch = chRef.get(objs);
+                if (ch != null) {
+                    validChannels.add(ch);
+                    if (getter.test(ch)) numTrue++;
+                    else numFalse++;
+                }
+            }
+
+            boolean newVal = numFalse > numTrue;
+            for (KeyChannel ch : validChannels) {
+                setter.accept(ch, newVal);
             }
         }
-
-        boolean newVal = numFalse > numTrue;
-
-        for (var chRef : finalChannels) {
-            KeyChannel ch = chRef.get(objs);
-            if (ch == null) continue;
-            setter.accept(ch, newVal);
-        }
     }
+
 }

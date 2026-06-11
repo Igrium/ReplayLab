@@ -254,7 +254,7 @@ public class DopeSheetNew extends UIPanel {
         {
             ///  === CHANNEL LIST ===
             ImGui.beginGroup();
-            var expandedObjects = ChannelList.drawChannelList(scene, objs, 192);
+            var expandedObjects = ChannelList.drawChannelList(selectedKeys, objs, 192);
             ImGui.endGroup();
             float channelListHeight = ImGui.getItemRectSizeY();
             ImGui.sameLine();
