@@ -1,6 +1,7 @@
 package com.igrium.replaylab.ui;
 
 
+import com.igrium.craftui.app.AppManager;
 import com.igrium.craftui.app.DockSpaceApp;
 import com.igrium.craftui.util.RaycastUtils;
 import com.igrium.replaylab.ReplayLab;
@@ -114,7 +115,7 @@ public class ReplayLabUI extends DockSpaceApp {
     // =========================================================================
 
     public ReplayLabUI() {
-        setViewportInputMode(ViewportInputMode.HOLD);
+        setViewportInputMode(ViewportInputMode.DRAG);
         setViewportInputButtons(1);
         editorState.setExceptionCallback(exceptionPopup::displayException);
         editorState.setOperatorCallback(this::onApplyOperator);
@@ -157,6 +158,8 @@ public class ReplayLabUI extends DockSpaceApp {
         editorState.onPreRender();
     }
 
+    private @Nullable ReplayObject contextObject;
+
     @Override
     protected void render(MinecraftClient client) {
         var replayHandler = getReplayHandler();
@@ -184,8 +187,22 @@ public class ReplayLabUI extends DockSpaceApp {
             ImGui.popStyleColor();
             ScenePropsPanel.processGlobalHotkeys(editorState);
 
-            if (ImGui.isWindowHovered() && ImGui.isMouseClicked(0)) {
+            if (ImGui.isWindowHovered() && (ImGui.isMouseClicked(0))) {
                 raycastSelect();
+            }
+
+            if (ImGui.isWindowHovered() && ImGui.isMouseReleased(1)) {
+                contextObject = raycastReplayObject();
+                if (contextObject != null) {
+                    ImGui.openPopup("objectCtx");
+                }
+            }
+
+            if (ImGui.beginPopup("objectCtx")) {
+                if (contextObject != null) {
+                    ImGui.menuItem("Selected object: " + contextObject.getId());
+                }
+                ImGui.endPopup();
             }
 
             /// === GIZMO HOTKEYS ===
@@ -219,24 +236,6 @@ public class ReplayLabUI extends DockSpaceApp {
             // I removed zoom scrolling because it conflicted with replay mod's camera speed shift
 
             editorState.setRollingCamera(editorState.isPilotingCamera() && ShortcutUtils.isKeyChordDown(Keybinds.cameraRoll()));
-
-            ///  === INSERT KEYFRAME ===
-
-            // Test keyframes before validating object so we still consume it keybind
-            boolean wantKeyPos = ImGui.shortcut(Keybinds.addKeyPos());
-            boolean wantKeyRot = ImGui.shortcut(Keybinds.addKeyRot());
-            boolean wantKeyScale = ImGui.shortcut(Keybinds.addKeyScale());
-            if (ImGui.shortcut(Keybinds.addKey())) {
-                wantKeyPos = true;
-                wantKeyRot = true;
-                wantKeyScale = true;
-            }
-            ReplayObject selected = editorState.getScene().getObject(editorState.getActiveObject());
-            if (selected != null && (wantKeyPos || wantKeyRot || wantKeyScale)) {
-                editorState.applyOperator(new InsertKeyframeOperator(editorState.getPlayhead(),
-                        wantKeyPos, wantKeyRot, wantKeyScale, selected.getId()));
-            }
-
         }
         ImGui.end();
 
@@ -274,6 +273,19 @@ public class ReplayLabUI extends DockSpaceApp {
         for (var panel : panels) {
             panel.onAppliedOperator(op, editorState);
         }
+    }
+
+    private @Nullable ReplayObject raycastReplayObject() {
+        Mouse mouse = MinecraftClient.getInstance().mouse;
+
+        ClientWorld world = MinecraftClient.getInstance().world;
+        if (world == null) return null;
+
+        HitResult raycast = RaycastUtils.raycastViewport((float) mouse.getX(), (float) mouse.getY(), 1000, e -> true, false);
+        if (raycast instanceof EntityHitResult entHit) {
+            return editorState.getScene().referencingObjects(entHit.getEntity()).findFirst().orElse(null);
+        }
+        return null;
     }
 
     private void raycastSelect() {

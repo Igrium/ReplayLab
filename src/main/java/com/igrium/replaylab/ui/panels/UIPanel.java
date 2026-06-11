@@ -3,8 +3,10 @@ package com.igrium.replaylab.ui.panels;
 import com.igrium.replaylab.config.Keybinds;
 import com.igrium.replaylab.config.ReplayLabConfig;
 import com.igrium.replaylab.editor.EditorState;
+import com.igrium.replaylab.operator.InsertKeyframeOperator;
 import com.igrium.replaylab.operator.ReplayOperator;
 import com.igrium.replaylab.operator.SetSceneCameraOperator;
+import com.igrium.replaylab.scene.obj.ReplayObject;
 import imgui.ImGui;
 import imgui.type.ImBoolean;
 import lombok.Getter;
@@ -105,6 +107,22 @@ public abstract class UIPanel {
             editorState.applyOperator(new SetSceneCameraOperator(editorState.getActiveObject()));
         }
 
+        ///  === INSERT KEYFRAME ===
+
+        // Test keyframes before validating object so we still consume it keybind
+        boolean wantKeyPos = ImGui.shortcut(Keybinds.addKeyPos());
+        boolean wantKeyRot = ImGui.shortcut(Keybinds.addKeyRot());
+        boolean wantKeyScale = ImGui.shortcut(Keybinds.addKeyScale());
+        if (ImGui.shortcut(Keybinds.addKey())) {
+            wantKeyPos = true;
+            wantKeyRot = true;
+            wantKeyScale = true;
+        }
+        ReplayObject selected = editorState.getScene().getObject(editorState.getActiveObject());
+        if (selected != null && (wantKeyPos || wantKeyRot || wantKeyScale)) {
+            editorState.applyOperator(new InsertKeyframeOperator(editorState.getPlayhead(),
+                    wantKeyPos, wantKeyRot, wantKeyScale, selected.getId()));
+        }
     }
 
     public void onAppliedOperator(ReplayOperator op, EditorState editorState) {}

@@ -48,11 +48,11 @@ public class DopeSheetNew extends UIPanel {
 
     private static final float SNAP_THRESHOLD_PX = 4f;
     private static final float INTERVAL_DIVISOR = 4f;
-    private static final float MAX_ZOOM_FACTOR = 8f;
+    private static final float MAZ_ZOOM = 16f;
 
     private enum KeyframeShape {
         DIAMOND,
-        SQUARE,
+        SQUARE, 
         CIRCLE,
         CIRCLE_FILLED
     }
@@ -155,7 +155,7 @@ public class DopeSheetNew extends UIPanel {
         if (zoomFactor <= 0) {
             throw new IllegalArgumentException("zoomFactor must be greater than 0.");
         }
-        this.zoomFactor = Math.min(zoomFactor, MAX_ZOOM_FACTOR);
+        this.zoomFactor = Math.min(zoomFactor, MAZ_ZOOM);
     }
 
     /**
@@ -165,7 +165,7 @@ public class DopeSheetNew extends UIPanel {
      * @param center     Point to center around (ms)
      */
     public void setZoomFactor(float targetZoom, double center) {
-        targetZoom = Math.min(targetZoom, MAX_ZOOM_FACTOR);
+        targetZoom = Math.min(targetZoom, MAZ_ZOOM);
         if (targetZoom == this.zoomFactor) return;
 
         double newOffset = center - (center - offsetX) * (this.zoomFactor / targetZoom);
