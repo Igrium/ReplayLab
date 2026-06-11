@@ -33,6 +33,7 @@ import it.unimi.dsi.fastutil.objects.ObjectObjectImmutablePair;
 import lombok.Getter;
 import lombok.Setter;
 import net.minecraft.util.Identifier;
+import net.minecraft.util.Language;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Vector2f;
 
@@ -55,8 +56,6 @@ public class DopeSheetNew extends UIPanel {
 
     private record KeyDrawData(int ms, boolean selected, KeyframeShape shape) {
     }
-
-    ;
 
     /**
      * The X pan amount in milliseconds
@@ -92,8 +91,6 @@ public class DopeSheetNew extends UIPanel {
     private record KeyOffsetPair(KeyframeReference ref, double offset) {
     }
 
-    ;
-
     /**
      * The key drag offset that's closest to the mouse (ms)
      */
@@ -110,6 +107,8 @@ public class DopeSheetNew extends UIPanel {
     private @Nullable Double panStartPos;
 
     private final ImBoolean snapKeyframes = new ImBoolean();
+
+    private final ImBoolean selectedOnly = new ImBoolean(true);
 
     /**
      * The global pixel position of a selection box start position
@@ -174,7 +173,7 @@ public class DopeSheetNew extends UIPanel {
 
     @Override
     protected void drawContents(EditorState editorState) {
-        drawDopeSheet(editorState, null, editorState.getKeySelection(), editorState.getPlayheadRef());
+        drawDopeSheet(editorState, editorState.getSelectedObjects(), editorState.getKeySelection(), editorState.getPlayheadRef());
 
         long replayTime = editorState.getScene().sceneToReplayTime(editorState.getPlayhead());
         if (stoppedScrubbing() ||
@@ -220,7 +219,7 @@ public class DopeSheetNew extends UIPanel {
         updatedKeys.clear();
 //        Collection<String> objs = selectedObjects != null ? selectedObjects : scene.getObjects().keySet();
         Map<String, ReplayObject> objs;
-        if (selectedObjects != null) {
+        if (selectedObjects != null && selectedOnly.get()) {
             objs = new HashMap<>(selectedObjects.size());
             for (var objEntry : scene.getObjects().entrySet()) {
                 if (selectedObjects.contains(objEntry.getKey())) {
@@ -244,11 +243,15 @@ public class DopeSheetNew extends UIPanel {
         ImGui.sameLine();
 
         /// === BUTTONS ===
-        ReplayLabControls.toggleButton(ReplayLabIcons.ICON_MAGNET, "snapKeyframes", snapKeyframes, "gui.replaylab" +
-                ".tooltip_snap");
+        ReplayLabControls.toggleButton(ReplayLabIcons.ICON_ARROW_POINTER, "selectedOnly", selectedOnly,
+                "gui.replaylab.selected_only");
         ImGui.sameLine();
-        boolean wantsFit = ReplayLabControls.iconButton(ReplayLabIcons.ICON_RESIZE_FULL_ALT, "fitKeys", "gui" +
-                ".replaylab.tooltip_fit");
+
+        ReplayLabControls.toggleButton(ReplayLabIcons.ICON_MAGNET, "snapKeyframes", snapKeyframes,
+                "gui.replaylab.tooltip_snap");
+        ImGui.sameLine();
+        boolean wantsFit = ReplayLabControls.iconButton(ReplayLabIcons.ICON_RESIZE_FULL_ALT, "fitKeys",
+                "gui.replaylab.tooltip_fit");
 
 
         float graphHeight = ImGui.getContentRegionAvailY();
@@ -785,5 +788,9 @@ public class DopeSheetNew extends UIPanel {
     private static int replaceAlpha(int colorArgb, int newAlpha) {
         newAlpha &= 0xFF;
         return (colorArgb & 0x00FFFFFF) | (newAlpha << 24);
+    }
+
+    private static String t(String key) {
+        return Language.getInstance().get(key) + "###" + key;
     }
 }

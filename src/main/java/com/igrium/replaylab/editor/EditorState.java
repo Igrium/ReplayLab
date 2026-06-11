@@ -292,6 +292,9 @@ public class EditorState {
         try {
             var scene = ReplayScenes.readScene(sceneName, getReplayHandlerOrThrow().getReplayFile(), this::onException);
             setScene(scene, sceneName);
+            String camId = scene.getSceneProps().getCameraObject();
+            selectedObjects.add(camId);
+            setActiveObject(camId);
             return scene;
         } catch (Exception e) {
             LOGGER.error("Error loading scene {}: ", sceneName, e);

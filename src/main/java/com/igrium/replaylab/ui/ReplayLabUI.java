@@ -215,10 +215,8 @@ public class ReplayLabUI extends DockSpaceApp {
                 editorState.applyOperator(new RemoveObjectsOperator(editorState.getSelectedObjects()));
             }
 
-            /// === ZOOM SCROLLING / ROLL ===
-            if (editorState.isPilotingCamera() && editorState.getScene().getSceneCameraObject() instanceof CameraObject cam) {
-                cam.setFov(cam.getFov() + ImGui.getIO().getMouseWheel() * -2);
-            }
+            /// === ROLL ===
+            // I removed zoom scrolling because it conflicted with replay mod's camera speed shift
 
             editorState.setRollingCamera(editorState.isPilotingCamera() && ShortcutUtils.isKeyChordDown(Keybinds.cameraRoll()));
 

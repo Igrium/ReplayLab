@@ -122,6 +122,8 @@ public class CurveEditor extends UIPanel {
 
     private final ImBoolean snapKeyframes = new ImBoolean();
 
+    private final ImBoolean selectedOnly = new ImBoolean(true);
+
     private boolean doneInitialFit = false;
 
     /**
@@ -224,7 +226,8 @@ public class CurveEditor extends UIPanel {
     }
 
     public void drawAndManageHandles(EditorState editorState, int flags) {
-        drawCurveEditor(editorState.getScene(), null, editorState.getKeySelection(), editorState.getPlayheadRef(), flags);
+        drawCurveEditor(editorState.getScene(), editorState.getSelectedObjects(), editorState.getKeySelection(),
+                editorState.getPlayheadRef(), flags);
 
 
         // All handles being directly manipulated should have their type set to aligned.
@@ -288,11 +291,23 @@ public class CurveEditor extends UIPanel {
 
         droppedHandles.clear();
         updatedHandles.clear();
+
+        Map<String, ReplayObject> objs;
+        if (selectedObjects != null && selectedOnly.get()) {
+            objs = new HashMap<>(selectedObjects.size());
+            for (var objEntry : scene.getObjects().entrySet()) {
+                if (selectedObjects.contains(objEntry.getKey())) {
+                    objs.put(objEntry.getKey(), objEntry.getValue());
+                }
+            }
+        } else {
+            objs = scene.getObjects();
+        }
 //        Collection<String> objs = selectedObjects != null ? selectedObjects : scene.getObjects().keySet();
-        Map<String, ReplayObject> objs = selectedObjects != null ? scene.getObjects()
-                .entrySet().stream()
-                .filter(entry -> selectedObjects.contains(entry.getKey()))
-                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)) : scene.getObjects();
+//        Map<String, ReplayObject> objs = selectedObjects != null ? scene.getObjects()
+//                .entrySet().stream()
+//                .filter(entry -> selectedObjects.contains(entry.getKey()))
+//                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)) : scene.getObjects();
 
         int majorIntervalX = (int) TimelineHeader.computeMajorInterval(zoomFactorX);
         int minorIntervalX = majorIntervalX / 2;
@@ -307,15 +322,22 @@ public class CurveEditor extends UIPanel {
         ImGui.sameLine();
 
         /// === BUTTONS ===
-        ReplayLabControls.toggleButton(ReplayLabIcons.ICON_MAGNET, "snapKeyframes", snapKeyframes, "gui.replaylab.tooltip_snap");
 
+        ReplayLabControls.toggleButton(ReplayLabIcons.ICON_ARROW_POINTER, "selectedOnly", selectedOnly,
+                "gui.replaylab.selected_only");
         ImGui.sameLine();
-        boolean wantsFit = ReplayLabControls.iconButton(ReplayLabIcons.ICON_RESIZE_FULL_ALT, "wantsFit", "gui.replaylab.tooltip_fit");
+
+        ReplayLabControls.toggleButton(ReplayLabIcons.ICON_MAGNET, "snapKeyframes", snapKeyframes,
+                "gui.replaylab.tooltip_snap");
+        ImGui.sameLine();
+        boolean wantsFit = ReplayLabControls.iconButton(ReplayLabIcons.ICON_RESIZE_FULL_ALT, "wantsFit",
+                "gui.replaylab.tooltip_fit");
 
         boolean wasNormalized = isNormalized();
 
         ImGui.sameLine();
-        ReplayLabControls.toggleButton(ReplayLabIcons.ICON_ARROWS_V, "normalize", normalized, "gui.replaylab.tooltip_normalize");
+        ReplayLabControls.toggleButton(ReplayLabIcons.ICON_ARROWS_V, "normalize", normalized,
+                "gui.replaylab.tooltip_normalize");
 
 
         /// === CHANNEL LIST ===
