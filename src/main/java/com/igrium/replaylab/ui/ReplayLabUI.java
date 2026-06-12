@@ -12,6 +12,8 @@ import com.igrium.replaylab.scene.obj.ReplayObject;
 import com.igrium.replaylab.scene.objs.ScenePropsObject;
 import com.igrium.replaylab.ui.panels.*;
 import com.igrium.replaylab.ui.subpanels.ExceptionPopup;
+import com.igrium.replaylab.ui.subpanels.ObjectContextMenu;
+import com.igrium.replaylab.ui.subpanels.ViewportControls;
 import com.igrium.replaylab.ui.util.ReplayLabControls;
 import com.igrium.replaylab.ui.gizmos.GizmoRenderer;
 import com.igrium.replaylab.util.ShortcutUtils;
@@ -84,6 +86,8 @@ public class ReplayLabUI extends DockSpaceApp {
 
     @Getter
     private final SettingsWindow settingsWindow = new SettingsWindow(Identifier.of("replaylab:settings"));
+
+    private final ViewportControls viewportControls = new ViewportControls();
 
 
     // =========================================================================
@@ -158,7 +162,6 @@ public class ReplayLabUI extends DockSpaceApp {
         editorState.onPreRender();
     }
 
-    private @Nullable ReplayObject contextObject;
 
     @Override
     protected void render(MinecraftClient client) {
@@ -186,58 +189,12 @@ public class ReplayLabUI extends DockSpaceApp {
             drawPlaybackControls();
             ImGui.popStyleColor();
 
-            UIPanel.processGlobalHotkeys(editorState);
-            UIPanel.testAddKeyShortcut(editorState);
-
-            if (ImGui.isWindowHovered() && (ImGui.isMouseClicked(0))) {
-                raycastSelect();
-            }
-
-            if (ImGui.isWindowHovered() && ImGui.isMouseReleased(1)) {
-                contextObject = raycastReplayObject();
-                if (contextObject != null) {
-                    ImGui.openPopup("objectCtx");
-                }
-            }
-
-            if (ImGui.beginPopup("objectCtx")) {
-                if (contextObject != null) {
-                    ImGui.menuItem("Selected object: " + contextObject.getId());
-                }
-                ImGui.endPopup();
-            }
-
-            /// === GIZMO HOTKEYS ===
-            if (ImGui.shortcut(Keybinds.gizmoAll())) {
-                editorState.toggleGizmos(true, true, true);
-            }
-
-            if (ImGui.shortcut(Keybinds.gizmoPos())) {
-                editorState.toggleGizmos(true, false, false);
-            }
-
-            if (ImGui.shortcut(Keybinds.gizmoRot())) {
-                editorState.toggleGizmos(false, true, false);
-            }
-
-            if (ImGui.shortcut(Keybinds.gizmoScale())) {
-                editorState.toggleGizmos(false, false, true);
-            }
-
-            if (ImGui.shortcut(Keybinds.localTransforms())) {
-                editorState.setLocalGizmos(!editorState.isLocalGizmos());
-            }
-
             GizmoRenderer.drawGizmos(editorState, getViewportBounds());
 
-            if (ImGui.shortcut(Keybinds.deleteSelected())) {
-                editorState.applyOperator(new RemoveObjectsOperator(editorState.getSelectedObjects()));
-            }
+            viewportControls.drawViewport(editorState);
 
-            /// === ROLL ===
-            // I removed zoom scrolling because it conflicted with replay mod's camera speed shift
-
-            editorState.setRollingCamera(editorState.isPilotingCamera() && ShortcutUtils.isKeyChordDown(Keybinds.cameraRoll()));
+            UIPanel.processGlobalHotkeys(editorState);
+            UIPanel.testAddKeyShortcut(editorState);
 
         }
         ImGui.end();
@@ -284,62 +241,6 @@ public class ReplayLabUI extends DockSpaceApp {
         }
     }
 
-    private @Nullable ReplayObject raycastReplayObject() {
-        Mouse mouse = MinecraftClient.getInstance().mouse;
-
-        ClientWorld world = MinecraftClient.getInstance().world;
-        if (world == null) return null;
-
-        HitResult raycast = RaycastUtils.raycastViewport((float) mouse.getX(), (float) mouse.getY(), 1000, e -> true, false);
-        if (raycast instanceof EntityHitResult entHit) {
-            return editorState.getScene().referencingObjects(entHit.getEntity()).findFirst().orElse(null);
-        }
-        return null;
-    }
-
-    private void raycastSelect() {
-        Mouse mouse = MinecraftClient.getInstance().mouse;
-
-        ClientWorld world = MinecraftClient.getInstance().world;
-        if (world == null) return;
-
-        HitResult raycast = RaycastUtils.raycastViewport((float) mouse.getX(), (float) mouse.getY(), 1000, e -> true, false);
-        if (raycast instanceof EntityHitResult hit) {
-            Entity ent = hit.getEntity();
-            if (ImGui.getIO().getKeyCtrl()) {
-                /*
-                    When the user ctrl-clicks an entity in the viewport:When the user ctrl-clicks an entity in the viewport:
-                    If any scene object referencing that entity is currently the active object, the entire group is deselected and the active object is cleared.
-                    Otherwise, all scene objects referencing that entity are selected, and the first one in the group becomes the active object.
-                 */
-                Iterable<ReplayObject> iter = () -> editorState.getScene().referencingObjects(ent).iterator();
-                boolean anyIsActive = false;
-                for (ReplayObject replayObject : iter) {
-                    String id = replayObject.getId();
-                    if (editorState.isObjectActive(id)) {
-                        anyIsActive = true;
-                        break;
-                    }
-                }
-                String firstId = null;
-                for (ReplayObject replayObject : iter) {
-                    String id = replayObject.getId();
-                    editorState.setObjectSelected(id, !anyIsActive);
-                    if (firstId == null)
-                        firstId = id;
-                }
-                editorState.setActiveObject(anyIsActive ? null : firstId);
-            } else {
-                ReplayObject replayObject = editorState.getScene().firstReferencingObject(ent);
-                if (replayObject != null) {
-                    String id = replayObject.getId();
-                    editorState.getSelectedObjects().clear();
-                    editorState.getSelectedObjects().add(id);
-                    editorState.setActiveObject(id);
-                }
-            }
-        }
-    }
 
     // =========================================================================
     // Menu bar & hotkeys

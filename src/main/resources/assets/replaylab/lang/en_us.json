@@ -53,6 +53,17 @@
   "gui.replaylab.keybinds.reset": "Reset All",
   "gui.replaylab.keybinds.reset_confirm": "Reset all keybinds to default?",
 
+  "gui.replaylab.obj.reveal": "Reveal in Inspector",
+  "gui.replaylab.obj.rename": "Rename",
+  "gui.replaylab.obj.copy": "Copy",
+  "gui.replaylab.obj.paste": "Paste Attributes",
+  "gui.replaylab.obj.delete": "Delete",
+
+  "gui.replaylab.obj.setcam": "Set as Scene Camera",
+
+  "gui.replaylab.obj.copyTransform": "Copy Transforms",
+  "gui.replaylab.obj.pasteTransform": "Paste Transforms",
+
   "key.replaylab.undo": "Undo",
   "key.replaylab.redo": "Redo",
 

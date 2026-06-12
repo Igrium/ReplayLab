@@ -20,6 +20,7 @@ public class SetSceneCameraOperator implements ReplayOperator {
 
         var sceneProps = editor.getScene().getSceneProps();
         oldSceneCam = sceneProps.getCameraObject();
+        if (oldSceneCam.equals(newSceneCam)) return false;
         sceneProps.setCameraObject(newSceneCam);
 
         return true;
