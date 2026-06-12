@@ -350,57 +350,57 @@ public abstract class ReplayObject3D extends ReplayObject implements TransformPr
         String myId = getId();
         if (pos && hasPos()) {
             var posXRef = insertChanKey(POS_X, timestamp, position().x);
-            newKeys.add(posXRef);
+            if (posXRef != null) newKeys.add(posXRef);
 
             var posYRef = insertChanKey(POS_Y, timestamp, position().y);
-            newKeys.add(posYRef);
+            if (posYRef != null) newKeys.add(posYRef);
 
             var posZRef = insertChanKey(POS_Z, timestamp, position().z);
-            newKeys.add(posZRef);
+            if (posZRef != null) newKeys.add(posZRef);
         }
 
         if (rot && hasRot()) {
             if (getRotationMode() == RotationMode.QUATERNION) {
                 var rotWRef = insertChanKey(ROT_QUAT_W, timestamp, rotation.quaternion().w);
-                newKeys.add(rotWRef);
+                if (rotWRef != null) newKeys.add(rotWRef);
 
                 var rotXRef = insertChanKey(ROT_QUAT_X, timestamp, rotation.quaternion().x);
-                newKeys.add(rotXRef);
+                if (rotXRef != null) newKeys.add(rotXRef);
 
                 var rotYRef = insertChanKey(ROT_QUAT_Y, timestamp, rotation.quaternion().y);
-                newKeys.add(rotYRef);
+                if (rotYRef != null) newKeys.add(rotYRef);
 
                 var rotZRef = insertChanKey(ROT_QUAT_Z, timestamp, rotation.quaternion().z);
-                newKeys.add(rotZRef);
+                if (rotZRef != null) newKeys.add(rotZRef);
             } else {
                 var rotXRef = insertChanKey(ROT_EULER_X, timestamp, rotation.euler().x);
-                newKeys.add(rotXRef);
+                if (rotXRef != null) newKeys.add(rotXRef);
 
                 var rotYRef = insertChanKey(ROT_EULER_Y, timestamp, rotation.euler().y);
-                newKeys.add(rotYRef);
+                if (rotYRef != null) newKeys.add(rotYRef);
 
                 var rotZRef = insertChanKey(ROT_EULER_Z, timestamp, rotation.euler().z);
-                newKeys.add(rotZRef);
+                if (rotZRef != null) newKeys.add(rotZRef);
             }
         }
 
         if (scale && hasScale()) {
             var scaleXRef = insertChanKey(SCALE_X, timestamp, scale().x);
-            newKeys.add(scaleXRef);
+            if (scaleXRef != null) newKeys.add(scaleXRef);
 
             var scaleYRef = insertChanKey(SCALE_Y, timestamp, scale().y);
-            newKeys.add(scaleYRef);
+            if (scaleYRef != null) newKeys.add(scaleYRef);
 
             var scaleZRef = insertChanKey(SCALE_Z, timestamp, scale().z);
-            newKeys.add(scaleZRef);
+            if (scaleZRef != null) newKeys.add(scaleZRef);
         }
 
         return newKeys;
     }
 
-    private KeyframeReference insertChanKey(String chName, int timestamp, double value) {
+    private @Nullable KeyframeReference insertChanKey(String chName, int timestamp, double value) {
         KeyChannel channel = getOrCreateChannel(chName);
-
+        if (channel.isLocked()) return null;
         return new KeyframeReference(getId(), chName, channel.addKeyframe(timestamp, value));
     }
 
