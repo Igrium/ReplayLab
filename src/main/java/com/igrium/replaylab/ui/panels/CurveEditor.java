@@ -223,6 +223,8 @@ public class CurveEditor extends UIPanel {
         if (ImGui.shortcut(Keybinds.selectNone())) {
             editorState.getKeySelection().deselectAll();
         }
+
+        testAddKeyShortcut(editorState);
     }
 
     public void drawAndManageHandles(EditorState editorState, int flags) {

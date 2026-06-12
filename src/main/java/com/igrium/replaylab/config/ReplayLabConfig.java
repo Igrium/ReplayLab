@@ -3,7 +3,6 @@ package com.igrium.replaylab.config;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.igrium.replaylab.ReplayLab;
-import com.igrium.replaylab.math.DynamicRotation;
 import com.igrium.replaylab.math.DynamicRotation.RotationMode;
 import lombok.Getter;
 import lombok.Setter;
@@ -54,6 +53,11 @@ public class ReplayLabConfig {
      * The first camera added to the scene automatically becomes the scene camera
      */
     private boolean autoSetCamera = true;
+
+    /**
+     * When a new object is created, open the inspector to that object
+     */
+    private boolean inspectOnCreate = true;
 
     // 3D objects
     private RotationMode defaultRotMode = RotationMode.EULER_YXZ;

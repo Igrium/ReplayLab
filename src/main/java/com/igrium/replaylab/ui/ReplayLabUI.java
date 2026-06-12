@@ -1,7 +1,6 @@
 package com.igrium.replaylab.ui;
 
 
-import com.igrium.craftui.app.AppManager;
 import com.igrium.craftui.app.DockSpaceApp;
 import com.igrium.craftui.util.RaycastUtils;
 import com.igrium.replaylab.ReplayLab;
@@ -10,7 +9,6 @@ import com.igrium.replaylab.editor.EditorState;
 import com.igrium.replaylab.operator.*;
 import com.igrium.replaylab.render.VideoRenderSettings;
 import com.igrium.replaylab.scene.obj.ReplayObject;
-import com.igrium.replaylab.scene.objs.CameraObject;
 import com.igrium.replaylab.scene.objs.ScenePropsObject;
 import com.igrium.replaylab.ui.panels.*;
 import com.igrium.replaylab.ui.subpanels.ExceptionPopup;
@@ -71,11 +69,13 @@ public class ReplayLabUI extends DockSpaceApp {
     // UI panels
     // =========================================================================
 
+    private static final Inspector inspector = new Inspector(Identifier.of("replaylab:inspector"));
+
     private final List<UIPanel> panels = List.of(
             new DopeSheetNew(Identifier.of("replaylab:dopesheet")),
             new CurveEditor(Identifier.of("replaylab:curveeditor")),
             new Outliner(Identifier.of("replaylab:outliner")),
-            new Inspector(Identifier.of("replaylab:inspector")),
+            inspector,
             new ScenePropsPanel(Identifier.of("replaylab:sceneprops"))
     );
 
@@ -185,7 +185,9 @@ public class ReplayLabUI extends DockSpaceApp {
             ImGui.pushStyleColor(ImGuiCol.ChildBg, bgColor);
             drawPlaybackControls();
             ImGui.popStyleColor();
-            ScenePropsPanel.processGlobalHotkeys(editorState);
+
+            UIPanel.processGlobalHotkeys(editorState);
+            UIPanel.testAddKeyShortcut(editorState);
 
             if (ImGui.isWindowHovered() && (ImGui.isMouseClicked(0))) {
                 raycastSelect();
@@ -236,10 +238,17 @@ public class ReplayLabUI extends DockSpaceApp {
             // I removed zoom scrolling because it conflicted with replay mod's camera speed shift
 
             editorState.setRollingCamera(editorState.isPilotingCamera() && ShortcutUtils.isKeyChordDown(Keybinds.cameraRoll()));
+
         }
         ImGui.end();
 
         // Panels
+        if (editorState.isWantOpenInspector()) {
+            inspector.setVisible(true);
+            inspector.requestFocus();
+            editorState.setWantOpenInspector(false);
+        }
+
         for (var panel : panels) {
             panel.draw(editorState, 0, null);
         }

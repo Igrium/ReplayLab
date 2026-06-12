@@ -107,8 +107,9 @@ public abstract class UIPanel {
             editorState.applyOperator(new SetSceneCameraOperator(editorState.getActiveObject()));
         }
 
-        ///  === INSERT KEYFRAME ===
+    }
 
+    public static void testAddKeyShortcut(EditorState editorState) {
         // Test keyframes before validating object so we still consume it keybind
         boolean wantKeyPos = ImGui.shortcut(Keybinds.addKeyPos());
         boolean wantKeyRot = ImGui.shortcut(Keybinds.addKeyRot());

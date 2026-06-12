@@ -32,6 +32,12 @@
 
   "gui.replaylab.general": "General",
 
+  "settings.replaylab.behavior": "Behavior",
+  "settings.replaylab.autoSetCamera": "Auto Set Camera",
+  "settings.replaylab.autoSetCamera.tooltip": "The first camera added to the scene automatically becomes the scene camera",
+  "settings.replaylab.inspectOnCreate": "Open Inspector to New Objects",
+  "settings.replaylab.inspectOnCreate.tooltip": "Automatically open the inspector panel when creating a new object",
+
   "settings.replaylab.settings_3d": "3D Object Settings",
   "settings.replaylab.default_rot_mode": "Default Rotation Mode",
   "settings.replaylab.default_rot_mode.tooltip": "The rotation mode (euler, quaternion, etc) to use on new objects.",

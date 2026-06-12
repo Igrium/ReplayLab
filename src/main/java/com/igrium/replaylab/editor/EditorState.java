@@ -161,6 +161,9 @@ public class EditorState {
     @Getter @Setter @Accessors(fluent = true)
     private boolean showGizmoScale;
 
+    @Getter @Setter
+    private boolean wantOpenInspector;
+
 
     /// ===== Constructors =====
     public EditorState() {

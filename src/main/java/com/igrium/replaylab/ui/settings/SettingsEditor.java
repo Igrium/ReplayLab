@@ -12,7 +12,7 @@ public class SettingsEditor {
 
     @Getter
     private final ReplayLabConfig mutableConfig;
-    
+
     private final KeybindEditor keybindEditor;
 
     public SettingsEditor(ReplayLabConfig mutableConfig) {
@@ -28,6 +28,17 @@ public class SettingsEditor {
         if (ImGui.beginTabBar("settings")) {
 
             if (ImGui.beginTabItem(t("gui.replaylab.general"))) {
+
+                /// Behavior
+                ImGui.separatorText(t("settings.replaylab.behavior"));
+
+                changed |= drawCheckBox(t("settings.replaylab.autoSetCamera"),
+                        c.isAutoSetCamera(), c::setAutoSetCamera);
+                ImGui.setItemTooltip(tt("settings.replaylab.autoSetCamera.tooltip"));
+
+                changed |= drawCheckBox(t("settings.replaylab.inspectOnCreate"),
+                        c.isInspectOnCreate(), c::setInspectOnCreate);
+                ImGui.setItemTooltip(tt("settings.replaylab.inspectOnCreate.tooltip"));
 
                 /// 3D OBJECT SETTINGS
                 ImGui.separatorText(t("settings.replaylab.settings_3d"));

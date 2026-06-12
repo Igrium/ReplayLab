@@ -213,6 +213,8 @@ public class DopeSheetNew extends UIPanel {
         if (ImGui.shortcut(Keybinds.selectNone())) {
             editorState.getKeySelection().deselectAll();
         }
+
+        testAddKeyShortcut(editorState);
     }
 
     public void drawDopeSheet(EditorState editor, @Nullable Collection<String> selectedObjects,

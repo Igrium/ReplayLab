@@ -101,7 +101,8 @@ public class Outliner extends UIPanel {
                         }
 
                         if (ImGui.isItemHovered() && ImGui.isMouseDoubleClicked(0)) {
-                            beginRenaming(id);
+                            editorState.setActiveObject(id);
+                            editorState.setWantOpenInspector(true);
                         }
                     }
                 }

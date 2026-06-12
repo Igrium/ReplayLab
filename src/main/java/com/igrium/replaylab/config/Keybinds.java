@@ -24,7 +24,7 @@ public class Keybinds {
     private int addKeyPos = ImGuiKey.ImGuiMod_Shift | ImGuiKey.W;
     private int addKeyRot = ImGuiKey.ImGuiMod_Shift | ImGuiKey.E;
     private int addKeyScale = ImGuiKey.ImGuiMod_Shift | ImGuiKey.R;
-    private int addKeySingle = ImGuiKey.ImGuiMod_Shift | ImGuiKey.S;
+    private int addKeySingle = ImGuiKey.ImGuiMod_Shift | ImGuiKey.I;
 
 
     private int localTransforms = ImGuiKey.Tab;
