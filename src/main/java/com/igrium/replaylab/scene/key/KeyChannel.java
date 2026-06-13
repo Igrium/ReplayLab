@@ -8,8 +8,7 @@ import com.igrium.replaylab.editor.KeySelectionSet;
 import com.igrium.replaylab.math.Bezier2d;
 import com.igrium.replaylab.math.Bezier2dc;
 import com.igrium.replaylab.math.Beziers;
-import it.unimi.dsi.fastutil.ints.IntAVLTreeSet;
-import it.unimi.dsi.fastutil.ints.IntSet;
+import it.unimi.dsi.fastutil.ints.*;
 import lombok.Getter;
 import lombok.Setter;
 import org.jetbrains.annotations.Nullable;
@@ -17,10 +16,8 @@ import org.joml.Vector3d;
 import org.slf4j.Logger;
 
 import java.lang.reflect.Type;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Comparator;
-import java.util.List;
+import java.util.*;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 /**
@@ -274,6 +271,71 @@ public class KeyChannel {
         return left;
     }
 
+
+    /**
+     * Copy a selection of keyframes to the clipboard
+     * @param playhead The current playhead position
+     * @param indices Indices of the keyframes to copy. <code>null</code> to copy all of them.
+     * @return A json array ready to be serialized to the clipboard
+     */
+    public JsonArray copyToClipboard(int playhead, @Nullable IntCollection indices) {
+        JsonArray array = new JsonArray();
+        IntIterator iter;
+        if (indices != null && !indices.isEmpty()) {
+            iter = indices.iterator();
+        } else {
+            iter = IntIterators.fromTo(0, keyframes.size());
+        }
+
+        Gson gson = new Gson();
+
+        while (iter.hasNext()) {
+            int index = iter.nextInt();
+            var key = new Keyframe(keyframes.get(index));
+            key.getCenter().x -= playhead;
+            array.add(gson.toJsonTree(key));
+        }
+
+        return array;
+    }
+
+    /**
+     * Paste keyframes from the clipboard
+     * @param playhead The current playhead position
+     * @param array Serialized list of keyframes
+     * @return The indices of the newly-pasted keyframes in the keyframe list
+     */
+    public IntList pasteFromClipboard(int playhead, JsonArray array) {
+        if (array.isEmpty()) return IntList.of();
+
+        Gson gson = new Gson();
+        Int2IntMap existing = new Int2IntOpenHashMap();
+        IntList added = new IntArrayList();
+
+        for (int i = 0; i < keyframes.size(); i++) {
+            existing.put(keyframes.get(i).getTimeInt(), i);
+        }
+
+        for (var element : array) {
+            Keyframe key = gson.fromJson(element, Keyframe.class);
+            key.getCenter().x += playhead;
+
+            int idx;
+            if (existing.containsKey(key.getTimeInt())) {
+                idx = existing.get(key.getTimeInt());
+                keyframes.get(idx).copyFrom(key);
+            } else {
+                idx = keyframes.size();
+                keyframes.add(key);
+                existing.put(key.getTimeInt(), idx);
+            }
+            added.add(idx);
+        }
+
+        ChannelUtils.computeAutoHandles(this, Collections.emptyList());
+
+        return added;
+    }
 }
 
 class KeyChannelSerializer implements JsonSerializer<KeyChannel>, JsonDeserializer<KeyChannel> {

@@ -1,5 +1,9 @@
 package com.igrium.replaylab.editor;
 
+import com.google.gson.Gson;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonParseException;
+import com.google.gson.reflect.TypeToken;
 import com.igrium.replaylab.ReplayLab;
 import com.igrium.replaylab.camera.RollProvider;
 import com.igrium.replaylab.operator.CommitObjectUpdateOperator;
@@ -9,12 +13,14 @@ import com.igrium.replaylab.render.VideoRenderSettings;
 import com.igrium.replaylab.render.VideoRenderer;
 import com.igrium.replaylab.scene.ReplayScene;
 import com.igrium.replaylab.scene.ReplayScenes;
+import com.igrium.replaylab.scene.key.KeyChannel;
 import com.igrium.replaylab.scene.obj.ReplayObject;
 import com.igrium.replaylab.scene.obj.ReplayObject3D;
 import com.replaymod.replay.ReplayHandler;
 import com.replaymod.replay.ReplayModReplay;
 import com.replaymod.replaystudio.replay.ReplayFile;
 import imgui.type.ImInt;
+import it.unimi.dsi.fastutil.ints.IntSet;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.Setter;
@@ -552,7 +558,7 @@ public class EditorState {
         return scene.getSceneCamera();
     }
 
-    // ===== Operators & Undo/Redo =====
+    /// ===== Operators & Undo/Redo =====
 
     public boolean applyOperator(ReplayOperator operator) {
         return applyOperator(operator, true);
@@ -596,6 +602,47 @@ public class EditorState {
             return true;
         }
         return false;
+    }
+
+    public String copyKeyframes() {
+
+        Map<KeySelectionSet.ChannelReference, JsonArray> arrays = new HashMap<>();
+
+        for (var entry : getKeySelection().getSelectedChannels().entrySet()) {
+            for (var chName : entry.getValue()) {
+                var chRef = new KeySelectionSet.ChannelReference(entry.getKey(), chName);
+                KeyChannel chan = chRef.get(getScene().getObjects());
+                if (chan == null) continue;
+
+                IntSet selected = keySelection.getSelectedKeyframes(chRef.objectName(), chName);
+                arrays.put(chRef, chan.copyToClipboard(getPlayhead(), selected));
+            }
+        }
+
+        return new Gson().toJson(arrays);
+    }
+
+    public void pasteKeyframes(String clipboard) {
+
+        Map<KeySelectionSet.ChannelReference, JsonArray> arrays;
+        try {
+            arrays = new Gson().fromJson(clipboard, new TypeToken<>() {});
+        } catch (Exception e) {
+            LOGGER.error("Clipboard could not be deserialized!", e);
+            onException(e);
+            return;
+        }
+
+        Set<String> updatedObjects = new HashSet<>();
+        for (var entry : arrays.entrySet()) {
+            KeyChannel chan = entry.getKey().get(getScene().getObjects());
+            if (chan == null) continue;
+
+            chan.pasteFromClipboard(getPlayhead(), entry.getValue());
+            updatedObjects.add(entry.getKey().objectName());
+        }
+
+        applyOperator(new CommitObjectUpdateOperator(updatedObjects));
     }
 
     /// ===== Saving =====

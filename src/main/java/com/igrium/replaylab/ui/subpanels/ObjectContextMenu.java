@@ -25,7 +25,6 @@ public class ObjectContextMenu {
 
     private static Exception parseException;
 
-    @SuppressWarnings("DataFlowIssue")
     public static int drawObjectContextMenu(ReplayObject object, EditorState editorState) {
         int rFlags = 0;
 

@@ -253,6 +253,20 @@ public class KeySelectionSet {
     }
 
     /**
+     * Get all the keyframes that are selected in a given channel
+     * @param objName Object name
+     * @param chName Channel name
+     * @return A set of all selected keyframes
+     */
+    public IntSet getSelectedKeyframes(String objName, String chName) {
+        var obj = selected.get(objName);
+        if (obj == null) return IntSet.of();
+
+        var ch = obj.get(chName);
+        return ch != null ? ch.keySet() : IntSet.of();
+    }
+
+    /**
      * Get a set of every selected keyframe in the scene.
      *
      * @return Immutable set of selected keyframe references.
