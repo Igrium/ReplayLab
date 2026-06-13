@@ -3,6 +3,7 @@ package com.igrium.replaylab.ui.subpanels;
 import com.google.gson.Gson;
 import com.google.gson.JsonParseException;
 import com.google.gson.JsonSyntaxException;
+import com.igrium.replaylab.config.Keybinds;
 import com.igrium.replaylab.editor.EditorState;
 import com.igrium.replaylab.math.Transform3;
 import com.igrium.replaylab.operator.CommitObjectUpdateOperator;
@@ -12,6 +13,7 @@ import com.igrium.replaylab.scene.obj.EntityProvider;
 import com.igrium.replaylab.scene.obj.ReplayObject;
 import com.igrium.replaylab.scene.obj.ReplayObject3D;
 import com.igrium.replaylab.scene.obj.TransformProvider;
+import com.igrium.replaylab.util.ShortcutUtils;
 import imgui.ImGui;
 import net.minecraft.util.Language;
 import org.slf4j.Logger;
@@ -36,17 +38,9 @@ public class ObjectContextMenu {
         if (ImGui.menuItem(t("gui.replaylab.obj.rename"))) {
             rFlags |= WANT_RENAME;
         }
-//
-//        if (ImGui.menuItem(t("gui.replaylab.obj.copy"))) {
-//            // TODO: copy/paste logic
-//            LOGGER.info("Copy");
-//        }
-//
-//        if (ImGui.menuItem(t("gui.replaylab.obj.paste"))) {
-//            LOGGER.info("Paste");
-//        }
 
-        if (ImGui.menuItem(t("gui.replaylab.obj.delete"))) {
+
+        if (ImGui.menuItem(t("gui.replaylab.obj.delete"), ShortcutUtils.getChordLabel(Keybinds.deleteSelected()))) {
             rFlags |= WANT_DELETE;
         }
 

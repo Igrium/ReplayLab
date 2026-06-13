@@ -141,6 +141,14 @@ public class Outliner extends UIPanel {
             queuedDelete = editorState.getSelectedObjects().toArray(String[]::new);
         }
 
+        if (ImGui.shortcut(Keybinds.copy())) {
+            ImGui.setClipboardText(editorState.copyObjects());
+        }
+
+        if (ImGui.shortcut(Keybinds.paste())) {
+            editorState.pasteObjects(ImGui.getClipboardText());
+        }
+
         // Delay rename until the end to avoid concurrent modification
         if (queuedRename != null) {
             editorState.applyOperator(queuedRename);

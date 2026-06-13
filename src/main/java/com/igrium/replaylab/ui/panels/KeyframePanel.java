@@ -40,8 +40,6 @@ public abstract class KeyframePanel extends UIPanel {
             editorState.pasteKeyframes(ImGui.getClipboardText());
         }
 
-//        if (ImGui.shortcut(Keybinds.))
-
         testAddKeyShortcut(editorState);
     }
 }

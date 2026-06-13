@@ -9,6 +9,7 @@ import com.igrium.replaylab.ReplayLab;
 import com.igrium.replaylab.camera.RollProvider;
 import com.igrium.replaylab.operator.CommitObjectUpdateOperator;
 import com.igrium.replaylab.operator.PasteKeyframesOperator;
+import com.igrium.replaylab.operator.PasteObjectsOperator;
 import com.igrium.replaylab.operator.ReplayOperator;
 import com.igrium.replaylab.playback.RealtimeScenePlayer;
 import com.igrium.replaylab.render.VideoRenderSettings;
@@ -18,6 +19,7 @@ import com.igrium.replaylab.scene.ReplayScenes;
 import com.igrium.replaylab.scene.key.KeyChannel;
 import com.igrium.replaylab.scene.obj.ReplayObject;
 import com.igrium.replaylab.scene.obj.ReplayObject3D;
+import com.igrium.replaylab.scene.obj.SerializedReplayObject;
 import com.replaymod.replay.ReplayHandler;
 import com.replaymod.replay.ReplayModReplay;
 import com.replaymod.replaystudio.replay.ReplayFile;
@@ -620,16 +622,34 @@ public class EditorState {
                 arrays.put(chRef, chan.copyToClipboard(getPlayhead(), selected));
             }
         }
-        LOGGER.info("Copied keyframes to clipboard");
         return new GsonBuilder().enableComplexMapKeySerialization().create().toJson(arrays);
     }
 
 
     public void pasteKeyframes(String clipboard) {
-
         if (clipboard.isBlank()) return;
 
         PasteKeyframesOperator op = PasteKeyframesOperator.create(clipboard, this::onException);
+        if (op != null) {
+            applyOperator(op);
+        }
+    }
+
+    public String copyObjects() {
+        Map<String, SerializedReplayObject> objects = new HashMap<>();
+        for (var objId : selectedObjects) {
+            ReplayObject obj = scene.getObject(objId);
+            if (obj == null) continue;
+
+            objects.put(objId, obj.save());
+        }
+        return new GsonBuilder().enableComplexMapKeySerialization().create().toJson(objects);
+    }
+
+    public void pasteObjects(String clipboard) {
+        if (clipboard.isBlank()) return;
+
+        PasteObjectsOperator op = PasteObjectsOperator.create(clipboard, this::onException);
         if (op != null) {
             applyOperator(op);
         }

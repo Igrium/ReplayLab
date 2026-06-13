@@ -136,14 +136,7 @@ public class KeybindEditor {
             }
         } else {
             // Render the current binding as a single interactive button
-            StringBuilder btnText = new StringBuilder();
-            int key = ShortcutUtils.getChordKey(value);
-            int[] mods = ShortcutUtils.getChordMods(value);
-
-            for (int mod : mods) {
-                btnText.append(ShortcutUtils.getModName(mod)).append(" + ");
-            }
-            btnText.append(ShortcutUtils.getKeyName(key));
+            String btnText = ShortcutUtils.getChordLabel(value);
 
             if (ImGui.button(btnText + "###" + labelKey, -1, 0)) {
                 currentlyEditing = labelKey; // Switch into edit mode

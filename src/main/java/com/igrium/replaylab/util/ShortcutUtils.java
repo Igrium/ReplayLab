@@ -5,16 +5,18 @@ import static imgui.flag.ImGuiKey.*;
 import com.google.common.collect.ImmutableMap;
 import imgui.ImGui;
 import imgui.flag.ImGuiKey;
-import it.unimi.dsi.fastutil.ints.IntArrayList;
-import it.unimi.dsi.fastutil.ints.IntList;
+import it.unimi.dsi.fastutil.ints.*;
 import lombok.experimental.UtilityClass;
 import net.minecraft.util.Language;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.function.IntConsumer;
 
 @UtilityClass
 public final class ShortcutUtils {
+
     public static final Map<Integer, String> MOD_NAMES = ImmutableMap.of(
             ImGuiKey.ImGuiMod_None, "key.keyboard.unknown",
             ImGuiKey.ImGuiMod_Ctrl, "key.shortcut.ctrl",
@@ -24,7 +26,16 @@ public final class ShortcutUtils {
     );
 
     public static String getModName(int modCode) {
-        return Language.getInstance().get(MOD_NAMES.getOrDefault(modCode, "key.keyboard.unknown"));
+        return t(MOD_NAMES.getOrDefault(modCode, "key.keyboard.unknown"));
+    }
+
+    // TODO: cache once we reload resourcepacks or switch language
+    public static String getChordLabel(int chord) {
+        StringBuilder sb = new StringBuilder();
+        for (int mod : ShortcutUtils.getChordMods(chord)) {
+            sb.append(getModName(mod)).append(" + ");
+        }
+        return sb.append(getKeyName(ShortcutUtils.getChordKey(chord))).toString();
     }
 
     public static final Map<Integer, String> KEY_NAMES = ImmutableMap.<Integer, String>builder()
@@ -158,7 +169,7 @@ public final class ShortcutUtils {
             .build();
 
     public static String getKeyName(int keyCode) {
-        return Language.getInstance().get(KEY_NAMES.getOrDefault(keyCode, "key.keyboard.unknown"));
+        return t(KEY_NAMES.getOrDefault(keyCode, "key.keyboard.unknown"));
     }
 
     /**
@@ -203,5 +214,9 @@ public final class ShortcutUtils {
 
     private static boolean hasFlag(int flags, int flag) {
         return (flags & flag) == flag;
+    }
+
+    private static String t(String key) {
+        return Language.getInstance().get(key);
     }
 }
