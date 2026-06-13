@@ -10,6 +10,9 @@ public class Keybinds {
     private int undo = ImGuiKey.ImGuiMod_Ctrl | ImGuiKey.Z;
     private int redo = ImGuiKey.ImGuiMod_Ctrl | ImGuiKey.ImGuiMod_Shift | ImGuiKey.Z;
 
+    private int copy = ImGuiKey.ImGuiMod_Ctrl | ImGuiKey.C;
+    private int paste = ImGuiKey.ImGuiMod_Ctrl | ImGuiKey.V;
+
     private int playPause = ImGuiKey.Space;
     private int cameraView = ImGuiKey.C;
     private int cameraToView = ImGuiKey.ImGuiMod_Shift | ImGuiKey.C;
@@ -43,6 +46,9 @@ public class Keybinds {
     public void copyFrom(Keybinds other) {
         this.undo = other.undo;
         this.redo = other.redo;
+
+        this.copy = other.copy;
+        this.paste = other.paste;
 
         this.playPause = other.playPause;
         this.cameraView = other.cameraView;
@@ -84,6 +90,14 @@ public class Keybinds {
 
     public static int redo() {
         return getKeybinds().getRedo();
+    }
+
+    public static int copy() {
+        return getKeybinds().getCopy();
+    }
+
+    public static int paste() {
+        return getKeybinds().getPaste();
     }
 
     public static int playPause() {

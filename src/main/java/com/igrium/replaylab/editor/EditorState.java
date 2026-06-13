@@ -1,12 +1,14 @@
 package com.igrium.replaylab.editor;
 
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonParseException;
 import com.google.gson.reflect.TypeToken;
 import com.igrium.replaylab.ReplayLab;
 import com.igrium.replaylab.camera.RollProvider;
 import com.igrium.replaylab.operator.CommitObjectUpdateOperator;
+import com.igrium.replaylab.operator.PasteKeyframesOperator;
 import com.igrium.replaylab.operator.ReplayOperator;
 import com.igrium.replaylab.playback.RealtimeScenePlayer;
 import com.igrium.replaylab.render.VideoRenderSettings;
@@ -618,31 +620,19 @@ public class EditorState {
                 arrays.put(chRef, chan.copyToClipboard(getPlayhead(), selected));
             }
         }
-
-        return new Gson().toJson(arrays);
+        LOGGER.info("Copied keyframes to clipboard");
+        return new GsonBuilder().enableComplexMapKeySerialization().create().toJson(arrays);
     }
+
 
     public void pasteKeyframes(String clipboard) {
 
-        Map<KeySelectionSet.ChannelReference, JsonArray> arrays;
-        try {
-            arrays = new Gson().fromJson(clipboard, new TypeToken<>() {});
-        } catch (Exception e) {
-            LOGGER.error("Clipboard could not be deserialized!", e);
-            onException(e);
-            return;
+        if (clipboard.isBlank()) return;
+
+        PasteKeyframesOperator op = PasteKeyframesOperator.create(clipboard, this::onException);
+        if (op != null) {
+            applyOperator(op);
         }
-
-        Set<String> updatedObjects = new HashSet<>();
-        for (var entry : arrays.entrySet()) {
-            KeyChannel chan = entry.getKey().get(getScene().getObjects());
-            if (chan == null) continue;
-
-            chan.pasteFromClipboard(getPlayhead(), entry.getValue());
-            updatedObjects.add(entry.getKey().objectName());
-        }
-
-        applyOperator(new CommitObjectUpdateOperator(updatedObjects));
     }
 
     /// ===== Saving =====

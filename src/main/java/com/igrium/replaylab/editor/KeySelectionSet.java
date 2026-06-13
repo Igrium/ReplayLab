@@ -554,6 +554,16 @@ public class KeySelectionSet {
     }
 
     /**
+     * Select all handles in a keyframe
+     * @param chRef The channel reference
+     * @param keyIdx The keyframe's index within the channel
+     * @return <code>true</code> if the selection was modified as a result of this call.
+     */
+    public boolean selectKeyframe(ChannelReference chRef, int keyIdx) {
+        return selectKeyframe(chRef.objectName(), chRef.channelName(), keyIdx);
+    }
+
+    /**
      * Remap the selection references of a channel after it has been sorted.
      *
      * @param objName The object name

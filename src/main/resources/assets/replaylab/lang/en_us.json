@@ -67,6 +67,9 @@
   "key.replaylab.undo": "Undo",
   "key.replaylab.redo": "Redo",
 
+  "key.replaylab.copy": "Copy",
+  "key.replaylab.paste": "Paste",
+
   "key.replaylab.playpause": "Play/Pause",
   "key.replaylab.cameraview": "Toggle Camera View",
   "key.replaylab.camera_to_view": "Set Camera to Viewport",

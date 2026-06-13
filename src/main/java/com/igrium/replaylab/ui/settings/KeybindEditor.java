@@ -36,6 +36,9 @@ public class KeybindEditor {
             changed |= drawBinding("key.replaylab.undo", current.getUndo(), defBinds.getUndo(), current::setUndo);
             changed |= drawBinding("key.replaylab.redo", current.getRedo(), defBinds.getRedo(), current::setRedo);
 
+            changed |= drawBinding("key.replaylab.copy", current.getCopy(), defBinds.getCopy(), current::setCopy);
+            changed |= drawBinding("key.replaylab.paste", current.getPaste(), defBinds.getPaste(), current::setPaste);
+
             ImGui.separator();
 
             changed |= drawBinding("key.replaylab.playpause", current.getPlayPause(), defBinds.getPlayPause(), current::setPlayPause);

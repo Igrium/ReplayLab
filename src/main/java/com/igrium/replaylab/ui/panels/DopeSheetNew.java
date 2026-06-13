@@ -44,7 +44,7 @@ import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.stream.StreamSupport;
 
-public class DopeSheetNew extends UIPanel {
+public class DopeSheetNew extends KeyframePanel {
 
     private static final float SNAP_THRESHOLD_PX = 4f;
     private static final float INTERVAL_DIVISOR = 4f;
@@ -200,21 +200,7 @@ public class DopeSheetNew extends UIPanel {
             editorState.queueApplyToGame();
         }
 
-        if (ImGui.shortcut(Keybinds.deleteSelected())) {
-            var selected = editorState.getKeySelection().getSelectedKeyframes();
-            editorState.getKeySelection().deselectAll();
-            editorState.applyOperator(new RemoveKeyframesOperator(selected));
-        }
-
-        if (ImGui.shortcut(Keybinds.selectAll())) {
-            editorState.getKeySelection().selectAll(editorState.getScene().getObjects());
-        }
-
-        if (ImGui.shortcut(Keybinds.selectNone())) {
-            editorState.getKeySelection().deselectAll();
-        }
-
-        testAddKeyShortcut(editorState);
+        super.drawContents(editorState);
     }
 
     public void drawDopeSheet(EditorState editor, @Nullable Collection<String> selectedObjects,

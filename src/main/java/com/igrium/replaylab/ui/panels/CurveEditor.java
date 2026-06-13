@@ -40,7 +40,7 @@ import java.lang.Math;
 import java.util.*;
 import java.util.stream.Collectors;
 
-public class CurveEditor extends UIPanel {
+public class CurveEditor extends KeyframePanel {
 
     private record ChannelExtents(double min, double max) {};
 
@@ -205,26 +205,7 @@ public class CurveEditor extends UIPanel {
             editorState.queueApplyToGame();
         }
 
-        if (ImGui.shortcut(Keybinds.deleteSelected())) {
-            // we need to clear selected keyframes
-            var selected = editorState.getKeySelection().getSelectedKeyframes();
-            editorState.getKeySelection().deselectAll();
-
-            editorState.applyOperator(new RemoveKeyframesOperator(selected));
-
-
-            updateNormalizationCache(editorState.getScene());
-        }
-
-        if (ImGui.shortcut(Keybinds.selectAll())) {
-            editorState.getKeySelection().selectAll(editorState.getScene().getObjects());
-        }
-
-        if (ImGui.shortcut(Keybinds.selectNone())) {
-            editorState.getKeySelection().deselectAll();
-        }
-
-        testAddKeyShortcut(editorState);
+        super.drawContents(editorState);
     }
 
     public void drawAndManageHandles(EditorState editorState, int flags) {
