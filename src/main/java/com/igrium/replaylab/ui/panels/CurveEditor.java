@@ -292,8 +292,8 @@ public class CurveEditor extends KeyframePanel {
 //                .filter(entry -> selectedObjects.contains(entry.getKey()))
 //                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)) : scene.getObjects();
 
-        int majorIntervalX = (int) TimelineHeader.computeMajorInterval(zoomFactorX);
-        int minorIntervalX = majorIntervalX / 2;
+        float majorIntervalX = TimelineHeader.computeMajorInterval(zoomFactorX);
+        float minorIntervalX = majorIntervalX / 2;
 
         float majorIntervalY = TimelineHeader.computeMajorInterval(zoomFactorY);
         float minorIntervalY = majorIntervalY / 2;
@@ -410,20 +410,27 @@ public class CurveEditor extends KeyframePanel {
             ImDrawList drawList = ImGui.getWindowDrawList();
 
             /// === BACKGROUND ===
-            drawList.addRectFilled(graphX, graphY, graphX + gWidth, graphY + gHeight, ImGui.getColorU32(ImGuiCol.FrameBg));
+            drawList.addRectFilled(graphX, graphY, graphX + gWidth, graphY + gHeight,
+                    ImGui.getColorU32(ImGuiCol.FrameBg));
 
             // Amount of milliseconds the graph is wide
             float widthMs = gWidth / zoomFactorX;
-            int startTick = Math.floorDiv((int) offsetX, majorIntervalX) * majorIntervalX;
-            int endTick = Math.ceilDiv((int) (offsetX + widthMs), majorIntervalX) * majorIntervalX;
-
+            float startTick = (float) Math.floor(offsetX / majorIntervalX) * majorIntervalX;
+            float endTick = (float) Math.ceil((offsetX + widthMs) / majorIntervalX) * majorIntervalX;
             int colMajor = replaceAlpha(ImGui.getColorU32(ImGuiCol.Text), 48);
             int colMinor = replaceAlpha(colMajor, 16);
 
             // X intervals
-            for (int ms = startTick; ms <= endTick; ms += minorIntervalX) {
+            // Tolerance for floating-point comparisons when checking major-interval alignment
+            float epsilon = minorIntervalX * 0.01f;
+            for (float ms = startTick; ms <= endTick + epsilon; ms += minorIntervalX) {
                 float xPos = msToPixelX(ms) + graphX;
-                int color = ms % majorIntervalX == 0 ? colMajor : colMinor;
+                float remainder = ms % majorIntervalX;
+                if (remainder < 0) {
+                    remainder += majorIntervalX;
+                }
+                boolean isMajorLine = remainder < epsilon || (majorIntervalX - remainder) < epsilon;
+                int color = isMajorLine ? colMajor : colMinor;
                 drawList.addLine(xPos, graphY, xPos, graphY + gHeight, color);
             }
 
