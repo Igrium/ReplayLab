@@ -7,6 +7,7 @@ import com.google.gson.JsonParseException;
 import com.google.gson.reflect.TypeToken;
 import com.igrium.replaylab.ReplayLab;
 import com.igrium.replaylab.camera.RollProvider;
+import com.igrium.replaylab.math.Transform3;
 import com.igrium.replaylab.operator.CommitObjectUpdateOperator;
 import com.igrium.replaylab.operator.PasteKeyframesOperator;
 import com.igrium.replaylab.operator.PasteObjectsOperator;
@@ -20,6 +21,7 @@ import com.igrium.replaylab.scene.key.KeyChannel;
 import com.igrium.replaylab.scene.obj.ReplayObject;
 import com.igrium.replaylab.scene.obj.ReplayObject3D;
 import com.igrium.replaylab.scene.obj.SerializedReplayObject;
+import com.igrium.replaylab.scene.obj.TransformProvider;
 import com.replaymod.replay.ReplayHandler;
 import com.replaymod.replay.ReplayModReplay;
 import com.replaymod.replaystudio.replay.ReplayFile;
@@ -33,8 +35,11 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.entity.Entity;
 import net.minecraft.util.Util;
+import net.minecraft.util.math.Vec3d;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.joml.Vector3d;
+import org.joml.Vector3dc;
 import org.slf4j.Logger;
 import org.joml.Math;
 
@@ -561,6 +566,46 @@ public class EditorState {
     public @Nullable Entity getSceneCamera(int timestamp) {
         return scene.getSceneCamera();
     }
+
+    public void snapViewportToSelected() {
+        ClientPlayerEntity player = mc.player;
+        if (player == null || selectedObjects.isEmpty()) return;
+
+        int count = 0;
+        Vector3d center = new Vector3d();
+
+        for (String objId : selectedObjects) {
+            ReplayObject obj = scene.getObject(objId);
+            if (obj instanceof TransformProvider tProv) {
+                center.add(tProv.getTransform(new Transform3()).pos());
+                count++;
+            }
+        }
+
+        if (count == 0) return;
+        center.div(count);
+
+        snapViewportTo(center);
+    }
+
+    public void snapViewportTo(Vector3dc target) {
+        snapViewportTo(target.x(), target.y(), target.z());
+    }
+
+    public void snapViewportTo(double x, double y, double z) {
+        ClientPlayerEntity player = mc.player;
+        if (player == null) return;
+
+        Vec3d forward = player.getRotationVector();
+        Vector3d vec = new Vector3d(forward.x, forward.y, forward.z);
+
+        vec.mul(-4);
+        vec.add(x, y, z);
+
+        player.refreshPositionAndAngles(vec.x, vec.y - player.getStandingEyeHeight(), vec.z,
+                player.getYaw(), player.getPitch());
+    }
+
 
     /// ===== Operators & Undo/Redo =====
 

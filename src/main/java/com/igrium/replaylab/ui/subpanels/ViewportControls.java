@@ -103,6 +103,10 @@ public class ViewportControls {
             editorState.applyOperator(new RemoveObjectsOperator(editorState.getSelectedObjects()));
         }
 
+        if (ImGui.shortcut(Keybinds.frameSelected())) {
+            editorState.snapViewportToSelected();
+        }
+
 
         /// === ROLL ===
         // I removed zoom scrolling because it conflicted with replay mod's camera speed shift
