@@ -3,21 +3,18 @@ package com.igrium.replaylab.scene.key;
 import com.google.gson.*;
 import com.google.gson.annotations.JsonAdapter;
 import com.igrium.replaylab.ReplayLab;
-import com.igrium.replaylab.debug.TimelineDebugScreen;
+import com.igrium.replaylab.config.ReplayLabConfig;
 import com.igrium.replaylab.editor.KeySelectionSet;
 import com.igrium.replaylab.math.Bezier2d;
-import com.igrium.replaylab.math.Bezier2dc;
 import com.igrium.replaylab.math.Beziers;
 import it.unimi.dsi.fastutil.ints.*;
 import lombok.Getter;
 import lombok.Setter;
 import org.jetbrains.annotations.Nullable;
-import org.joml.Vector3d;
 import org.slf4j.Logger;
 
 import java.lang.reflect.Type;
 import java.util.*;
-import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 /**
@@ -69,6 +66,7 @@ public class KeyChannel {
         }
 
         Keyframe keyframe = new Keyframe(timestamp, value);
+        keyframe.setHandleType(ReplayLabConfig.getInstance().getDefaultHandleType());
         this.keyframes.add(keyframe);
         
         ChannelUtils.computeAutoHandles(this, null);

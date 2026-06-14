@@ -37,6 +37,7 @@
   "settings.replaylab.autoSetCamera.tooltip": "The first camera added to the scene automatically becomes the scene camera",
   "settings.replaylab.inspectOnCreate": "Open Inspector to New Objects",
   "settings.replaylab.inspectOnCreate.tooltip": "Automatically open the inspector panel when creating a new object",
+  "settings.replaylab.defaultHandleType": "Default Handle Type",
 
   "settings.replaylab.settings_3d": "3D Object Settings",
   "settings.replaylab.default_rot_mode": "Default Rotation Mode",
@@ -108,5 +109,11 @@
   "rot_mode.quaternion": "Quaternion",
   "rot_mode.euler_xyz": "XYZ Euler",
   "rot_mode.euler_zyx": "ZYX Euler",
-  "rot_mode.euler_yxz": "YXZ Euler"
+  "rot_mode.euler_yxz": "YXZ Euler",
+
+  "handle_type.free": "Free",
+  "handle_type.aligned": "Aligned",
+  "handle_type.vector": "Vector",
+  "handle_type.auto": "Auto",
+  "handle_type.autoClamped": "Auto (Clamped)"
 }

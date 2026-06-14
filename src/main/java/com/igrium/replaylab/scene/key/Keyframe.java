@@ -21,7 +21,19 @@ import java.io.IOException;
 public final class Keyframe implements Comparable<Keyframe> {
 
     public enum HandleType {
-        FREE, ALIGNED, VECTOR, AUTO, AUTO_CLAMPED
+        FREE("free"),
+        ALIGNED("aligned"),
+        VECTOR("vector"),
+        AUTO("auto"),
+        AUTO_CLAMPED("autoClamped"),;
+
+        @Getter
+        private final String translationKey;
+
+        HandleType(String translationKey) {
+            this.translationKey = "handle_type." + translationKey;
+        }
+
     }
 
     /**

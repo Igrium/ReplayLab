@@ -2,6 +2,7 @@ package com.igrium.replaylab.ui.settings;
 
 import com.igrium.replaylab.config.ReplayLabConfig;
 import com.igrium.replaylab.math.DynamicRotation;
+import com.igrium.replaylab.scene.key.Keyframe;
 import imgui.ImGui;
 import imgui.type.ImBoolean;
 import lombok.Getter;
@@ -39,6 +40,16 @@ public class SettingsEditor {
                 changed |= drawCheckBox(t("settings.replaylab.inspectOnCreate"),
                         c.isInspectOnCreate(), c::setInspectOnCreate);
                 ImGui.setItemTooltip(tt("settings.replaylab.inspectOnCreate.tooltip"));
+
+                if (ImGui.beginCombo(t("settings.replaylab.defaultHandleType"), t(c.getDefaultHandleType().getTranslationKey()))) {
+                    for (Keyframe.HandleType type : Keyframe.HandleType.values()) {
+                        if (ImGui.selectable(t(type.getTranslationKey()), type == c.getDefaultHandleType())) {
+                            c.setDefaultHandleType(type);
+                            changed = true;
+                        }
+                    }
+                    ImGui.endCombo();
+                }
 
                 /// 3D OBJECT SETTINGS
                 ImGui.separatorText(t("settings.replaylab.settings_3d"));

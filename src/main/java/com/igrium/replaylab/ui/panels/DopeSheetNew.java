@@ -489,22 +489,11 @@ public class DopeSheetNew extends KeyframePanel {
                         }
                     }
                     Keyframe.HandleType newHandleType = null;
-                    if (ImGui.menuItem("Free", "", handleType == Keyframe.HandleType.FREE)) {
-                        newHandleType = Keyframe.HandleType.FREE;
+                    for (var type : Keyframe.HandleType.values()) {
+                        if (ImGui.menuItem(t(type.getTranslationKey()), "", handleType == type)) {
+                            newHandleType = type;
+                        }
                     }
-                    if (ImGui.menuItem("Aligned", "", handleType == Keyframe.HandleType.ALIGNED)) {
-                        newHandleType = Keyframe.HandleType.ALIGNED;
-                    }
-                    if (ImGui.menuItem("Vector", "", handleType == Keyframe.HandleType.VECTOR)) {
-                        newHandleType = Keyframe.HandleType.VECTOR;
-                    }
-                    if (ImGui.menuItem("Automatic", "", handleType == Keyframe.HandleType.AUTO)) {
-                        newHandleType = Keyframe.HandleType.AUTO;
-                    }
-                    if (ImGui.menuItem("Auto Clamped", "", handleType == Keyframe.HandleType.AUTO_CLAMPED)) {
-                        newHandleType = Keyframe.HandleType.AUTO_CLAMPED;
-                    }
-
                     if (newHandleType != null) {
 
                         List<KeyHandleReference> handleRefs = new ArrayList<>(contextKeys.size() * 2);

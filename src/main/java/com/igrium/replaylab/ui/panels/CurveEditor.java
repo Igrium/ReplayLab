@@ -32,6 +32,7 @@ import it.unimi.dsi.fastutil.ints.IntSet;
 import lombok.Getter;
 import lombok.Setter;
 import net.minecraft.util.Identifier;
+import net.minecraft.util.Language;
 import net.minecraft.util.math.ColorHelper;
 import org.jetbrains.annotations.Nullable;
 import org.joml.*;
@@ -787,20 +788,10 @@ public class CurveEditor extends KeyframePanel {
 
                     Keyframe.HandleType newHandleType = null;
 
-                    if (ImGui.menuItem("Free", "", handleType == Keyframe.HandleType.FREE)) {
-                        newHandleType = Keyframe.HandleType.FREE;
-                    }
-                    if (ImGui.menuItem("Aligned", "", handleType == Keyframe.HandleType.ALIGNED)) {
-                        newHandleType = Keyframe.HandleType.ALIGNED;
-                    }
-                    if (ImGui.menuItem("Vector", "", handleType == Keyframe.HandleType.VECTOR)) {
-                        newHandleType = Keyframe.HandleType.VECTOR;
-                    }
-                    if (ImGui.menuItem("Automatic", "", handleType == Keyframe.HandleType.AUTO)) {
-                        newHandleType = Keyframe.HandleType.AUTO;
-                    }
-                    if (ImGui.menuItem("Auto Clamped", "", handleType == Keyframe.HandleType.AUTO_CLAMPED)) {
-                        newHandleType = Keyframe.HandleType.AUTO_CLAMPED;
+                    for (var type : Keyframe.HandleType.values()) {
+                        if (ImGui.menuItem(t(type.getTranslationKey()), "", handleType == type)) {
+                            newHandleType = type;
+                        }
                     }
 
                     if (newHandleType != null) {
@@ -1171,5 +1162,9 @@ public class CurveEditor extends KeyframePanel {
                 dest2.set(tmpVec);
             }
         });
+    }
+
+    private static String t(String key) {
+        return Language.getInstance().get(key) + "###" + key;
     }
 }

@@ -4,6 +4,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.igrium.replaylab.ReplayLab;
 import com.igrium.replaylab.math.DynamicRotation.RotationMode;
+import com.igrium.replaylab.scene.key.Keyframe;
 import lombok.Getter;
 import lombok.Setter;
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -58,6 +59,8 @@ public class ReplayLabConfig {
      * When a new object is created, open the inspector to that object
      */
     private boolean inspectOnCreate = true;
+
+    private Keyframe.HandleType defaultHandleType = Keyframe.HandleType.AUTO_CLAMPED;
 
     // 3D objects
     private RotationMode defaultRotMode = RotationMode.EULER_YXZ;
