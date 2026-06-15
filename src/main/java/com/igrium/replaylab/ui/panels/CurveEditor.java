@@ -216,6 +216,11 @@ public class CurveEditor extends KeyframePanel {
         drawCurveEditor(editorState.getScene(), editorState.getSelectedObjects(), editorState.getKeySelection(),
                 editorState.getPlayheadRef(), flags);
 
+        // Jump forward if playing and off screen
+        double endMs = offsetX + header.getWidthMs();
+        if (editorState.isPlaying() && (editorState.getPlayhead() > endMs || editorState.getPlayhead() < offsetX)) {
+            setOffsetX(editorState.getPlayhead());
+        }
 
         // All handles being directly manipulated should have their type set to aligned.
         for (var hRef : keyDragOffsets.keySet()) {

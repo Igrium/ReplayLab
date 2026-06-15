@@ -178,6 +178,12 @@ public class DopeSheetNew extends KeyframePanel {
     protected void drawContents(EditorState editorState) {
         drawDopeSheet(editorState, editorState.getSelectedObjects(), editorState.getKeySelection(), editorState.getPlayheadRef());
 
+        // Jump forward if playing and off screen
+        double endMs = offsetX + header.getWidthMs();
+        if (editorState.isPlaying() && (editorState.getPlayhead() > endMs || editorState.getPlayhead() < offsetX)) {
+            setOffsetX(editorState.getPlayhead());
+        }
+
         long replayTime = editorState.getScene().sceneToReplayTime(editorState.getPlayhead());
         if (stoppedScrubbing() ||
                 (isScrubbing() && replayTime > EditorState.getReplayHandlerOrThrow().getReplaySender().currentTimeStamp())) {
@@ -277,9 +283,9 @@ public class DopeSheetNew extends KeyframePanel {
                 ImGui.pushStyleVar(ImGuiStyleVar.ItemSpacing, ImGui.getStyle().getItemSpacingX(), 0);
 
                 ImDrawList drawList = ImGui.getWindowDrawList();
+                drawList.pushClipRect(graphX, graphY, graphX + graphWidth, graphY + graphHeight);
                 int rowIndex = 0;
 
-                drawList.pushClipRect(graphX, graphY, graphX + graphWidth, graphY + graphHeight);
                 for (var objEntry : objs.entrySet()) {
                     String objName = objEntry.getKey();
                     ReplayObject obj = objEntry.getValue();
@@ -390,7 +396,6 @@ public class DopeSheetNew extends KeyframePanel {
                         rowIndex++;
                     }
                 }
-                drawList.popClipRect();
                 ImGui.popStyleVar();
 
                 /// === OUT-OF-BOUNDS GRAYOUT ===
@@ -414,7 +419,9 @@ public class DopeSheetNew extends KeyframePanel {
                         drawList.addRectFilled(pixelOutGlobal, graphY, graphX + graphWidth,
                                 graphY + channelListHeight, ImGui.getColorU32(ImGuiCol.ModalWindowDimBg));
                     }
+
                 }
+                drawList.popClipRect();
 
             }
             ImGui.endGroup();
