@@ -42,17 +42,18 @@ import org.joml.Vector2f;
 import java.util.*;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
+import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
 public class DopeSheetNew extends KeyframePanel {
 
     private static final float SNAP_THRESHOLD_PX = 4f;
     private static final float INTERVAL_DIVISOR = 4f;
-    private static final float MAZ_ZOOM = 16f;
+    private static final float MAX_ZOOM = 16f;
 
     private enum KeyframeShape {
         DIAMOND,
-        SQUARE, 
+        SQUARE,
         CIRCLE,
         CIRCLE_FILLED
     }
@@ -155,7 +156,7 @@ public class DopeSheetNew extends KeyframePanel {
         if (zoomFactor <= 0) {
             throw new IllegalArgumentException("zoomFactor must be greater than 0.");
         }
-        this.zoomFactor = Math.min(zoomFactor, MAZ_ZOOM);
+        this.zoomFactor = Math.min(zoomFactor, MAX_ZOOM);
     }
 
     /**
@@ -165,12 +166,11 @@ public class DopeSheetNew extends KeyframePanel {
      * @param center     Point to center around (ms)
      */
     public void setZoomFactor(float targetZoom, double center) {
-        targetZoom = Math.min(targetZoom, MAZ_ZOOM);
+        targetZoom = Math.min(targetZoom, MAX_ZOOM);
         if (targetZoom == this.zoomFactor) return;
 
         double newOffset = center - (center - offsetX) * (this.zoomFactor / targetZoom);
         this.zoomFactor = targetZoom;
-        ;
         this.offsetX = newOffset;
     }
 
@@ -208,7 +208,6 @@ public class DopeSheetNew extends KeyframePanel {
         ReplayScene scene = editor.getScene();
         droppedKeys.clear();
         updatedKeys.clear();
-//        Collection<String> objs = selectedObjects != null ? selectedObjects : scene.getObjects().keySet();
         Map<String, ReplayObject> objs;
         if (selectedObjects != null && selectedOnly.get()) {
             objs = new HashMap<>(selectedObjects.size());
@@ -224,8 +223,6 @@ public class DopeSheetNew extends KeyframePanel {
         boolean draggingNow = ImGui.isMouseDragging(0);
         mouseStartedDragging = draggingNow && !mouseDragging;
         mouseDragging = draggingNow;
-
-        int majorIntervalX = (int) TimelineHeader.computeMajorInterval(zoomFactor);
 
         float headerCursorY = ImGui.getCursorPosY();
         float headerHeight = ImGui.getTextLineHeight() * 2f;
@@ -266,8 +263,6 @@ public class DopeSheetNew extends KeyframePanel {
             float channelListHeight = ImGui.getItemRectSizeY();
             ImGui.sameLine();
             headerCursorX = ImGui.getCursorPosX() + ImGui.getStyle().getItemSpacing().x;
-
-            float graphStart = ImGui.getCursorPosX();
 
             /// === KEYFRAMES ===
             float graphX = ImGui.getCursorScreenPosX();
@@ -423,14 +418,11 @@ public class DopeSheetNew extends KeyframePanel {
 
             }
             ImGui.endGroup();
-            float graphWidth = ImGui.getItemRectSizeX();
+            float renderedGraphWidth = ImGui.getItemRectSizeX();
 
             /// === FITTING ===
             if (wantsFit) {
                 Vector2d bounds = new Vector2d();
-//                Iterable<KeyHandleReference> iter = selectedKeys.isEmpty()
-//                        ? KeySelectionSet.iterateAllHandles(scene.getObjects())
-//                        : selectedKeys.getSelectedHandles();
 
                 // Don't need over-optimization cause it's only called when fitting
                 List<Keyframe> keys;
@@ -451,7 +443,7 @@ public class DopeSheetNew extends KeyframePanel {
 
                 if (computeTimeBounds(keys, bounds)) {
                     setOffsetX(bounds.x);
-                    setZoomFactor((float) (graphWidth / (bounds.y - offsetX)));
+                    setZoomFactor((float) (renderedGraphWidth / (bounds.y - offsetX)));
                 }
             }
 
@@ -548,7 +540,6 @@ public class DopeSheetNew extends KeyframePanel {
                     if (!ImGui.getIO().getKeyCtrl()) {
                         selectedKeys.deselectAll();
                     }
-                    boxSelectStart = ImGui.getMousePos();
                 } else if (!ImGui.isMouseDown(0)) {
                     boxSelectStart = null;
                 }
@@ -606,7 +597,7 @@ public class DopeSheetNew extends KeyframePanel {
                         Set<Keyframe> draggingFrames = keyDragOffsets.keySet().stream()
                                 .map(r -> r.get(scene.getObjects()))
                                 .filter(Objects::nonNull)
-                                .collect(java.util.stream.Collectors.toSet());
+                                .collect(Collectors.toSet());
 
                         double bestDistPx = Double.MAX_VALUE;
                         double bestSnapMs = 0;
@@ -751,7 +742,6 @@ public class DopeSheetNew extends KeyframePanel {
             boolean selected = keys[i].selected;
             int keyColor = selected ? ImColor.rgb(1f, 1f, 1f) : ImColor.rgb(.5f, .5f, .5f);
             Vector2f pos = new Vector2f(cursorX + msToPixelX(keyMs), centerY);
-//            drawList.addNgonFilled(pos.x, pos.y, keyRadius, keyColor, 4);
             drawKeyframe(keys[i].shape, pos.x, pos.y, keyRadius, keyColor, drawList);
             screenPosSink.accept(i, pos);
         }

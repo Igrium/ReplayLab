@@ -45,6 +45,9 @@ public class CurveEditor extends KeyframePanel {
 
     private record ChannelExtents(double min, double max) {};
 
+    /** Pixel radius within which a bezier handle is considered "collapsed" onto its keyframe. */
+    private static final float HANDLE_SNAP_THRESHOLD = 12f;
+
     private final Map<ChannelReference, ChannelExtents> normalizationCache = new HashMap<>();
     private final ImBoolean normalized = new ImBoolean(false);
 
@@ -287,11 +290,6 @@ public class CurveEditor extends KeyframePanel {
         } else {
             objs = scene.getObjects();
         }
-//        Collection<String> objs = selectedObjects != null ? selectedObjects : scene.getObjects().keySet();
-//        Map<String, ReplayObject> objs = selectedObjects != null ? scene.getObjects()
-//                .entrySet().stream()
-//                .filter(entry -> selectedObjects.contains(entry.getKey()))
-//                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)) : scene.getObjects();
 
         float majorIntervalX = TimelineHeader.computeMajorInterval(zoomFactorX);
         float minorIntervalX = majorIntervalX / 2;
@@ -407,7 +405,6 @@ public class CurveEditor extends KeyframePanel {
                 }
             }
 
-
             ImDrawList drawList = ImGui.getWindowDrawList();
 
             /// === BACKGROUND ===
@@ -459,7 +456,6 @@ public class CurveEditor extends KeyframePanel {
             boolean hoveringAnyKey = false;
             float keyHoverRadius = 12f + ImGui.getIO().getMouseDragThreshold() * 2;
 
-            int chIndex = 0;
             for (var objEntry : objs.entrySet()) {
                 String objName = objEntry.getKey();
                 ReplayObject obj = objEntry.getValue();
@@ -516,10 +512,6 @@ public class CurveEditor extends KeyframePanel {
 
                             drawList.addCircle(handleBX, handleBY, 3f, rSelected ? selColor : handleEndColor);
 
-                            // TODO: Shouldn't this be defined in the theme somehow?
-                            int lineColor = 0x808E79D1;
-                            int lineColorSel = 0xFF93B4FF;
-
                             int lColor = getHandleColor(key.getHandleAType());
                             if (!(lSelected || cSelected)) {
                                 lColor = replaceAlpha(lColor, 63);
@@ -534,13 +526,11 @@ public class CurveEditor extends KeyframePanel {
                             drawList.addLine(handleBX, handleBY, keyX, keyY, rColor);
 
                             boolean channelSelected = selectedKeys.isChannelSelected(objName, chEntry.getKey());
-                            // Calculate the visual distance (in pixels) between the handles and the center keyframe
-                            float handleSnapThreshold = 12f; // Adjust this threshold to your liking
-                            boolean isHandleAClose = Math.hypot(handleAX - keyX, handleAY - keyY) <= handleSnapThreshold;
-                            boolean isHandleBClose = Math.hypot(handleBX - keyX, handleBY - keyY) <= handleSnapThreshold;
+                            boolean isHandleAClose = Math.hypot(handleAX - keyX, handleAY - keyY) <= HANDLE_SNAP_THRESHOLD;
+                            boolean isHandleBClose = Math.hypot(handleBX - keyX, handleBY - keyY) <= HANDLE_SNAP_THRESHOLD;
 
                             // Prioritize clicking on the selected channel unless the keyframe being clicked is already selected.
-                            if (mouseClicked && (channelSelected || clickedOn == null)) {
+                            if (mouseClicked && (chSelected || clickedOn == null)) {
                                 KeyframeReference keyRef = new KeyframeReference(objName, chEntry.getKey(), keyIdx);
 
                                 KeyHandleReference handle0Ref = new KeyHandleReference(keyRef, 0);
@@ -619,8 +609,6 @@ public class CurveEditor extends KeyframePanel {
                     double displayEnd = rawToDisplay(endKey.getCenter().y(), extents);
                     float endY = valueToPixelY(displayEnd) + graphY;
                     drawList.addLine(endX, endY, graphX + gWidth, endY, chColor, chSelected ? 2 : 1);
-
-                    chIndex++;
                 }
             }
 

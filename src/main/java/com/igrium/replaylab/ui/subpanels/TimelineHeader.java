@@ -57,6 +57,13 @@ public class TimelineHeader {
     private boolean stoppedScrubbing;
 
     /**
+     * The amount of milliseconds the window is wide
+     * Only updated after drawHeader.
+     */
+    @Getter
+    private float widthMs;
+
+    /**
      * Draw the header of the dope sheet or curve editor.
      *
      * @param headerHeight   Vertical height of the header (pixels)
@@ -104,7 +111,7 @@ public class TimelineHeader {
             drawList.pushClipRect(cursorX, cursorY, cursorX + width, cursorY + headerHeight);
 
             // The amount of milliseconds the window is wide
-            float widthMs = width / zoomFactor;
+            widthMs = width / zoomFactor;
 
             // Round the first tick to draw down
 
