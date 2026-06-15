@@ -9,6 +9,8 @@ import lombok.NonNull;
 import lombok.Setter;
 import org.jetbrains.annotations.NotNull;
 import org.joml.Vector2d;
+import org.joml.Vector2dc;
+import org.joml.Vector3dc;
 
 import java.io.IOException;
 
@@ -130,6 +132,10 @@ public final class Keyframe implements Comparable<Keyframe> {
         setGlobalAY(y);
     }
 
+    public void setGlobalA(Vector2dc vec) {
+        setGlobalA(vec.x(), vec.y());
+    }
+
     public void setGlobalBX(double x) {
         handleB.x = x - center.x;
     }
@@ -141,6 +147,10 @@ public final class Keyframe implements Comparable<Keyframe> {
     public void setGlobalB(double x, double y) {
         setGlobalBX(x);
         setGlobalBY(y);
+    }
+
+    public void setGlobalB(Vector2dc vec) {
+        setGlobalB(vec.x(), vec.y());
     }
 
     public double getHandleX(int handle) {
