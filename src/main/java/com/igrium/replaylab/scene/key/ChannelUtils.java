@@ -30,7 +30,7 @@ public class ChannelUtils {
      *
      * @param channel         The channel
      * @param draggingHandles The handles being dragged. Some handle types (aligned) change their behavior based on
-     *                        these.
+     * these.
      */
     public static void recomputeHandles(KeyChannel channel, @Nullable Collection<LocalHandleRef> draggingHandles) {
         Keyframe[] keys = channel.getKeyframes().toArray(Keyframe[]::new);
@@ -43,7 +43,7 @@ public class ChannelUtils {
      *
      * @param keys            A sorted list of keyframes.
      * @param draggingHandles The handles being dragged. Some handle types (aligned) change their behavior based on
-     *                        these.
+     * these.
      */
     public static void recomputeHandles(Keyframe[] keys, @Nullable Collection<LocalHandleRef> draggingHandles) {
         // Adapted from Blender's "legacy" handle generation.
@@ -133,35 +133,35 @@ public class ChannelUtils {
     }
 
     public static void computeAutoHandles(Keyframe[] keys, @Nullable Collection<LocalHandleRef> draggingHandles) {
-        if (keys.length < 2) {
-            return;
-        }
+        if (keys.length < 2) return;
         List<int[]> autoRanges = splitAutoRanges(keys);
 
-        for (var range : autoRanges) {
-            // Left boundary condition: look at the keyframe right before the range start
-            Vector2d startTangent = range[0] > 0 ? keys[range[0] - 1].getGlobalB(new Vector2d()) :
-                    new Vector2d(Double.NaN);
+        for (int[] range : autoRanges) {
+            if (range[1] - range[0] < 2) continue;
 
-            // FIX 1: Look at keys[range[1]] instead of keys[range[1] + 1]
-            Vector2d endTangent = range[1] < keys.length ? keys[range[1]].getGlobalA(new Vector2d()) :
-                    new Vector2d(Double.NaN);
-
-            Vector2dc[] knots = new Vector2dc[range[1] - range[0]];
-            for (int i = 0; i < range[1] - range[0]; i++) {
-                // FIX 2: Use range[0] + i to correctly map the range elements
-                knots[i] = keys[range[0] + i].getCenter();
+            int knotCount = range[1] - range[0];
+            Vector2d[] knots = new Vector2d[knotCount];
+            for (int i = 0; i < knotCount; i++) {
+                knots[i] = new Vector2d(keys[range[0] + i].getCenter());
             }
 
-            Vector2d[] lefts = new Vector2d[knots.length - 1];
-            Vector2d[] rights = new Vector2d[knots.length - 1];
+            Vector2d[] lefts = new Vector2d[knotCount - 1];
+            Vector2d[] rights = new Vector2d[knotCount - 1];
 
+            // Default to Natural Splines (NaN) to prevent boundary freakouts.
+            Vector2d startTangent = new Vector2d(Double.NaN, Double.NaN);
+            Vector2d endTangent = new Vector2d(Double.NaN, Double.NaN);
+
+            // Call the 2D solver!
             computeControlPoints(knots, lefts, rights, startTangent, endTangent);
 
             for (int i = 0; i < lefts.length; i++) {
-                keys[range[0] + i].setGlobalB(lefts[i]);
-                // FIX 3: Use range[0] + i + 1 to stay inside the proper subset
-                keys[range[0] + i + 1].setGlobalA(rights[i]);
+                Keyframe key = keys[range[0] + i];
+                Keyframe next = keys[range[0] + i + 1];
+
+                // Set the absolute global positions directly from the 2D solver
+                key.getHandleB().set(lefts[i].x - key.getCenter().x, lefts[i].y - key.getCenter().y);
+                next.getHandleA().set(rights[i].x - next.getCenter().x, rights[i].y - next.getCenter().y);
             }
         }
     }
@@ -197,6 +197,15 @@ public class ChannelUtils {
             throw new IllegalArgumentException("Dest arrays must be equal to knots.length - 1");
         }
 
+        int n = knots.length - 1;
+        double[] h = new double[n];
+        for (int i = 0; i < n; i++) {
+            h[i] = knots[i + 1].x() - knots[i].x();
+            if (h[i] < 1e-6) {
+                h[i] = 1e-6; // Guard against duplicate timestamps / division by zero
+            }
+        }
+
         double[] k = new double[knots.length];
         double[] p1 = new double[dest1.length];
         double[] p2 = new double[dest2.length];
@@ -205,7 +214,7 @@ public class ChannelUtils {
         for (int i = 0; i < k.length; i++) {
             k[i] = knots[i].x();
         }
-        computeControlPoints(k, p1, p2, startTangent.x(), endTangent.x());
+        computeControlPoints(k, h, p1, p2, startTangent.x(), endTangent.x());
         for (int i = 0; i < p1.length; i++) {
             dest1[i] = new Vector2d(p1[i], 0);
             dest2[i] = new Vector2d(p2[i], 0);
@@ -215,7 +224,7 @@ public class ChannelUtils {
         for (int i = 0; i < k.length; i++) {
             k[i] = knots[i].y();
         }
-        computeControlPoints(k, p1, p2, startTangent.y(), endTangent.y());
+        computeControlPoints(k, h, p1, p2, startTangent.y(), endTangent.y());
         for (int i = 0; i < p1.length; i++) {
             dest1[i].y = p1[i];
             dest2[i].y = p2[i];
@@ -223,52 +232,26 @@ public class ChannelUtils {
     }
 
     /**
-     * Compute the control points of a collection of 1D Bézier knots using the Thomas algorithm.
-     * Either endpoint may use a clamped (fixed-tangent) or natural (zero-second-derivative)
-     * boundary condition.
-     *
-     * <p>Pass {@link Double#NaN} for either tangent to use the natural boundary condition at
-     * that end. The tangent values are in the same coordinate units as the knot points:
-     * a tangent {@code T} at the start means the curve leaves {@code k[0]} in direction {@code T}
-     * with speed {@code |T|}. If you only want to fix the direction, scale {@code T} to a
-     * magnitude comparable to the adjacent chord length.
-     *
-     * <p>Adapted from <a href="https://www.particleincell.com/2012/bezier-splines/">particleincell.com</a>
-     *
-     * @param k            Knot points
-     * @param p1           First handle of each segment; length must equal {@code k.length - 1}
-     * @param p2           Second handle of each segment; length must equal {@code k.length - 1}
-     * @param startTangent Outgoing tangent at the first knot in global coordinate space (i.e. the
-     *                     curve derivative B'(0)), or {@link Double#NaN} for natural BC. Magnitude
-     *                     matters: scale to the adjacent chord length if only fixing direction.
-     * @param endTangent   Incoming tangent at the last knot in global coordinate space (i.e. B'(1)),
-     *                     or {@link Double#NaN} for natural BC.
+     * Compute the control points of a collection of 1D Bézier knots using a non-uniform Thomas algorithm.
+     * * @param k            Knot points
+     * @param h            Knot spacing intervals (time differences)
+     * @param p1           First handle of each segment
+     * @param p2           Second handle of each segment
+     * @param startTangent Outgoing tangent at the first knot
+     * @param endTangent   Incoming tangent at the last knot
      */
-    private static void computeControlPoints(double[] k, double[] p1, double[] p2, double startTangent,
+    private static void computeControlPoints(double[] k, double[] h, double[] p1, double[] p2, double startTangent,
                                              double endTangent) {
-        if (k.length < 2) {
-            throw new IllegalArgumentException("Must have at least 2 knots");
-        }
+        if (k.length < 2) return;
         int n = k.length - 1;
-
-        if (p1.length != p2.length || p1.length != n) {
-            throw new IllegalArgumentException("Dest arrays must be equal to knots.length - 1");
-        }
 
         boolean clampStart = !Double.isNaN(startTangent);
         boolean clampEnd = !Double.isNaN(endTangent);
 
-        // -------------------------------------------------------------------------
-        // Special case: a single segment has no interior knots, so the start and end
-        // boundary conditions are independent and each handle is solved directly.
-        //   Clamped:  B'(0) = T  →  p1[0] = k[0] + T/3
-        //             B'(1) = T  →  p2[0] = k[1] - T/3
-        //   Natural:  B''(0) = 0 →  p1[0] = (2k[0] + k[1]) / 3
-        //             B''(1) = 0 →  p2[0] = (k[0] + 2k[1]) / 3
-        // -------------------------------------------------------------------------
+        // Special case: Single segment
         if (n == 1) {
-            p1[0] = clampStart ? k[0] + startTangent / 3.0 : (2 * k[0] + k[1]) / 3.0;
-            p2[0] = clampEnd ? k[1] - endTangent / 3.0 : (k[0] + 2 * k[1]) / 3.0;
+            p1[0] = clampStart ? k[0] + h[0] * startTangent / 3.0 : (2.0 * k[0] + k[1]) / 3.0;
+            p2[0] = clampEnd ? k[1] - h[0] * endTangent / 3.0 : (k[0] + 2.0 * k[1]) / 3.0;
             return;
         }
 
@@ -277,81 +260,63 @@ public class ChannelUtils {
         double[] c = new double[n];
         double[] r = new double[n];
 
-        // -------------------------------------------------------------------------
-        // Left-most row
-        //
-        // Natural (original):
-        //   From B''_0(0) = 0 → 2·p1[0] + p1[1] = k[0] + 2·k[1]
-        //
-        // Clamped:
-        //   B'_0(0) = 3·(p1[0] - k[0]) = startTangent  →  p1[0] = k[0] + T/3
-        //   Row becomes a trivial identity; the forward sweep carries this into row 1.
-        // -------------------------------------------------------------------------
+        // Left-most row (i = 0)
         if (clampStart) {
             a[0] = 0;
             b[0] = 1;
             c[0] = 0;
-            r[0] = k[0] + startTangent / 3.0;
+            r[0] = k[0] + h[0] * startTangent / 3.0;
         } else {
             a[0] = 0;
             b[0] = 2;
-            c[0] = 1;
-            r[0] = k[0] + 2 * k[1];
+            c[0] = h[0] / h[1];
+            r[0] = k[0] + (1.0 + h[0] / h[1]) * k[1];
         }
 
-        // Interior rows — unchanged; these enforce C1/C2 continuity at every internal knot
+        // Interior rows (i = 1 to n-2)
         for (int i = 1; i < n - 1; i++) {
-            a[i] = 1;
-            b[i] = 4;
-            c[i] = 1;
-            r[i] = 4 * k[i] + 2 * k[i + 1];
+            double hRatioPrev = h[i] / h[i - 1];
+            a[i] = hRatioPrev * hRatioPrev;
+            b[i] = 2.0 * (hRatioPrev + 1.0);
+            c[i] = h[i] / h[i + 1];
+            r[i] = (hRatioPrev + 1.0) * (hRatioPrev + 1.0) * k[i] + (1.0 + h[i] / h[i + 1]) * k[i + 1];
         }
 
-        // -------------------------------------------------------------------------
-        // Right-most row
-        //
-        // Natural (original):
-        //   From B''_{n-1}(1) = 0, combined with eq. (4): 2·p1[n-2] + 7·p1[n-1] = 8·k[n-1] + k[n]
-        //
-        // Clamped:
-        //   B'_{n-1}(1) = 3·(k[n] - p2[n-1]) = endTangent  →  p2[n-1] = k[n] - T/3
-        //   Substituting into equation (4): p1[n-1] - 2·p2[n-1] + k[n] = 0
-        //   →  p1[n-1] = k[n] - 2·T/3
-        //   Row becomes a trivial identity.
-        // -------------------------------------------------------------------------
+        // Right-most row (i = n - 1)
         if (clampEnd) {
-            a[n - 1] = 0;
-            b[n - 1] = 1;
+            double hRatioPrev = h[n - 1] / h[n - 2];
+            a[n - 1] = hRatioPrev * hRatioPrev;
+            b[n - 1] = 2.0 * (hRatioPrev + 1.0);
             c[n - 1] = 0;
-            r[n - 1] = k[n] - 2.0 * endTangent / 3.0;
+            r[n - 1] = (hRatioPrev + 1.0) * (hRatioPrev + 1.0) * k[n - 1] + k[n] - h[n - 1] * endTangent / 3.0;
         } else {
-            a[n - 1] = 2;
-            b[n - 1] = 7;
+            double hRatioPrev = h[n - 1] / h[n - 2];
+            a[n - 1] = 2.0 * hRatioPrev * hRatioPrev;
+            b[n - 1] = 4.0 * hRatioPrev + 3.0;
             c[n - 1] = 0;
-            r[n - 1] = 8 * k[n - 1] + k[n];
+            r[n - 1] = 2.0 * (hRatioPrev + 1.0) * (hRatioPrev + 1.0) * k[n - 1] + k[n];
         }
 
-        // Forward sweep
-        // Note: the original code used i < n-1, which skipped elimination of a[n-1] and
-        // produced incorrect results for n >= 2. The correct upper bound is i < n.
+        // Forward sweep (Thomas elimination)
         for (int i = 1; i < n; i++) {
             double m = a[i] / b[i - 1];
             b[i] -= m * c[i - 1];
             r[i] -= m * r[i - 1];
         }
 
-        // Back substitution
+        // Back substitution to solve for p1
         p1[n - 1] = r[n - 1] / b[n - 1];
-        for (int i = n - 2; i >= 0; --i)
+        for (int i = n - 2; i >= 0; --i) {
             p1[i] = (r[i] - c[i] * p1[i + 1]) / b[i];
+        }
 
-        // Compute p2 from p1 using C1 continuity at interior knots: 2·k[i+1] = p1[i+1] + p2[i]
-        for (int i = 0; i < n - 1; i++)
-            p2[i] = 2 * k[i + 1] - p1[i + 1];
+        // Compute p2 from p1 using non-uniform C1 continuity conditions
+        for (int i = 0; i < n - 1; i++) {
+            p2[i] = (1.0 + h[i] / h[i + 1]) * k[i + 1] - (h[i] / h[i + 1]) * p1[i + 1];
+        }
 
-        // Last p2 depends on the end boundary condition
-        p2[n - 1] = clampEnd ? k[n] - endTangent / 3.0      // B'_{n-1}(1) = endTangent
-                : 0.5 * (k[n] + p1[n - 1]);   // B''_{n-1}(1) = 0  (natural)
+        // Last p2 boundary calculation
+        p2[n - 1] = clampEnd ? k[n] - h[n - 1] * endTangent / 3.0
+                : 0.5 * (k[n] + p1[n - 1]);
     }
-
 }
