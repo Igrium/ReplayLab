@@ -69,7 +69,7 @@ public class KeyChannel {
         keyframe.setHandleType(ReplayLabConfig.getInstance().getDefaultHandleType());
         this.keyframes.add(keyframe);
         
-        ChannelUtils.recomputeHandles(this, null);
+        ChannelUtils.computeAutoHandles(this, null);
         return keyframes.size() - 1;
     }
 
@@ -330,7 +330,7 @@ public class KeyChannel {
             added.add(idx);
         }
 
-        ChannelUtils.recomputeHandles(this, Collections.emptyList());
+        ChannelUtils.computeAutoHandles(this, Collections.emptyList());
 
         return added;
     }

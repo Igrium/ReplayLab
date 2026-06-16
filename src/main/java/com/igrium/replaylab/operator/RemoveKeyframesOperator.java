@@ -69,7 +69,7 @@ public class RemoveKeyframesOperator extends MultiObjectOperator {
                 obj.removeEmptyChannels();
                 success = true;
                 for (var chan : obj.getChannels().values()) {
-                    ChannelUtils.recomputeHandles(chan, null);
+                    ChannelUtils.computeAutoHandles(chan, null);
                 }
             }
         }

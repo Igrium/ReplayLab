@@ -7,7 +7,7 @@ import org.joml.Vector2d;
 import org.joml.Vector3d;
 
 public class FCurveHandleCalc {
-
+    // Vibe-ported from Blender because I'm done with this fucking bezier math
     public static final byte HD_AUTOTYPE_NORMAL = 0;
     public static final byte HD_AUTOTYPE_LOCKED_FINAL = 1;
 
@@ -313,11 +313,28 @@ public class FCurveHandleCalc {
         dx[0] = dy[0] = Double.NaN;
 
         for (int i = 1, j = start + 1; i < count; i++, j++) {
-            dx[i] = bezt[j].vec[1].x - bezt[j - 1].vec[1].x;
-            dy[i] = bezt[j].vec[1].y - bezt[j - 1].vec[1].y;
+            int current = j % total;
+            int prev = (j - 1) % total;
 
-            if (cycle && j == total - 1) {
-                j = 0;
+            dx[i] = bezt[current].vec[1].x - bezt[prev].vec[1].x;
+            dy[i] = bezt[current].vec[1].y - bezt[prev].vec[1].y;
+
+            // Update the Right Handle (vec[2]) of the previous point
+            HandleType h2 = bezt[prev].h2;
+            if (h2 == HandleType.AUTO || h2 == HandleType.AUTO_CLAMPED) {
+                bezt[prev].vec[2].x = bezt[prev].vec[1].x + dx[i] / 3.0;
+            } else if (h2 == HandleType.VECTOR) {
+                bezt[prev].vec[2].x = bezt[prev].vec[1].x + dx[i] / 3.0;
+                bezt[prev].vec[2].y = bezt[prev].vec[1].y + dy[i] / 3.0;
+            }
+
+            // Update the Left Handle (vec[0]) of the current point
+            HandleType h1 = bezt[current].h1;
+            if (h1 == HandleType.AUTO || h1 == HandleType.AUTO_CLAMPED) {
+                bezt[current].vec[0].x = bezt[current].vec[1].x - dx[i] / 3.0;
+            } else if (h1 == HandleType.VECTOR) {
+                bezt[current].vec[0].x = bezt[current].vec[1].x - dx[i] / 3.0;
+                bezt[current].vec[0].y = bezt[current].vec[1].y - dy[i] / 3.0;
             }
         }
 

@@ -1,5 +1,6 @@
 package com.igrium.replaylab.scene.key;
 
+import com.igrium.replaylab.math.FCurveHandleCalc;
 import com.igrium.replaylab.math.VectorUtils;
 import lombok.experimental.UtilityClass;
 
@@ -32,6 +33,7 @@ public class ChannelUtils {
      * @param draggingHandles The handles being dragged. Some handle types (aligned) change their behavior based on
      * these.
      */
+    @Deprecated
     public static void recomputeHandles(KeyChannel channel, @Nullable Collection<LocalHandleRef> draggingHandles) {
         Keyframe[] keys = channel.getKeyframes().toArray(Keyframe[]::new);
         Arrays.sort(keys);
@@ -129,7 +131,8 @@ public class ChannelUtils {
     public static void computeAutoHandles(KeyChannel channel, @Nullable Collection<LocalHandleRef> draggingHandles) {
         Keyframe[] keys = channel.getKeyframes().toArray(Keyframe[]::new);
         Arrays.sort(keys);
-        computeAutoHandles(keys, draggingHandles);
+        FCurveHandleCalc.nurbHandleSmoothFcurve(keys);
+//        computeAutoHandles(keys, draggingHandles);
     }
 
     public static void computeAutoHandles(Keyframe[] keys, @Nullable Collection<LocalHandleRef> draggingHandles) {
