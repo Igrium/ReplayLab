@@ -2,7 +2,6 @@ package com.igrium.replaylab.math;
 
 import com.igrium.replaylab.scene.key.Keyframe;
 import com.igrium.replaylab.scene.key.Keyframe.HandleType;
-import lombok.Getter;
 import org.joml.Vector2d;
 import org.joml.Vector3d;
 
@@ -283,6 +282,154 @@ public class FCurveHandleCalc {
         return 1.0 - 3.0 * hsize.x / dx;
     }
 
+    // =========================================================================
+    // Core Handle Calculation (Global & Smooth Passes)
+    // =========================================================================
+
+    /**
+     * Evaluates VECTOR handles across all keyframes and initializes AUTO heights
+     * prior to solving smooth contiguous chunks.
+     */
+    private static void calcBasicHandles(BezTriple[] bezt, int total, boolean cyclic) {
+        for (int i = 0; i < total; i++) {
+            bezt[i].auto_handle_type = HD_AUTOTYPE_NORMAL;
+        }
+
+        for (int i = 0; i < total; i++) {
+            BezTriple current = bezt[i];
+            BezTriple prev = null;
+            BezTriple next = null;
+
+            if (i > 0) prev = bezt[i - 1];
+            else if (cyclic) prev = bezt[total - 1];
+
+            if (i < total - 1) next = bezt[i + 1];
+            else if (cyclic) next = bezt[0];
+
+            Vector3d p2 = current.vec[1];
+
+            // Calculate Vector pointing from previous to current
+            Vector3d p1 = new Vector3d();
+            if (prev != null) {
+                p1.set(prev.vec[1]);
+            } else if (next != null) {
+                p1.set(p2.x * 2 - next.vec[1].x, p2.y * 2 - next.vec[1].y, 0);
+            } else {
+                p1.set(p2).sub(1, 0, 0); // fallback
+            }
+
+            // Calculate Vector pointing from current to next
+            Vector3d p3 = new Vector3d();
+            if (next != null) {
+                p3.set(next.vec[1]);
+            } else if (prev != null) {
+                p3.set(p2.x * 2 - prev.vec[1].x, p2.y * 2 - prev.vec[1].y, 0);
+            } else {
+                p3.set(p2).add(1, 0, 0); // fallback
+            }
+
+            double dvec_a_x = p2.x - p1.x;
+            double dvec_a_y = p2.y - p1.y;
+
+            double dvec_b_x = p3.x - p2.x;
+            double dvec_b_y = p3.y - p2.y;
+
+            double len_a = dvec_a_x == 0.0 ? 1.0 : dvec_a_x;
+            double len_b = dvec_b_x == 0.0 ? 1.0 : dvec_b_x;
+
+            // Handle AUTO types (Initialize baseline X and Y heights before smoothing)
+            boolean h1Auto = current.h1 == HandleType.AUTO || current.h1 == HandleType.AUTO_CLAMPED;
+            boolean h2Auto = current.h2 == HandleType.AUTO || current.h2 == HandleType.AUTO_CLAMPED;
+
+            if (h1Auto || h2Auto) {
+                double tvec_x = dvec_b_x / len_b + dvec_a_x / len_a;
+                double tvec_y = dvec_b_y / len_b + dvec_a_y / len_a;
+
+                boolean leftViolate = false, rightViolate = false;
+
+                if (h1Auto) {
+                    current.vec[0].x = p2.x - tvec_x * (len_a / 6.0);
+                    current.vec[0].y = p2.y - tvec_y * (len_a / 6.0);
+
+                    if (current.h1 == HandleType.AUTO_CLAMPED && prev != null && next != null) {
+                        double ydiff1 = prev.vec[1].y - p2.y;
+                        double ydiff2 = next.vec[1].y - p2.y;
+                        if ((ydiff1 <= 0.0 && ydiff2 <= 0.0) || (ydiff1 >= 0.0 && ydiff2 >= 0.0)) {
+                            current.vec[0].y = p2.y;
+                            current.auto_handle_type = HD_AUTOTYPE_LOCKED_FINAL;
+                        } else {
+                            if (ydiff1 <= 0.0) {
+                                if (prev.vec[1].y > current.vec[0].y) {
+                                    current.vec[0].y = prev.vec[1].y;
+                                    leftViolate = true;
+                                }
+                            } else {
+                                if (prev.vec[1].y < current.vec[0].y) {
+                                    current.vec[0].y = prev.vec[1].y;
+                                    leftViolate = true;
+                                }
+                            }
+                        }
+                    }
+                }
+
+                if (h2Auto) {
+                    current.vec[2].x = p2.x + tvec_x * (len_b / 6.0);
+                    current.vec[2].y = p2.y + tvec_y * (len_b / 6.0);
+
+                    if (current.h2 == HandleType.AUTO_CLAMPED && prev != null && next != null) {
+                        double ydiff1 = prev.vec[1].y - p2.y;
+                        double ydiff2 = next.vec[1].y - p2.y;
+                        if ((ydiff1 <= 0.0 && ydiff2 <= 0.0) || (ydiff1 >= 0.0 && ydiff2 >= 0.0)) {
+                            current.vec[2].y = p2.y;
+                            current.auto_handle_type = HD_AUTOTYPE_LOCKED_FINAL;
+                        } else {
+                            if (ydiff1 <= 0.0) {
+                                if (next.vec[1].y < current.vec[2].y) {
+                                    current.vec[2].y = next.vec[1].y;
+                                    rightViolate = true;
+                                }
+                            } else {
+                                if (next.vec[1].y > current.vec[2].y) {
+                                    current.vec[2].y = next.vec[1].y;
+                                    rightViolate = true;
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Align left/right handles if clamped logic fired
+                if (leftViolate || rightViolate) {
+                    double h1_x = current.vec[0].x - p2.x;
+                    double h2_x = p2.x - current.vec[2].x;
+                    if (leftViolate) {
+                        current.vec[2].y = p2.y + ((p2.y - current.vec[0].y) / h1_x) * h2_x;
+                    } else {
+                        current.vec[0].y = p2.y + ((p2.y - current.vec[2].y) / h2_x) * h1_x;
+                    }
+                }
+            }
+
+            // Handle VECTOR types
+            if (current.h1 == HandleType.VECTOR) {
+                current.vec[0].x = p2.x - dvec_a_x / 3.0;
+                current.vec[0].y = p2.y - dvec_a_y / 3.0;
+            }
+
+            if (current.h2 == HandleType.VECTOR) {
+                current.vec[2].x = p2.x + dvec_b_x / 3.0;
+                current.vec[2].y = p2.y + dvec_b_y / 3.0;
+            }
+
+            // Duplicate prevention (mirrors BKE_fcurve_handles_recalc_ex)
+            if (prev != null && prev.vec[1].x >= current.vec[1].x) {
+                prev.auto_handle_type = HD_AUTOTYPE_LOCKED_FINAL;
+                current.auto_handle_type = HD_AUTOTYPE_LOCKED_FINAL;
+            }
+        }
+    }
+
     private static void bezierHandleCalcSmoothFcurve(BezTriple[] bezt, int total, int start, int count, boolean cycle) {
         if (count < 2) return;
 
@@ -319,23 +466,8 @@ public class FCurveHandleCalc {
             dx[i] = bezt[current].vec[1].x - bezt[prev].vec[1].x;
             dy[i] = bezt[current].vec[1].y - bezt[prev].vec[1].y;
 
-            // Update the Right Handle (vec[2]) of the previous point
-            HandleType h2 = bezt[prev].h2;
-            if (h2 == HandleType.AUTO || h2 == HandleType.AUTO_CLAMPED) {
-                bezt[prev].vec[2].x = bezt[prev].vec[1].x + dx[i] / 3.0;
-            } else if (h2 == HandleType.VECTOR) {
-                bezt[prev].vec[2].x = bezt[prev].vec[1].x + dx[i] / 3.0;
-                bezt[prev].vec[2].y = bezt[prev].vec[1].y + dy[i] / 3.0;
-            }
-
-            // Update the Left Handle (vec[0]) of the current point
-            HandleType h1 = bezt[current].h1;
-            if (h1 == HandleType.AUTO || h1 == HandleType.AUTO_CLAMPED) {
-                bezt[current].vec[0].x = bezt[current].vec[1].x - dx[i] / 3.0;
-            } else if (h1 == HandleType.VECTOR) {
-                bezt[current].vec[0].x = bezt[current].vec[1].x - dx[i] / 3.0;
-                bezt[current].vec[0].y = bezt[current].vec[1].y - dy[i] / 3.0;
-            }
+            // Notice we removed HandleType.VECTOR logic and basic AUTO init from here.
+            // Both are now fully satisfied prior to this loop in calcBasicHandles.
         }
 
         if (fullCycle) {
@@ -427,11 +559,20 @@ public class FCurveHandleCalc {
         }
     }
 
+    /**
+     * Fix: Used strict AND (&&) instead of OR (||).
+     * If a point has mixed types (e.g. VECTOR and AUTO), it must act as a boundary to stop
+     * the auto-smoothing algorithm from bleeding into and overpowering the VECTOR handle.
+     */
     private static boolean isFreeAutoPoint(BezTriple bezt) {
-        return (bezt.h1 == HandleType.AUTO || bezt.h1 == HandleType.AUTO_CLAMPED || bezt.h2 == HandleType.AUTO || bezt.h2 == HandleType.AUTO_CLAMPED) && bezt.auto_handle_type == HD_AUTOTYPE_NORMAL;
+        return (bezt.h1 == HandleType.AUTO || bezt.h1 == HandleType.AUTO_CLAMPED) &&
+                (bezt.h2 == HandleType.AUTO || bezt.h2 == HandleType.AUTO_CLAMPED) &&
+                bezt.auto_handle_type == HD_AUTOTYPE_NORMAL;
     }
 
     public static void nurbHandleSmoothFcurve(Keyframe[] keys) {
+        if (keys.length == 0) return;
+
         BezTriple[] bez = new BezTriple[keys.length];
         for (int i = 0; i < keys.length; i++) {
             bez[i] = new BezTriple().fromKeyframe(keys[i]);
@@ -445,6 +586,9 @@ public class FCurveHandleCalc {
     }
 
     public static void nurbHandleSmoothFcurve(BezTriple[] bezt, int total, boolean cyclic) {
+        // Execute the global first pass (VECTOR and basic AUTO setup)
+        calcBasicHandles(bezt, total, cyclic);
+
         cyclic = cyclic && isFreeAutoPoint(bezt[0]) && isFreeAutoPoint(bezt[total - 1]);
 
         int searchBase = 0;
