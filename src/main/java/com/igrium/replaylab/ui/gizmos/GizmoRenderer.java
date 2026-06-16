@@ -5,7 +5,10 @@ import com.igrium.replaylab.editor.EditorState;
 import com.igrium.replaylab.operator.CommitObjectUpdateOperator;
 import com.igrium.replaylab.scene.obj.ObjectEditState;
 import com.igrium.replaylab.scene.obj.ReplayObject;
+import imgui.ImGui;
+import imgui.ImGuiViewport;
 import imgui.extension.imguizmo.ImGuizmo;
+import imgui.flag.ImGuiConfigFlags;
 import lombok.Getter;
 import lombok.experimental.Accessors;
 import lombok.experimental.UtilityClass;
@@ -45,12 +48,19 @@ public class GizmoRenderer {
 
         ImGuizmo.setDrawList();
         int screenHeight = MinecraftClient.getInstance().getWindow().getHeight();
-        ImGuizmo.setRect(
-                viewportBounds.x(),
-                screenHeight - viewportBounds.y() - viewportBounds.height(),
-                viewportBounds.width(),
-                viewportBounds.height()
-        );
+
+        // 1. Calculate base window-relative ImGui coordinates (reversing the OpenGL Y-flip)
+        float rectX = viewportBounds.x();
+        float rectY = screenHeight - viewportBounds.y() - viewportBounds.height();
+
+        // 2. If viewports are enabled, ImGuizmo requires absolute monitor coordinates.
+        // Add the main viewport's global position back to satisfy ImGuizmo.
+        ImGuiViewport vp = ImGui.getMainViewport();
+            rectX += vp.getPosX();
+            rectY += vp.getPosY();
+
+
+        ImGuizmo.setRect(rectX, rectY, viewportBounds.width(), viewportBounds.height());
         ImGuizmo.allowAxisFlip(false);
 
         boolean hidden = MinecraftClient.getInstance().currentScreen != null;
