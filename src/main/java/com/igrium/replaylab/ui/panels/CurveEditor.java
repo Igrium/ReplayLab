@@ -246,7 +246,7 @@ public class CurveEditor extends KeyframePanel {
                             .map(hRef -> new ChannelUtils.LocalHandleRef(hRef.keyIndex(), hRef.handleIndex()))
                             .collect(Collectors.toSet());
 
-                    ChannelUtils.computeAutoHandles(ch, dragging);
+                    ChannelUtils.computeHandles(ch, dragging);
                 });
 
         if (!getDroppedHandles().isEmpty()) {
