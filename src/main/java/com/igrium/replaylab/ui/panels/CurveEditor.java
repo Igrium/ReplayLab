@@ -221,19 +221,19 @@ public class CurveEditor extends KeyframePanel {
         }
 
         // All handles being directly manipulated should have their type set to aligned.
-        for (var hRef : keyDragOffsets.keySet()) {
-            if (keyDragOffsets.containsKey(new KeyHandleReference(hRef.keyRef(), 0)))
-                continue; // Don't mess with the handles if center is being dragged
-            Keyframe key = hRef.keyRef().get(editorState.getScene().getObjects());
-            if (key != null) {
-                if (key.getHandleAType() != Keyframe.HandleType.FREE) {
-                    key.setHandleAType(Keyframe.HandleType.ALIGNED);
-                }
-                if (key.getHandleBType() != Keyframe.HandleType.FREE) {
-                    key.setHandleBType(Keyframe.HandleType.ALIGNED);
-                }
-            }
-        }
+//        for (var hRef : keyDragOffsets.keySet()) {
+//            if (keyDragOffsets.containsKey(new KeyHandleReference(hRef.keyRef(), 0)))
+//                continue; // Don't mess with the handles if center is being dragged
+//            Keyframe key = hRef.keyRef().get(editorState.getScene().getObjects());
+//            if (key != null) {
+//                if (key.getHandleAType() != Keyframe.HandleType.FREE) {
+//                    key.setHandleAType(Keyframe.HandleType.ALIGNED);
+//                }
+//                if (key.getHandleBType() != Keyframe.HandleType.FREE) {
+//                    key.setHandleBType(Keyframe.HandleType.ALIGNED);
+//                }
+//            }
+//        }
 
         // Recompute handles
         getUpdatedHandles().stream()
