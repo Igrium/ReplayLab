@@ -10,6 +10,7 @@ import com.igrium.replaylab.operator.CommitObjectUpdateOperator;
 import com.igrium.replaylab.operator.RemoveKeyframesOperator;
 import com.igrium.replaylab.operator.SetHandleTypeOperator;
 import com.igrium.replaylab.scene.ReplayScene;
+import com.igrium.replaylab.scene.key.ChannelUtils;
 import com.igrium.replaylab.scene.key.KeyChannel;
 import com.igrium.replaylab.scene.key.Keyframe;
 import com.igrium.replaylab.scene.obj.ReplayObject;
@@ -202,6 +203,20 @@ public class DopeSheetNew extends KeyframePanel {
         if (!droppedObjects.isEmpty()) {
             editorState.applyOperator(new CommitObjectUpdateOperator(droppedObjects));
         }
+
+        // Recompute handles
+        keyDragOffsets.keySet().stream()
+                .map(KeyframeReference::channelRef)
+                .distinct().forEach(chRef -> {
+                    KeyChannel ch = chRef.get(editorState.getScene().getObjects());
+                    if (ch == null) return;
+
+                    var dragging = keyDragOffsets.keySet().stream()
+                            .map(hRef -> new ChannelUtils.LocalHandleRef(hRef.keyIndex(), 0))
+                            .collect(Collectors.toSet());
+
+                    ChannelUtils.computeHandles(ch, dragging);
+                });
 
         if (!keyDragOffsets.isEmpty()) {
             editorState.queueApplyToGame();

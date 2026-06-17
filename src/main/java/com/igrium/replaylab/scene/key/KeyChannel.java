@@ -330,7 +330,7 @@ public class KeyChannel {
             added.add(idx);
         }
 
-        ChannelUtils.computeHandles(this, Collections.emptyList());
+        ChannelUtils.computeHandles(this, null);
 
         return added;
     }
