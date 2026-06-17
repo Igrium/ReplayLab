@@ -8,6 +8,7 @@ import com.igrium.replaylab.editor.KeySelectionSet.KeyframeReference;
 import com.igrium.replaylab.operator.ChangeHandleTypeOperator;
 import com.igrium.replaylab.operator.CommitObjectUpdateOperator;
 import com.igrium.replaylab.operator.RemoveKeyframesOperator;
+import com.igrium.replaylab.operator.SetHandleTypeOperator;
 import com.igrium.replaylab.scene.ReplayScene;
 import com.igrium.replaylab.scene.key.KeyChannel;
 import com.igrium.replaylab.scene.key.Keyframe;
@@ -499,7 +500,7 @@ public class DopeSheetNew extends KeyframePanel {
                         for (var key : contextKeys.keySet()) {
                             handleRefs.add(new KeyHandleReference(key, 0));
                         }
-                        var handleOperator = new ChangeHandleTypeOperator(handleRefs, newHandleType);
+                        var handleOperator = new SetHandleTypeOperator(newHandleType, handleRefs);
                         editor.applyOperator(handleOperator);
                     }
 

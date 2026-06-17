@@ -8,6 +8,7 @@ import com.igrium.replaylab.editor.KeySelectionSet.KeyframeReference;
 import com.igrium.replaylab.editor.KeySelectionSet.KeyHandleReference;
 import com.igrium.replaylab.operator.CommitObjectUpdateOperator;
 import com.igrium.replaylab.operator.ReplayOperator;
+import com.igrium.replaylab.operator.SetHandleTypeOperator;
 import com.igrium.replaylab.scene.ReplayScene;
 import com.igrium.replaylab.scene.key.ChannelUtils;
 import com.igrium.replaylab.scene.key.KeyChannel;
@@ -211,7 +212,7 @@ public class CurveEditor extends KeyframePanel {
     }
 
     public void drawAndManageHandles(EditorState editorState, int flags) {
-        drawCurveEditor(editorState.getScene(), editorState.getSelectedObjects(), editorState.getKeySelection(),
+        drawCurveEditor(editorState, editorState.getSelectedObjects(), editorState.getKeySelection(),
                 editorState.getPlayheadRef(), flags);
 
         // Jump forward if playing and off screen
@@ -219,21 +220,6 @@ public class CurveEditor extends KeyframePanel {
         if (editorState.isPlaying() && (editorState.getPlayhead() > endMs || editorState.getPlayhead() < offsetX)) {
             setOffsetX(editorState.getPlayhead());
         }
-
-        // All handles being directly manipulated should have their type set to aligned.
-//        for (var hRef : keyDragOffsets.keySet()) {
-//            if (keyDragOffsets.containsKey(new KeyHandleReference(hRef.keyRef(), 0)))
-//                continue; // Don't mess with the handles if center is being dragged
-//            Keyframe key = hRef.keyRef().get(editorState.getScene().getObjects());
-//            if (key != null) {
-//                if (key.getHandleAType() != Keyframe.HandleType.FREE) {
-//                    key.setHandleAType(Keyframe.HandleType.ALIGNED);
-//                }
-//                if (key.getHandleBType() != Keyframe.HandleType.FREE) {
-//                    key.setHandleBType(Keyframe.HandleType.ALIGNED);
-//                }
-//            }
-//        }
 
         // Recompute handles
         getUpdatedHandles().stream()
@@ -269,16 +255,17 @@ public class CurveEditor extends KeyframePanel {
     /**
      * Draw the curve editor.
      *
-     * @param scene           The scene to edit. Keyframes will be updated as the user changes them.
+     * @param editor          The editor state
      * @param selectedObjects The objects to display the keyframes of. <code>null</code> to display all objects
      * @param selectedKeys    All keyframe handles which are currently selected.
      *                        Updated as the user selects/deselects keyframes.
      * @param playhead        Current playhead position. Updated as the player scrubs.
      * @param flags           Render flags.
      */
-    public void drawCurveEditor(ReplayScene scene, @Nullable Collection<String> selectedObjects,
+    public void drawCurveEditor(EditorState editor, @Nullable Collection<String> selectedObjects,
                                 KeySelectionSet selectedKeys, @Nullable ImInt playhead, int flags) {
 
+        ReplayScene scene = editor.getScene();
         droppedHandles.clear();
         updatedHandles.clear();
 
@@ -786,17 +773,7 @@ public class CurveEditor extends KeyframePanel {
                     }
 
                     if (newHandleType != null) {
-                        for (KeyHandleReference ref : selectedKeys.effectiveSelectedHandles()) {
-                            Keyframe keyframe = ref.keyRef().get(scene.getObjects());
-                            if (keyframe == null) continue;
-                            switch (ref.handleIndex()) {
-                                case 1 -> keyframe.setHandleAType(newHandleType);
-                                case 2 -> keyframe.setHandleBType(newHandleType);
-                            }
-                            updatedHandles.add(ref);
-                            droppedHandles.add(ref);
-                        }
-
+                        editor.applyOperator(new SetHandleTypeOperator(newHandleType, selectedKeys));
                     }
 
                     ImGui.endMenu();

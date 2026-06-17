@@ -9,6 +9,7 @@ import java.util.Collection;
 import com.igrium.replaylab.scene.key.Keyframe.HandleType;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Vector2d;
+import org.slf4j.LoggerFactory;
 
 /**
  * A number of "operators" regarding channels moved out here to de-bloat
@@ -60,8 +61,13 @@ public class ChannelUtils {
             for (var ref : draggingHandles) {
                 // No need to align center
                 if (ref.handleIdx() == 0) continue;
+                if (ref.keyIdx() < 0 || ref.keyIdx() >= keys.length) {
+                    LoggerFactory.getLogger("ReplayLab/ChannelUtils")
+                            .error("Keyframe index {} is out of range for array of {} size.", ref.keyIdx, keys.length);
+                    continue;
+                }
 
-                Keyframe key = keys[ref.keyIdx()]; // FIXED: Use keyIdx, not handleIdx
+                Keyframe key = keys[ref.keyIdx()];
                 if (ref.getType(key) != HandleType.ALIGNED) continue;
 
                 Vector2d sourceVec = ref.getVecRef(key);

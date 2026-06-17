@@ -320,6 +320,14 @@ public class KeySelectionSet {
         forSelectedHandles((obj, ch, key, handle) -> c.accept(new KeyHandleReference(obj, ch, key, handle)), true);
     }
 
+    public Int2ObjectMap<IntSet> getSelectedHandles(String objName, String chName) {
+        var selectedChans = selected.get(objName);
+        if (selectedChans == null) return Int2ObjectMaps.emptyMap();
+
+        Int2ObjectMap<IntSet> selectedKeys = selectedChans.get(chName);
+        return selectedKeys != null ? selectedKeys : Int2ObjectMaps.emptyMap();
+    }
+
     /**
      * Get a set of all selected handles in the scene
      *
