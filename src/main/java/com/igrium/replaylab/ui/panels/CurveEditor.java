@@ -643,14 +643,22 @@ public class CurveEditor extends KeyframePanel {
                 }
             }
 
-            ///  === SELECTION ===
-            if (clickedOn != null || rightClickedOn != null) {
-                if (!ImGui.getIO().getKeyCtrl()) {
-                    selectedKeys.deselectAll();
+            /// === SELECTION ===
+            boolean leftOrRightClicked = clickedOn != null || rightClickedOn != null;
+            boolean ctrlHeld = ImGui.getIO().getKeyCtrl();
+
+            if (leftOrRightClicked) {
+                var clickTarget = clickedOn != null ? clickedOn : rightClickedOn;
+                boolean alreadySelected = selectedKeys.isHandleSelected(clickTarget);
+
+                if (!alreadySelected) {
+                    if (!ctrlHeld) selectedKeys.deselectAll();
+                    selectedKeys.selectHandle(clickTarget);
+                } else if (clickedOn != null && ctrlHeld) {
+                    // Left-clicking on selected item w/ control deselects it
+                    selectedKeys.deselectHandle(clickTarget);
                 }
-                selectedKeys.selectHandle(clickedOn != null ? clickedOn : rightClickedOn);
-            } else if (mouseClicked && !ImGui.getIO().getKeyCtrl() && !hoveringAnyKey) {
-                // Don't deselect on right click
+            } else if (mouseClicked && !ctrlHeld && !hoveringAnyKey) {
                 selectedKeys.deselectAll();
             }
 

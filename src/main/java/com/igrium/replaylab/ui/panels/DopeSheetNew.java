@@ -5,9 +5,7 @@ import com.igrium.replaylab.editor.EditorState;
 import com.igrium.replaylab.editor.KeySelectionSet;
 import com.igrium.replaylab.editor.KeySelectionSet.KeyHandleReference;
 import com.igrium.replaylab.editor.KeySelectionSet.KeyframeReference;
-import com.igrium.replaylab.operator.ChangeHandleTypeOperator;
 import com.igrium.replaylab.operator.CommitObjectUpdateOperator;
-import com.igrium.replaylab.operator.RemoveKeyframesOperator;
 import com.igrium.replaylab.operator.SetHandleTypeOperator;
 import com.igrium.replaylab.scene.ReplayScene;
 import com.igrium.replaylab.scene.key.ChannelUtils;
@@ -17,9 +15,9 @@ import com.igrium.replaylab.scene.obj.ReplayObject;
 import com.igrium.replaylab.ui.ReplayLabIcons;
 import com.igrium.replaylab.ui.subpanels.ChannelList;
 import com.igrium.replaylab.ui.subpanels.ChannelListFlags;
+import com.igrium.replaylab.ui.subpanels.TimelineHeader;
 import com.igrium.replaylab.ui.util.ReplayLabControls;
 import com.igrium.replaylab.ui.util.TimelineFlags;
-import com.igrium.replaylab.ui.subpanels.TimelineHeader;
 import imgui.ImColor;
 import imgui.ImDrawList;
 import imgui.ImGui;
@@ -101,11 +99,6 @@ public class DopeSheetNew extends KeyframePanel {
      * The key drag offset that's closest to the mouse (ms)
      */
     private @Nullable KeyOffsetPair smallestKeyDragOffset;
-
-    /**
-     * The global location of the smallest key drag offset at the time of drag start in ms
-     */
-    private double dragStartPos;
 
     private final TimelineHeader header = new TimelineHeader();
 
@@ -349,13 +342,36 @@ public class DopeSheetNew extends KeyframePanel {
 
 
                         if (drawKeyChannel(drawData, rowIndex, (selIdx, button) -> {
-                            if (button != 0) return; // TODO: right-click
-                            if (!ImGui.getIO().getKeyCtrl()) {
-                                selectedKeys.deselectAll();
-                            }
-                            if (selIdx == null) return;
-                            for (var pair : combinedKeys.get(drawData[selIdx].ms)) {
-                                selectedKeys.selectKeyframe(pair.key());
+                            boolean isCtrl = ImGui.getIO().getKeyCtrl();
+                            if (selIdx != null) {
+                                boolean itemSelected = drawData[selIdx].selected;
+                                var pairs = combinedKeys.get(drawData[selIdx].ms);
+
+                                if (button == 0) { // Left Click
+                                    if (isCtrl) {
+                                        if (!itemSelected) {
+                                            for (var pair : pairs) selectedKeys.selectKeyframe(pair.key());
+                                        } else {
+                                            for (var pair : pairs) selectedKeys.deselectKeyframe(pair.key());
+                                        }
+                                    } else {
+                                        if (!itemSelected) {
+                                            selectedKeys.deselectAll();
+                                            for (var pair : pairs) selectedKeys.selectKeyframe(pair.key());
+                                        }
+                                    }
+                                } else if (button == 1) { // Right Click
+                                    if (!itemSelected) {
+                                        if (!isCtrl) {
+                                            selectedKeys.deselectAll();
+                                        }
+                                        for (var pair : pairs) selectedKeys.selectKeyframe(pair.key());
+                                    }
+                                }
+                            } else {
+                                if (button == 0 && !isCtrl) {
+                                    selectedKeys.deselectAll();
+                                }
                             }
                         }, (keyIdx, pos) -> {
                             for (var pair : combinedKeys.get(drawData[keyIdx].ms)) {
@@ -387,19 +403,38 @@ public class DopeSheetNew extends KeyframePanel {
                         ImGui.setNextItemWidth(ImGui.getContentRegionAvailX());
 
                         if (drawKeyChannel(drawData, rowIndex, (selIdx, button) -> {
-                            if (button != 0) return;
-
                             boolean isCtrl = ImGui.getIO().getKeyCtrl();
                             String chName = chEntry.getKey();
 
-                            if (!isCtrl) {
-                                selectedKeys.deselectAll();
+                            if (selIdx != null) {
+                                boolean itemSelected = drawData[selIdx].selected;
+
+                                if (button == 0) { // Left Click
+                                    if (isCtrl) {
+                                        if (!itemSelected) {
+                                            selectedKeys.selectKeyframe(objName, chName, selIdx);
+                                        } else {
+                                            selectedKeys.deselectKeyframe(objName, chName, selIdx);
+                                        }
+                                    } else {
+                                        if (!itemSelected) {
+                                            selectedKeys.deselectAll();
+                                            selectedKeys.selectKeyframe(objName, chName, selIdx);
+                                        }
+                                    }
+                                } else if (button == 1) { // Right Click
+                                    if (!itemSelected) {
+                                        if (!isCtrl) {
+                                            selectedKeys.deselectAll();
+                                        }
+                                        selectedKeys.selectKeyframe(objName, chName, selIdx);
+                                    }
+                                }
+                            } else {
+                                if (button == 0 && !isCtrl) {
+                                    selectedKeys.deselectAll();
+                                }
                             }
-
-                            // TODO: Ctrl deselect (broken because of dragging)
-                            if (selIdx != null)
-                                selectedKeys.selectKeyframe(objName, chName, selIdx);
-
                         }, (keyIdx, pos) -> {
                             var ref = new KeyframeReference(objName, chEntry.getKey(), keyIdx);
                             Set<Vector2f> set = keyPositions.computeIfAbsent(ref, v -> new HashSet<>());
@@ -669,7 +704,9 @@ public class DopeSheetNew extends KeyframePanel {
         } else if (wantStartDragging) {
             // Begin a new drag
             double mouseMs = pixelXToMs(ImGui.getMousePosX());
-            dragStartPos = mouseMs;
+            /**
+             * The global location of the smallest key drag offset at the time of drag start in ms
+             */
             smallestKeyDragOffset = null;
 
             selectedKeys.forSelectedKeyframes(ref -> {
@@ -678,12 +715,10 @@ public class DopeSheetNew extends KeyframePanel {
                 Keyframe keyframe = chan.getKeyframes().get(ref.keyIndex());
 
                 // Store each key's original time as its drag base.
-                // The update loop adds the raw pixel drag delta to this value.
                 double offset = keyframe.getTime();
                 keyDragOffsets.put(ref, offset);
 
-                // Track whichever selected key sits closest to the mouse cursor,
-                // so snapping (if enabled) can anchor to the nearest key.
+                // Track whichever selected key sits closest to the mouse cursor
                 double distToMouse = Math.abs(keyframe.getTime() - mouseMs);
                 if (smallestKeyDragOffset == null
                         || distToMouse < Math.abs(smallestKeyDragOffset.offset() - mouseMs)) {
@@ -751,9 +786,7 @@ public class DopeSheetNew extends KeyframePanel {
         if (ImGui.isItemHovered()) {
             if (!mouseStartedDragging || hovered == null) {
                 if (ImGui.isMouseClicked(0)) {
-                    if (hovered == null || !keys[hovered].selected) {
-                        onClick.accept(hovered, 0);
-                    }
+                    onClick.accept(hovered, 0);
                 } else if (ImGui.isMouseClicked(1)) {
                     onClick.accept(hovered, 1);
                 }

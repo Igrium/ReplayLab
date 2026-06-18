@@ -446,6 +446,7 @@ public class KeySelectionSet {
      * @return <code>true</code> if that handle is selected.
      */
     public boolean isHandleSelected(KeyHandleReference ref) {
+        if (ref == null) return false;
         return isHandleSelected(ref.objectName(), ref.channelName(), ref.keyIndex(), ref.handleIndex());
     }
 
