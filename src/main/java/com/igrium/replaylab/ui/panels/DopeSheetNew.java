@@ -592,9 +592,15 @@ public class DopeSheetNew extends KeyframePanel {
             /// === BOX SELECT ===
             // Start/stop
             {
+                boolean isHoveringGraph = ImGui.isMouseHoveringRect(graphX, graphY, graphX + renderedGraphWidth, graphY + graphHeight);
+
                 if (!isBoxSelecting() && !isDragging() && !isScrubbing() && !hoveringAnyKey
-                        && ImGui.isWindowHovered(ImGuiHoveredFlags.ChildWindows | ImGuiHoveredFlags.AllowWhenBlockedByActiveItem) && ImGui.isMouseDown(0)) {
+                        && isHoveringGraph
+                        && ImGui.isWindowHovered(ImGuiHoveredFlags.ChildWindows)
+                        && ImGui.isMouseClicked(0)) {
+
                     boxSelectStart = ImGui.getMousePos();
+
                     if (!ImGui.getIO().getKeyCtrl()) {
                         selectedKeys.deselectAll();
                     }

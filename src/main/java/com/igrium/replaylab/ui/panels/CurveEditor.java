@@ -348,16 +348,19 @@ public class CurveEditor extends KeyframePanel {
             float gWidth = ImGui.getContentRegionAvailX();
             float gHeight = ImGui.getContentRegionAvailY();
 
+
+
             /// === FITTING ===
-            if ((wantsFit || !doneInitialFit) && !objs.isEmpty()) {
+            // Appearing window breaks fit
+            if ((wantsFit || !doneInitialFit) && !objs.isEmpty() && !ImGui.isWindowAppearing()) {
                 Vector2d boundsMin = new Vector2d();
                 Vector2d boundsMax = new Vector2d();
 
                 Iterable<KeyHandleReference> iter = selectedKeys.isEmpty()
-                        ? KeySelectionSet.iterateAllHandles(scene.getObjects())
+                        ? KeySelectionSet.iterateAllHandles(objs)
                         : selectedKeys.getSelectedHandles();
 
-                computeDisplayBoundingBox(scene.getObjects(), iter, boundsMin, boundsMax);
+                computeDisplayBoundingBox(objs, iter, boundsMin, boundsMax);
 
                 if (boundsMin.x != boundsMax.x)
                     setZoomFactorX((float) (gWidth / (boundsMax.x - boundsMin.x)));
