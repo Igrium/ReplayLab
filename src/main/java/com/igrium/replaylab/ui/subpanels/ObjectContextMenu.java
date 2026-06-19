@@ -58,7 +58,7 @@ public class ObjectContextMenu {
 
         ImGui.beginDisabled(!(object instanceof TransformProvider));
 
-        if (ImGui.menuItem(t("gui.replaylab.obj.copyTransform")) && object instanceof TransformProvider t) {
+        if (ImGui.menuItem(t("gui.replaylab.obj.copy_transform")) && object instanceof TransformProvider t) {
             String transform = new Gson().toJson(t.getTransform(new Transform3()));
             ImGui.setClipboardText(transform);
             LOGGER.info("Copied transform to clipboard: {}", transform);
@@ -68,7 +68,7 @@ public class ObjectContextMenu {
 
 
         ImGui.beginDisabled(!(object instanceof ReplayObject3D));
-        if (ImGui.menuItem(t("gui.replaylab.obj.pasteTransform")) && object instanceof ReplayObject3D t) {
+        if (ImGui.menuItem(t("gui.replaylab.obj.paste_transform")) && object instanceof ReplayObject3D t) {
             try {
                 Transform3 transform = new Gson().fromJson(ImGui.getClipboardText(), Transform3.class);
                 t.setBaseTransform(transform);

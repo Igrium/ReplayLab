@@ -255,10 +255,10 @@ public class ReplayLabUI extends DockSpaceApp {
         if (!ImGui.beginMainMenuBar()) return;
 
         if (ImGui.beginMenu(t("gui.replaylab.file"))) {
-            if (ImGui.menuItem(t("gui.replaylab.newScene"))) {
+            if (ImGui.menuItem(t("gui.replaylab.new_scene"))) {
                 sceneBrowser.openPopup();
             }
-            if (ImGui.menuItem(t("gui.replaylab.openScene"))) {
+            if (ImGui.menuItem(t("gui.replaylab.open_scene"))) {
                 sceneBrowser.openPopup();
             }
             if (ImGui.menuItem(t("gui.replaylab.export"))) {
@@ -298,7 +298,7 @@ public class ReplayLabUI extends DockSpaceApp {
             }
 
             ImGui.beginDisabled(editorState.getSelectedObjects().isEmpty());
-            if (ImGui.menuItem(t("gui.replaylab.del"), getChordLabel(Keybinds.deleteSelected()))) {
+            if (ImGui.menuItem(t("key.replaylab.delete"), getChordLabel(Keybinds.deleteSelected()))) {
                 editorState.applyOperator(new RemoveObjectsOperator(editorState.getSelectedObjects()));
             }
             ImGui.endDisabled();
@@ -338,11 +338,11 @@ public class ReplayLabUI extends DockSpaceApp {
 
             ImGui.endMenu();
         }
-
         if (ImGui.beginMenu(t("gui.replaylab.window"))) {
+            ImBoolean visible = new ImBoolean();
             for (var panel : panels) {
-                String label = (panel.isVisible() ? "* " : "  ") + panel.getTitle();
-                if (ImGui.menuItem(label)) {
+                visible.set(panel.isVisible());
+                if (ImGui.menuItem(panel.getTitle(), "", visible)) {
                     panel.requestFocus();
                     panel.setVisible(true);
                 }

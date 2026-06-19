@@ -33,15 +33,15 @@ public class SettingsEditor {
                 /// Behavior
                 ImGui.separatorText(t("settings.replaylab.behavior"));
 
-                changed |= drawCheckBox(t("settings.replaylab.autoSetCamera"),
+                changed |= drawCheckBox(t("settings.replaylab.auto_set_camera"),
                         c.isAutoSetCamera(), c::setAutoSetCamera);
-                ImGui.setItemTooltip(tt("settings.replaylab.autoSetCamera.tooltip"));
+                ImGui.setItemTooltip(tt("settings.replaylab.auto_set_camera.tooltip"));
 
-                changed |= drawCheckBox(t("settings.replaylab.inspectOnCreate"),
+                changed |= drawCheckBox(t("settings.replaylab.inspect_on_create"),
                         c.isInspectOnCreate(), c::setInspectOnCreate);
-                ImGui.setItemTooltip(tt("settings.replaylab.inspectOnCreate.tooltip"));
+                ImGui.setItemTooltip(tt("settings.replaylab.inspect_on_create.tooltip"));
 
-                if (ImGui.beginCombo(t("settings.replaylab.defaultHandleType"), t(c.getDefaultHandleType().getTranslationKey()))) {
+                if (ImGui.beginCombo(t("settings.replaylab.default_handle_type"), t(c.getDefaultHandleType().getTranslationKey()))) {
                     for (Keyframe.HandleType type : Keyframe.HandleType.values()) {
                         if (ImGui.selectable(t(type.getTranslationKey()), type == c.getDefaultHandleType())) {
                             c.setDefaultHandleType(type);

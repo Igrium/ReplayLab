@@ -1,5 +1,5 @@
 {
-  "replaylab.gui.viewer.openReplayLab": "Open in ReplayLab",
+  "gui.replaylab.viewer.open": "Open in ReplayLab",
 
   "replayobject.dummy": "Dummy",
   "replayobject.blockDisplay": "Block Display",
@@ -14,39 +14,32 @@
   "panel.replaylab.scenebrowser": "Scene Browser",
   "panel.replaylab.settings": "Settings",
 
+  "gui.replaylab.file": "File",
+  "gui.replaylab.new_scene": "New Scene",
+  "gui.replaylab.open_scene": "Open Scene",
+  "gui.replaylab.export": "Export",
+  "gui.replaylab.settings": "Settings",
+  "gui.replaylab.exit": "Save & Exit",
+
+  "gui.replaylab.edit": "Edit",
+  "gui.replaylab.window": "Window",
+  "gui.replaylab.viewport": "Viewport",
+  "gui.replaylab.cameraview": "Camera View",
+  "gui.replaylab.playback": "Playback",
+  "gui.replaylab.quick": "Quick Mode",
+
+  "gui.replaylab.general": "General",
+
   "gui.replaylab.tooltip_snap": "Snap Keyframes",
   "gui.replaylab.tooltip_fit": "Fit to Selected",
   "gui.replaylab.tooltip_normalize": "Normalize Curves",
-
   "gui.replaylab.selected_only": "Only show selected objects",
-
-  "gui.replaylab.add_key": "Insert Keyframe",
-  "gui.replaylab.add_key_s" : "Insert Keyframe (Single)",
 
   "gui.replaylab.pos": "Position",
   "gui.replaylab.rot": "Rotation",
   "gui.replaylab.scale": "Scale",
   "gui.replaylab.rot_mode": "Rotation Mode",
-  "gui.replaylab.tooltip_cameraview": "Toggle Camera View",
-
   "gui.replaylab.camera": "Camera",
-
-  "gui.replaylab.general": "General",
-
-  "settings.replaylab.behavior": "Behavior",
-  "settings.replaylab.autoSetCamera": "Auto Set Camera",
-  "settings.replaylab.autoSetCamera.tooltip": "The first camera added to the scene automatically becomes the scene camera",
-  "settings.replaylab.inspectOnCreate": "Open Inspector to New Objects",
-  "settings.replaylab.inspectOnCreate.tooltip": "Automatically open the inspector panel when creating a new object",
-  "settings.replaylab.defaultHandleType": "Default Handle Type",
-
-  "settings.replaylab.settings_3d": "3D Object Settings",
-  "settings.replaylab.default_rot_mode": "Default Rotation Mode",
-  "settings.replaylab.default_rot_mode.tooltip": "The rotation mode (euler, quaternion, etc) to use on new objects.",
-  "settings.replaylab.rot_mode_convert": "Convert values when switching rotation mode",
-  "settings.replaylab.rot_mode_convert.tooltip": "When switching rotation modes, update values to be equivalent in the new rotation mode. Does not work on animated values.",
-  "settings.replaylab.display_degrees": "Display rotations as degrees",
-  "settings.replaylab.display_degrees.tooltip": "Display rotations as degrees in the GUI (radians are still used internally).",
 
   "gui.replaylab.keybinds": "Keybinds",
   "gui.replaylab.keybind.new": "> Press a new key <",
@@ -57,36 +50,28 @@
 
   "gui.replaylab.obj.reveal": "Reveal in Inspector",
   "gui.replaylab.obj.rename": "Rename",
-  "gui.replaylab.obj.copy": "Copy",
-  "gui.replaylab.obj.paste": "Paste Attributes",
   "gui.replaylab.obj.delete": "Delete",
-
   "gui.replaylab.obj.setcam": "Set as Scene Camera",
+  "gui.replaylab.obj.copy_transform": "Copy Transforms",
+  "gui.replaylab.obj.paste_transform": "Paste Transforms",
 
-  "gui.replaylab.obj.copyTransform": "Copy Transforms",
-  "gui.replaylab.obj.pasteTransform": "Paste Transforms",
+  "settings.replaylab.behavior": "Behavior",
+  "settings.replaylab.auto_set_camera": "Auto Set Camera",
+  "settings.replaylab.auto_set_camera.tooltip": "The first camera added to the scene automatically becomes the scene camera",
+  "settings.replaylab.inspect_on_create": "Open Inspector to New Objects",
+  "settings.replaylab.inspect_on_create.tooltip": "Automatically open the inspector panel when creating a new object",
+  "settings.replaylab.default_handle_type": "Default Handle Type",
 
-  "gui.replaylab.file": "File",
-  "gui.replaylab.newScene": "New Scene",
-  "gui.replaylab.openScene": "Open Scene",
-  "gui.replaylab.export": "Export",
-  "gui.replaylab.settings": "Settings",
-  "gui.replaylab.exit": "Save & Exit",
-
-  "gui.replaylab.edit": "Edit",
-  "gui.replaylab.del": "Delete Selected",
-
-  "gui.replaylab.window": "Window",
-
-  "gui.replaylab.viewport": "Viewport",
-  "gui.replaylab.cameraview": "Camera View",
-
-  "gui.replaylab.playback": "Playback",
-  "gui.replaylab.quick": "Quick Mode",
+  "settings.replaylab.settings_3d": "3D Object Settings",
+  "settings.replaylab.default_rot_mode": "Default Rotation Mode",
+  "settings.replaylab.default_rot_mode.tooltip": "The rotation mode (euler, quaternion, etc) to use on new objects.",
+  "settings.replaylab.rot_mode_convert": "Convert values when switching rotation mode",
+  "settings.replaylab.rot_mode_convert.tooltip": "When switching rotation modes, update values to be equivalent in the new rotation mode. Does not work on animated values.",
+  "settings.replaylab.display_degrees": "Display rotations as degrees",
+  "settings.replaylab.display_degrees.tooltip": "Display rotations as degrees in the GUI (radians are still used internally).",
 
   "key.replaylab.undo": "Undo",
   "key.replaylab.redo": "Redo",
-
   "key.replaylab.copy": "Copy",
   "key.replaylab.paste": "Paste",
 
