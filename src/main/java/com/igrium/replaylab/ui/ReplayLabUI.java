@@ -69,9 +69,6 @@ public class ReplayLabUI extends DockSpaceApp {
     @Getter
     private final EditorState editorState = new EditorState();
 
-    @Getter
-    private final ExceptionPopup exceptionPopup = new ExceptionPopup();
-
     // =========================================================================
     // UI panels
     // =========================================================================
@@ -94,6 +91,11 @@ public class ReplayLabUI extends DockSpaceApp {
 
     private final ViewportControls viewportControls = new ViewportControls();
 
+    @Getter
+    private final ExceptionPopup exceptionPopup = new ExceptionPopup();
+
+    @Getter
+    private final QuickModePopup quickModePopup = new QuickModePopup();
 
     // =========================================================================
     // Deferred action flags (set during render, executed in preRender)
@@ -128,6 +130,7 @@ public class ReplayLabUI extends DockSpaceApp {
         setViewportInputButtons(1);
         editorState.setExceptionCallback(exceptionPopup::displayException);
         editorState.setOperatorCallback(this::onApplyOperator);
+        editorState.setQuickModeInitCallback(quickModePopup);
     }
 
     /**
@@ -222,6 +225,7 @@ public class ReplayLabUI extends DockSpaceApp {
             sceneBrowser.draw(editorState);
             settingsWindow.draw(editorState);
             exceptionPopup.render();
+            quickModePopup.render();
         }
 
         firstFrame = false;
@@ -376,8 +380,9 @@ public class ReplayLabUI extends DockSpaceApp {
         }
 
         if (ImGui.beginMenu(t("gui.replaylab.playback"))) {
-            if (ImGui.menuItem(t("gui.replaylab.quick"))) {
-                // TODO: implement
+            ImBoolean quickMode = new ImBoolean(editorState.isQuickMode());
+            if (ImGui.menuItem(t("gui.replaylab.quick"), "", quickMode)) {
+                editorState.setQuickMode(quickMode.get());
             }
             ImGui.separator();
             if (ImGui.menuItem(t("key.replaylab.scene_start"), getChordLabel(Keybinds.sceneStart()))) {

@@ -1,13 +1,14 @@
 package com.igrium.replaylab.editor;
 
-import com.google.gson.Gson;
+import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
-import com.google.gson.JsonParseException;
-import com.google.gson.reflect.TypeToken;
 import com.igrium.replaylab.ReplayLab;
 import com.igrium.replaylab.camera.RollProvider;
 import com.igrium.replaylab.math.Transform3;
+import com.igrium.replaylab.mixin.AccessorReplayHandler;
 import com.igrium.replaylab.operator.CommitObjectUpdateOperator;
 import com.igrium.replaylab.operator.PasteKeyframesOperator;
 import com.igrium.replaylab.operator.PasteObjectsOperator;
@@ -22,10 +23,15 @@ import com.igrium.replaylab.scene.obj.ReplayObject;
 import com.igrium.replaylab.scene.obj.ReplayObject3D;
 import com.igrium.replaylab.scene.obj.SerializedReplayObject;
 import com.igrium.replaylab.scene.obj.TransformProvider;
+import com.igrium.replaylab.ui.util.QuickModeInitCallback;
+import com.igrium.replaylab.util.RenderUtils;
+import com.mojang.blaze3d.systems.RenderSystem;
+import com.replaymod.replay.QuickReplaySender;
 import com.replaymod.replay.ReplayHandler;
 import com.replaymod.replay.ReplayModReplay;
 import com.replaymod.replaystudio.replay.ReplayFile;
 import imgui.type.ImInt;
+import it.unimi.dsi.fastutil.floats.FloatConsumer;
 import it.unimi.dsi.fastutil.ints.IntSet;
 import lombok.Getter;
 import lombok.NonNull;
@@ -74,6 +80,8 @@ public class EditorState {
         return handler;
     }
 
+    // Replay mod does this so I have no choice
+    @SuppressWarnings("SynchronizationOnLocalVariableOrMethodParameter")
     private static void removeScene(ReplayFile file, String sceneName) throws IOException {
         synchronized (file) {
             file.remove(ReplayScenes.getSceneName(sceneName));
@@ -179,6 +187,8 @@ public class EditorState {
     @Getter @Setter
     private boolean wantOpenInspector;
 
+    @Setter @Nullable
+    private QuickModeInitCallback quickModeInitCallback;
 
     /// ===== Constructors =====
     public EditorState() {
@@ -284,6 +294,43 @@ public class EditorState {
         showGizmoRot = rot && !turnOff;
         showGizmoScale = scale && !turnOff;
     }
+
+    public boolean isQuickMode() {
+        // While this CAN be static, the fact that ReplayHandler is static is a hack, and I'd rather not expose that.
+        ReplayHandler replayHandler = getReplayHandler();
+        return replayHandler != null && replayHandler.isQuickMode();
+    }
+
+    public void setQuickMode(boolean quickMode) {
+        ReplayHandler replayHandler = getReplayHandler();
+        if (replayHandler == null) {
+            LOGGER.warn("No replay handler found; unable to set quick mode.");
+            return;
+        }
+
+        if (quickModeInitCallback != null) {
+            RenderUtils.onRenderThread(quickModeInitCallback::openPopup);
+        }
+
+        replayHandler.getReplaySender().setSyncModeAndWait();
+
+        ensureQuickModeEnabled(progress -> {
+            if (quickModeInitCallback != null) quickModeInitCallback.onProgress(progress);
+        }).thenRun(() -> {
+            ReplayHandler handler = getReplayHandler();
+            handler.setQuickMode(quickMode);
+            handler.getReplaySender().setAsyncMode(true);
+        }).whenComplete((result, e) -> {
+            if (quickModeInitCallback != null) {
+                RenderUtils.onRenderThread(quickModeInitCallback::closePopup);
+            }
+            if (e != null) {
+                LOGGER.error("Failed to set quick mode.", e);
+                onException(e);
+            }
+        });
+    }
+
 
     /// ===== Scene Management =====
 
@@ -614,6 +661,32 @@ public class EditorState {
                 player.getYaw(), player.getPitch());
     }
 
+    public CompletableFuture<?> ensureQuickModeEnabled(@Nullable FloatConsumer progressConsumer) {
+        CompletableFuture<?> future = new CompletableFuture<>();
+        ReplayHandler handler = getReplayHandlerOrThrow();
+        QuickReplaySender quickReplaySender = ((AccessorReplayHandler) handler).getQuickReplaySender();
+        ListenableFuture<Void> lFuture = quickReplaySender.getInitializationPromise();
+
+        if (lFuture == null) {
+            lFuture = quickReplaySender.initialize(progress -> {
+                if (progressConsumer != null) progressConsumer.accept(progress.floatValue());
+            });
+        }
+
+        Futures.addCallback(lFuture, new FutureCallback<>() {
+            @Override
+            public void onSuccess(@Nullable Void result) {
+                future.complete(null);
+            }
+
+            @Override
+            public void onFailure(@NonNull Throwable t) {
+                future.completeExceptionally(t);
+            }
+        }, Runnable::run);
+
+        return future;
+    }
 
     /// ===== Operators & Undo/Redo =====
 

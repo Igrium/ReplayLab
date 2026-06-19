@@ -4,6 +4,7 @@
     "compatibilityLevel": "JAVA_21",
     "mixins": [
         "AccessorGuiReplayEntry",
+        "AccessorReplayHandler",
         "MixinAppManager",
         "MixinEntity",
         "MixinGuiReplayViewer",
