@@ -47,7 +47,10 @@ public class ReplayScene {
     @Getter
     private final SerializedObjectHolder savedObjects = new SerializedObjectHolder();
 
+    @Getter
     private final Deque<ReplayOperator> undoStack = new ArrayDeque<>();
+
+    @Getter
     private final Deque<ReplayOperator> redoStack = new ArrayDeque<>();
 
     @Setter @Nullable

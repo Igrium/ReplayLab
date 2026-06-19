@@ -525,6 +525,14 @@ public class EditorState {
         queueTimeJump();
     }
 
+    public void jumpPrevKeyframe() {
+        // TODO: implement
+    }
+
+    public void jumpNextKeyframe() {
+        // TODO: implement
+    }
+
     /// ===== Game Integration =====
 
     /**

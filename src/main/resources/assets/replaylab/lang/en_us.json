@@ -11,6 +11,7 @@
   "panel.replaylab.outliner": "Outliner",
   "panel.replaylab.inspector": "Inspector",
   "panel.replaylab.sceneprops": "Scene Properties",
+  "panel.replaylab.scenebrowser": "Scene Browser",
   "panel.replaylab.settings": "Settings",
 
   "gui.replaylab.tooltip_snap": "Snap Keyframes",
@@ -65,6 +66,24 @@
   "gui.replaylab.obj.copyTransform": "Copy Transforms",
   "gui.replaylab.obj.pasteTransform": "Paste Transforms",
 
+  "gui.replaylab.file": "File",
+  "gui.replaylab.newScene": "New Scene",
+  "gui.replaylab.openScene": "Open Scene",
+  "gui.replaylab.export": "Export",
+  "gui.replaylab.settings": "Settings",
+  "gui.replaylab.exit": "Save & Exit",
+
+  "gui.replaylab.edit": "Edit",
+  "gui.replaylab.del": "Delete Selected",
+
+  "gui.replaylab.window": "Window",
+
+  "gui.replaylab.viewport": "Viewport",
+  "gui.replaylab.cameraview": "Camera View",
+
+  "gui.replaylab.playback": "Playback",
+  "gui.replaylab.quick": "Quick Mode",
+
   "key.replaylab.undo": "Undo",
   "key.replaylab.redo": "Redo",
 
@@ -73,7 +92,7 @@
 
   "key.replaylab.playpause": "Play/Pause",
   "key.replaylab.cameraview": "Toggle Camera View",
-  "key.replaylab.camera_to_view": "Set Camera to Viewport",
+  "key.replaylab.camera_to_view": "Snap Camera to Viewport",
   "key.replaylab.active_to_cam": "Set Scene Camera to Selected",
   "key.replaylab.frame": "Frame Selected",
 

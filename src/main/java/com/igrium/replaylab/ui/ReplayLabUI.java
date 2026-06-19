@@ -8,7 +8,10 @@ import com.igrium.replaylab.config.Keybinds;
 import com.igrium.replaylab.editor.EditorState;
 import com.igrium.replaylab.operator.*;
 import com.igrium.replaylab.render.VideoRenderSettings;
+import com.igrium.replaylab.scene.obj.EntityProvider;
 import com.igrium.replaylab.scene.obj.ReplayObject;
+import com.igrium.replaylab.scene.obj.ReplayObject3D;
+import com.igrium.replaylab.scene.obj.ReplayObjects;
 import com.igrium.replaylab.scene.objs.ScenePropsObject;
 import com.igrium.replaylab.ui.panels.*;
 import com.igrium.replaylab.ui.subpanels.ExceptionPopup;
@@ -39,6 +42,8 @@ import org.slf4j.Logger;
 
 import java.io.IOException;
 import java.util.List;
+
+import static com.igrium.replaylab.util.ShortcutUtils.getChordLabel;
 
 /**
  * The main CraftApp for the replay lab editor.
@@ -249,29 +254,92 @@ public class ReplayLabUI extends DockSpaceApp {
     private void drawMenuBar() {
         if (!ImGui.beginMainMenuBar()) return;
 
-        if (ImGui.beginMenu("File")) {
-            if (ImGui.menuItem("Open Scene")) sceneBrowser.openPopup();
-            if (ImGui.menuItem("Export")) ExportWindow.open();
+        if (ImGui.beginMenu(t("gui.replaylab.file"))) {
+            if (ImGui.menuItem(t("gui.replaylab.newScene"))) {
+                sceneBrowser.openPopup();
+            }
+            if (ImGui.menuItem(t("gui.replaylab.openScene"))) {
+                sceneBrowser.openPopup();
+            }
+            if (ImGui.menuItem(t("gui.replaylab.export"))) {
+                ExportWindow.open();
+            }
+
             ImGui.separator();
-            if (ImGui.menuItem("Settings")) settingsWindow.openPopup();
-            if (ImGui.menuItem("Exit")) wantsExit = true;
+            if (ImGui.menuItem(t("gui.replaylab.settings"))) {
+                settingsWindow.openPopup();
+            }
+            if (ImGui.menuItem(t("gui.replaylab.exit"))) {
+                wantsExit = true;
+            }
             ImGui.endMenu();
         }
 
-        if (ImGui.beginMenu("Edit")) {
-            if (ImGui.menuItem("Undo", "Ctrl+Z")) editorState.undo();
-            if (ImGui.menuItem("Redo", "Ctrl+Shift+Z")) editorState.redo();
+        if (ImGui.beginMenu(t("gui.replaylab.edit"))) {
+            ImGui.beginDisabled(editorState.getScene().getUndoStack().isEmpty());
+            if (ImGui.menuItem(t("key.replaylab.undo"), getChordLabel(Keybinds.undo()))) {
+                editorState.undo();
+            }
+            ImGui.endDisabled();
+            ImGui.beginDisabled(editorState.getScene().getRedoStack().isEmpty());
+            if (ImGui.menuItem(t("key.replaylab.redo"), getChordLabel(Keybinds.redo()))) {
+                editorState.redo();
+            }
+            ImGui.endDisabled();
+
+            ImGui.separator();
+            ImGui.beginDisabled(editorState.getSelectedObjects().isEmpty());
+            if (ImGui.menuItem(t("key.replaylab.copy"), getChordLabel(Keybinds.copy()))) {
+                ImGui.setClipboardText(editorState.copyObjects());
+            }
+            ImGui.endDisabled();
+            if (ImGui.menuItem(t("key.replaylab.paste"), getChordLabel(Keybinds.paste()))) {
+                editorState.pasteObjects(ImGui.getClipboardText());
+            }
+
+            ImGui.beginDisabled(editorState.getSelectedObjects().isEmpty());
+            if (ImGui.menuItem(t("gui.replaylab.del"), getChordLabel(Keybinds.deleteSelected()))) {
+                editorState.applyOperator(new RemoveObjectsOperator(editorState.getSelectedObjects()));
+            }
+            ImGui.endDisabled();
 
             ImGui.separator();
 
-            ImGui.beginDisabled(editorState.getActiveObject() == null);
-            if (ImGui.menuItem("Delete Selected", "Del")) deleteObject();
+            ReplayObject selected = editorState.getScene().getObject(editorState.getActiveObject());
+
+            ImGui.beginDisabled(selected == null);
+            boolean wantKeyPos = ImGui.shortcut(Keybinds.addKeyPos());
+            boolean wantKeyRot = ImGui.shortcut(Keybinds.addKeyRot());
+            boolean wantKeyScale = ImGui.shortcut(Keybinds.addKeyScale());
+            if (ImGui.menuItem(t("key.replaylab.add_key"), getChordLabel(Keybinds.addKey()))) {
+                wantKeyPos = true;
+                wantKeyRot = true;
+                wantKeyScale = true;
+            }
+
+            ImGui.beginDisabled(!(selected instanceof ReplayObject3D));
+            if (ImGui.menuItem(t("key.replaylab.add_key_pos"), getChordLabel(Keybinds.addKeyPos()))) {
+                wantKeyPos = true;
+            }
+            if (ImGui.menuItem(t("key.replaylab.add_key_rot"), getChordLabel(Keybinds.addKeyRot()))) {
+                wantKeyRot = true;
+            }
+            if (ImGui.menuItem(t("key.replaylab.add_key_scale"), getChordLabel(Keybinds.addKeyScale()))) {
+                wantKeyScale = true;
+            }
+            ImGui.endDisabled();
+
+            if (selected != null && (wantKeyPos || wantKeyRot || wantKeyScale)) {
+                editorState.applyOperator(new InsertKeyframeOperator(editorState.getPlayhead(),
+                        wantKeyPos, wantKeyRot, wantKeyScale, selected.getId()));
+            }
+
             ImGui.endDisabled();
 
             ImGui.endMenu();
         }
 
-        if (ImGui.beginMenu("Window")) {
+        if (ImGui.beginMenu(t("gui.replaylab.window"))) {
             for (var panel : panels) {
                 String label = (panel.isVisible() ? "* " : "  ") + panel.getTitle();
                 if (ImGui.menuItem(label)) {
@@ -279,6 +347,52 @@ public class ReplayLabUI extends DockSpaceApp {
                     panel.setVisible(true);
                 }
             }
+            ImGui.endMenu();
+        }
+
+        if (ImGui.beginMenu(t("gui.replaylab.viewport"))) {
+
+            ImBoolean camView = new ImBoolean(editorState.isCameraView());
+            if (ImGui.menuItem(t("gui.replaylab.cameraview"), getChordLabel(Keybinds.cameraView()), camView)) {
+                editorState.setCameraView(camView.get());
+            }
+
+            if (ImGui.menuItem(t("key.replaylab.camera_to_view"), getChordLabel(Keybinds.cameraToView()))) {
+                // TODO: implement
+            }
+
+            ReplayObject obj = editorState.getScene().getObject(editorState.getActiveObject());
+            ImGui.beginDisabled(!(obj instanceof EntityProvider<?>));
+            if (ImGui.menuItem(t("key.replaylab.active_to_cam"), getChordLabel(Keybinds.activeToCam()))) {
+                editorState.applyOperator(new SetSceneCameraOperator(editorState.getActiveObject()));
+            }
+            ImGui.endDisabled();
+
+            if (ImGui.menuItem(t("key.replaylab.frame"), getChordLabel(Keybinds.frameSelected()))) {
+                editorState.snapViewportToSelected();
+            }
+
+            ImGui.endMenu();
+        }
+
+        if (ImGui.beginMenu(t("gui.replaylab.playback"))) {
+            if (ImGui.menuItem(t("gui.replaylab.quick"))) {
+                // TODO: implement
+            }
+            ImGui.separator();
+            if (ImGui.menuItem(t("key.replaylab.scene_start"), getChordLabel(Keybinds.sceneStart()))) {
+                editorState.jumpSceneStart();
+            }
+            if (ImGui.menuItem(t("key.replaylab.scene_end"), getChordLabel(Keybinds.sceneEnd()))) {
+                editorState.jumpSceneEnd();
+            }
+            if (ImGui.menuItem(t("key.replaylab.prev_key"), getChordLabel(Keybinds.prevKey()))) {
+                editorState.jumpPrevKeyframe();
+            }
+            if (ImGui.menuItem(t("key.replaylab.next_key"), getChordLabel(Keybinds.nextKey()))) {
+                editorState.jumpNextKeyframe();
+            }
+
             ImGui.endMenu();
         }
 

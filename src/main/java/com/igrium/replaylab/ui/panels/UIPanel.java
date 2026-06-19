@@ -99,6 +99,14 @@ public abstract class UIPanel {
             editorState.jumpSceneEnd();
         }
 
+        if (ImGui.shortcut(Keybinds.prevKey())) {
+            editorState.jumpPrevKeyframe();
+        }
+
+        if (ImGui.shortcut(Keybinds.nextKey())) {
+            editorState.jumpNextKeyframe();
+        }
+
         if (ImGui.shortcut(Keybinds.cameraView())) {
             editorState.setCameraView(!editorState.isCameraView());
         }
