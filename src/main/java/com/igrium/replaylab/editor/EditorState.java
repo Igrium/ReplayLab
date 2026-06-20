@@ -309,7 +309,7 @@ public class EditorState {
         }
 
         if (quickModeInitCallback != null) {
-            RenderUtils.onRenderThread(quickModeInitCallback::openPopup);
+            quickModeInitCallback.openPopup();
         }
 
         replayHandler.getReplaySender().setSyncModeAndWait();
@@ -320,15 +320,16 @@ public class EditorState {
             ReplayHandler handler = getReplayHandler();
             handler.setQuickMode(quickMode);
             handler.getReplaySender().setAsyncMode(true);
-        }).whenComplete((result, e) -> {
+        }).whenCompleteAsync((result, e) -> {
             if (quickModeInitCallback != null) {
-                RenderUtils.onRenderThread(quickModeInitCallback::closePopup);
+                quickModeInitCallback.closePopup();
             }
             if (e != null) {
                 LOGGER.error("Failed to set quick mode.", e);
                 onException(e);
             }
-        });
+            doTimeJump();
+        }, RenderUtils::onRenderThread);
     }
 
 
@@ -666,6 +667,7 @@ public class EditorState {
         ReplayHandler handler = getReplayHandlerOrThrow();
         QuickReplaySender quickReplaySender = ((AccessorReplayHandler) handler).getQuickReplaySender();
         ListenableFuture<Void> lFuture = quickReplaySender.getInitializationPromise();
+
 
         if (lFuture == null) {
             lFuture = quickReplaySender.initialize(progress -> {

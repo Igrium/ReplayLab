@@ -5,6 +5,9 @@ import lombok.experimental.UtilityClass;
 
 @UtilityClass
 public class RenderUtils {
+
+    public static boolean forceNoCraftUI;
+
     public static void onRenderThread(Runnable runnable) {
         if (RenderSystem.isOnRenderThread()) {
             runnable.run();
