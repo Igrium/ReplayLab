@@ -563,6 +563,20 @@ public class EditorState {
         wantsTimeJump = false;
     }
 
+    /**
+     * Called when the playhead is being scrubbed
+     * @param drop If the playhead was dropped this frame
+     */
+    public void scrub(boolean drop) {
+        long replayTime = getScene().sceneToReplayTime(getPlayhead());
+        if (drop || isQuickMode() || (replayTime > getReplayHandlerOrThrow().getReplaySender().currentTimeStamp())) {
+            queueTimeJump();
+            queueApplyToGame();
+        } else {
+            queueApplyToGame();
+        }
+    }
+
     public void jumpSceneStart() {
         setPlayhead(0);
         queueTimeJump();

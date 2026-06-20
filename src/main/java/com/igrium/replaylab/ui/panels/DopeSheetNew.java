@@ -180,12 +180,15 @@ public class DopeSheetNew extends KeyframePanel {
         }
 
         long replayTime = editorState.getScene().sceneToReplayTime(editorState.getPlayhead());
-        if (stoppedScrubbing() ||
-                (isScrubbing() && replayTime > EditorState.getReplayHandlerOrThrow().getReplaySender().currentTimeStamp())) {
-            editorState.queueTimeJump();
-        } else if (isScrubbing()) {
-            editorState.queueApplyToGame();
+        if (isScrubbing() || stoppedScrubbing()) {
+            editorState.scrub(stoppedScrubbing());
         }
+//        if (stoppedScrubbing() ||
+//                (isScrubbing() && replayTime > EditorState.getReplayHandlerOrThrow().getReplaySender().currentTimeStamp())) {
+//            editorState.queueTimeJump();
+//        } else if (isScrubbing()) {
+//            editorState.queueApplyToGame();
+//        }
 
         var droppedObjects = getDroppedKeys().stream()
                 .map(KeyframeReference::objectName)

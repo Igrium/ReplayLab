@@ -201,12 +201,15 @@ public class CurveEditor extends KeyframePanel {
         drawAndManageHandles(editorState, 0);
         long replayTime = editorState.getScene().sceneToReplayTime(editorState.getPlayhead());
 
-        if (stoppedScrubbing() ||
-                (isScrubbing() && replayTime > EditorState.getReplayHandlerOrThrow().getReplaySender().currentTimeStamp())) {
-            editorState.queueTimeJump();
-        } else if (isScrubbing()) {
-            editorState.queueApplyToGame();
+        if (isScrubbing() || stoppedScrubbing()) {
+            editorState.scrub(stoppedScrubbing());
         }
+//        if (stoppedScrubbing() ||
+//                (isScrubbing() && replayTime > EditorState.getReplayHandlerOrThrow().getReplaySender().currentTimeStamp())) {
+//            editorState.queueTimeJump();
+//        } else if (isScrubbing()) {
+//            editorState.queueApplyToGame();
+//        }
 
         super.drawContents(editorState);
     }
