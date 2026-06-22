@@ -47,6 +47,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Vector3d;
 import org.joml.Vector3dc;
+import org.joml.Vector3f;
 import org.slf4j.Logger;
 import org.joml.Math;
 
@@ -502,10 +503,13 @@ public final class EditorState {
                 pilotingCamera = false;
                 applyOperator(new CommitObjectUpdateOperator(false, cameraObj.getId()));
             }
-            else if (cameraEnt != null && player != null) {
-                // TP player to camera
-                player.refreshPositionAndAngles(cameraEnt.getX(), cameraEnt.getY() - player.getStandingEyeHeight(), cameraEnt.getZ(),
-                        cameraEnt.getYaw(), cameraEnt.getPitch());
+            else if (isCameraView() && player != null && cameraObj instanceof ReplayObject3D cam3d) {
+                // TP player to camera, taken directly from the replay object rather than going through camera ent,
+                // which has been through quaternion.
+                Vector3f euler = cam3d.rotation().getEulerYXZ(new Vector3f());
+                player.refreshPositionAndAngles(cam3d.position().x,
+                        cam3d.position().y - player.getStandingEyeHeight(), cam3d.position().z,
+                        -Math.toDegrees(euler.y), Math.toDegrees(euler.x));
             }
 
         } else {
