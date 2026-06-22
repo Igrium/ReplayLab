@@ -70,8 +70,19 @@ public abstract class AbstractScenePlayer extends EventRegistrations {
     }
 
     public void stop() {
-        if (future != null) {
+        if (future != null && !future.isDone()) {
             future.cancel(false);
+            restoreState();
+        }
+        unregister();
+    }
+
+    private void restoreState() {
+        var mcA = (MinecraftAccessor) MinecraftClient.getInstance();
+        mcA.setTimer(origTimer);
+        replayHandler.getReplaySender().setReplaySpeed(0);
+        if (wasAsyncMode) {
+            replayHandler.getReplaySender().setAsyncMode(true);
         }
     }
 
@@ -85,15 +96,7 @@ public abstract class AbstractScenePlayer extends EventRegistrations {
     { on(ReplayTimer.UpdatedCallback.EVENT, this::onTick); }
 
     public void onTick() {
-        if (future != null && future.isDone()) {
-            // Restore state
-            var mcA = (MinecraftAccessor) MinecraftClient.getInstance();
-            mcA.setTimer(origTimer);
-            replayHandler.getReplaySender().setReplaySpeed(0);
-            if (wasAsyncMode) {
-                replayHandler.getReplaySender().setAsyncMode(true);
-            }
-            unregister();
+        if (future == null || future.isDone()) {
             return;
         }
 
@@ -101,7 +104,6 @@ public abstract class AbstractScenePlayer extends EventRegistrations {
         if (timestamp > maxTimestamp) {
             timestamp = maxTimestamp;
         }
-
 
         // Apply timestamp to game
         ReplaySender sender = replayHandler.getReplaySender();
@@ -137,8 +139,13 @@ public abstract class AbstractScenePlayer extends EventRegistrations {
         // Complete playback
         if (timestamp >= maxTimestamp) {
             future.complete(null);
+            restoreState();
+            unregister();
         }
     }
 
+    /**
+     * The current scene time in milliseconds
+     */
     public abstract int getTimePassed();
 }

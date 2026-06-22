@@ -13,6 +13,7 @@ import com.igrium.replaylab.operator.CommitObjectUpdateOperator;
 import com.igrium.replaylab.operator.PasteKeyframesOperator;
 import com.igrium.replaylab.operator.PasteObjectsOperator;
 import com.igrium.replaylab.operator.ReplayOperator;
+import com.igrium.replaylab.playback.AbstractScenePlayer;
 import com.igrium.replaylab.playback.RealtimeScenePlayer;
 import com.igrium.replaylab.render.VideoRenderSettings;
 import com.igrium.replaylab.render.VideoRenderer;
@@ -62,7 +63,7 @@ import java.util.function.Predicate;
  * Manages replay lab editor state. Implemented to try to separate editor global logic from UI for code cleanliness.
  * Scene-level operations are implemented in {@link ReplayScene}
  */
-public class EditorState {
+public final class EditorState {
 
     /// ===== Static Members =====
 
@@ -131,6 +132,18 @@ public class EditorState {
     @Nullable
     private RealtimeScenePlayer scenePlayer;
 
+    @Nullable
+    private ScrubbingScenePlayer scrubbingScenePlayer;
+
+    @Getter
+    private boolean scrubbing;
+
+    /**
+     * When we're scrubbing without quick mode,
+     * this is the position in the timeline that was last applied to the replay scene.
+     */
+    private int maxScrubForwardTime;
+
     @Getter
     private final List<String> scenes = Collections.synchronizedList(new ArrayList<>());
 
@@ -197,11 +210,11 @@ public class EditorState {
 
     /// ===== Getters/Setters =====
 
-    public final int getPlayhead() {
+    public int getPlayhead() {
         return playheadRef.get();
     }
 
-    public final void setPlayhead(int playhead) {
+    public void setPlayhead(int playhead) {
         playheadRef.set(playhead);
     }
 
@@ -568,13 +581,42 @@ public class EditorState {
      * @param drop If the playhead was dropped this frame
      */
     public void scrub(boolean drop) {
-        long replayTime = getScene().sceneToReplayTime(getPlayhead());
-        if (drop || isQuickMode() || (replayTime > getReplayHandlerOrThrow().getReplaySender().currentTimeStamp())) {
+
+        if (drop) {
+            // Scrub finished: tear down the player
+            if (scrubbingScenePlayer != null) {
+                scrubbingScenePlayer.stop();
+                scrubbingScenePlayer = null;
+            }
+            maxScrubForwardTime = 0;
             queueTimeJump();
             queueApplyToGame();
+
+        } else if (getPlayhead() >= maxScrubForwardTime) {
+            // Scrubbing forward: playhead is at or ahead of the furthest position seen.
+            if (!isScrubbing()) {
+                doTimeJump();
+            }
+            if (scrubbingScenePlayer == null) {
+                scrubbingScenePlayer = new ScrubbingScenePlayer();
+                scrubbingScenePlayer.start(getScene());
+            }
+            maxScrubForwardTime = getPlayhead();
+
         } else {
-            queueApplyToGame();
+            // Scrubbing backward: the scene player can't go backwards, so stop it
+            if (scrubbingScenePlayer != null) {
+                scrubbingScenePlayer.stop();
+                scrubbingScenePlayer = null;
+            }
+            // If we're in quick mode, we can time-jump to immediately.
+            if (isQuickMode()) {
+                queueTimeJump();
+                maxScrubForwardTime = getPlayhead();
+            }
         }
+
+        scrubbing = !drop;
     }
 
     public void jumpSceneStart() {
@@ -862,8 +904,18 @@ public class EditorState {
         }
     }
 
-    private static @Nullable Entity getCamEnt() {
-        MinecraftClient mc = MinecraftClient.getInstance();
-        return mc.cameraEntity != null ? mc.getCameraEntity() : mc.player;
+    private class ScrubbingScenePlayer extends AbstractScenePlayer {
+
+
+        public ScrubbingScenePlayer() {
+            super(getReplayHandlerOrThrow());
+        }
+
+        @Override
+        public int getTimePassed() {
+            int time = Math.max(maxScrubForwardTime, getPlayhead());
+            maxScrubForwardTime = time;
+            return time;
+        }
     }
 }
