@@ -7,7 +7,8 @@ import com.igrium.replaylab.editor.KeySelectionSet.ChannelReference;
 import com.igrium.replaylab.editor.KeySelectionSet.KeyframeReference;
 import com.igrium.replaylab.editor.KeySelectionSet.KeyHandleReference;
 import com.igrium.replaylab.operator.CommitObjectUpdateOperator;
-import com.igrium.replaylab.operator.RemoveKeyframesOperator;
+import com.igrium.replaylab.operator.ReplayOperator;
+import com.igrium.replaylab.operator.SetHandleTypeOperator;
 import com.igrium.replaylab.scene.ReplayScene;
 import com.igrium.replaylab.scene.key.ChannelUtils;
 import com.igrium.replaylab.scene.key.KeyChannel;
@@ -15,10 +16,10 @@ import com.igrium.replaylab.scene.key.Keyframe;
 import com.igrium.replaylab.scene.obj.ReplayObject;
 import com.igrium.replaylab.ui.ReplayLabIcons;
 import com.igrium.replaylab.ui.subpanels.ChannelList;
+import com.igrium.replaylab.ui.subpanels.ChannelListFlags;
 import com.igrium.replaylab.ui.util.ReplayLabControls;
 import com.igrium.replaylab.ui.util.TimelineFlags;
 import com.igrium.replaylab.ui.subpanels.TimelineHeader;
-import com.replaymod.replaystudio.rar.state.Replay;
 import imgui.ImDrawList;
 import imgui.ImGui;
 import imgui.ImVec2;
@@ -30,6 +31,7 @@ import it.unimi.dsi.fastutil.ints.IntSet;
 import lombok.Getter;
 import lombok.Setter;
 import net.minecraft.util.Identifier;
+import net.minecraft.util.Language;
 import net.minecraft.util.math.ColorHelper;
 import org.jetbrains.annotations.Nullable;
 import org.joml.*;
@@ -38,9 +40,12 @@ import java.lang.Math;
 import java.util.*;
 import java.util.stream.Collectors;
 
-public class CurveEditor extends UIPanel {
+public class CurveEditor extends KeyframePanel {
 
     private record ChannelExtents(double min, double max) {};
+
+    /** Pixel radius within which a bezier handle is considered "collapsed" onto its keyframe. */
+    private static final float HANDLE_SNAP_THRESHOLD = 12f;
 
     private final Map<ChannelReference, ChannelExtents> normalizationCache = new HashMap<>();
     private final ImBoolean normalized = new ImBoolean(false);
@@ -120,6 +125,8 @@ public class CurveEditor extends UIPanel {
 
     private final ImBoolean snapKeyframes = new ImBoolean();
 
+    private final ImBoolean selectedOnly = new ImBoolean(true);
+
     private boolean doneInitialFit = false;
 
     /**
@@ -185,54 +192,36 @@ public class CurveEditor extends UIPanel {
     }
 
     @Override
+    public void onAppliedOperator(ReplayOperator op, EditorState editorState) {
+        updateNormalizationCache(editorState.getScene());
+    }
+
+    @Override
     protected void drawContents(EditorState editorState) {
         drawAndManageHandles(editorState, 0);
         long replayTime = editorState.getScene().sceneToReplayTime(editorState.getPlayhead());
 
-        if (stoppedScrubbing() ||
-                (isScrubbing() && replayTime > EditorState.getReplayHandlerOrThrow().getReplaySender().currentTimeStamp())) {
-            editorState.queueTimeJump();
-        } else if (isScrubbing()) {
-            editorState.queueApplyToGame();
+        if (isScrubbing() || stoppedScrubbing()) {
+            editorState.scrub(stoppedScrubbing());
         }
+//        if (stoppedScrubbing() ||
+//                (isScrubbing() && replayTime > EditorState.getReplayHandlerOrThrow().getReplaySender().currentTimeStamp())) {
+//            editorState.queueTimeJump();
+//        } else if (isScrubbing()) {
+//            editorState.queueApplyToGame();
+//        }
 
-        if (ImGui.shortcut(Keybinds.deleteSelected())) {
-            // we need to clear selected keyframes
-            var selected = editorState.getKeySelection().getSelectedKeyframes();
-            editorState.getKeySelection().deselectAll();
-
-            editorState.applyOperator(new RemoveKeyframesOperator(selected));
-
-
-            updateNormalizationCache(editorState.getScene());
-        }
-
-        if (ImGui.shortcut(Keybinds.selectAll())) {
-            editorState.getKeySelection().selectAll(editorState.getScene().getObjects());
-        }
-
-        if (ImGui.shortcut(Keybinds.selectNone())) {
-            editorState.getKeySelection().deselectAll();
-        }
+        super.drawContents(editorState);
     }
 
     public void drawAndManageHandles(EditorState editorState, int flags) {
-        drawCurveEditor(editorState.getScene(), null, editorState.getKeySelection(), editorState.getPlayheadRef(), flags);
+        drawCurveEditor(editorState, editorState.getSelectedObjects(), editorState.getKeySelection(),
+                editorState.getPlayheadRef(), flags);
 
-
-        // All handles being directly manipulated should have their type set to aligned.
-        for (var hRef : keyDragOffsets.keySet()) {
-            if (keyDragOffsets.containsKey(new KeyHandleReference(hRef.keyRef(), 0)))
-                continue; // Don't mess with the handles if center is being dragged
-            Keyframe key = hRef.keyRef().get(editorState.getScene().getObjects());
-            if (key != null) {
-                if (key.getHandleAType() != Keyframe.HandleType.FREE) {
-                    key.setHandleAType(Keyframe.HandleType.ALIGNED);
-                }
-                if (key.getHandleBType() != Keyframe.HandleType.FREE) {
-                    key.setHandleBType(Keyframe.HandleType.ALIGNED);
-                }
-            }
+        // Jump forward if playing and off screen
+        double endMs = offsetX + header.getWidthMs();
+        if (editorState.isPlaying() && (editorState.getPlayhead() > endMs || editorState.getPlayhead() < offsetX)) {
+            setOffsetX(editorState.getPlayhead());
         }
 
         // Recompute handles
@@ -246,7 +235,7 @@ public class CurveEditor extends UIPanel {
                             .map(hRef -> new ChannelUtils.LocalHandleRef(hRef.keyIndex(), hRef.handleIndex()))
                             .collect(Collectors.toSet());
 
-                    ChannelUtils.computeAutoHandles(ch, dragging);
+                    ChannelUtils.computeHandles(ch, dragging);
                 });
 
         if (!getDroppedHandles().isEmpty()) {
@@ -269,26 +258,34 @@ public class CurveEditor extends UIPanel {
     /**
      * Draw the curve editor.
      *
-     * @param scene           The scene to edit. Keyframes will be updated as the user changes them.
+     * @param editor          The editor state
      * @param selectedObjects The objects to display the keyframes of. <code>null</code> to display all objects
      * @param selectedKeys    All keyframe handles which are currently selected.
      *                        Updated as the user selects/deselects keyframes.
      * @param playhead        Current playhead position. Updated as the player scrubs.
      * @param flags           Render flags.
      */
-    public void drawCurveEditor(ReplayScene scene, @Nullable Collection<String> selectedObjects,
+    public void drawCurveEditor(EditorState editor, @Nullable Collection<String> selectedObjects,
                                 KeySelectionSet selectedKeys, @Nullable ImInt playhead, int flags) {
 
+        ReplayScene scene = editor.getScene();
         droppedHandles.clear();
         updatedHandles.clear();
-//        Collection<String> objs = selectedObjects != null ? selectedObjects : scene.getObjects().keySet();
-        Map<String, ReplayObject> objs = selectedObjects != null ? scene.getObjects()
-                .entrySet().stream()
-                .filter(entry -> selectedObjects.contains(entry.getKey()))
-                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)) : scene.getObjects();
 
-        int majorIntervalX = (int) TimelineHeader.computeMajorInterval(zoomFactorX);
-        int minorIntervalX = majorIntervalX / 2;
+        Map<String, ReplayObject> objs;
+        if (selectedObjects != null && selectedOnly.get()) {
+            objs = new HashMap<>(selectedObjects.size());
+            for (var objEntry : scene.getObjects().entrySet()) {
+                if (selectedObjects.contains(objEntry.getKey())) {
+                    objs.put(objEntry.getKey(), objEntry.getValue());
+                }
+            }
+        } else {
+            objs = scene.getObjects();
+        }
+
+        float majorIntervalX = TimelineHeader.computeMajorInterval(zoomFactorX);
+        float minorIntervalX = majorIntervalX / 2;
 
         float majorIntervalY = TimelineHeader.computeMajorInterval(zoomFactorY);
         float minorIntervalY = majorIntervalY / 2;
@@ -300,20 +297,31 @@ public class CurveEditor extends UIPanel {
         ImGui.sameLine();
 
         /// === BUTTONS ===
-        ReplayLabControls.toggleButton(ReplayLabIcons.ICON_MAGNET, "snapKeyframes", snapKeyframes, "gui.replaylab.tooltip_snap");
 
+        ReplayLabControls.toggleButton(ReplayLabIcons.ICON_ARROW_POINTER, "selectedOnly", selectedOnly,
+                "gui.replaylab.selected_only");
         ImGui.sameLine();
-        boolean wantsFit = ReplayLabControls.iconButton(ReplayLabIcons.ICON_RESIZE_FULL_ALT, "wantsFit", "gui.replaylab.tooltip_fit");
+
+        ReplayLabControls.toggleButton(ReplayLabIcons.ICON_MAGNET, "snapKeyframes", snapKeyframes,
+                "gui.replaylab.tooltip_snap");
+        ImGui.sameLine();
+        boolean wantsFit = ReplayLabControls.iconButton(ReplayLabIcons.ICON_RESIZE_FULL_ALT, "wantsFit",
+                "gui.replaylab.tooltip_fit");
+
+        wantsFit |= ImGui.shortcut(Keybinds.frameSelected());
 
         boolean wasNormalized = isNormalized();
 
         ImGui.sameLine();
-        ReplayLabControls.toggleButton(ReplayLabIcons.ICON_ARROWS_V, "normalize", normalized, "gui.replaylab.tooltip_normalize");
+        ReplayLabControls.toggleButton(ReplayLabIcons.ICON_ARROWS_V, "normalize", normalized,
+                "gui.replaylab.tooltip_normalize");
 
 
         /// === CHANNEL LIST ===
         ImGui.beginChild("channels", 192, -1, false, ImGuiWindowFlags.NoScrollbar);
-        ChannelList.drawChannelList(scene, objs, 192);
+        ChannelList.drawChannelList(selectedKeys, objs, 192,
+                ChannelListFlags.SHOW_HIDE | ChannelListFlags.ALLOW_SELECTION
+                        | ChannelListFlags.HIGHLIGHT_SELECTION | ChannelListFlags.SHOW_COLORS);
         ImGui.endChild();
 
         ImGui.sameLine();
@@ -343,22 +351,19 @@ public class CurveEditor extends UIPanel {
             float gWidth = ImGui.getContentRegionAvailX();
             float gHeight = ImGui.getContentRegionAvailY();
 
+
+
             /// === FITTING ===
-            if ((wantsFit || !doneInitialFit) && !objs.isEmpty()) {
+            // Appearing window breaks fit
+            if ((wantsFit || !doneInitialFit) && !objs.isEmpty() && !ImGui.isWindowAppearing()) {
                 Vector2d boundsMin = new Vector2d();
                 Vector2d boundsMax = new Vector2d();
 
                 Iterable<KeyHandleReference> iter = selectedKeys.isEmpty()
-                        ? KeySelectionSet.iterateAllHandles(scene.getObjects())
+                        ? KeySelectionSet.iterateAllHandles(objs)
                         : selectedKeys.getSelectedHandles();
 
-                computeDisplayBoundingBox(scene.getObjects(), iter, boundsMin, boundsMax);
-
-//                if (!doneInitialFit || selectedKeys.isEmpty()) {
-//                    computeBoundingBox(scene.getObjects().values(), boundsMin, boundsMax);
-//                } else {
-//                    computeBoundingBox(selectedKeys, scene, boundsMin, boundsMax);
-//                }
+                computeDisplayBoundingBox(objs, iter, boundsMin, boundsMax);
 
                 if (boundsMin.x != boundsMax.x)
                     setZoomFactorX((float) (gWidth / (boundsMax.x - boundsMin.x)));
@@ -396,24 +401,30 @@ public class CurveEditor extends UIPanel {
                 }
             }
 
-
             ImDrawList drawList = ImGui.getWindowDrawList();
 
             /// === BACKGROUND ===
-            drawList.addRectFilled(graphX, graphY, graphX + gWidth, graphY + gHeight, ImGui.getColorU32(ImGuiCol.FrameBg));
+            drawList.addRectFilled(graphX, graphY, graphX + gWidth, graphY + gHeight,
+                    ImGui.getColorU32(ImGuiCol.FrameBg));
 
             // Amount of milliseconds the graph is wide
             float widthMs = gWidth / zoomFactorX;
-            int startTick = Math.floorDiv((int) offsetX, majorIntervalX) * majorIntervalX;
-            int endTick = Math.ceilDiv((int) (offsetX + widthMs), majorIntervalX) * majorIntervalX;
-
+            float startTick = (float) Math.floor(offsetX / majorIntervalX) * majorIntervalX;
+            float endTick = (float) Math.ceil((offsetX + widthMs) / majorIntervalX) * majorIntervalX;
             int colMajor = replaceAlpha(ImGui.getColorU32(ImGuiCol.Text), 48);
             int colMinor = replaceAlpha(colMajor, 16);
 
             // X intervals
-            for (int ms = startTick; ms <= endTick; ms += minorIntervalX) {
+            // Tolerance for floating-point comparisons when checking major-interval alignment
+            float epsilon = minorIntervalX * 0.01f;
+            for (float ms = startTick; ms <= endTick + epsilon; ms += minorIntervalX) {
                 float xPos = msToPixelX(ms) + graphX;
-                int color = ms % majorIntervalX == 0 ? colMajor : colMinor;
+                float remainder = ms % majorIntervalX;
+                if (remainder < 0) {
+                    remainder += majorIntervalX;
+                }
+                boolean isMajorLine = remainder < epsilon || (majorIntervalX - remainder) < epsilon;
+                int color = isMajorLine ? colMajor : colMinor;
                 drawList.addLine(xPos, graphY, xPos, graphY + gHeight, color);
             }
 
@@ -441,7 +452,6 @@ public class CurveEditor extends UIPanel {
             boolean hoveringAnyKey = false;
             float keyHoverRadius = 12f + ImGui.getIO().getMouseDragThreshold() * 2;
 
-            int chIndex = 0;
             for (var objEntry : objs.entrySet()) {
                 String objName = objEntry.getKey();
                 ReplayObject obj = objEntry.getValue();
@@ -498,10 +508,6 @@ public class CurveEditor extends UIPanel {
 
                             drawList.addCircle(handleBX, handleBY, 3f, rSelected ? selColor : handleEndColor);
 
-                            // TODO: Shouldn't this be defined in the theme somehow?
-                            int lineColor = 0x808E79D1;
-                            int lineColorSel = 0xFF93B4FF;
-
                             int lColor = getHandleColor(key.getHandleAType());
                             if (!(lSelected || cSelected)) {
                                 lColor = replaceAlpha(lColor, 63);
@@ -516,22 +522,23 @@ public class CurveEditor extends UIPanel {
                             drawList.addLine(handleBX, handleBY, keyX, keyY, rColor);
 
                             boolean channelSelected = selectedKeys.isChannelSelected(objName, chEntry.getKey());
+                            boolean isHandleAClose = Math.hypot(handleAX - keyX, handleAY - keyY) <= HANDLE_SNAP_THRESHOLD;
+                            boolean isHandleBClose = Math.hypot(handleBX - keyX, handleBY - keyY) <= HANDLE_SNAP_THRESHOLD;
 
                             // Prioritize clicking on the selected channel unless the keyframe being clicked is already selected.
-                            // In that case, don't let it be selected again so we can select overlapping keys.
-                            if (mouseClicked && (channelSelected || clickedOn == null)) {
+                            if (mouseClicked && (chSelected || clickedOn == null)) {
                                 KeyframeReference keyRef = new KeyframeReference(objName, chEntry.getKey(), keyIdx);
 
                                 KeyHandleReference handle0Ref = new KeyHandleReference(keyRef, 0);
                                 KeyHandleReference handle1Ref = new KeyHandleReference(keyRef, 1);
                                 KeyHandleReference handle2Ref = new KeyHandleReference(keyRef, 2);
 
-                                if (keyHovered(keyX, keyY, mouseGlobalX, mouseGlobalY) && !selectedKeys.isHandleSelected(handle0Ref)) {
+                                if (keyHovered(keyX, keyY, mouseGlobalX, mouseGlobalY)) {
                                     clickedOn = handle0Ref;
-                                } else if (keyHovered(handleAX, handleAY, mouseGlobalX, mouseGlobalY) && !selectedKeys.isHandleSelected(handle1Ref)) {
-                                    clickedOn = handle1Ref;
-                                } else if (keyHovered(handleBX, handleBY, mouseGlobalX, mouseGlobalY) && !selectedKeys.isHandleSelected(handle2Ref)) {
-                                    clickedOn = handle2Ref;
+                                } else if (keyHovered(handleAX, handleAY, mouseGlobalX, mouseGlobalY)) {
+                                    clickedOn = isHandleAClose ? handle0Ref : handle1Ref;
+                                } else if (keyHovered(handleBX, handleBY, mouseGlobalX, mouseGlobalY)) {
+                                    clickedOn = isHandleBClose ? handle0Ref : handle2Ref;
                                 }
                             }
 
@@ -542,9 +549,9 @@ public class CurveEditor extends UIPanel {
                                 if (keyHovered(keyX, keyY, mouseGlobalX, mouseGlobalY)) {
                                     rightClickedOn = new KeyHandleReference(keyRef, 0);
                                 } else if (keyHovered(handleAX, handleAY, mouseGlobalX, mouseGlobalY)) {
-                                    rightClickedOn = new KeyHandleReference(keyRef, 1);
+                                    rightClickedOn = new KeyHandleReference(keyRef, isHandleAClose ? 0 : 1);
                                 } else if (keyHovered(handleBX, handleBY, mouseGlobalX, mouseGlobalY)) {
-                                    rightClickedOn = new KeyHandleReference(keyRef, 2);
+                                    rightClickedOn = new KeyHandleReference(keyRef, isHandleBClose ? 0 : 2);
                                 }
                             }
 
@@ -598,8 +605,6 @@ public class CurveEditor extends UIPanel {
                     double displayEnd = rawToDisplay(endKey.getCenter().y(), extents);
                     float endY = valueToPixelY(displayEnd) + graphY;
                     drawList.addLine(endX, endY, graphX + gWidth, endY, chColor, chSelected ? 2 : 1);
-
-                    chIndex++;
                 }
             }
 
@@ -644,14 +649,22 @@ public class CurveEditor extends UIPanel {
                 }
             }
 
-            ///  === SELECTION ===
-            if (clickedOn != null || rightClickedOn != null) {
-                if (!ImGui.getIO().getKeyCtrl()) {
-                    selectedKeys.deselectAll();
+            /// === SELECTION ===
+            boolean leftOrRightClicked = clickedOn != null || rightClickedOn != null;
+            boolean ctrlHeld = ImGui.getIO().getKeyCtrl();
+
+            if (leftOrRightClicked) {
+                var clickTarget = clickedOn != null ? clickedOn : rightClickedOn;
+                boolean alreadySelected = selectedKeys.isHandleSelected(clickTarget);
+
+                if (!alreadySelected) {
+                    if (!ctrlHeld) selectedKeys.deselectAll();
+                    selectedKeys.selectHandle(clickTarget);
+                } else if (clickedOn != null && ctrlHeld) {
+                    // Left-clicking on selected item w/ control deselects it
+                    selectedKeys.deselectHandle(clickTarget);
                 }
-                selectedKeys.selectHandle(clickedOn != null ? clickedOn : rightClickedOn);
-            } else if (mouseClicked && !ImGui.getIO().getKeyCtrl() && !hoveringAnyKey) {
-                // Don't deselect on right click
+            } else if (mouseClicked && !ctrlHeld && !hoveringAnyKey) {
                 selectedKeys.deselectAll();
             }
 
@@ -767,34 +780,14 @@ public class CurveEditor extends UIPanel {
 
                     Keyframe.HandleType newHandleType = null;
 
-                    if (ImGui.menuItem("Free", "", handleType == Keyframe.HandleType.FREE)) {
-                        newHandleType = Keyframe.HandleType.FREE;
-                    }
-                    if (ImGui.menuItem("Aligned", "", handleType == Keyframe.HandleType.ALIGNED)) {
-                        newHandleType = Keyframe.HandleType.ALIGNED;
-                    }
-                    if (ImGui.menuItem("Vector", "", handleType == Keyframe.HandleType.VECTOR)) {
-                        newHandleType = Keyframe.HandleType.VECTOR;
-                    }
-                    if (ImGui.menuItem("Automatic", "", handleType == Keyframe.HandleType.AUTO)) {
-                        newHandleType = Keyframe.HandleType.AUTO;
-                    }
-                    if (ImGui.menuItem("Auto Clamped", "", handleType == Keyframe.HandleType.AUTO_CLAMPED)) {
-                        newHandleType = Keyframe.HandleType.AUTO_CLAMPED;
+                    for (var type : Keyframe.HandleType.values()) {
+                        if (ImGui.menuItem(t(type.getTranslationKey()), "", handleType == type)) {
+                            newHandleType = type;
+                        }
                     }
 
                     if (newHandleType != null) {
-                        for (KeyHandleReference ref : selectedKeys.effectiveSelectedHandles()) {
-                            Keyframe keyframe = ref.keyRef().get(scene.getObjects());
-                            if (keyframe == null) continue;
-                            switch (ref.handleIndex()) {
-                                case 1 -> keyframe.setHandleAType(newHandleType);
-                                case 2 -> keyframe.setHandleBType(newHandleType);
-                            }
-                            updatedHandles.add(ref);
-                            droppedHandles.add(ref);
-                        }
-
+                        editor.applyOperator(new SetHandleTypeOperator(newHandleType, selectedKeys));
                     }
 
                     ImGui.endMenu();
@@ -1151,5 +1144,9 @@ public class CurveEditor extends UIPanel {
                 dest2.set(tmpVec);
             }
         });
+    }
+
+    private static String t(String key) {
+        return Language.getInstance().get(key) + "###" + key;
     }
 }

@@ -2,6 +2,7 @@ package com.igrium.replaylab.ui.settings;
 
 import com.igrium.replaylab.config.ReplayLabConfig;
 import com.igrium.replaylab.math.DynamicRotation;
+import com.igrium.replaylab.scene.key.Keyframe;
 import imgui.ImGui;
 import imgui.type.ImBoolean;
 import lombok.Getter;
@@ -12,7 +13,7 @@ public class SettingsEditor {
 
     @Getter
     private final ReplayLabConfig mutableConfig;
-    
+
     private final KeybindEditor keybindEditor;
 
     public SettingsEditor(ReplayLabConfig mutableConfig) {
@@ -28,6 +29,27 @@ public class SettingsEditor {
         if (ImGui.beginTabBar("settings")) {
 
             if (ImGui.beginTabItem(t("gui.replaylab.general"))) {
+
+                /// Behavior
+                ImGui.separatorText(t("settings.replaylab.behavior"));
+
+                changed |= drawCheckBox(t("settings.replaylab.auto_set_camera"),
+                        c.isAutoSetCamera(), c::setAutoSetCamera);
+                ImGui.setItemTooltip(tt("settings.replaylab.auto_set_camera.tooltip"));
+
+                changed |= drawCheckBox(t("settings.replaylab.inspect_on_create"),
+                        c.isInspectOnCreate(), c::setInspectOnCreate);
+                ImGui.setItemTooltip(tt("settings.replaylab.inspect_on_create.tooltip"));
+
+                if (ImGui.beginCombo(t("settings.replaylab.default_handle_type"), t(c.getDefaultHandleType().getTranslationKey()))) {
+                    for (Keyframe.HandleType type : Keyframe.HandleType.values()) {
+                        if (ImGui.selectable(t(type.getTranslationKey()), type == c.getDefaultHandleType())) {
+                            c.setDefaultHandleType(type);
+                            changed = true;
+                        }
+                    }
+                    ImGui.endCombo();
+                }
 
                 /// 3D OBJECT SETTINGS
                 ImGui.separatorText(t("settings.replaylab.settings_3d"));

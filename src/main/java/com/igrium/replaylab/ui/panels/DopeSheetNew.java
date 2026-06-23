@@ -3,19 +3,21 @@ package com.igrium.replaylab.ui.panels;
 import com.igrium.replaylab.config.Keybinds;
 import com.igrium.replaylab.editor.EditorState;
 import com.igrium.replaylab.editor.KeySelectionSet;
+import com.igrium.replaylab.editor.KeySelectionSet.KeyHandleReference;
 import com.igrium.replaylab.editor.KeySelectionSet.KeyframeReference;
-import com.igrium.replaylab.operator.ChangeHandleTypeOperator;
 import com.igrium.replaylab.operator.CommitObjectUpdateOperator;
-import com.igrium.replaylab.operator.RemoveKeyframesOperator;
+import com.igrium.replaylab.operator.SetHandleTypeOperator;
 import com.igrium.replaylab.scene.ReplayScene;
+import com.igrium.replaylab.scene.key.ChannelUtils;
 import com.igrium.replaylab.scene.key.KeyChannel;
 import com.igrium.replaylab.scene.key.Keyframe;
 import com.igrium.replaylab.scene.obj.ReplayObject;
 import com.igrium.replaylab.ui.ReplayLabIcons;
 import com.igrium.replaylab.ui.subpanels.ChannelList;
+import com.igrium.replaylab.ui.subpanels.ChannelListFlags;
+import com.igrium.replaylab.ui.subpanels.TimelineHeader;
 import com.igrium.replaylab.ui.util.ReplayLabControls;
 import com.igrium.replaylab.ui.util.TimelineFlags;
-import com.igrium.replaylab.ui.subpanels.TimelineHeader;
 import imgui.ImColor;
 import imgui.ImDrawList;
 import imgui.ImGui;
@@ -32,18 +34,22 @@ import it.unimi.dsi.fastutil.objects.ObjectObjectImmutablePair;
 import lombok.Getter;
 import lombok.Setter;
 import net.minecraft.util.Identifier;
+import net.minecraft.util.Language;
 import org.jetbrains.annotations.Nullable;
+import org.joml.Vector2d;
 import org.joml.Vector2f;
 
 import java.util.*;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
-public class DopeSheetNew extends UIPanel {
+public class DopeSheetNew extends KeyframePanel {
 
     private static final float SNAP_THRESHOLD_PX = 4f;
     private static final float INTERVAL_DIVISOR = 4f;
-    private static final float MAX_ZOOM_FACTOR = 8f;
+    private static final float MAX_ZOOM = 16f;
 
     private enum KeyframeShape {
         DIAMOND,
@@ -52,12 +58,14 @@ public class DopeSheetNew extends UIPanel {
         CIRCLE_FILLED
     }
 
-    private record KeyDrawData(int ms, boolean selected, KeyframeShape shape) {};
+    private record KeyDrawData(int ms, boolean selected, KeyframeShape shape) {
+    }
 
     /**
      * The X pan amount in milliseconds
      */
-    @Getter @Setter
+    @Getter
+    @Setter
     private double offsetX;
 
     /**
@@ -84,17 +92,13 @@ public class DopeSheetNew extends UIPanel {
      */
     private final Map<KeyframeReference, Double> keyDragOffsets = new HashMap<>();
 
-    private record KeyOffsetPair(KeyframeReference ref, double offset) {};
+    private record KeyOffsetPair(KeyframeReference ref, double offset) {
+    }
 
     /**
      * The key drag offset that's closest to the mouse (ms)
      */
     private @Nullable KeyOffsetPair smallestKeyDragOffset;
-
-    /**
-     * The global location of the smallest key drag offset at the time of drag start in ms
-     */
-    private double dragStartPos;
 
     private final TimelineHeader header = new TimelineHeader();
 
@@ -102,6 +106,8 @@ public class DopeSheetNew extends UIPanel {
     private @Nullable Double panStartPos;
 
     private final ImBoolean snapKeyframes = new ImBoolean();
+
+    private final ImBoolean selectedOnly = new ImBoolean(true);
 
     /**
      * The global pixel position of a selection box start position
@@ -145,7 +151,7 @@ public class DopeSheetNew extends UIPanel {
         if (zoomFactor <= 0) {
             throw new IllegalArgumentException("zoomFactor must be greater than 0.");
         }
-        this.zoomFactor = Math.min(zoomFactor, MAX_ZOOM_FACTOR);
+        this.zoomFactor = Math.min(zoomFactor, MAX_ZOOM);
     }
 
     /**
@@ -155,25 +161,34 @@ public class DopeSheetNew extends UIPanel {
      * @param center     Point to center around (ms)
      */
     public void setZoomFactor(float targetZoom, double center) {
-        targetZoom = Math.min(targetZoom, MAX_ZOOM_FACTOR);
+        targetZoom = Math.min(targetZoom, MAX_ZOOM);
         if (targetZoom == this.zoomFactor) return;
 
         double newOffset = center - (center - offsetX) * (this.zoomFactor / targetZoom);
-        this.zoomFactor = targetZoom;;
+        this.zoomFactor = targetZoom;
         this.offsetX = newOffset;
     }
 
     @Override
     protected void drawContents(EditorState editorState) {
-        drawDopeSheet(editorState, null, editorState.getKeySelection(), editorState.getPlayheadRef());
+        drawDopeSheet(editorState, editorState.getSelectedObjects(), editorState.getKeySelection(), editorState.getPlayheadRef());
+
+        // Jump forward if playing and off screen
+        double endMs = offsetX + header.getWidthMs();
+        if (editorState.isPlaying() && (editorState.getPlayhead() > endMs || editorState.getPlayhead() < offsetX)) {
+            setOffsetX(editorState.getPlayhead());
+        }
 
         long replayTime = editorState.getScene().sceneToReplayTime(editorState.getPlayhead());
-        if (stoppedScrubbing() ||
-                (isScrubbing() && replayTime > EditorState.getReplayHandlerOrThrow().getReplaySender().currentTimeStamp())) {
-            editorState.queueTimeJump();
-        } else if (isScrubbing()) {
-            editorState.queueApplyToGame();
+        if (isScrubbing() || stoppedScrubbing()) {
+            editorState.scrub(stoppedScrubbing());
         }
+//        if (stoppedScrubbing() ||
+//                (isScrubbing() && replayTime > EditorState.getReplayHandlerOrThrow().getReplaySender().currentTimeStamp())) {
+//            editorState.queueTimeJump();
+//        } else if (isScrubbing()) {
+//            editorState.queueApplyToGame();
+//        }
 
         var droppedObjects = getDroppedKeys().stream()
                 .map(KeyframeReference::objectName)
@@ -185,23 +200,25 @@ public class DopeSheetNew extends UIPanel {
             editorState.applyOperator(new CommitObjectUpdateOperator(droppedObjects));
         }
 
+        // Recompute handles
+        keyDragOffsets.keySet().stream()
+                .map(KeyframeReference::channelRef)
+                .distinct().forEach(chRef -> {
+                    KeyChannel ch = chRef.get(editorState.getScene().getObjects());
+                    if (ch == null) return;
+
+                    var dragging = keyDragOffsets.keySet().stream()
+                            .map(hRef -> new ChannelUtils.LocalHandleRef(hRef.keyIndex(), 0))
+                            .collect(Collectors.toSet());
+
+                    ChannelUtils.computeHandles(ch, dragging);
+                });
+
         if (!keyDragOffsets.isEmpty()) {
             editorState.queueApplyToGame();
         }
 
-        if (ImGui.shortcut(Keybinds.deleteSelected())) {
-            var selected = editorState.getKeySelection().getSelectedKeyframes();
-            editorState.getKeySelection().deselectAll();
-            editorState.applyOperator(new RemoveKeyframesOperator(selected));
-        }
-
-        if (ImGui.shortcut(Keybinds.selectAll())) {
-            editorState.getKeySelection().selectAll(editorState.getScene().getObjects());
-        }
-
-        if (ImGui.shortcut(Keybinds.selectNone())) {
-            editorState.getKeySelection().deselectAll();
-        }
+        super.drawContents(editorState);
     }
 
     public void drawDopeSheet(EditorState editor, @Nullable Collection<String> selectedObjects,
@@ -209,9 +226,8 @@ public class DopeSheetNew extends UIPanel {
         ReplayScene scene = editor.getScene();
         droppedKeys.clear();
         updatedKeys.clear();
-//        Collection<String> objs = selectedObjects != null ? selectedObjects : scene.getObjects().keySet();
         Map<String, ReplayObject> objs;
-        if (selectedObjects != null) {
+        if (selectedObjects != null && selectedOnly.get()) {
             objs = new HashMap<>(selectedObjects.size());
             for (var objEntry : scene.getObjects().entrySet()) {
                 if (selectedObjects.contains(objEntry.getKey())) {
@@ -226,8 +242,6 @@ public class DopeSheetNew extends UIPanel {
         mouseStartedDragging = draggingNow && !mouseDragging;
         mouseDragging = draggingNow;
 
-        int majorIntervalX = (int) TimelineHeader.computeMajorInterval(zoomFactor);
-
         float headerCursorY = ImGui.getCursorPosY();
         float headerHeight = ImGui.getTextLineHeight() * 2f;
 
@@ -235,10 +249,17 @@ public class DopeSheetNew extends UIPanel {
         ImGui.sameLine();
 
         /// === BUTTONS ===
-        ReplayLabControls.toggleButton(ReplayLabIcons.ICON_MAGNET, "snapKeyframes", snapKeyframes, "gui.replaylab.tooltip_snap");
+        ReplayLabControls.toggleButton(ReplayLabIcons.ICON_ARROW_POINTER, "selectedOnly", selectedOnly,
+                "gui.replaylab.selected_only");
         ImGui.sameLine();
-        boolean wantsFit = ReplayLabControls.iconButton(ReplayLabIcons.ICON_RESIZE_FULL_ALT, "", "gui.replaylab.tooltip_fit");
 
+        ReplayLabControls.toggleButton(ReplayLabIcons.ICON_MAGNET, "snapKeyframes", snapKeyframes,
+                "gui.replaylab.tooltip_snap");
+        ImGui.sameLine();
+        boolean wantsFit = ReplayLabControls.iconButton(ReplayLabIcons.ICON_RESIZE_FULL_ALT, "fitKeys",
+                "gui.replaylab.tooltip_fit");
+
+        wantsFit |= ImGui.shortcut(Keybinds.frameSelected());
 
         float graphHeight = ImGui.getContentRegionAvailY();
         float headerCursorX;
@@ -254,13 +275,12 @@ public class DopeSheetNew extends UIPanel {
         {
             ///  === CHANNEL LIST ===
             ImGui.beginGroup();
-            var expandedObjects = ChannelList.drawChannelList(scene, objs, 192);
+            var expandedObjects = ChannelList.drawChannelList(selectedKeys, objs, 192,
+                    ChannelListFlags.ALLOW_SELECTION);
             ImGui.endGroup();
             float channelListHeight = ImGui.getItemRectSizeY();
             ImGui.sameLine();
             headerCursorX = ImGui.getCursorPosX() + ImGui.getStyle().getItemSpacing().x;
-
-            float graphStart = ImGui.getCursorPosX();
 
             /// === KEYFRAMES ===
             float graphX = ImGui.getCursorScreenPosX();
@@ -275,17 +295,19 @@ public class DopeSheetNew extends UIPanel {
                 ImGui.pushStyleVar(ImGuiStyleVar.ItemSpacing, ImGui.getStyle().getItemSpacingX(), 0);
 
                 ImDrawList drawList = ImGui.getWindowDrawList();
+                drawList.pushClipRect(graphX, graphY, graphX + graphWidth, graphY + graphHeight);
                 int rowIndex = 0;
 
                 for (var objEntry : objs.entrySet()) {
-                    String objName =  objEntry.getKey();
+                    String objName = objEntry.getKey();
                     ReplayObject obj = objEntry.getValue();
                     if (obj == null) continue;
 
                     // COMBINED ROW
                     {
                         // Map all ms timestamps and the keyframes that land on said timestamp.
-                        Int2ObjectMap<Set<Pair<KeyframeReference, Keyframe>>> combinedKeys = new Int2ObjectOpenHashMap<>();
+                        Int2ObjectMap<Set<Pair<KeyframeReference, Keyframe>>> combinedKeys =
+                                new Int2ObjectOpenHashMap<>();
                         for (var chEntry : obj.getChannels().entrySet()) {
                             var chan = chEntry.getValue();
                             int i = 0;
@@ -323,13 +345,36 @@ public class DopeSheetNew extends UIPanel {
 
 
                         if (drawKeyChannel(drawData, rowIndex, (selIdx, button) -> {
-                            if (button != 0) return; // TODO: right-click
-                            if (!ImGui.getIO().getKeyCtrl()) {
-                                selectedKeys.deselectAll();
-                            }
-                            if (selIdx == null) return;
-                            for (var pair : combinedKeys.get(drawData[selIdx].ms)) {
-                                selectedKeys.selectKeyframe(pair.key());
+                            boolean isCtrl = ImGui.getIO().getKeyCtrl();
+                            if (selIdx != null) {
+                                boolean itemSelected = drawData[selIdx].selected;
+                                var pairs = combinedKeys.get(drawData[selIdx].ms);
+
+                                if (button == 0) { // Left Click
+                                    if (isCtrl) {
+                                        if (!itemSelected) {
+                                            for (var pair : pairs) selectedKeys.selectKeyframe(pair.key());
+                                        } else {
+                                            for (var pair : pairs) selectedKeys.deselectKeyframe(pair.key());
+                                        }
+                                    } else {
+                                        if (!itemSelected) {
+                                            selectedKeys.deselectAll();
+                                            for (var pair : pairs) selectedKeys.selectKeyframe(pair.key());
+                                        }
+                                    }
+                                } else if (button == 1) { // Right Click
+                                    if (!itemSelected) {
+                                        if (!isCtrl) {
+                                            selectedKeys.deselectAll();
+                                        }
+                                        for (var pair : pairs) selectedKeys.selectKeyframe(pair.key());
+                                    }
+                                }
+                            } else {
+                                if (button == 0 && !isCtrl) {
+                                    selectedKeys.deselectAll();
+                                }
                             }
                         }, (keyIdx, pos) -> {
                             for (var pair : combinedKeys.get(drawData[keyIdx].ms)) {
@@ -361,19 +406,38 @@ public class DopeSheetNew extends UIPanel {
                         ImGui.setNextItemWidth(ImGui.getContentRegionAvailX());
 
                         if (drawKeyChannel(drawData, rowIndex, (selIdx, button) -> {
-                            if (button != 0) return;
-
                             boolean isCtrl = ImGui.getIO().getKeyCtrl();
                             String chName = chEntry.getKey();
 
-                            if (!isCtrl) {
-                                selectedKeys.deselectAll();
+                            if (selIdx != null) {
+                                boolean itemSelected = drawData[selIdx].selected;
+
+                                if (button == 0) { // Left Click
+                                    if (isCtrl) {
+                                        if (!itemSelected) {
+                                            selectedKeys.selectKeyframe(objName, chName, selIdx);
+                                        } else {
+                                            selectedKeys.deselectKeyframe(objName, chName, selIdx);
+                                        }
+                                    } else {
+                                        if (!itemSelected) {
+                                            selectedKeys.deselectAll();
+                                            selectedKeys.selectKeyframe(objName, chName, selIdx);
+                                        }
+                                    }
+                                } else if (button == 1) { // Right Click
+                                    if (!itemSelected) {
+                                        if (!isCtrl) {
+                                            selectedKeys.deselectAll();
+                                        }
+                                        selectedKeys.selectKeyframe(objName, chName, selIdx);
+                                    }
+                                }
+                            } else {
+                                if (button == 0 && !isCtrl) {
+                                    selectedKeys.deselectAll();
+                                }
                             }
-
-                            // TODO: Ctrl deselect (broken because of dragging)
-                            if (selIdx != null)
-                                selectedKeys.selectKeyframe(objName, chName, selIdx);
-
                         }, (keyIdx, pos) -> {
                             var ref = new KeyframeReference(objName, chEntry.getKey(), keyIdx);
                             Set<Vector2f> set = keyPositions.computeIfAbsent(ref, v -> new HashSet<>());
@@ -396,19 +460,53 @@ public class DopeSheetNew extends UIPanel {
 
                     if (pixelIn > 0) {
                         float pixelInGlobal = pixelIn + graphX;
-                        drawList.addLine(pixelInGlobal, graphY, pixelInGlobal, graphY + channelListHeight, ImGui.getColorU32(ImGuiCol.Separator));
-                        drawList.addRectFilled(graphX, graphY, pixelInGlobal, graphY + channelListHeight, ImGui.getColorU32(ImGuiCol.ModalWindowDimBg));
+                        drawList.addLine(pixelInGlobal, graphY, pixelInGlobal, graphY + channelListHeight,
+                                ImGui.getColorU32(ImGuiCol.Separator));
+                        drawList.addRectFilled(graphX, graphY, pixelInGlobal, graphY + channelListHeight,
+                                ImGui.getColorU32(ImGuiCol.ModalWindowDimBg));
                     }
 
                     if (pixelOut < graphWidth) {
                         float pixelOutGlobal = pixelOut + graphX;
-                        drawList.addLine(pixelOutGlobal, graphY, pixelOutGlobal, graphY + channelListHeight, ImGui.getColorU32(ImGuiCol.Separator));
-                        drawList.addRectFilled(pixelOutGlobal, graphY, graphX + graphWidth, graphY + channelListHeight, ImGui.getColorU32(ImGuiCol.ModalWindowDimBg));
+                        drawList.addLine(pixelOutGlobal, graphY, pixelOutGlobal, graphY + channelListHeight,
+                                ImGui.getColorU32(ImGuiCol.Separator));
+                        drawList.addRectFilled(pixelOutGlobal, graphY, graphX + graphWidth,
+                                graphY + channelListHeight, ImGui.getColorU32(ImGuiCol.ModalWindowDimBg));
                     }
+
                 }
+                drawList.popClipRect();
 
             }
             ImGui.endGroup();
+            float renderedGraphWidth = ImGui.getItemRectSizeX();
+
+            /// === FITTING ===
+            if (wantsFit) {
+                Vector2d bounds = new Vector2d();
+
+                // Don't need over-optimization cause it's only called when fitting
+                List<Keyframe> keys;
+                if (selectedKeys.isEmpty()) {
+                    keys = StreamSupport.stream(KeySelectionSet.iterateAllHandles(objs).spliterator(), false)
+                            .map(KeyHandleReference::keyRef)
+                            .distinct()
+                            .map(k -> k.get(objs))
+                            .filter(Objects::nonNull)
+                            .toList();
+                } else {
+                    keys = selectedKeys.getSelectedKeyframes().stream()
+                            .filter(k -> objs.containsKey(k.objectName()))
+                            .map(k -> k.get(objs))
+                            .filter(Objects::nonNull)
+                            .toList();
+                }
+
+                if (computeTimeBounds(keys, bounds)) {
+                    setOffsetX(bounds.x);
+                    setZoomFactor((float) (renderedGraphWidth / (bounds.y - offsetX)));
+                }
+            }
 
             /// === RIGHT CLICK ===
             boolean rightClicked = ImGui.isItemClicked(ImGuiMouseButton.Right);
@@ -444,29 +542,18 @@ public class DopeSheetNew extends UIPanel {
                         }
                     }
                     Keyframe.HandleType newHandleType = null;
-                    if (ImGui.menuItem("Free", "", handleType == Keyframe.HandleType.FREE)) {
-                        newHandleType = Keyframe.HandleType.FREE;
+                    for (var type : Keyframe.HandleType.values()) {
+                        if (ImGui.menuItem(t(type.getTranslationKey()), "", handleType == type)) {
+                            newHandleType = type;
+                        }
                     }
-                    if (ImGui.menuItem("Aligned", "", handleType == Keyframe.HandleType.ALIGNED)) {
-                        newHandleType = Keyframe.HandleType.ALIGNED;
-                    }
-                    if (ImGui.menuItem("Vector", "", handleType == Keyframe.HandleType.VECTOR)) {
-                        newHandleType = Keyframe.HandleType.VECTOR;
-                    }
-                    if (ImGui.menuItem("Automatic", "", handleType == Keyframe.HandleType.AUTO)) {
-                        newHandleType = Keyframe.HandleType.AUTO;
-                    }
-                    if (ImGui.menuItem("Auto Clamped", "", handleType == Keyframe.HandleType.AUTO_CLAMPED)) {
-                        newHandleType = Keyframe.HandleType.AUTO_CLAMPED;
-                    }
-
                     if (newHandleType != null) {
 
-                        List<KeySelectionSet.KeyHandleReference> handleRefs = new ArrayList<>(contextKeys.size() * 2);
+                        List<KeyHandleReference> handleRefs = new ArrayList<>(contextKeys.size() * 2);
                         for (var key : contextKeys.keySet()) {
-                            handleRefs.add(new KeySelectionSet.KeyHandleReference(key, 0));
+                            handleRefs.add(new KeyHandleReference(key, 0));
                         }
-                        var handleOperator = new ChangeHandleTypeOperator(handleRefs, newHandleType);
+                        var handleOperator = new SetHandleTypeOperator(newHandleType, handleRefs);
                         editor.applyOperator(handleOperator);
                     }
 
@@ -508,13 +595,18 @@ public class DopeSheetNew extends UIPanel {
             /// === BOX SELECT ===
             // Start/stop
             {
+                boolean isHoveringGraph = ImGui.isMouseHoveringRect(graphX, graphY, graphX + renderedGraphWidth, graphY + graphHeight);
+
                 if (!isBoxSelecting() && !isDragging() && !isScrubbing() && !hoveringAnyKey
-                        && ImGui.isWindowHovered(ImGuiHoveredFlags.ChildWindows | ImGuiHoveredFlags.AllowWhenBlockedByActiveItem) && ImGui.isMouseDown(0)) {
+                        && isHoveringGraph
+                        && ImGui.isWindowHovered(ImGuiHoveredFlags.ChildWindows)
+                        && ImGui.isMouseClicked(0)) {
+
                     boxSelectStart = ImGui.getMousePos();
+
                     if (!ImGui.getIO().getKeyCtrl()) {
                         selectedKeys.deselectAll();
                     }
-                    boxSelectStart = ImGui.getMousePos();
                 } else if (!ImGui.isMouseDown(0)) {
                     boxSelectStart = null;
                 }
@@ -572,7 +664,7 @@ public class DopeSheetNew extends UIPanel {
                         Set<Keyframe> draggingFrames = keyDragOffsets.keySet().stream()
                                 .map(r -> r.get(scene.getObjects()))
                                 .filter(Objects::nonNull)
-                                .collect(java.util.stream.Collectors.toSet());
+                                .collect(Collectors.toSet());
 
                         double bestDistPx = Double.MAX_VALUE;
                         double bestSnapMs = 0;
@@ -621,20 +713,21 @@ public class DopeSheetNew extends UIPanel {
         } else if (wantStartDragging) {
             // Begin a new drag
             double mouseMs = pixelXToMs(ImGui.getMousePosX());
-            dragStartPos = mouseMs;
+            /**
+             * The global location of the smallest key drag offset at the time of drag start in ms
+             */
             smallestKeyDragOffset = null;
 
             selectedKeys.forSelectedKeyframes(ref -> {
-                Keyframe keyframe = ref.get(scene.getObjects());
-                if (keyframe == null) return;
+                KeyChannel chan = ref.channelRef().get(scene.getObjects());
+                if (chan == null || chan.isLocked()) return;
+                Keyframe keyframe = chan.getKeyframes().get(ref.keyIndex());
 
                 // Store each key's original time as its drag base.
-                // The update loop adds the raw pixel drag delta to this value.
                 double offset = keyframe.getTime();
                 keyDragOffsets.put(ref, offset);
 
-                // Track whichever selected key sits closest to the mouse cursor,
-                // so snapping (if enabled) can anchor to the nearest key.
+                // Track whichever selected key sits closest to the mouse cursor
                 double distToMouse = Math.abs(keyframe.getTime() - mouseMs);
                 if (smallestKeyDragOffset == null
                         || distToMouse < Math.abs(smallestKeyDragOffset.offset() - mouseMs)) {
@@ -702,9 +795,7 @@ public class DopeSheetNew extends UIPanel {
         if (ImGui.isItemHovered()) {
             if (!mouseStartedDragging || hovered == null) {
                 if (ImGui.isMouseClicked(0)) {
-                    if (hovered == null || !keys[hovered].selected) {
-                        onClick.accept(hovered, 0);
-                    }
+                    onClick.accept(hovered, 0);
                 } else if (ImGui.isMouseClicked(1)) {
                     onClick.accept(hovered, 1);
                 }
@@ -716,7 +807,6 @@ public class DopeSheetNew extends UIPanel {
             boolean selected = keys[i].selected;
             int keyColor = selected ? ImColor.rgb(1f, 1f, 1f) : ImColor.rgb(.5f, .5f, .5f);
             Vector2f pos = new Vector2f(cursorX + msToPixelX(keyMs), centerY);
-//            drawList.addNgonFilled(pos.x, pos.y, keyRadius, keyColor, 4);
             drawKeyframe(keys[i].shape, pos.x, pos.y, keyRadius, keyColor, drawList);
             screenPosSink.accept(i, pos);
         }
@@ -734,7 +824,7 @@ public class DopeSheetNew extends UIPanel {
                 return KeyframeShape.DIAMOND;
         }
 
-        return switch(handleTypes[0]) {
+        return switch (handleTypes[0]) {
             case AUTO -> KeyframeShape.CIRCLE;
             case AUTO_CLAMPED -> KeyframeShape.CIRCLE_FILLED;
             case VECTOR -> KeyframeShape.SQUARE;
@@ -765,5 +855,26 @@ public class DopeSheetNew extends UIPanel {
     private static int replaceAlpha(int colorArgb, int newAlpha) {
         newAlpha &= 0xFF;
         return (colorArgb & 0x00FFFFFF) | (newAlpha << 24);
+    }
+
+    private static boolean computeTimeBounds(Collection<? extends Keyframe> selected, Vector2d dest) {
+        if (selected.size() < 2) return false;
+        boolean foundAny = false;
+        for (var key : selected) {
+
+            if (!foundAny) {
+                dest.set(key.getCenter());
+                foundAny = true;
+            } else {
+                dest.x = Math.min(key.getTime(), dest.x);
+                dest.y = Math.max(key.getTime(), dest.y);
+            }
+        }
+
+        return foundAny;
+    }
+
+    private static String t(String key) {
+        return Language.getInstance().get(key) + "###" + key;
     }
 }

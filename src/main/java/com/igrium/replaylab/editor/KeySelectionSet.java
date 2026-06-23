@@ -253,6 +253,20 @@ public class KeySelectionSet {
     }
 
     /**
+     * Get all the keyframes that are selected in a given channel
+     * @param objName Object name
+     * @param chName Channel name
+     * @return A set of all selected keyframes
+     */
+    public IntSet getSelectedKeyframes(String objName, String chName) {
+        var obj = selected.get(objName);
+        if (obj == null) return IntSet.of();
+
+        var ch = obj.get(chName);
+        return ch != null ? ch.keySet() : IntSet.of();
+    }
+
+    /**
      * Get a set of every selected keyframe in the scene.
      *
      * @return Immutable set of selected keyframe references.
@@ -304,6 +318,14 @@ public class KeySelectionSet {
 
     public void forSelectedHandles(Consumer<KeyHandleReference> c, boolean includeChildren) {
         forSelectedHandles((obj, ch, key, handle) -> c.accept(new KeyHandleReference(obj, ch, key, handle)), true);
+    }
+
+    public Int2ObjectMap<IntSet> getSelectedHandles(String objName, String chName) {
+        var selectedChans = selected.get(objName);
+        if (selectedChans == null) return Int2ObjectMaps.emptyMap();
+
+        Int2ObjectMap<IntSet> selectedKeys = selectedChans.get(chName);
+        return selectedKeys != null ? selectedKeys : Int2ObjectMaps.emptyMap();
     }
 
     /**
@@ -424,6 +446,7 @@ public class KeySelectionSet {
      * @return <code>true</code> if that handle is selected.
      */
     public boolean isHandleSelected(KeyHandleReference ref) {
+        if (ref == null) return false;
         return isHandleSelected(ref.objectName(), ref.channelName(), ref.keyIndex(), ref.handleIndex());
     }
 
@@ -537,6 +560,16 @@ public class KeySelectionSet {
      */
     public boolean selectKeyframe(KeyframeReference ref) {
         return selectKeyframe(ref.objectName(), ref.channelName(), ref.keyIndex());
+    }
+
+    /**
+     * Select all handles in a keyframe
+     * @param chRef The channel reference
+     * @param keyIdx The keyframe's index within the channel
+     * @return <code>true</code> if the selection was modified as a result of this call.
+     */
+    public boolean selectKeyframe(ChannelReference chRef, int keyIdx) {
+        return selectKeyframe(chRef.objectName(), chRef.channelName(), keyIdx);
     }
 
     /**

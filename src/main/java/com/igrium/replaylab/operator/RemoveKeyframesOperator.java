@@ -2,6 +2,7 @@ package com.igrium.replaylab.operator;
 
 import com.igrium.replaylab.editor.EditorState;
 import com.igrium.replaylab.editor.KeySelectionSet.KeyframeReference;
+import com.igrium.replaylab.scene.key.ChannelUtils;
 import com.igrium.replaylab.scene.key.KeyChannel;
 import com.igrium.replaylab.scene.obj.ReplayObject;
 import it.unimi.dsi.fastutil.ints.IntArraySet;
@@ -67,6 +68,9 @@ public class RemoveKeyframesOperator extends MultiObjectOperator {
             if (objSuccess) {
                 obj.removeEmptyChannels();
                 success = true;
+                for (var chan : obj.getChannels().values()) {
+                    ChannelUtils.computeHandles(chan, null);
+                }
             }
         }
         return success;

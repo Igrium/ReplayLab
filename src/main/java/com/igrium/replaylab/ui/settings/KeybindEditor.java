@@ -36,10 +36,15 @@ public class KeybindEditor {
             changed |= drawBinding("key.replaylab.undo", current.getUndo(), defBinds.getUndo(), current::setUndo);
             changed |= drawBinding("key.replaylab.redo", current.getRedo(), defBinds.getRedo(), current::setRedo);
 
+            changed |= drawBinding("key.replaylab.copy", current.getCopy(), defBinds.getCopy(), current::setCopy);
+            changed |= drawBinding("key.replaylab.paste", current.getPaste(), defBinds.getPaste(), current::setPaste);
+
             ImGui.separator();
 
             changed |= drawBinding("key.replaylab.playpause", current.getPlayPause(), defBinds.getPlayPause(), current::setPlayPause);
             changed |= drawBinding("key.replaylab.cameraview", current.getCameraView(), defBinds.getCameraView(), current::setCameraView);
+            changed |= drawBinding("key.replaylab.active_to_cam", current.getActiveToCam(), defBinds.getActiveToCam(), current::setActiveToCam);
+            changed |= drawBinding("key.replaylab.frame", current.getFrameSelected(), defBinds.getFrameSelected(), current::setFrameSelected);
 
             ImGui.separator();
 
@@ -53,7 +58,13 @@ public class KeybindEditor {
             changed |= drawBinding("key.replaylab.select_all", current.getSelectAll(), defBinds.getSelectAll(), current::setSelectAll);
             changed |= drawBinding("key.replaylab.select_none", current.getSelectNone(), defBinds.getSelectNone(), current::setSelectNone);
             changed |= drawBinding("key.replaylab.delete", current.getDeleteSelected(), defBinds.getDeleteSelected(), current::setDeleteSelected);
+
+            ImGui.separator();
+
             changed |= drawBinding("key.replaylab.add_key", current.getAddKey(), defBinds.getAddKey(), current::setAddKey);
+            changed |= drawBinding("key.replaylab.add_key_pos", current.getAddKeyPos(), defBinds.getAddKeyPos(), current::setAddKeyPos);
+            changed |= drawBinding("key.replaylab.add_key_rot", current.getAddKeyRot(),  defBinds.getAddKeyRot(), current::setAddKeyRot);
+            changed |= drawBinding("key.replaylab.add_key_scale", current.getAddKeyScale(), defBinds.getAddKeyScale(), current::setAddKeyScale);
             changed |= drawBinding("key.replaylab.add_key_s", current.getAddKeySingle(), defBinds.getAddKeySingle(), current::setAddKeySingle);
 
             ImGui.separator();
@@ -125,14 +136,7 @@ public class KeybindEditor {
             }
         } else {
             // Render the current binding as a single interactive button
-            StringBuilder btnText = new StringBuilder();
-            int key = ShortcutUtils.getChordKey(value);
-            int[] mods = ShortcutUtils.getChordMods(value);
-
-            for (int mod : mods) {
-                btnText.append(ShortcutUtils.getModName(mod)).append(" + ");
-            }
-            btnText.append(ShortcutUtils.getKeyName(key));
+            String btnText = ShortcutUtils.getChordLabel(value);
 
             if (ImGui.button(btnText + "###" + labelKey, -1, 0)) {
                 currentlyEditing = labelKey; // Switch into edit mode
@@ -157,8 +161,8 @@ public class KeybindEditor {
                 key == ImGuiKey.LeftShift || key == ImGuiKey.RightShift ||
                 key == ImGuiKey.LeftAlt || key == ImGuiKey.RightAlt ||
                 key == ImGuiKey.LeftSuper || key == ImGuiKey.RightSuper ||
-                key == ImGuiKey.ModCtrl || key == ImGuiKey.ModShift ||
-                key == ImGuiKey.ModAlt || key == ImGuiKey.ModSuper;
+                key == ImGuiKey.ImGuiMod_Ctrl || key == ImGuiKey.ImGuiMod_Shift ||
+                key == ImGuiKey.ImGuiMod_Alt || key == ImGuiKey.ImGuiMod_Super;
     }
 
     private static String t(String key) {

@@ -1,20 +1,39 @@
 package com.igrium.replaylab.editor;
 
+import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonArray;
 import com.igrium.replaylab.ReplayLab;
 import com.igrium.replaylab.camera.RollProvider;
+import com.igrium.replaylab.math.Transform3;
+import com.igrium.replaylab.mixin.AccessorReplayHandler;
 import com.igrium.replaylab.operator.CommitObjectUpdateOperator;
+import com.igrium.replaylab.operator.PasteKeyframesOperator;
+import com.igrium.replaylab.operator.PasteObjectsOperator;
 import com.igrium.replaylab.operator.ReplayOperator;
+import com.igrium.replaylab.playback.AbstractScenePlayer;
 import com.igrium.replaylab.playback.RealtimeScenePlayer;
 import com.igrium.replaylab.render.VideoRenderSettings;
 import com.igrium.replaylab.render.VideoRenderer;
 import com.igrium.replaylab.scene.ReplayScene;
 import com.igrium.replaylab.scene.ReplayScenes;
+import com.igrium.replaylab.scene.key.KeyChannel;
 import com.igrium.replaylab.scene.obj.ReplayObject;
 import com.igrium.replaylab.scene.obj.ReplayObject3D;
+import com.igrium.replaylab.scene.obj.SerializedReplayObject;
+import com.igrium.replaylab.scene.obj.TransformProvider;
+import com.igrium.replaylab.ui.util.QuickModeInitCallback;
+import com.igrium.replaylab.util.RenderUtils;
+import com.mojang.blaze3d.systems.RenderSystem;
+import com.replaymod.replay.QuickReplaySender;
 import com.replaymod.replay.ReplayHandler;
 import com.replaymod.replay.ReplayModReplay;
 import com.replaymod.replaystudio.replay.ReplayFile;
 import imgui.type.ImInt;
+import it.unimi.dsi.fastutil.floats.FloatConsumer;
+import it.unimi.dsi.fastutil.ints.IntSet;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.Setter;
@@ -23,8 +42,12 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.entity.Entity;
 import net.minecraft.util.Util;
+import net.minecraft.util.math.Vec3d;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.joml.Vector3d;
+import org.joml.Vector3dc;
+import org.joml.Vector3f;
 import org.slf4j.Logger;
 import org.joml.Math;
 
@@ -41,7 +64,7 @@ import java.util.function.Predicate;
  * Manages replay lab editor state. Implemented to try to separate editor global logic from UI for code cleanliness.
  * Scene-level operations are implemented in {@link ReplayScene}
  */
-public class EditorState {
+public final class EditorState {
 
     /// ===== Static Members =====
 
@@ -59,6 +82,8 @@ public class EditorState {
         return handler;
     }
 
+    // Replay mod does this so I have no choice
+    @SuppressWarnings("SynchronizationOnLocalVariableOrMethodParameter")
     private static void removeScene(ReplayFile file, String sceneName) throws IOException {
         synchronized (file) {
             file.remove(ReplayScenes.getSceneName(sceneName));
@@ -102,8 +127,23 @@ public class EditorState {
     @Setter @Nullable
     private Consumer<? super Throwable> exceptionCallback;
 
+    @Setter
+    private @Nullable Consumer<? super ReplayOperator> operatorCallback;
+
     @Nullable
     private RealtimeScenePlayer scenePlayer;
+
+    @Nullable
+    private ScrubbingScenePlayer scrubbingScenePlayer;
+
+    @Getter
+    private boolean scrubbing;
+
+    /**
+     * When we're scrubbing without quick mode,
+     * this is the position in the timeline that was last applied to the replay scene.
+     */
+    private int maxScrubForwardTime;
 
     @Getter
     private final List<String> scenes = Collections.synchronizedList(new ArrayList<>());
@@ -158,6 +198,11 @@ public class EditorState {
     @Getter @Setter @Accessors(fluent = true)
     private boolean showGizmoScale;
 
+    @Getter @Setter
+    private boolean wantOpenInspector;
+
+    @Setter @Nullable
+    private QuickModeInitCallback quickModeInitCallback;
 
     /// ===== Constructors =====
     public EditorState() {
@@ -166,11 +211,11 @@ public class EditorState {
 
     /// ===== Getters/Setters =====
 
-    public final int getPlayhead() {
+    public int getPlayhead() {
         return playheadRef.get();
     }
 
-    public final void setPlayhead(int playhead) {
+    public void setPlayhead(int playhead) {
         playheadRef.set(playhead);
     }
 
@@ -264,11 +309,52 @@ public class EditorState {
         showGizmoScale = scale && !turnOff;
     }
 
+    public boolean isQuickMode() {
+        // While this CAN be static, the fact that ReplayHandler is static is a hack, and I'd rather not expose that.
+        ReplayHandler replayHandler = getReplayHandler();
+        return replayHandler != null && replayHandler.isQuickMode();
+    }
+
+    public void setQuickMode(boolean quickMode) {
+        ReplayHandler replayHandler = getReplayHandler();
+        if (replayHandler == null) {
+            LOGGER.warn("No replay handler found; unable to set quick mode.");
+            return;
+        }
+
+        if (quickModeInitCallback != null) {
+            quickModeInitCallback.openPopup();
+        }
+
+        replayHandler.getReplaySender().setSyncModeAndWait();
+
+        ensureQuickModeEnabled(progress -> {
+            if (quickModeInitCallback != null) quickModeInitCallback.onProgress(progress);
+        }).thenRun(() -> {
+            ReplayHandler handler = getReplayHandler();
+            handler.setQuickMode(quickMode);
+            handler.getReplaySender().setAsyncMode(true);
+        }).whenCompleteAsync((result, e) -> {
+            if (quickModeInitCallback != null) {
+                quickModeInitCallback.closePopup();
+            }
+            if (e != null) {
+                LOGGER.error("Failed to set quick mode.", e);
+                onException(e);
+            }
+            doTimeJump();
+        }, RenderUtils::onRenderThread);
+    }
+
+
     /// ===== Scene Management =====
 
     public ReplayScene newScene(String sceneName) {
         ReplayScene scene = new ReplayScene();
         setScene(scene, sceneName);
+
+        // TODO: create camera and teleport to player
+
         try {
             saveScene();
             LOGGER.info("Created new scene: {}", sceneName);
@@ -289,6 +375,9 @@ public class EditorState {
         try {
             var scene = ReplayScenes.readScene(sceneName, getReplayHandlerOrThrow().getReplayFile(), this::onException);
             setScene(scene, sceneName);
+            String camId = scene.getSceneProps().getCameraObject();
+            selectedObjects.add(camId);
+            setActiveObject(camId);
             return scene;
         } catch (Exception e) {
             LOGGER.error("Error loading scene {}: ", sceneName, e);
@@ -414,10 +503,13 @@ public class EditorState {
                 pilotingCamera = false;
                 applyOperator(new CommitObjectUpdateOperator(false, cameraObj.getId()));
             }
-            else if (cameraEnt != null && player != null) {
-                // TP player to camera
-                player.refreshPositionAndAngles(cameraEnt.getX(), cameraEnt.getY() - player.getStandingEyeHeight(), cameraEnt.getZ(),
-                        cameraEnt.getYaw(), cameraEnt.getPitch());
+            else if (isCameraView() && player != null && cameraObj instanceof ReplayObject3D cam3d) {
+                // TP player to camera, taken directly from the replay object rather than going through camera ent,
+                // which has been through quaternion.
+                Vector3f euler = cam3d.rotation().getEulerYXZ(new Vector3f());
+                player.refreshPositionAndAngles(cam3d.position().x,
+                        cam3d.position().y - player.getStandingEyeHeight(), cam3d.position().z,
+                        -Math.toDegrees(euler.y), Math.toDegrees(euler.x));
             }
 
         } else {
@@ -488,6 +580,49 @@ public class EditorState {
         wantsTimeJump = false;
     }
 
+    /**
+     * Called when the playhead is being scrubbed
+     * @param drop If the playhead was dropped this frame
+     */
+    public void scrub(boolean drop) {
+
+        if (drop) {
+            // Scrub finished: tear down the player
+            if (scrubbingScenePlayer != null) {
+                scrubbingScenePlayer.stop();
+                scrubbingScenePlayer = null;
+            }
+            maxScrubForwardTime = 0;
+            queueTimeJump();
+            queueApplyToGame();
+
+        } else if (getPlayhead() >= maxScrubForwardTime) {
+            // Scrubbing forward: playhead is at or ahead of the furthest position seen.
+            if (!isScrubbing()) {
+                doTimeJump();
+            }
+            if (scrubbingScenePlayer == null) {
+                scrubbingScenePlayer = new ScrubbingScenePlayer();
+                scrubbingScenePlayer.start(getScene());
+            }
+            maxScrubForwardTime = getPlayhead();
+
+        } else {
+            // Scrubbing backward: the scene player can't go backwards, so stop it
+            if (scrubbingScenePlayer != null) {
+                scrubbingScenePlayer.stop();
+                scrubbingScenePlayer = null;
+            }
+            // If we're in quick mode, we can time-jump to immediately.
+            if (isQuickMode()) {
+                queueTimeJump();
+                maxScrubForwardTime = getPlayhead();
+            }
+        }
+
+        scrubbing = !drop;
+    }
+
     public void jumpSceneStart() {
         setPlayhead(0);
         queueTimeJump();
@@ -496,6 +631,14 @@ public class EditorState {
     public void jumpSceneEnd() {
         setPlayhead(getScene().getLength());
         queueTimeJump();
+    }
+
+    public void jumpPrevKeyframe() {
+        // TODO: implement
+    }
+
+    public void jumpNextKeyframe() {
+        // TODO: implement
     }
 
     /// ===== Game Integration =====
@@ -540,7 +683,74 @@ public class EditorState {
         return scene.getSceneCamera();
     }
 
-    // ===== Operators & Undo/Redo =====
+    public void snapViewportToSelected() {
+        ClientPlayerEntity player = mc.player;
+        if (player == null || selectedObjects.isEmpty()) return;
+
+        int count = 0;
+        Vector3d center = new Vector3d();
+
+        for (String objId : selectedObjects) {
+            ReplayObject obj = scene.getObject(objId);
+            if (obj instanceof TransformProvider tProv) {
+                center.add(tProv.getTransform(new Transform3()).pos());
+                count++;
+            }
+        }
+
+        if (count == 0) return;
+        center.div(count);
+
+        snapViewportTo(center);
+    }
+
+    public void snapViewportTo(Vector3dc target) {
+        snapViewportTo(target.x(), target.y(), target.z());
+    }
+
+    public void snapViewportTo(double x, double y, double z) {
+        ClientPlayerEntity player = mc.player;
+        if (player == null) return;
+
+        Vec3d forward = player.getRotationVector();
+        Vector3d vec = new Vector3d(forward.x, forward.y, forward.z);
+
+        vec.mul(-4);
+        vec.add(x, y, z);
+
+        player.refreshPositionAndAngles(vec.x, vec.y - player.getStandingEyeHeight(), vec.z,
+                player.getYaw(), player.getPitch());
+    }
+
+    public CompletableFuture<?> ensureQuickModeEnabled(@Nullable FloatConsumer progressConsumer) {
+        CompletableFuture<?> future = new CompletableFuture<>();
+        ReplayHandler handler = getReplayHandlerOrThrow();
+        QuickReplaySender quickReplaySender = ((AccessorReplayHandler) handler).getQuickReplaySender();
+        ListenableFuture<Void> lFuture = quickReplaySender.getInitializationPromise();
+
+
+        if (lFuture == null) {
+            lFuture = quickReplaySender.initialize(progress -> {
+                if (progressConsumer != null) progressConsumer.accept(progress.floatValue());
+            });
+        }
+
+        Futures.addCallback(lFuture, new FutureCallback<>() {
+            @Override
+            public void onSuccess(@Nullable Void result) {
+                future.complete(null);
+            }
+
+            @Override
+            public void onFailure(@NonNull Throwable t) {
+                future.completeExceptionally(t);
+            }
+        }, Runnable::run);
+
+        return future;
+    }
+
+    /// ===== Operators & Undo/Redo =====
 
     public boolean applyOperator(ReplayOperator operator) {
         return applyOperator(operator, true);
@@ -552,6 +762,9 @@ public class EditorState {
             if (applyToGame) {
                 applyToGame(operator.wantsSampleCurves());
             }
+            if (operatorCallback != null) {
+                operatorCallback.accept(operator);
+            }
             return true;
         }
         return false;
@@ -562,6 +775,9 @@ public class EditorState {
         if (op != null) {
             saveSceneAsync();
             applyToGame(op.wantsSampleCurves());
+            if (operatorCallback != null) {
+                operatorCallback.accept(op);
+            }
             return true;
         }
         return false;
@@ -572,9 +788,59 @@ public class EditorState {
         if (op != null) {
             saveSceneAsync();
             applyToGame(op.wantsSampleCurves());
+            if (operatorCallback != null) {
+                operatorCallback.accept(op);
+            }
             return true;
         }
         return false;
+    }
+
+    public String copyKeyframes() {
+
+        Map<KeySelectionSet.ChannelReference, JsonArray> arrays = new HashMap<>();
+
+        for (var entry : getKeySelection().getSelectedChannels().entrySet()) {
+            for (var chName : entry.getValue()) {
+                var chRef = new KeySelectionSet.ChannelReference(entry.getKey(), chName);
+                KeyChannel chan = chRef.get(getScene().getObjects());
+                if (chan == null) continue;
+
+                IntSet selected = keySelection.getSelectedKeyframes(chRef.objectName(), chName);
+                arrays.put(chRef, chan.copyToClipboard(getPlayhead(), selected));
+            }
+        }
+        return new GsonBuilder().enableComplexMapKeySerialization().create().toJson(arrays);
+    }
+
+
+    public void pasteKeyframes(String clipboard) {
+        if (clipboard.isBlank()) return;
+
+        PasteKeyframesOperator op = PasteKeyframesOperator.create(clipboard, this::onException);
+        if (op != null) {
+            applyOperator(op);
+        }
+    }
+
+    public String copyObjects() {
+        Map<String, SerializedReplayObject> objects = new HashMap<>();
+        for (var objId : selectedObjects) {
+            ReplayObject obj = scene.getObject(objId);
+            if (obj == null) continue;
+
+            objects.put(objId, obj.save());
+        }
+        return new GsonBuilder().enableComplexMapKeySerialization().create().toJson(objects);
+    }
+
+    public void pasteObjects(String clipboard) {
+        if (clipboard.isBlank()) return;
+
+        PasteObjectsOperator op = PasteObjectsOperator.create(clipboard, this::onException);
+        if (op != null) {
+            applyOperator(op);
+        }
     }
 
     /// ===== Saving =====
@@ -639,6 +905,21 @@ public class EditorState {
             onException(e);
         } finally {
             renderer = null;
+        }
+    }
+
+    private class ScrubbingScenePlayer extends AbstractScenePlayer {
+
+
+        public ScrubbingScenePlayer() {
+            super(getReplayHandlerOrThrow());
+        }
+
+        @Override
+        public int getTimePassed() {
+            int time = Math.max(maxScrubForwardTime, getPlayhead());
+            maxScrubForwardTime = time;
+            return time;
         }
     }
 }

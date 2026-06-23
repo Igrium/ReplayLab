@@ -7,18 +7,28 @@ import lombok.Setter;
 @Getter @Setter
 public class Keybinds {
 
-    private int undo = ImGuiKey.ModCtrl | ImGuiKey.Z;
-    private int redo = ImGuiKey.ModCtrl | ImGuiKey.ModShift | ImGuiKey.Z;
+    private int undo = ImGuiKey.ImGuiMod_Ctrl | ImGuiKey.Z;
+    private int redo = ImGuiKey.ImGuiMod_Ctrl | ImGuiKey.ImGuiMod_Shift | ImGuiKey.Z;
+
+    private int copy = ImGuiKey.ImGuiMod_Ctrl | ImGuiKey.C;
+    private int paste = ImGuiKey.ImGuiMod_Ctrl | ImGuiKey.V;
 
     private int playPause = ImGuiKey.Space;
     private int cameraView = ImGuiKey.C;
+    private int cameraToView = ImGuiKey.ImGuiMod_Shift | ImGuiKey.C;
+    private int activeToCam = ImGuiKey.ImGuiMod_Alt | ImGuiKey.C;
+    private int frameSelected = ImGuiKey.F;
 
-    private int selectAll = ImGuiKey.ModCtrl | ImGuiKey.A;
-    private int selectNone = ImGuiKey.ModAlt | ImGuiKey.A;
+    private int selectAll = ImGuiKey.ImGuiMod_Ctrl | ImGuiKey.A;
+    private int selectNone = ImGuiKey.ImGuiMod_Alt | ImGuiKey.A;
     private int deleteSelected = ImGuiKey.Delete;
 
     private int addKey = ImGuiKey.I;
-    private int addKeySingle = ImGuiKey.ModAlt | ImGuiKey.I;
+    private int addKeyPos = ImGuiKey.ImGuiMod_Shift | ImGuiKey.W;
+    private int addKeyRot = ImGuiKey.ImGuiMod_Shift | ImGuiKey.E;
+    private int addKeyScale = ImGuiKey.ImGuiMod_Shift | ImGuiKey.R;
+    private int addKeySingle = ImGuiKey.ImGuiMod_Shift | ImGuiKey.I;
+
 
     private int localTransforms = ImGuiKey.Tab;
     private int gizmoAll = ImGuiKey.Q;
@@ -28,19 +38,28 @@ public class Keybinds {
 
     private int cameraRoll = ImGuiKey.R;
 
-    private int sceneStart = ImGuiKey.I;
-    private int sceneEnd = ImGuiKey.O;
-    private int prevKey = ImGuiKey.J;
-    private int nextKey = ImGuiKey.K;
+    private int sceneStart = ImGuiKey.Home;
+    private int sceneEnd = ImGuiKey.End;
+    private int prevKey = ImGuiKey.Comma;
+    private int nextKey = ImGuiKey.Period;
 
     public void copyFrom(Keybinds other) {
         this.undo = other.undo;
         this.redo = other.redo;
 
+        this.copy = other.copy;
+        this.paste = other.paste;
+
         this.playPause = other.playPause;
         this.cameraView = other.cameraView;
+        this.cameraToView = other.cameraToView;
+        this.activeToCam = other.activeToCam;
+        this.frameSelected = other.frameSelected;
 
         this.addKey = other.addKey;
+        this.addKeyPos = other.addKeyPos;
+        this.addKeyRot = other.addKeyRot;
+        this.addKeyScale = other.addKeyScale;
         this.addKeySingle = other.addKeySingle;
 
         this.selectAll = other.selectAll;
@@ -73,6 +92,14 @@ public class Keybinds {
         return getKeybinds().getRedo();
     }
 
+    public static int copy() {
+        return getKeybinds().getCopy();
+    }
+
+    public static int paste() {
+        return getKeybinds().getPaste();
+    }
+
     public static int playPause() {
         return getKeybinds().getPlayPause();
     }
@@ -81,8 +108,32 @@ public class Keybinds {
         return getKeybinds().getCameraView();
     }
 
+    public static int cameraToView() {
+        return getKeybinds().getCameraToView();
+    }
+
+    public static int activeToCam() {
+        return getKeybinds().getActiveToCam();
+    }
+
+    public static int frameSelected() {
+        return getKeybinds().getFrameSelected();
+    }
+
     public static int addKey() {
         return getKeybinds().getAddKey();
+    }
+
+    public static int addKeyPos() {
+        return getKeybinds().getAddKeyPos();
+    }
+
+    public static int addKeyRot() {
+        return getKeybinds().getAddKeyRot();
+    }
+
+    public static int addKeyScale() {
+        return getKeybinds().getAddKeyScale();
     }
 
     public static int addKeySingle() {

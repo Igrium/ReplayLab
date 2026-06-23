@@ -47,7 +47,10 @@ public class ReplayScene {
     @Getter
     private final SerializedObjectHolder savedObjects = new SerializedObjectHolder();
 
+    @Getter
     private final Deque<ReplayOperator> undoStack = new ArrayDeque<>();
+
+    @Getter
     private final Deque<ReplayOperator> redoStack = new ArrayDeque<>();
 
     @Setter @Nullable
@@ -134,7 +137,7 @@ public class ReplayScene {
      * @param id ID to search for.
      * @return The object, or <code>null</code> if no object by that ID exists.
      */
-    public @Nullable ReplayObject getObject(String id) {
+    public @Nullable ReplayObject getObject(@Nullable String id) {
         return objects.get(id);
     }
 

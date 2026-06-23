@@ -1,5 +1,6 @@
 package com.igrium.replaylab.ui.panels;
 
+import com.igrium.replaylab.config.Keybinds;
 import com.igrium.replaylab.editor.EditorState;
 import com.igrium.replaylab.operator.AddObjectOperator;
 import com.igrium.replaylab.operator.RemoveObjectOperator;
@@ -8,6 +9,7 @@ import com.igrium.replaylab.operator.RenameObjectOperator;
 import com.igrium.replaylab.scene.ReplayScene;
 import com.igrium.replaylab.scene.obj.ReplayObject;
 import com.igrium.replaylab.scene.obj.ReplayObjects;
+import com.igrium.replaylab.ui.subpanels.ObjectContextMenu;
 import imgui.ImColor;
 import imgui.ImGui;
 import imgui.flag.ImGuiCol;
@@ -101,7 +103,8 @@ public class Outliner extends UIPanel {
                         }
 
                         if (ImGui.isItemHovered() && ImGui.isMouseDoubleClicked(0)) {
-                            beginRenaming(id);
+                            editorState.setActiveObject(id);
+                            editorState.setWantOpenInspector(true);
                         }
                     }
                 }
@@ -134,6 +137,18 @@ public class Outliner extends UIPanel {
         ImGui.endChild();
         ImGui.popStyleColor();
 
+        if (ImGui.shortcut(Keybinds.deleteSelected())) {
+            queuedDelete = editorState.getSelectedObjects().toArray(String[]::new);
+        }
+
+        if (ImGui.shortcut(Keybinds.copy())) {
+            ImGui.setClipboardText(editorState.copyObjects());
+        }
+
+        if (ImGui.shortcut(Keybinds.paste())) {
+            editorState.pasteObjects(ImGui.getClipboardText());
+        }
+
         // Delay rename until the end to avoid concurrent modification
         if (queuedRename != null) {
             editorState.applyOperator(queuedRename);
@@ -158,12 +173,25 @@ public class Outliner extends UIPanel {
     }
 
     private void drawContextMenu(EditorState editor, String id) {
-        if (ImGui.menuItem("Rename")) {
+        ReplayObject obj = editor.getScene().getObject(id);
+        if (obj == null) return;
+
+        int cFlags = ObjectContextMenu.drawObjectContextMenu(obj, editor);
+
+        if ((cFlags & ObjectContextMenu.WANT_RENAME) != 0) {
             beginRenaming(id);
         }
-        if (ImGui.menuItem("Delete")) {
-            queuedDelete = editor.getSelectedObjects().toArray(new String[0]);
+
+        if ((cFlags & ObjectContextMenu.WANT_DELETE) != 0) {
+            queuedDelete = editor.getSelectedObjects().toArray(String[]::new);
         }
+
+//        if (ImGui.menuItem("Rename")) {
+//            beginRenaming(id);
+//        }
+//        if (ImGui.menuItem("Delete")) {
+//            queuedDelete = editor.getSelectedObjects().toArray(new String[0]);
+//        }
     }
 
     private void drawAddObjectButton(EditorState editorState) {

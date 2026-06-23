@@ -27,7 +27,7 @@ public class MixinGuiReplayViewer {
     public GuiPanel upperButtonPanel;
 
     @Unique
-    final GuiButton openReplayLabButton = new GuiButton().setI18nLabel("replaylab.gui.viewer.openReplayLab").onClick(new Runnable() {
+    final GuiButton openReplayLabButton = new GuiButton().setI18nLabel("gui.replaylab.viewer.open").onClick(new Runnable() {
         boolean loading = false;
 
         @Override

@@ -16,9 +16,9 @@ import imgui.ImGui;
 import imgui.type.ImFloat;
 import imgui.type.ImInt;
 import lombok.Getter;
+import lombok.NonNull;
 import lombok.Setter;
 import org.apache.commons.lang3.mutable.Mutable;
-import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -29,8 +29,8 @@ public final class ScenePropsObject extends ReplayObject {
 
     private static final Logger LOGGER = LoggerFactory.getLogger("ReplayLab/ScenePropsObject");
 
-    @Getter @Setter @Nullable
-    private String cameraObject;
+    @Getter @Setter @NonNull
+    private String cameraObject = "";
 
     @Getter
     private int startTime;
@@ -103,7 +103,7 @@ public final class ScenePropsObject extends ReplayObject {
         if (cameraElem != null && cameraElem.isJsonPrimitive()) {
             setCameraObject(cameraElem.getAsString());
         } else {
-            setCameraObject(null);
+            setCameraObject("");
         }
         if (json.has("startTime")) {
             setStartTime(json.getAsJsonPrimitive("startTime").getAsInt());

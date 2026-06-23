@@ -1,7 +1,79 @@
 package com.igrium.replaylab.math;
 
+import com.google.gson.TypeAdapter;
+import com.google.gson.annotations.JsonAdapter;
+import com.google.gson.stream.JsonReader;
+import com.google.gson.stream.JsonWriter;
+import lombok.NonNull;
 import org.joml.*;
 import org.joml.Math;
+
+import java.io.IOException;
+
+class Transform3Serializer extends TypeAdapter<Transform3> {
+
+    @Override
+    public void write(JsonWriter jsonWriter, Transform3 transform3) throws IOException {
+        jsonWriter.beginObject();
+
+        jsonWriter.name("pos");
+        jsonWriter.beginArray();
+        jsonWriter.value(transform3.pos().x);
+        jsonWriter.value(transform3.pos().y);
+        jsonWriter.value(transform3.pos().z);
+        jsonWriter.endArray();
+
+        jsonWriter.name("rotScale");
+
+        float[] arr = transform3.rotScale().get(new float[9]);
+        jsonWriter.beginArray();
+        for (float v : arr) {
+            jsonWriter.value(v);
+        }
+        jsonWriter.endArray();
+
+        jsonWriter.endObject();
+    }
+
+    @Override
+    public Transform3 read(JsonReader jsonReader) throws IOException {
+        jsonReader.beginObject();
+
+        Transform3 transform3 = new Transform3();
+
+        while (jsonReader.hasNext()) {
+            String name = jsonReader.nextName();
+            switch (name) {
+                case "pos": {
+                    jsonReader.beginArray();
+                    double x = jsonReader.nextDouble();
+                    double y = jsonReader.nextDouble();
+                    double z = jsonReader.nextDouble();
+                    jsonReader.endArray();
+                    transform3.pos().set(x, y, z);
+                    break;
+                }
+                case "rotScale": {
+                    jsonReader.beginArray();
+                    float[] arr = new float[9];
+                    for (int i = 0; i < 9; i++) {
+                        arr[i] = (float) jsonReader.nextDouble();
+                    }
+                    jsonReader.endArray();
+                    transform3.rotScale().set(arr);
+                    break;
+                }
+                default:
+                    jsonReader.skipValue();
+                    break;
+            }
+        }
+
+        jsonReader.endObject();
+
+        return transform3;
+    }
+}
 
 /**
  * A mutable, three-dimensional, matrix-based transform that keeps a double-precision global offset.
@@ -9,7 +81,8 @@ import org.joml.Math;
  * @param pos      Global positional root.
  * @param rotScale Rotation/Scale matrix
  */
-public record Transform3(Vector3d pos, Matrix3f rotScale) {
+@JsonAdapter(Transform3Serializer.class)
+public record Transform3(@NonNull Vector3d pos, @NonNull Matrix3f rotScale) {
     public Transform3(Vector3dc position, Matrix3fc matrix) {
         this(new Vector3d(position), new Matrix3f(matrix));
     }

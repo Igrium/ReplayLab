@@ -190,10 +190,10 @@ public final class KeyWidgets {
     private static int drawContextMenu() {
         int result = 0;
         if (ImGui.beginPopupContextItem()) {
-            if (ImGui.menuItem(t("gui.replaylab.add_key")))
+            if (ImGui.menuItem(t("key.replaylab.add_key")))
                 result |= CONTEXT_ADD_KEY;
 
-            if (ImGui.menuItem(t("gui.replaylab.add_key_s")))
+            if (ImGui.menuItem(t("key.replaylab.add_key_s")))
                 result |= CONTEXT_ADD_KEY_S;
 
             ImGui.endPopup();
