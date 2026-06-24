@@ -57,7 +57,6 @@ public class PNGEncoder extends Encoder {
                 String prefix = String.format("%0" + maxDigits + "d", frameIdx);
                 var path = getMetadata().outPath().resolve(prefix + ".png");
                 frame.writeTo(path);
-
             } catch (Exception e) {
                 fail(e);
             }

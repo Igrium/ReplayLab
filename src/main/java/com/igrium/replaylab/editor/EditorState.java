@@ -911,24 +911,12 @@ public final class EditorState {
         try {
             renderer.render();
         } catch (Exception e) {
-            LOGGER.error("Error exporting video");
+            LOGGER.error("Error exporting video", e);
             onException(e);
         } finally {
             renderer = null;
-//            setPlayhead(0);
         }
 
-
-//
-//        renderer = new VideoRenderer(settings, getReplayHandlerOrThrow(), getScene());
-//        try {
-//            renderer.render();
-//        } catch (Throwable e) {
-//            LOGGER.error("Error exporting video", e);
-//            onException(e);
-//        } finally {
-//            renderer = null;
-//        }
     }
 
     private class ScrubbingScenePlayer extends AbstractScenePlayer {

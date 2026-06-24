@@ -119,6 +119,8 @@ public class VideoRenderer {
         ForceChunkLoadingHook forceChunkLoadingHook = null;
 
         totalFrames = getRenderMetadata().totalFrames();
+        CompletableFuture<?> scenePlayerFuture = null;
+        RenderScenePlayer scenePlayer = null;
         try {
             /// === SETUP ===
             replay.getReplaySender().setAsyncMode(false);
@@ -132,8 +134,8 @@ public class VideoRenderer {
 
             Encoder encoder = EncoderType.PNG.create();
 
-            RenderScenePlayer scenePlayer = new RenderScenePlayer(replay);
-            CompletableFuture<?> scenePlayerFuture = scenePlayer.start(scene);
+            scenePlayer = new RenderScenePlayer(replay);
+            scenePlayerFuture = scenePlayer.start(scene);
 
             if (debugWasShown) {
                 mc.getDebugHud().toggleDebugHud();
@@ -188,7 +190,12 @@ public class VideoRenderer {
                 nImage.loadFromTextureImage(0, true);
                 nImage.mirrorVertically();
 
+                Throwable e = encoder.getFailureReason();
+                if (e != null) {
+                    throw (Exception) e;
+                }
                 encoder.accept(ManagedNativeImage.of(nImage), curIdx);
+
             }
 
             /// === FINISH ===
@@ -215,12 +222,6 @@ public class VideoRenderer {
 
             // TODO: spherical metadata
 
-            if (!scenePlayerFuture.isDone()) {
-                scenePlayerFuture.cancel(false);
-            }
-
-            // Tear down of the timeline player might only happen the next tick after it was canceled
-            scenePlayer.onTick();
 
             return !abort;
         } finally {
@@ -235,6 +236,14 @@ public class VideoRenderer {
 
             renderingVideo = false;
             renderState = RenderState.DONE;
+
+
+            if (!scenePlayerFuture.isDone()) {
+                scenePlayerFuture.cancel(false);
+            }
+
+            // Tear down of the timeline player might only happen the next tick after it was canceled
+            scenePlayer.onTick();
 
             if (debugWasShown) {
                 mc.getDebugHud().toggleDebugHud();
