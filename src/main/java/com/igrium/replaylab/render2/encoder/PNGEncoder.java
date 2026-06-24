@@ -1,12 +1,14 @@
-package com.igrium.replaylab.render.encoder;
+package com.igrium.replaylab.render2.encoder;
 
-import com.igrium.replaylab.render.ManagedNativeImage;
-import com.igrium.replaylab.render.RenderMetadata;
+import com.google.gson.JsonDeserializationContext;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonSerializationContext;
+import com.igrium.replaylab.render2.ManagedNativeImage;
+import com.igrium.replaylab.render2.RenderMetadata;
 import com.igrium.replaylab.util.SimpleBlockingQueue;
 import net.minecraft.util.Util;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 
-import java.io.IOException;
 import java.nio.file.Files;
 import java.util.concurrent.*;
 
@@ -19,6 +21,16 @@ public class PNGEncoder extends Encoder {
 
     public PNGEncoder(EncoderType<?> type) {
         super(type);
+    }
+
+    @Override
+    public void writeJson(JsonObject json, JsonSerializationContext context) {
+
+    }
+
+    @Override
+    public void readJson(JsonObject json, JsonDeserializationContext context) {
+
     }
 
     @Override

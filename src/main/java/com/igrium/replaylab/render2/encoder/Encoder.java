@@ -1,10 +1,12 @@
-package com.igrium.replaylab.render.encoder;
+package com.igrium.replaylab.render2.encoder;
 
+import com.google.gson.JsonDeserializationContext;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonSerializationContext;
 import com.igrium.replaylab.ReplayLab;
 import com.igrium.replaylab.editor.EditorState;
-import com.igrium.replaylab.render.ManagedNativeImage;
-import com.igrium.replaylab.render.RenderMetadata;
+import com.igrium.replaylab.render2.ManagedNativeImage;
+import com.igrium.replaylab.render2.RenderMetadata;
 import imgui.ImGui;
 import lombok.Getter;
 import org.jetbrains.annotations.Nullable;
@@ -13,7 +15,6 @@ import org.slf4j.Logger;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Consumer;
 
 public abstract class Encoder {
 
@@ -49,9 +50,20 @@ public abstract class Encoder {
         this.type = type;
     }
 
-    public final JsonObject saveConfig(JsonObject dest) {
-        return getType().save(this, dest);
-    }
+    /**
+     * Write this encoder's properties to Json
+     *
+     * @param json    Json object to write to
+     * @param context Json serialization context
+     */
+    public abstract void writeJson(JsonObject json, JsonSerializationContext context);
+
+    /**
+     * Read encoder properties from json and apply them to this encoder
+     * @param json Json object to read from
+     * @param context Json serialization context
+     */
+    public abstract void readJson(JsonObject json, JsonDeserializationContext context);
 
     /**
      * Mark this encoder as having failed. Useful for exceptions raised out-of-thread.

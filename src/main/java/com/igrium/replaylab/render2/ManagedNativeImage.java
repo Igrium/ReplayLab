@@ -1,4 +1,4 @@
-package com.igrium.replaylab.render;
+package com.igrium.replaylab.render2;
 
 import com.google.common.collect.MapMaker;
 import com.igrium.replaylab.util.ThrowingBiConsumer;
@@ -15,8 +15,6 @@ import java.lang.ref.Cleaner;
 import java.lang.ref.Reference;
 import java.nio.file.Path;
 import java.util.concurrent.ConcurrentMap;
-import java.util.function.BiConsumer;
-import java.util.function.Function;
 
 /**
  * A wrapper around {@link NativeImage} that supports garbage collection
