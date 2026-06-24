@@ -36,6 +36,7 @@ import org.slf4j.Logger;
 import java.util.EnumMap;
 import java.util.concurrent.*;
 
+@Deprecated
 public class VideoRenderer {
 
     private static final Logger LOGGER = ReplayLab.getLogger("VideoRenderer");
@@ -241,7 +242,6 @@ public class VideoRenderer {
      */
     public float queueNextFrame() {
         guiWindow.bind();
-
 
         ReplayTimer timer = (ReplayTimer) ((MinecraftAccessor) mc).getTimer(); // Updating the timer will cause the timeline player to update the game state
         try {

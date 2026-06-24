@@ -6,6 +6,7 @@ import com.google.common.collect.Maps;
 import com.google.gson.JsonDeserializationContext;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
+import com.google.gson.JsonSerializationContext;
 import lombok.Getter;
 import lombok.NonNull;
 import net.minecraft.util.Identifier;
@@ -23,6 +24,8 @@ public final class FrameCaptureType<T extends FrameCapture> {
         REGISTRY.put(id, type);
         return type;
     }
+
+    public static final FrameCaptureType<BasicFrameCapture> BASIC = new FrameCaptureType<>(BasicFrameCapture::new);
 
     /// === FIELDS ===
 
@@ -60,6 +63,14 @@ public final class FrameCaptureType<T extends FrameCapture> {
         FrameCapture capture = type.create();
         capture.readJson(json, ctx);
         return capture;
+    }
+
+    public static JsonObject save(FrameCapture capture, JsonSerializationContext ctx) {
+        var id = capture.getType().getId();
+        var json = new JsonObject();
+        capture.writeJson(json, ctx);
+        json.addProperty("type", id.toString());
+        return json;
     }
 
     /// === FACTORY ===

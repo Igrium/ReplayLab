@@ -1,7 +1,7 @@
 package com.igrium.replaylab.ui;
 
 import com.igrium.replaylab.editor.EditorState;
-import com.igrium.replaylab.render.VideoRenderer;
+import com.igrium.replaylab.render2.VideoRenderer;
 import imgui.ImGui;
 import imgui.flag.ImGuiCond;
 import imgui.flag.ImGuiWindowFlags;

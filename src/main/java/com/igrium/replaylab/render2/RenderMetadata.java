@@ -22,5 +22,14 @@ public class RenderMetadata {
             .resolve("replay_videos")
             .resolve("export");
 
+    @Builder.Default
+    private int width = 1920;
+
+    @Builder.Default
+    private int height = 1080;
+
     private int totalFrames;
+    // TODO: should this be broken into int fps and fpsBase?
+    @Builder.Default
+    private float fps = 30;
 }

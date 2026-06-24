@@ -40,7 +40,7 @@ public class PNGEncoder extends Encoder {
         executor = new ThreadPoolExecutor(
                 availableProcessors,
                 availableProcessors,
-                10,
+                20,
                 TimeUnit.MILLISECONDS,
                 new SimpleBlockingQueue<>(32)
         );

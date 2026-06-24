@@ -9,6 +9,7 @@ import com.igrium.replaylab.render2.ManagedNativeImage;
 import com.igrium.replaylab.render2.RenderMetadata;
 import imgui.ImGui;
 import lombok.Getter;
+import lombok.NonNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 
@@ -16,6 +17,15 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.atomic.AtomicReference;
 
+/**
+ * Encodes video into a file during replay rendering
+ *
+ * <p>Manages encoder lifecycle through a series of {@link EncodingState} transitions:
+ * {@code READY → ENCODING → FINALIZING → FINISHED} (or {@code FAILED} at any point).
+ *
+ * <p>Encoder configuration is persisted via {@link #writeJson} / {@link #readJson},
+ * and optional UI controls can be exposed through {@link #drawProperties}.
+ */
 public abstract class Encoder {
 
     private static final Logger LOGGER = ReplayLab.getLogger(Encoder.class);
@@ -43,8 +53,17 @@ public abstract class Encoder {
     /**
      * The path we're currently encoding to.
      */
-    @Getter
-    private RenderMetadata metadata = RenderMetadata.builder().build();
+    @Nullable
+    private RenderMetadata metadata;
+
+    public @Nullable RenderMetadata tryGetMetadata() {
+        return this.metadata;
+    }
+
+    public @NonNull RenderMetadata getMetadata() {
+        if (this.metadata == null) throw new IllegalStateException("Render metadata has not been set!");
+        return metadata;
+    }
 
     public Encoder(EncoderType<?> type) {
         this.type = type;

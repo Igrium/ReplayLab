@@ -3,20 +3,42 @@ package com.igrium.replaylab.render2.capture;
 import com.google.gson.JsonDeserializationContext;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonSerializationContext;
+import com.igrium.replaylab.editor.EditorState;
 import com.igrium.replaylab.render2.RenderMetadata;
 import com.igrium.replaylab.render2.SimpleTexture;
 import com.igrium.replaylab.render2.VideoRenderer;
+import com.igrium.replaylab.render2.encoder.Encoder;
 import com.mojang.blaze3d.platform.GlConst;
+import imgui.ImGui;
 import lombok.Getter;
+import lombok.NonNull;
+import lombok.Setter;
+import org.jetbrains.annotations.Nullable;
 
+/**
+ * Captures the framebuffer into a texture during replay rendering.
+ * <p>
+ * Unlike {@link Encoder}, frame captures are stateless (aside from <code>setMetadata</code>)
+ * <p>
+ * Render configuration is persisted via {@link #writeJson} / {@link #readJson},
+ * and optional UI controls can be exposed through {@link #drawProperties}.
+ */
 public abstract class FrameCapture {
-
-    public interface QueueFrameCallback {
-        float queueframe(int sampleIdx, int totalSamples);
-    }
 
     @Getter
     private final FrameCaptureType<?> type;
+
+    @Setter
+    private @Nullable RenderMetadata metadata;
+
+    public @Nullable RenderMetadata tryGetMetadata() {
+        return this.metadata;
+    }
+
+    public @NonNull RenderMetadata getMetadata() {
+        if (this.metadata == null) throw new IllegalStateException("Render metadata has not been set!");
+        return metadata;
+    }
 
     public FrameCapture(FrameCaptureType<?> type) {
         this.type = type;
@@ -32,8 +54,9 @@ public abstract class FrameCapture {
 
     public abstract void readJson(JsonObject json, JsonDeserializationContext context);
 
-    public SimpleTexture generateTexture(int width, int height) {
-        return new SimpleTexture(width, height, GlConst.GL_RGBA);
+    public SimpleTexture generateTexture() {
+        var meta = getMetadata();
+        return new SimpleTexture(meta.width(), meta.height(), GlConst.GL_RGBA);
     }
 
     /**
@@ -41,8 +64,10 @@ public abstract class FrameCapture {
      *
      * @param frameIdx The index of the frame to capture.
      * @param texture  Texture to render into (on the GPU)
-     * @param renderer Current renderer
-     * @param callback A callback to queue the next frame for rendering
      */
-    public abstract void captureFrame(int frameIdx, SimpleTexture texture, VideoRenderer renderer, QueueFrameCallback callback);
+    public abstract void captureFrame(int frameIdx, SimpleTexture texture);
+
+    public void drawProperties(EditorState editorState) {
+        ImGui.text("This renderer has no configurable properties.");
+    }
 }

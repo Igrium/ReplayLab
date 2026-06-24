@@ -16,7 +16,8 @@ import com.igrium.replaylab.operator.ReplayOperator;
 import com.igrium.replaylab.playback.AbstractScenePlayer;
 import com.igrium.replaylab.playback.RealtimeScenePlayer;
 import com.igrium.replaylab.render.VideoRenderSettings;
-import com.igrium.replaylab.render.VideoRenderer;
+import com.igrium.replaylab.render2.RenderMetadata;
+import com.igrium.replaylab.render2.VideoRenderer;
 import com.igrium.replaylab.scene.ReplayScene;
 import com.igrium.replaylab.scene.ReplayScenes;
 import com.igrium.replaylab.scene.key.KeyChannel;
@@ -24,6 +25,7 @@ import com.igrium.replaylab.scene.obj.ReplayObject;
 import com.igrium.replaylab.scene.obj.ReplayObject3D;
 import com.igrium.replaylab.scene.obj.SerializedReplayObject;
 import com.igrium.replaylab.scene.obj.TransformProvider;
+import com.igrium.replaylab.scene.objs.ScenePropsObject;
 import com.igrium.replaylab.ui.util.QuickModeInitCallback;
 import com.igrium.replaylab.util.RenderUtils;
 import com.mojang.blaze3d.systems.RenderSystem;
@@ -896,16 +898,37 @@ public final class EditorState {
             LOGGER.warn("Already rendering!");
             return;
         }
-
-        renderer = new VideoRenderer(settings, getReplayHandlerOrThrow(), getScene());
+        ScenePropsObject sceneProps = getScene().getSceneProps();
+        int totalFrames = (int) (sceneProps.getLength() * sceneProps.getFps() / 1000);
+        RenderMetadata meta = RenderMetadata.builder()
+                .outPath(settings.getOutPath())
+                .width(sceneProps.getResolutionX())
+                .height(sceneProps.getResolutionY())
+                .fps(sceneProps.getFps())
+                .totalFrames(totalFrames)
+                .build();
+        renderer = new VideoRenderer(meta, getReplayHandlerOrThrow(), getScene());
         try {
             renderer.render();
-        } catch (Throwable e) {
-            LOGGER.error("Error exporting video", e);
+        } catch (Exception e) {
+            LOGGER.error("Error exporting video");
             onException(e);
         } finally {
             renderer = null;
+//            setPlayhead(0);
         }
+
+
+//
+//        renderer = new VideoRenderer(settings, getReplayHandlerOrThrow(), getScene());
+//        try {
+//            renderer.render();
+//        } catch (Throwable e) {
+//            LOGGER.error("Error exporting video", e);
+//            onException(e);
+//        } finally {
+//            renderer = null;
+//        }
     }
 
     private class ScrubbingScenePlayer extends AbstractScenePlayer {

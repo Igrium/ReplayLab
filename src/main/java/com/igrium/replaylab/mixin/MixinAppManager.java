@@ -2,7 +2,7 @@ package com.igrium.replaylab.mixin;
 
 import com.igrium.craftui.app.AppManager;
 import com.igrium.craftui.app.CraftApp;
-import com.igrium.replaylab.render.VideoRenderer;
+import com.igrium.replaylab.render2.VideoRenderer;
 import com.igrium.replaylab.util.RenderUtils;
 import net.minecraft.client.MinecraftClient;
 import org.spongepowered.asm.mixin.Mixin;
