@@ -2,9 +2,11 @@ package com.igrium.replaylab.scene;
 
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
 import com.igrium.replaylab.editor.EditorState;
 import com.igrium.replaylab.operator.ReplayOperator;
+import com.igrium.replaylab.render2.RenderSettingsObj;
 import com.igrium.replaylab.scene.obj.*;
 import com.igrium.replaylab.scene.objs.ScenePropsObject;
 import com.igrium.replaylab.util.NameUtils;
@@ -18,9 +20,7 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayDeque;
-import java.util.Deque;
-import java.util.Map;
+import java.util.*;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
@@ -34,6 +34,12 @@ public class ReplayScene {
     private static final Logger LOGGER = LoggerFactory.getLogger("ReplayLab/ReplayScene");
 
     public static final String SCENE_PROPS = "scene";
+    public static final String RENDER_SETTINGS = "renderSettings";
+
+    /**
+     * Replay object names that are not allowed to be created by the user
+     */
+    public static final Collection<String> RESERVED_NAMES = ImmutableList.of(SCENE_PROPS, RENDER_SETTINGS);
 
     /**
      * All the objects in this scene.
@@ -68,6 +74,22 @@ public class ReplayScene {
             addObject(SCENE_PROPS, sceneProps);
         }
         return sceneProps;
+    }
+
+    /**
+     * Get the render settings object for the scene. Note that render settings are not stored in undo/redo.
+     */
+    public RenderSettingsObj getRenderSettings() {
+        ReplayObject obj = getObject(RENDER_SETTINGS);
+        RenderSettingsObj renderSettings;
+        if (obj instanceof RenderSettingsObj) {
+            renderSettings = (RenderSettingsObj) obj;
+        } else {
+            LOGGER.info("No RenderSettings object found. Creating.");
+            renderSettings = ReplayObjects.RENDER_SETTINGS.create(this);
+            addObject(RENDER_SETTINGS, renderSettings);
+        }
+        return renderSettings;
     }
 
     public int getLength() {

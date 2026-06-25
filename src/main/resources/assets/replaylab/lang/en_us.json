@@ -28,6 +28,8 @@
   "gui.replaylab.playback": "Playback",
   "gui.replaylab.quick": "Quick Mode",
 
+  "gui.replaylab.browse": "Browse",
+
   "gui.replaylab.general": "General",
 
   "gui.replaylab.tooltip_snap": "Snap Keyframes",

@@ -2,6 +2,7 @@ package com.igrium.replaylab.scene.obj;
 
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
+import com.igrium.replaylab.render2.RenderSettingsObj;
 import com.igrium.replaylab.scene.ReplayScene;
 import com.igrium.replaylab.scene.objs.BlockDisplayObject;
 import com.igrium.replaylab.scene.objs.CameraObject;
@@ -19,6 +20,7 @@ public class ReplayObjects {
     public static final BiMap<String, ReplayObjectType<?>> REGISTRY = HashBiMap.create();
 
     public static final ReplayObjectType<ScenePropsObject> SCENE_PROPS = register("sceneProps", ScenePropsObject::new, true);
+    public static final ReplayObjectType<RenderSettingsObj> RENDER_SETTINGS = register("renderSettings", RenderSettingsObj::new, true);
 
     public static final ReplayObjectType<DummyReplayObject> DUMMY = register("dummy", DummyReplayObject::new);
     public static final ReplayObjectType<BlockDisplayObject> BLOCK_DISPLAY = register("blockDisplay", BlockDisplayObject::new);

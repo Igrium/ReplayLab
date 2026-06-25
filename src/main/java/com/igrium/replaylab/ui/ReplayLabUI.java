@@ -218,7 +218,7 @@ public class ReplayLabUI extends DockSpaceApp {
             panel.draw(editorState, 0, null);
         }
 
-        ExportWindow.drawExportWindow(editorState, editorState.getScene().getSceneProps().getRenderSettings());
+        ExportWindow.drawExportWindow(editorState);
         ExportProgressWindow.drawExportProgress(editorState);
 
         if (!firstFrame) {

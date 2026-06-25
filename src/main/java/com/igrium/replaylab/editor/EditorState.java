@@ -854,6 +854,7 @@ public final class EditorState {
      */
     public void saveScene() throws IllegalStateException, IOException  {
         String name = getSceneName();
+        LOGGER.info("Saving scene '{}'", name);
         if (name == null) {
             throw new IllegalStateException("Scene does not have a name!");
         }
@@ -871,7 +872,7 @@ public final class EditorState {
             try {
                 saveScene();
             } catch (Exception e) {
-                LOGGER.error("Error saving scene {}", sceneName, e);
+                LOGGER.debug("Error saving scene {}", sceneName, e);
                 onException(e);
             }
         }, Util.getIoWorkerExecutor());
@@ -893,21 +894,15 @@ public final class EditorState {
         return getRenderer() != null;
     }
 
-    public void render(VideoRenderSettings settings) {
+    /**
+     * Render the scene using the render settings provided by {@link ReplayScene#getRenderSettings()}
+     */
+    public void render() {
         if (isRendering()) {
             LOGGER.warn("Already rendering!");
             return;
         }
-        ScenePropsObject sceneProps = getScene().getSceneProps();
-        int totalFrames = (int) (sceneProps.getLength() * sceneProps.getFps() / 1000);
-        RenderMetadata meta = RenderMetadata.builder()
-                .outPath(settings.getOutPath())
-                .width(sceneProps.getResolutionX())
-                .height(sceneProps.getResolutionY())
-                .fps(sceneProps.getFps())
-                .totalFrames(totalFrames)
-                .build();
-        renderer = new VideoRenderer(meta, getReplayHandlerOrThrow(), getScene());
+        renderer = VideoRenderer.create(getScene());
         try {
             renderer.render();
         } catch (Exception e) {

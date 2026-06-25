@@ -12,10 +12,8 @@ import imgui.ImColor;
 import imgui.ImGui;
 import it.unimi.dsi.fastutil.objects.Object2DoubleArrayMap;
 import it.unimi.dsi.fastutil.objects.Object2DoubleMap;
-import it.unimi.dsi.fastutil.objects.Object2DoubleOpenHashMap;
 import lombok.Getter;
 import org.jetbrains.annotations.Nullable;
-import org.joml.Matrix4f;
 import org.joml.Matrix4fc;
 import org.joml.Vector3dc;
 
@@ -100,6 +98,13 @@ public abstract class ReplayObject {
     public void remapReferences(String oldName, String newName) {}
 
     /**
+     * <code>true</code> if this object should be hidden from the outliner
+     */
+    public boolean isHiddenInOutliner() {
+        return false;
+    }
+
+    /**
      * Called when the user has pressed the "insert keyframe" keybind with this object selected.
      * @param timestamp The current playback timestamp.
      * @return If the keyframe was created and an undo step should be created.
@@ -108,6 +113,8 @@ public abstract class ReplayObject {
     public boolean insertKey(int timestamp) {
         return false;
     }
+
+
 
     public final @Nullable KeyChannel getChannel(String name) {
         return channels.get(name);

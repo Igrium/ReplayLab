@@ -47,14 +47,6 @@ public final class ScenePropsObject extends ReplayObject {
     @Getter
     private int resolutionY = 1080;
 
-
-    /**
-     * The last render settings used. Serialized with the object, but generally not used in undo/redo.
-     */
-    // TODO: determine if lack of undo step causes accidental reset
-    @Getter
-    private VideoRenderSettings renderSettings = new VideoRenderSettings();
-
     public ScenePropsObject(ReplayObjectType<?> type, ReplayScene scene) {
         super(type, scene);
     }
@@ -84,6 +76,10 @@ public final class ScenePropsObject extends ReplayObject {
         setResolutionY(resolutionY);
     }
 
+    @Override
+    public boolean isHiddenInOutliner() {
+        return true;
+    }
 
     @Override
     public void apply(int timestamp) {
@@ -120,10 +116,6 @@ public final class ScenePropsObject extends ReplayObject {
         if (json.has("resolutionY")) {
             setResolutionY(json.getAsJsonPrimitive("resolutionY").getAsInt());
         }
-
-        if (json.has("renderSettings")) {
-            this.renderSettings = context.deserialize(json.get("renderSettings"), VideoRenderSettings.class);
-        }
     }
 
     @Override
@@ -134,8 +126,6 @@ public final class ScenePropsObject extends ReplayObject {
         json.addProperty("fps", getFps());
         json.addProperty("resolutionX", getResolutionX());
         json.addProperty("resolutionY", getResolutionY());
-
-        json.add("renderSettings", context.serialize(renderSettings));
     }
 
     private final Mutable<String> cameraObjectInput = new SimpleMutable<>();

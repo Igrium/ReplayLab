@@ -1,10 +1,12 @@
 package com.igrium.replaylab.render2;
 
 import com.igrium.craftui.app.AppManager;
+import com.igrium.replaylab.editor.EditorState;
 import com.igrium.replaylab.playback.AbstractScenePlayer;
 import com.igrium.replaylab.render.VideoRenderSettings;
 import com.igrium.replaylab.render2.capture.FrameCapture;
 import com.igrium.replaylab.render2.capture.FrameCaptureType;
+import com.igrium.replaylab.render2.encoder.EncoderConfig;
 import com.igrium.replaylab.render2.encoder.EncoderProcess;
 import com.igrium.replaylab.render2.encoder.EncoderType;
 import com.igrium.replaylab.scene.ReplayScene;
@@ -69,9 +71,13 @@ public class VideoRenderer {
     private final VirtualWindow guiWindow;
 
     @Getter
-    private int frameIdx = 0;
+    private final FrameCapture frameCapture;
 
-    private int totalFrames;
+    @Getter
+    private final EncoderConfig encoder;
+
+    @Getter
+    private int frameIdx = 0;
 
     public int getTotalFrames() {
         return renderMetadata.totalFrames();
@@ -85,11 +91,31 @@ public class VideoRenderer {
     @Getter
     private @Nullable SimpleTexture renderTexture;
 
-    public VideoRenderer(RenderMetadata renderMetadata, ReplayHandler replay, ReplayScene scene) {
+    public VideoRenderer(RenderMetadata renderMetadata, ReplayHandler replay, ReplayScene scene, FrameCapture frameCapture, EncoderConfig encoder) {
         this.renderMetadata = renderMetadata;
         this.replay = replay;
         this.scene = scene;
+        this.frameCapture = frameCapture;
+        this.encoder = encoder;
         guiWindow = new VirtualWindow(mc);
+    }
+
+    public static VideoRenderer create(ReplayScene scene) {
+        ReplayHandler replayHandler = EditorState.getReplayHandlerOrThrow();
+        ScenePropsObject sceneProps = scene.getSceneProps();
+        RenderSettingsObj renderSettings = scene.getRenderSettings();
+
+        int totalFrames = (int) (sceneProps.getLength() * sceneProps.getFps() / 1000);
+
+        RenderMetadata metadata = RenderMetadata.builder()
+                .outPath(renderSettings.getOutPath())
+                .width(sceneProps.getResolutionX())
+                .height(sceneProps.getResolutionY())
+                .fps(sceneProps.getFps())
+                .totalFrames(totalFrames)
+                .build();
+
+        return new VideoRenderer(metadata, replayHandler, scene, renderSettings.getFrameCapture(), renderSettings.getEncoder());
     }
 
     public void abort() {
@@ -113,7 +139,6 @@ public class VideoRenderer {
         EnumMap<SoundCategory, Float> originalSoundLevels = new EnumMap<>(SoundCategory.class);
         ForceChunkLoadingHook forceChunkLoadingHook = null;
 
-        totalFrames = getRenderMetadata().totalFrames();
         CompletableFuture<?> scenePlayerFuture = null;
         RenderScenePlayer scenePlayer = null;
         try {
@@ -121,13 +146,11 @@ public class VideoRenderer {
             replay.getReplaySender().setAsyncMode(false);
 
             ScenePropsObject sceneProps = scene.getSceneProps();
-            VideoRenderSettings settings = sceneProps.getRenderSettings();
 
             // TODO: read from config
-            FrameCapture capture = FrameCaptureType.BASIC.create();
-            capture.setMetadata(renderMetadata);
+            frameCapture.setMetadata(renderMetadata);
 
-            EncoderProcess encoder = EncoderType.PNG.create().spawnEncoder();
+            EncoderProcess encoder = getEncoder().spawnEncoder();
 
             scenePlayer = new RenderScenePlayer(replay);
             scenePlayerFuture = scenePlayer.start(scene);
@@ -168,19 +191,20 @@ public class VideoRenderer {
 
             /// === RENDERING PIPELINE ===
             encoder.start(renderMetadata);
-            renderTexture = capture.generateTexture();
+            renderTexture = frameCapture.generateTexture();
 
             renderState = RenderState.RENDERING;
-            while (frameIdx < totalFrames && !abort) {
+            while (frameIdx < renderMetadata.totalFrames() && !abort) {
                 if (GLFW.glfwWindowShouldClose(mc.getWindow().getHandle()) || ((MinecraftAccessor) mc).getCrashReporter() != null) {
                     encoder.finish().get(10, TimeUnit.SECONDS);
                 }
                 int curIdx = frameIdx;
                 queueFrame(frameIdx, 1);
-                capture.captureFrame(curIdx, renderTexture);
+                frameCapture.captureFrame(curIdx, renderTexture);
 
                 drawGui();
                 NativeImage nImage = new NativeImage(renderMetadata.width(), renderMetadata.height(), true);
+                //noinspection DataFlowIssue
                 RenderSystem.bindTexture(renderTexture.getGlId());
                 nImage.loadFromTextureImage(0, true);
                 nImage.mirrorVertically();

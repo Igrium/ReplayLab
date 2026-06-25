@@ -25,7 +25,8 @@ public final class FrameCaptureType<T extends FrameCapture> {
         return type;
     }
 
-    public static final FrameCaptureType<BasicFrameCapture> BASIC = new FrameCaptureType<>(BasicFrameCapture::new);
+    public static final FrameCaptureType<BasicFrameCapture> BASIC = register(new FrameCaptureType<>(BasicFrameCapture::new),
+            Identifier.of("replaylab:basic"));
 
     /// === FIELDS ===
 
@@ -65,7 +66,7 @@ public final class FrameCaptureType<T extends FrameCapture> {
         return capture;
     }
 
-    public static JsonObject save(FrameCapture capture, JsonSerializationContext ctx) {
+    public static JsonObject write(FrameCapture capture, JsonSerializationContext ctx) {
         var id = capture.getType().getId();
         var json = new JsonObject();
         capture.writeJson(json, ctx);

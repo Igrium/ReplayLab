@@ -3,14 +3,11 @@ package com.igrium.replaylab.ui.panels;
 import com.igrium.replaylab.config.Keybinds;
 import com.igrium.replaylab.editor.EditorState;
 import com.igrium.replaylab.operator.AddObjectOperator;
-import com.igrium.replaylab.operator.RemoveObjectOperator;
 import com.igrium.replaylab.operator.RemoveObjectsOperator;
 import com.igrium.replaylab.operator.RenameObjectOperator;
-import com.igrium.replaylab.scene.ReplayScene;
 import com.igrium.replaylab.scene.obj.ReplayObject;
 import com.igrium.replaylab.scene.obj.ReplayObjects;
 import com.igrium.replaylab.ui.subpanels.ObjectContextMenu;
-import imgui.ImColor;
 import imgui.ImGui;
 import imgui.flag.ImGuiCol;
 import imgui.flag.ImGuiKey;
@@ -19,7 +16,6 @@ import net.minecraft.util.Identifier;
 import net.minecraft.util.Language;
 import net.minecraft.util.math.ColorHelper;
 import org.jetbrains.annotations.Nullable;
-import org.lwjgl.glfw.GLFW;
 
 public class Outliner extends UIPanel {
 
@@ -67,7 +63,7 @@ public class Outliner extends UIPanel {
                 for (int i = 0; i < objs.length; i++) {
                     String id = objs[i];
                     ReplayObject obj = editorState.getScene().getObject(id);
-                    if (obj == null || id.equals(ReplayScene.SCENE_PROPS))
+                    if (obj == null || obj.isHiddenInOutliner())
                         continue; // Don't show scene object
 
                     if (id.equals(currentRenamingItem)) {

@@ -24,7 +24,7 @@ public class PNGEncoder extends EncoderConfig {
 
     @Override
     public JsonObject writeJson(JsonSerializationContext context) {
-        return null;
+        return new JsonObject();
     }
 
     @Override
