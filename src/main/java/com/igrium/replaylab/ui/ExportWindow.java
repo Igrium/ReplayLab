@@ -5,6 +5,7 @@ import com.igrium.craftui.file.FileDialogs;
 import com.igrium.replaylab.editor.EditorState;
 import com.igrium.replaylab.render.VideoRenderSettings;
 import com.igrium.replaylab.render2.RenderSettingsObj;
+import com.igrium.replaylab.scene.ReplayScene;
 import com.mojang.blaze3d.systems.RenderSystem;
 import imgui.ImGui;
 import imgui.flag.ImGuiCond;
@@ -12,6 +13,7 @@ import imgui.flag.ImGuiWindowFlags;
 import imgui.type.ImBoolean;
 import imgui.type.ImString;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.util.Language;
 
 import java.nio.file.Paths;
 
@@ -34,14 +36,14 @@ public class ExportWindow {
         ImGui.setNextWindowSize(640, 0, ImGuiCond.Appearing);
         if (ImGui.beginPopupModal("Export Video", isOpen, ImGuiWindowFlags.NoSavedSettings)) {
             editor.getScene().getRenderSettings().drawPropertiesPanel(editor);
-
-            if (ImGui.button("Export")) {
+            ImGui.separator();
+            if (ImGui.button(t("gui.ok"))) {
                 ImGui.closeCurrentPopup();
                 export(editor);
             }
 
             ImGui.sameLine();
-            if (ImGui.button("Cancel")) {
+            if (ImGui.button(t("gui.cancel"))) {
                 ImGui.closeCurrentPopup();
             }
 
@@ -51,7 +53,12 @@ public class ExportWindow {
     }
 
     private static void export(EditorState editor) {
+        editor.getScene().saveObject(ReplayScene.RENDER_SETTINGS);
         editor.saveSceneAsync(); // Save our render settings
         MinecraftClient.getInstance().send(editor::render); // Render outside ImGui context
+    }
+
+    private static String t(String key) {
+        return Language.getInstance().get(key);
     }
 }

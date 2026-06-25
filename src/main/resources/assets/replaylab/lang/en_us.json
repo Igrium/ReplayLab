@@ -28,6 +28,7 @@
   "gui.replaylab.playback": "Playback",
   "gui.replaylab.quick": "Quick Mode",
 
+  "gui.replaylab.outputFile": "Output File",
   "gui.replaylab.browse": "Browse",
 
   "gui.replaylab.general": "General",
@@ -62,6 +63,8 @@
   "gui.replaylab.export.rendering": "Rendering frame %d / %d",
   "gui.replaylab.export.finishing": "Finalizing Export",
   "gui.replaylab.export.done": "Finished",
+
+  "gui.replaylab.encoder": "Encoder",
 
   "gui.replaylab.encoder.noProps": "This encoder has no configurable properties.",
   "gui.replaylab.capture.noProps": "This frame capture has no configurable properties.",

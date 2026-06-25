@@ -27,6 +27,9 @@ public class EncoderType<T extends EncoderConfig> {
     public static final EncoderType<PNGEncoder> PNG = register(new EncoderType<>(PNGEncoder::new),
             Identifier.of("replaylab:png"));
 
+    public static final EncoderType<DummyEncoder> DUMMY = register(new EncoderType<>(DummyEncoder::new),
+            Identifier.of("replaylab:dummy"));
+
     /// === FIELDS ===
 
     @Getter
