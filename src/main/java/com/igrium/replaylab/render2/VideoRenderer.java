@@ -173,7 +173,7 @@ public class VideoRenderer {
 
             /// === RENDERING PIPELINE ===
             encoder.start(renderMetadata);
-            SimpleTexture tex = capture.generateTexture();
+            renderTexture = capture.generateTexture();
 
             renderState = RenderState.RENDERING;
             while (frameIdx < totalFrames && !abort) {
@@ -182,11 +182,11 @@ public class VideoRenderer {
                 }
                 int curIdx = frameIdx;
                 queueFrame(frameIdx, 1);
-                capture.captureFrame(curIdx, tex);
+                capture.captureFrame(curIdx, renderTexture);
 
                 drawGui();
                 NativeImage nImage = new NativeImage(renderMetadata.width(), renderMetadata.height(), true);
-                RenderSystem.bindTexture(tex.getGlId());
+                RenderSystem.bindTexture(renderTexture.getGlId());
                 nImage.loadFromTextureImage(0, true);
                 nImage.mirrorVertically();
 

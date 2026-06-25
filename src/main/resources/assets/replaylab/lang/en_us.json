@@ -55,6 +55,12 @@
   "gui.replaylab.obj.copy_transform": "Copy Transforms",
   "gui.replaylab.obj.paste_transform": "Paste Transforms",
 
+  "gui.replaylab.export.ready": "Ready",
+  "gui.replaylab.export.starting": "Starting",
+  "gui.replaylab.export.rendering": "Rendering frame %d / %d",
+  "gui.replaylab.export.finishing": "Finalizing Export",
+  "gui.replaylab.export.done": "Finished",
+
   "settings.replaylab.behavior": "Behavior",
   "settings.replaylab.auto_set_camera": "Auto Set Camera",
   "settings.replaylab.auto_set_camera.tooltip": "The first camera added to the scene automatically becomes the scene camera",
