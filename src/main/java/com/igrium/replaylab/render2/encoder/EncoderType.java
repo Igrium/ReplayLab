@@ -10,35 +10,32 @@ import com.google.gson.JsonSerializationContext;
 import lombok.Getter;
 import lombok.NonNull;
 import net.minecraft.util.Identifier;
-import org.jetbrains.annotations.Nullable;
 
 import java.util.function.Function;
 
-public final class EncoderType<T extends Encoder> {
+public class EncoderType<T extends EncoderConfig> {
 
     /// === REGISTRY ===
 
     public static final BiMap<Identifier, EncoderType<?>> REGISTRY = Maps.synchronizedBiMap(HashBiMap.create());
 
-    public static <T extends Encoder> EncoderType<T> register(EncoderType<T> type, Identifier id) {
+    public static <T extends EncoderConfig> EncoderType<T> register(EncoderType<T> type, Identifier id) {
         REGISTRY.put(id, type);
         return type;
     }
 
-    public static final EncoderType<PNGEncoder> PNG =
-            register(new EncoderType<PNGEncoder>(PNGEncoder::new), Identifier.of("replaylab:png"));
+    public static final EncoderType<PNGEncoder> PNG = register(new EncoderType<>(PNGEncoder::new),
+            Identifier.of("replaylab:png"));
 
     /// === FIELDS ===
 
-    @Getter @NonNull
+    @Getter
+    @NonNull
     private final Function<EncoderType<T>, T> factory;
-
-    /// === CONSTRUCTOR ===
 
     public EncoderType(@NonNull Function<EncoderType<T>, T> factory) {
         this.factory = factory;
     }
-
 
     /// === IDENTITY ===
 
@@ -50,27 +47,28 @@ public final class EncoderType<T extends Encoder> {
         return id;
     }
 
-    public @Nullable Identifier tryGetId() {
-        return REGISTRY.inverse().get(this);
+    /// === FACTORY ===
+
+    public T create() {
+        return factory.apply(this);
     }
 
     /// === SERIALIZATION ===
-
-    public static Encoder parse(JsonObject json, JsonDeserializationContext ctx) throws JsonParseException, UnknownEncoderTypeException {
+    public static EncoderConfig parse(JsonObject json, JsonDeserializationContext ctx) throws JsonParseException,
+            UnknownEncoderTypeException {
         var id = Identifier.of(json.get("type").getAsString());
         var type = REGISTRY.get(id);
         if (type == null) {
             throw new UnknownEncoderTypeException(id);
         }
-        Encoder encoder = type.create();
+        var encoder = type.create();
         encoder.readJson(json, ctx);
         return encoder;
     }
 
-
-    /// === FACTORY ===
-
-    public T create() {
-        return factory.apply(this);
+    public static JsonObject write(EncoderConfig encoder, JsonSerializationContext ctx) {
+        var json = encoder.writeJson(ctx);
+        json.addProperty("type", encoder.getType().getId().toString());
+        return json;
     }
 }

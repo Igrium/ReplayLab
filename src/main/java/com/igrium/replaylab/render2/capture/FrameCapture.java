@@ -6,19 +6,19 @@ import com.google.gson.JsonSerializationContext;
 import com.igrium.replaylab.editor.EditorState;
 import com.igrium.replaylab.render2.RenderMetadata;
 import com.igrium.replaylab.render2.SimpleTexture;
-import com.igrium.replaylab.render2.VideoRenderer;
-import com.igrium.replaylab.render2.encoder.Encoder;
+import com.igrium.replaylab.render2.encoder.EncoderProcess;
 import com.mojang.blaze3d.platform.GlConst;
 import imgui.ImGui;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.Setter;
+import net.minecraft.util.Language;
 import org.jetbrains.annotations.Nullable;
 
 /**
  * Captures the framebuffer into a texture during replay rendering.
  * <p>
- * Unlike {@link Encoder}, frame captures are stateless (aside from <code>setMetadata</code>)
+ * Unlike {@link EncoderProcess}, frame captures are stateless (aside from <code>setMetadata</code>)
  * <p>
  * Render configuration is persisted via {@link #writeJson} / {@link #readJson},
  * and optional UI controls can be exposed through {@link #drawProperties}.
@@ -68,6 +68,6 @@ public abstract class FrameCapture {
     public abstract void captureFrame(int frameIdx, SimpleTexture texture);
 
     public void drawProperties(EditorState editorState) {
-        ImGui.text("This renderer has no configurable properties.");
+        ImGui.text(Language.getInstance().get("gui.replaylab.capture.noProps"));
     }
 }

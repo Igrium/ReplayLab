@@ -3,11 +3,9 @@ package com.igrium.replaylab.render2;
 import com.igrium.craftui.app.AppManager;
 import com.igrium.replaylab.playback.AbstractScenePlayer;
 import com.igrium.replaylab.render.VideoRenderSettings;
-import com.igrium.replaylab.render.writer.FrameWriter;
-import com.igrium.replaylab.render.writer.FrameWriterType;
 import com.igrium.replaylab.render2.capture.FrameCapture;
 import com.igrium.replaylab.render2.capture.FrameCaptureType;
-import com.igrium.replaylab.render2.encoder.Encoder;
+import com.igrium.replaylab.render2.encoder.EncoderProcess;
 import com.igrium.replaylab.render2.encoder.EncoderType;
 import com.igrium.replaylab.scene.ReplayScene;
 import com.igrium.replaylab.scene.objs.ScenePropsObject;
@@ -22,7 +20,6 @@ import com.replaymod.render.hooks.ForceChunkLoadingHook;
 import com.replaymod.replay.ReplayHandler;
 import lombok.Getter;
 import lombok.NonNull;
-import lombok.Setter;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.sound.PositionedSoundInstance;
@@ -43,8 +40,6 @@ import org.slf4j.LoggerFactory;
 import java.util.EnumMap;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
-import java.util.function.Consumer;
 
 public class VideoRenderer {
     private static final Logger LOGGER = LoggerFactory.getLogger("ReplayLab/VideoRenderer");
@@ -132,7 +127,7 @@ public class VideoRenderer {
             FrameCapture capture = FrameCaptureType.BASIC.create();
             capture.setMetadata(renderMetadata);
 
-            Encoder encoder = EncoderType.PNG.create();
+            EncoderProcess encoder = EncoderType.PNG.create().spawnEncoder();
 
             scenePlayer = new RenderScenePlayer(replay);
             scenePlayerFuture = scenePlayer.start(scene);

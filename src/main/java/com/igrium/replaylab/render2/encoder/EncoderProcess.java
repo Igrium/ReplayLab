@@ -1,45 +1,24 @@
 package com.igrium.replaylab.render2.encoder;
 
-import com.google.gson.JsonDeserializationContext;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonSerializationContext;
-import com.igrium.replaylab.ReplayLab;
-import com.igrium.replaylab.editor.EditorState;
 import com.igrium.replaylab.render2.ManagedNativeImage;
 import com.igrium.replaylab.render2.RenderMetadata;
-import imgui.ImGui;
 import lombok.Getter;
 import lombok.NonNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.atomic.AtomicReference;
 
-/**
- * Encodes video into a file during replay rendering
- *
- * <p>Manages encoder lifecycle through a series of {@link EncodingState} transitions:
- * {@code READY → ENCODING → FINALIZING → FINISHED} (or {@code FAILED} at any point).
- *
- * <p>Encoder configuration is persisted via {@link #writeJson} / {@link #readJson},
- * and optional UI controls can be exposed through {@link #drawProperties}.
- */
-public abstract class Encoder {
+public abstract class EncoderProcess {
 
-    private static final Logger LOGGER = ReplayLab.getLogger(Encoder.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger("ReplayLab/EncoderProcess");
 
     public enum EncodingState {
-        READY,
-        ENCODING,
-        FINALIZING,
-        FINISHED,
-        FAILED
+        READY, ENCODING, FINALIZING, FINISHED, FAILED
     }
-
-    @Getter
-    private final EncoderType<?> type;
 
     @Getter
     private volatile EncodingState state = EncodingState.READY;
@@ -50,9 +29,6 @@ public abstract class Encoder {
         return failureReason.get();
     }
 
-    /**
-     * The path we're currently encoding to.
-     */
     @Nullable
     private RenderMetadata metadata;
 
@@ -65,38 +41,21 @@ public abstract class Encoder {
         return metadata;
     }
 
-    public Encoder(EncoderType<?> type) {
-        this.type = type;
-    }
-
-    /**
-     * Write this encoder's properties to Json
-     *
-     * @param json    Json object to write to
-     * @param context Json serialization context
-     */
-    public abstract void writeJson(JsonObject json, JsonSerializationContext context);
-
-    /**
-     * Read encoder properties from json and apply them to this encoder
-     * @param json Json object to read from
-     * @param context Json serialization context
-     */
-    public abstract void readJson(JsonObject json, JsonDeserializationContext context);
-
     /**
      * Mark this encoder as having failed. Useful for exceptions raised out-of-thread.
+     *
      * @param failureReason The reason for the failure.
      */
     protected final void fail(Throwable failureReason) {
-         if (this.failureReason.compareAndSet(null, failureReason)) {
-             state = EncodingState.FAILED;
-             onFailed(failureReason);
-         }
+        if (this.failureReason.compareAndSet(null, failureReason)) {
+            state = EncodingState.FAILED;
+            onFailed(failureReason);
+        }
     }
 
     /**
      * Initialize and begin encoding
+     *
      * @param metadata Encoding metadata
      * @throws IllegalStateException If the encoder isn't ready to start
      */
@@ -122,6 +81,7 @@ public abstract class Encoder {
 
     /**
      * Queue a frame to be encoded.
+     *
      * @param frame The frame to encode.
      * @throws IllegalStateException If we're not in state {@link EncodingState#ENCODING}
      * @apiNote If the encoder is not ready to receive the frame (buffer is full, etc.), blocks until it's ready
@@ -144,7 +104,8 @@ public abstract class Encoder {
     protected abstract void encodeFrame(ManagedNativeImage frame, int frameIdx) throws Exception;
 
     /**
-     * Asynchronously finalize this encoder.
+     * Asynchronously finalize this 
+     *
      * @return A future that completes once the file has been fully written to.
      */
     public synchronized final CompletableFuture<?> finish() {
@@ -163,30 +124,25 @@ public abstract class Encoder {
         }
 
         return future.thenApply(v -> {
-                    state = EncodingState.FINISHED;
-                    return v;
-                })
-                .exceptionally(e -> {
-                    if (e instanceof CompletionException) e = e.getCause();
+            state = EncodingState.FINISHED;
+            return v;
+        }).exceptionally(e -> {
+            if (e instanceof CompletionException) e = e.getCause();
 
-                    LOGGER.error("Error finalizing encoder!", e);
-                    fail(e);
-                    throw new EncoderException(e);
-                });
+            LOGGER.error("Error finalizing encoder!", e);
+            fail(e);
+            throw new EncoderException(e);
+        });
     }
 
     protected abstract CompletableFuture<?> finishEncoding() throws Exception;
 
     protected abstract void onFailed(Throwable reason);
 
-    public void drawProperties(EditorState editorState) {
-        ImGui.text("This encoder has no configurable properties.");
-    }
-
     private void ensureNotFailed() throws EncoderException {
         var cause = failureReason.get();
         if (cause != null) {
-            throw  new EncoderException(cause);
+            throw new EncoderException(cause);
         }
     }
 }
