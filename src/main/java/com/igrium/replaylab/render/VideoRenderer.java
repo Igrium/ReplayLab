@@ -200,7 +200,7 @@ public class VideoRenderer {
                 frameCapture.captureFrame(curIdx, renderTexture);
 
                 drawGui();
-                NativeImage nImage = new NativeImage(renderMetadata.width(), renderMetadata.height(), true);
+                NativeImage nImage = new NativeImage(NativeImage.Format.RGB, renderMetadata.width(), renderMetadata.height(), true);
                 //noinspection DataFlowIssue
                 RenderSystem.bindTexture(renderTexture.getGlId());
                 nImage.loadFromTextureImage(0, true);

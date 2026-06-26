@@ -41,8 +41,8 @@ public class PNGEncoder extends EncoderConfig {
 
 
         @Override
-        protected void startEncoding(RenderMetadata metadata) throws Exception {
-            Files.createDirectories(metadata.outPath());
+        protected void startEncoding() throws Exception {
+            Files.createDirectories(getMetadata().outPath());
             int availableProcessors = Runtime.getRuntime().availableProcessors();
             executor = new ThreadPoolExecutor(
                     availableProcessors,

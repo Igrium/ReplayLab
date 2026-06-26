@@ -75,7 +75,7 @@ public class RenderSettingsObj extends ReplayObject {
 
     }
 
-    private final ImString pathStr = new ImString(64);
+    private final ImString pathStr = new ImString(256);
 
     @Override
     public int drawPropertiesPanel(EditorState editor) {

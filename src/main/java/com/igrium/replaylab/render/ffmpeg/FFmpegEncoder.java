@@ -1,5 +1,6 @@
 package com.igrium.replaylab.render.ffmpeg;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.gson.JsonDeserializationContext;
 import com.google.gson.JsonObject;
@@ -23,7 +24,14 @@ import java.util.Map;
 public class FFmpegEncoder extends EncoderConfig {
     private static final Logger LOGGER = LoggerFactory.getLogger("ReplayLab/FFmpegEncoder");
 
-    public record CodecType(String encoderName, boolean supportsBitrate) {
+    public enum CodecFamily {
+        STANDARD, VPX, PRO
+    }
+
+    public record CodecType(String encoderName, boolean supportsBitrate, CodecFamily family, String profile) {
+        public CodecType(String encoderName, boolean supportsBitrate, CodecFamily family) {
+            this(encoderName, supportsBitrate, family, "");
+        }
     }
 
 
@@ -71,14 +79,15 @@ public class FFmpegEncoder extends EncoderConfig {
             "webm", List.of("vp8", "vp9", "av1")
     );
 
+    // TODO: multiple prores versions
     public static final Map<String, CodecType> CODECS = ImmutableMap.of(
-            "h.264", new CodecType("libx264", true),
-            "h.265", new CodecType("libx265", true),
-            "av1", new CodecType("libsvtav1", true),
-            "vp8", new CodecType("libvpx", true),
-            "vp9", new CodecType("libvpx-vp9", true),
-            "prores", new CodecType("prores_ks", false),
-            "dnxhr", new CodecType("dnxhd", false)
+            "h.264", new CodecType("libx264", true, CodecFamily.STANDARD),
+            "h.265", new CodecType("libx265", true, CodecFamily.STANDARD),
+            "av1", new CodecType("libsvtav1", true, CodecFamily.STANDARD),
+            "vp8", new CodecType("libvpx", true, CodecFamily.VPX),
+            "vp9", new CodecType("libvpx-vp9", true, CodecFamily.VPX),
+            "prores", new CodecType("prores_ks", false, CodecFamily.PRO, "1"), // ProRes 422 LT
+            "dnxhr", new CodecType("dnxhd", false, CodecFamily.PRO, "dnxhr_hq")
     );
 
 
@@ -106,7 +115,7 @@ public class FFmpegEncoder extends EncoderConfig {
     @Getter
     @Setter
     @NonNull
-    private RateControlMode controlMode = RateControlMode.VBR;
+    private RateControlMode rcMode = RateControlMode.VBR;
 
     @Getter
     @Setter
@@ -146,7 +155,7 @@ public class FFmpegEncoder extends EncoderConfig {
         this.container = other.container;
         this.codec = other.codec;
         this.encPreset = other.encPreset;
-        this.controlMode = other.controlMode;
+        this.rcMode = other.rcMode;
         this.crfValue = other.crfValue;
         this.bitrate = other.bitrate;
     }
@@ -163,7 +172,7 @@ public class FFmpegEncoder extends EncoderConfig {
 
     @Override
     public FFmpegEncoderProcess spawnEncoder() {
-        return new FFmpegEncoderProcess();
+        return new FFmpegEncoderProcess(this);
     }
 
     @Override
@@ -193,11 +202,11 @@ public class FFmpegEncoder extends EncoderConfig {
 
         ImGui.separator();
 
-        if (ImGui.beginCombo(t("gui.ffmpeg.rate_control"), t(controlMode.langKey()))) {
+        if (ImGui.beginCombo(t("gui.ffmpeg.rate_control"), t(rcMode.langKey()))) {
             for (var c : RateControlMode.values()) {
-                boolean selected = c.equals(this.controlMode);
+                boolean selected = c.equals(this.rcMode);
                 if (ImGui.selectable(t(c.langKey()), selected)) {
-                    setControlMode(c);
+                    setRcMode(c);
                 }
                 if (selected) {
                     ImGui.setItemDefaultFocus();
@@ -206,7 +215,7 @@ public class FFmpegEncoder extends EncoderConfig {
             ImGui.endCombo();
         }
 
-        if (this.controlMode == RateControlMode.CRF) {
+        if (this.rcMode == RateControlMode.CRF) {
             int[] crfIn = {crfValue};
             if (ImGui.dragScalar(t("gui.ffmpeg.crf"), crfIn, .25f, 0, 63)) {
                 setCrfValue(crfIn[0]);
@@ -262,6 +271,7 @@ public class FFmpegEncoder extends EncoderConfig {
         var allowed = CONTAINERS.get(container);
         return allowed == null || allowed.contains(codec);
     }
+
 
     private static String t(String key) {
         return Language.getInstance().get(key) + "###" + key;

@@ -69,7 +69,7 @@ public abstract class EncoderProcess {
         state = EncodingState.ENCODING;
 
         try {
-            startEncoding(metadata);
+            startEncoding();
         } catch (Exception e) {
             LOGGER.error("Error starting encoder!", e);
             fail(e);
@@ -77,7 +77,7 @@ public abstract class EncoderProcess {
         }
     }
 
-    protected abstract void startEncoding(RenderMetadata metadata) throws Exception;
+    protected abstract void startEncoding() throws Exception;
 
     /**
      * Queue a frame to be encoded.

@@ -54,7 +54,7 @@ public class DummyEncoder extends EncoderConfig {
     public static class DummyEncoderProcess extends EncoderProcess {
 
         @Override
-        protected void startEncoding(RenderMetadata metadata) throws Exception {
+        protected void startEncoding() throws Exception {
 
         }
 
