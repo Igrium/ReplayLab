@@ -1,21 +1,14 @@
 package com.igrium.replaylab.ui;
 
 import com.igrium.craftui.app.AppManager;
-import com.igrium.craftui.file.FileDialogs;
 import com.igrium.replaylab.editor.EditorState;
-import com.igrium.replaylab.render.VideoRenderSettings;
-import com.igrium.replaylab.render2.RenderSettingsObj;
 import com.igrium.replaylab.scene.ReplayScene;
-import com.mojang.blaze3d.systems.RenderSystem;
 import imgui.ImGui;
 import imgui.flag.ImGuiCond;
 import imgui.flag.ImGuiWindowFlags;
 import imgui.type.ImBoolean;
-import imgui.type.ImString;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.util.Language;
-
-import java.nio.file.Paths;
 
 public class ExportWindow {
 

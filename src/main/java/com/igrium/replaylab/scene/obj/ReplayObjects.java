@@ -2,7 +2,7 @@ package com.igrium.replaylab.scene.obj;
 
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
-import com.igrium.replaylab.render2.RenderSettingsObj;
+import com.igrium.replaylab.render.RenderSettingsObj;
 import com.igrium.replaylab.scene.ReplayScene;
 import com.igrium.replaylab.scene.objs.BlockDisplayObject;
 import com.igrium.replaylab.scene.objs.CameraObject;

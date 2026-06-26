@@ -1,7 +1,7 @@
-package com.igrium.replaylab.render2.encoder;
+package com.igrium.replaylab.render.encoder;
 
-import com.igrium.replaylab.render2.ManagedNativeImage;
-import com.igrium.replaylab.render2.RenderMetadata;
+import com.igrium.replaylab.render.ManagedNativeImage;
+import com.igrium.replaylab.render.RenderMetadata;
 import lombok.Getter;
 import lombok.NonNull;
 import org.jetbrains.annotations.Nullable;

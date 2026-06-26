@@ -1,4 +1,4 @@
-package com.igrium.replaylab.render2.encoder;
+package com.igrium.replaylab.render.encoder;
 
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;

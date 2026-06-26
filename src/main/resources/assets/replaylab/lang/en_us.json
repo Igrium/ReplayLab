@@ -5,6 +5,9 @@
   "replayobject.blockDisplay": "Block Display",
   "replayobject.camera": "Camera",
 
+  "encoder.replaylab.png": "PNG Sequence",
+  "encoder.replaylab.dummy": "Dummy (testing only)",
+
   "panel.replaylab.dopesheet_legacy": "Dope Sheet (Legacy)",
   "panel.replaylab.dopesheet": "Dope Sheet",
   "panel.replaylab.curveeditor": "Curve Editor",

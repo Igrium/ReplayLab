@@ -7,7 +7,6 @@ import com.igrium.replaylab.ReplayLab;
 import com.igrium.replaylab.config.Keybinds;
 import com.igrium.replaylab.editor.EditorState;
 import com.igrium.replaylab.operator.*;
-import com.igrium.replaylab.render.VideoRenderSettings;
 import com.igrium.replaylab.scene.obj.EntityProvider;
 import com.igrium.replaylab.scene.obj.ReplayObject;
 import com.igrium.replaylab.scene.obj.ReplayObject3D;
@@ -118,8 +117,6 @@ public class ReplayLabUI extends DockSpaceApp {
     private float viewportFooterHeight;
 
     private float prevCameraControlsGroupWidth = 0;
-
-    private final VideoRenderSettings tmpExportSettings = new VideoRenderSettings();
 
     // =========================================================================
     // Constructor & lifecycle

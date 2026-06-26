@@ -1,10 +1,10 @@
-package com.igrium.replaylab.render2.encoder;
+package com.igrium.replaylab.render.encoder;
 
 import com.google.gson.JsonDeserializationContext;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonSerializationContext;
-import com.igrium.replaylab.render2.ManagedNativeImage;
-import com.igrium.replaylab.render2.RenderMetadata;
+import com.igrium.replaylab.render.ManagedNativeImage;
+import com.igrium.replaylab.render.RenderMetadata;
 import com.igrium.replaylab.util.SimpleBlockingQueue;
 import net.minecraft.util.Util;
 import org.apache.commons.lang3.exception.ExceptionUtils;

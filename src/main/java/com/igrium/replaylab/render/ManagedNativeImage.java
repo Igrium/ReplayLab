@@ -1,4 +1,4 @@
-package com.igrium.replaylab.render2;
+package com.igrium.replaylab.render;
 
 import com.google.common.collect.MapMaker;
 import com.igrium.replaylab.util.ThrowingBiConsumer;

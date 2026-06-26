@@ -1,4 +1,4 @@
-package com.igrium.replaylab.render2.encoder;
+package com.igrium.replaylab.render.encoder;
 
 import com.google.gson.JsonDeserializationContext;
 import com.google.gson.JsonObject;

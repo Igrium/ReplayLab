@@ -1,4 +1,4 @@
-package com.igrium.replaylab.render2;
+package com.igrium.replaylab.render;
 
 import lombok.Builder;
 import lombok.EqualsAndHashCode;

@@ -1,20 +1,18 @@
-package com.igrium.replaylab.render2;
+package com.igrium.replaylab.render;
 
 import com.google.gson.JsonDeserializationContext;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonSerializationContext;
 import com.igrium.craftui.file.FileDialogs;
 import com.igrium.replaylab.editor.EditorState;
-import com.igrium.replaylab.render2.capture.FrameCapture;
-import com.igrium.replaylab.render2.capture.FrameCaptureType;
-import com.igrium.replaylab.render2.encoder.EncoderConfig;
-import com.igrium.replaylab.render2.encoder.EncoderType;
+import com.igrium.replaylab.render.capture.FrameCapture;
+import com.igrium.replaylab.render.capture.FrameCaptureType;
+import com.igrium.replaylab.render.encoder.EncoderConfig;
+import com.igrium.replaylab.render.encoder.EncoderType;
 import com.igrium.replaylab.scene.ReplayScene;
 import com.igrium.replaylab.scene.obj.ReplayObject;
 import com.igrium.replaylab.scene.obj.ReplayObjectType;
-import com.igrium.replaylab.scene.objs.ScenePropsObject;
 import com.igrium.replaylab.util.RenderUtils;
-import com.mojang.blaze3d.systems.RenderSystem;
 import imgui.ImGui;
 import imgui.type.ImString;
 import lombok.Getter;

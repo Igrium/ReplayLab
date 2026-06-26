@@ -1,4 +1,4 @@
-package com.igrium.replaylab.render2.encoder;
+package com.igrium.replaylab.render.encoder;
 
 /**
  * Thrown when the encoder encounters an error.

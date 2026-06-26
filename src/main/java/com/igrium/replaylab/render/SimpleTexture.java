@@ -1,4 +1,4 @@
-package com.igrium.replaylab.render2;
+package com.igrium.replaylab.render;
 
 import com.igrium.replaylab.util.RenderUtils;
 import com.mojang.blaze3d.platform.GlConst;

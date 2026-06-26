@@ -1,20 +1,73 @@
 package com.igrium.replaylab.render.capture;
 
-import net.minecraft.client.texture.NativeImage;
+import com.google.gson.JsonDeserializationContext;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonSerializationContext;
+import com.igrium.replaylab.editor.EditorState;
+import com.igrium.replaylab.render.RenderMetadata;
+import com.igrium.replaylab.render.SimpleTexture;
+import com.igrium.replaylab.render.encoder.EncoderProcess;
+import com.mojang.blaze3d.platform.GlConst;
+import imgui.ImGui;
+import lombok.Getter;
+import lombok.NonNull;
+import lombok.Setter;
+import net.minecraft.util.Language;
+import org.jetbrains.annotations.Nullable;
 
 /**
- * Responsible for capturing the current window.
+ * Captures the framebuffer into a texture during replay rendering.
+ * <p>
+ * Unlike {@link EncoderProcess}, frame captures are stateless (aside from <code>setMetadata</code>)
+ * <p>
+ * Render configuration is persisted via {@link #writeJson} / {@link #readJson},
+ * and optional UI controls can be exposed through {@link #drawProperties}.
  */
-public interface FrameCapture {
+public abstract class FrameCapture {
 
-    void start();
+    @Getter
+    private final FrameCaptureType<?> type;
+
+    @Setter
+    private @Nullable RenderMetadata metadata;
+
+    public @Nullable RenderMetadata tryGetMetadata() {
+        return this.metadata;
+    }
+
+    public @NonNull RenderMetadata getMetadata() {
+        if (this.metadata == null) throw new IllegalStateException("Render metadata has not been set!");
+        return metadata;
+    }
+
+    public FrameCapture(FrameCaptureType<?> type) {
+        this.type = type;
+    }
 
     /**
-     * Capture the current frame. Calls back into the VideoRenderer to update the scene.
-     * @param frameIdx The current frame index.
-     * @return A NativeImage containing the frame's current contents.
+     * Write this capture's properties to Json
+     *
+     * @param json    Json object to write to
+     * @param context Json serialization context
      */
-    NativeImage capture(int frameIdx);
+    public abstract void writeJson(JsonObject json, JsonSerializationContext context);
 
-    void finish();
+    public abstract void readJson(JsonObject json, JsonDeserializationContext context);
+
+    public SimpleTexture generateTexture() {
+        var meta = getMetadata();
+        return new SimpleTexture(meta.width(), meta.height(), GlConst.GL_RGB);
+    }
+
+    /**
+     * Capture a single frame.
+     *
+     * @param frameIdx The index of the frame to capture.
+     * @param texture  Texture to render into (on the GPU)
+     */
+    public abstract void captureFrame(int frameIdx, SimpleTexture texture);
+
+    public void drawProperties(EditorState editorState) {
+        ImGui.text(Language.getInstance().get("gui.replaylab.capture.noProps"));
+    }
 }

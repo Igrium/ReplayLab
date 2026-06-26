@@ -1,4 +1,4 @@
-package com.igrium.replaylab.render2.capture;
+package com.igrium.replaylab.render.capture;
 
 import lombok.Getter;
 import net.minecraft.util.Identifier;
