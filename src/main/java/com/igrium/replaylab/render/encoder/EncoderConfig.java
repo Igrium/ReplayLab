@@ -18,7 +18,7 @@ import net.minecraft.util.Language;
 public abstract class EncoderConfig {
 
     @Getter
-    private final EncoderType<?> type;
+    private transient final EncoderType<?> type;
 
     protected EncoderConfig(EncoderType<?> type) {
         this.type = type;

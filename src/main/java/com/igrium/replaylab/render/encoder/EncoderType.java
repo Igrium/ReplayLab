@@ -7,6 +7,7 @@ import com.google.gson.JsonDeserializationContext;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
 import com.google.gson.JsonSerializationContext;
+import com.igrium.replaylab.render.ffmpeg.FFmpegEncoder;
 import lombok.Getter;
 import lombok.NonNull;
 import net.minecraft.util.Identifier;
@@ -24,11 +25,15 @@ public class EncoderType<T extends EncoderConfig> {
         return type;
     }
 
+    public static final EncoderType<FFmpegEncoder> FFMPEG = register(new EncoderType<>(FFmpegEncoder::new),
+            Identifier.of("replaylab:ffmpeg"));
+
     public static final EncoderType<PNGEncoder> PNG = register(new EncoderType<>(PNGEncoder::new),
             Identifier.of("replaylab:png"));
 
-    public static final EncoderType<DummyEncoder> DUMMY = register(new EncoderType<>(DummyEncoder::new),
-            Identifier.of("replaylab:dummy"));
+//    public static final EncoderType<DummyEncoder> DUMMY = register(new EncoderType<>(DummyEncoder::new),
+//            Identifier.of("replaylab:dummy"));
+
 
     /// === FIELDS ===
 

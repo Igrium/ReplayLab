@@ -109,7 +109,7 @@ public class RenderSettingsObj extends ReplayObject {
             }
             ImGui.endCombo();
         }
-
+        ImGui.separator();
         getEncoder().drawProperties(editor);
 
         return 0;
