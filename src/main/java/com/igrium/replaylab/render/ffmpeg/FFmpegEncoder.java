@@ -143,8 +143,7 @@ public class FFmpegEncoder extends EncoderConfig {
     }
 
     @Getter
-    @Setter
-    @NonNull
+    @Setter    @NonNull
     private String customArgs = "";
 
     public FFmpegEncoder(EncoderType<?> type) {
