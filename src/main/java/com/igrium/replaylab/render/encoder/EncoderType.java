@@ -8,32 +8,16 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
 import com.google.gson.JsonSerializationContext;
 import com.igrium.replaylab.render.ffmpeg.FFmpegEncoder;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NonNull;
 import net.minecraft.util.Identifier;
 
 import java.util.function.Function;
 
+import static com.igrium.replaylab.render.encoder.EncoderTypes.REGISTRY;
+
 public class EncoderType<T extends EncoderConfig> {
-
-    /// === REGISTRY ===
-
-    public static final BiMap<Identifier, EncoderType<?>> REGISTRY = Maps.synchronizedBiMap(HashBiMap.create());
-
-    public static <T extends EncoderConfig> EncoderType<T> register(EncoderType<T> type, Identifier id) {
-        REGISTRY.put(id, type);
-        return type;
-    }
-
-    public static final EncoderType<FFmpegEncoder> FFMPEG = register(new EncoderType<>(FFmpegEncoder::new),
-            Identifier.of("replaylab:ffmpeg"));
-
-    public static final EncoderType<PNGEncoder> PNG = register(new EncoderType<>(PNGEncoder::new),
-            Identifier.of("replaylab:png"));
-
-//    public static final EncoderType<DummyEncoder> DUMMY = register(new EncoderType<>(DummyEncoder::new),
-//            Identifier.of("replaylab:dummy"));
-
 
     /// === FIELDS ===
 

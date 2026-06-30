@@ -9,6 +9,7 @@ import com.igrium.replaylab.render.capture.FrameCapture;
 import com.igrium.replaylab.render.capture.FrameCaptureType;
 import com.igrium.replaylab.render.encoder.EncoderConfig;
 import com.igrium.replaylab.render.encoder.EncoderType;
+import com.igrium.replaylab.render.encoder.EncoderTypes;
 import com.igrium.replaylab.scene.ReplayScene;
 import com.igrium.replaylab.scene.obj.ReplayObject;
 import com.igrium.replaylab.scene.obj.ReplayObjectType;
@@ -44,7 +45,7 @@ public class RenderSettingsObj extends ReplayObject {
     @Getter
     @Setter
     @NonNull
-    private EncoderConfig encoder = EncoderType.PNG.create();
+    private EncoderConfig encoder = EncoderTypes.PNG.create();
 
     public RenderSettingsObj(ReplayObjectType<?> type, ReplayScene scene) {
         super(type, scene);
@@ -96,7 +97,7 @@ public class RenderSettingsObj extends ReplayObject {
         ImGui.separator();
         Identifier selId = encoder.getType().getId();
         if (ImGui.beginCombo(t("gui.replaylab.encoder"), t(selId.toTranslationKey("encoder")))) {
-            for (var entry : EncoderType.REGISTRY.entrySet()) {
+            for (var entry : EncoderTypes.REGISTRY.entrySet()) {
                 Identifier id = entry.getKey();
                 boolean selected = id.equals(selId);
 
