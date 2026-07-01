@@ -35,6 +35,9 @@
   "gui.replaylab.outputFile": "Output File",
   "gui.replaylab.browse": "Browse",
 
+  "gui.replaylab.fileExists.header": "Overwrite?",
+  "gui.replayLab.fileExists": "A file named \"%s\" already exists. Overwrite?",
+
   "gui.replaylab.general": "General",
 
   "gui.replaylab.tooltip_snap": "Snap Keyframes",
@@ -47,6 +50,8 @@
   "gui.replaylab.scale": "Scale",
   "gui.replaylab.rot_mode": "Rotation Mode",
   "gui.replaylab.camera": "Camera",
+
+
 
   "gui.replaylab.keybinds": "Keybinds",
   "gui.replaylab.keybind.new": "> Press a new key <",
