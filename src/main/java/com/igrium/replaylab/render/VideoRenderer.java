@@ -67,7 +67,7 @@ public class VideoRenderer {
     @Getter
     private final ReplayScene scene;
 
-    private final VirtualWindow guiWindow;
+    private @Nullable VirtualWindow guiWindow;
 
     @Getter
     private final FrameCapture frameCapture;
@@ -87,14 +87,17 @@ public class VideoRenderer {
 
     private volatile boolean abort;
 
+    /**
+     * The texture currently being rendered to. <code>null</code> if we're not rendering.
+     */
     @Getter
     private @Nullable SimpleTexture renderTexture;
 
     /**
-     * An FBO wrapping {@link #renderTexture} as color attachment 0, used to force alpha opaque (and,
-     * in the future, to run shader / multi-sample passes into the texture). <code>-1</code> when unset.
+     * A framebuffer wrapping {@link #renderTexture} so we can perform operations on it
      */
-    private int renderFbo = -1;
+    @Getter
+    private @Nullable SimpleFramebuffer renderFbo;
 
     public VideoRenderer(RenderMetadata renderMetadata, ReplayHandler replay, ReplayScene scene, FrameCapture frameCapture, EncoderConfig encoder) {
         this.renderMetadata = renderMetadata;
@@ -102,7 +105,6 @@ public class VideoRenderer {
         this.scene = scene;
         this.frameCapture = frameCapture;
         this.encoder = encoder;
-        guiWindow = new VirtualWindow(mc);
     }
 
     public static VideoRenderer create(ReplayScene scene) {
@@ -143,30 +145,22 @@ public class VideoRenderer {
         EnumMap<SoundCategory, Float> originalSoundLevels = new EnumMap<>(SoundCategory.class);
         ForceChunkLoadingHook forceChunkLoadingHook = null;
 
-        CompletableFuture<?> scenePlayerFuture = null;
         RenderScenePlayer scenePlayer = null;
         try {
             /// === SETUP ===
-            // NOTE: Do not touch the replay sender's async mode here. The RenderScenePlayer
-            // (AbstractScenePlayer) is the sole owner of the sync/async transition: it uses
-            // setSyncModeAndWait() to fully stop the async sender thread before rendering and
-            // restoreState() to bring it back afterwards. Toggling it here as well raced with
-            // that lifecycle and orphaned ReplayMod's non-daemon "replaymod-async-sender" thread,
-            // which then kept the JVM alive forever after the game window closed (Linux hang).
 
-            ScenePropsObject sceneProps = scene.getSceneProps();
-
-            // TODO: read from config
             frameCapture.setMetadata(renderMetadata);
 
             EncoderProcess encoder = getEncoder().spawnEncoder();
 
             scenePlayer = new RenderScenePlayer(replay);
-            scenePlayerFuture = scenePlayer.start(scene);
+            scenePlayer.start(scene);
 
             if (debugWasShown) {
                 mc.getDebugHud().toggleDebugHud();
             }
+
+            guiWindow = new VirtualWindow(mc);
 
             mc.mouse.unlockCursor();
 
@@ -201,16 +195,7 @@ public class VideoRenderer {
             /// === RENDERING PIPELINE ===
             encoder.start(renderMetadata);
             renderTexture = frameCapture.generateTexture();
-
-            // FBO wrapping the render texture. We own it here (alongside renderTexture) so we can
-            // force the captured frame's alpha opaque -- and later run shader / multi-sample passes --
-            // without ever mutating Minecraft's own framebuffer.
-            renderFbo = GlStateManager.glGenFramebuffers();
-            int prevFboSetup = GlStateManager.getBoundFramebuffer();
-            GlStateManager._glBindFramebuffer(GlConst.GL_FRAMEBUFFER, renderFbo);
-            GlStateManager._glFramebufferTexture2D(GlConst.GL_FRAMEBUFFER, GlConst.GL_COLOR_ATTACHMENT0,
-                    GlConst.GL_TEXTURE_2D, renderTexture.getGlId(), 0);
-            GlStateManager._glBindFramebuffer(GlConst.GL_FRAMEBUFFER, prevFboSetup);
+            renderFbo = new SimpleFramebuffer(renderTexture);
 
             renderState = RenderState.RENDERING;
             while (frameIdx < renderMetadata.totalFrames() && !abort) {
@@ -221,23 +206,7 @@ public class VideoRenderer {
                 queueFrame(frameIdx, 1);
                 frameCapture.captureFrame(curIdx, renderTexture);
 
-                // Minecraft's offscreen framebuffer leaves alpha at 0, so the captured texture would be
-                // fully transparent. Force alpha opaque via an alpha-only masked clear on our own FBO
-                // (renderFbo) wrapping the texture -- MC's framebuffer is never mutated.
-                int prevFbo = GlStateManager.getBoundFramebuffer();
-                GlStateManager._glBindFramebuffer(GlConst.GL_FRAMEBUFFER, renderFbo);
-                GlStateManager._colorMask(false, false, false, true);
-                GlStateManager._clearColor(0, 0, 0, 1);
-                GlStateManager._clear(GlConst.GL_COLOR_BUFFER_BIT);
-                GlStateManager._colorMask(true, true, true, true);
-                GlStateManager._glBindFramebuffer(GlConst.GL_FRAMEBUFFER, prevFbo);
-
-                // Read the captured frame back from the render texture (RGBA8). The readback MUST be
-                // RGBA: an RGB glGetTexImage readback (the format conversion it implies) deadlocks the
-                // NVIDIA driver on JVM exit -- the straight RGBA copy does not. Keeping the readback on
-                // our own texture (rather than ScreenshotRecorder on the framebuffer) leaves room to run
-                // shader / multi-sample passes on the texture before this readback. Must run BEFORE
-                // drawGui(), which rebinds/clears the framebuffer.
+                clearFramebufferAlpha(renderFbo.getFbo());
                 NativeImage nImage = new NativeImage(renderMetadata.width(), renderMetadata.height(), false);
                 RenderSystem.bindTexture(renderTexture.getGlId());
                 nImage.loadFromTextureImage(0, true);
@@ -280,24 +249,21 @@ public class VideoRenderer {
 
             return !abort;
         } finally {
-            if (renderFbo != -1) {
-                GlStateManager._glDeleteFramebuffers(renderFbo);
-                renderFbo = -1;
-            }
-
-            if (renderTexture != null) {
-                try {
-                    renderTexture.close();
-                } catch (Exception e) {
-                    LOGGER.error("Error while closing texture", e);
-                }
-                renderTexture = null;
-            }
+            /// === CLEANUP ===
 
             renderingVideo = false;
             renderState = RenderState.DONE;
 
-            guiWindow.close();
+            if (renderFbo != null) {
+                renderFbo.close();
+                renderFbo = null;
+            }
+
+            if (renderTexture != null) {
+                renderTexture.close();
+                renderTexture = null;
+            }
+
 
             if (scenePlayer != null) {
                 scenePlayer.stop();
@@ -324,18 +290,33 @@ public class VideoRenderer {
                     SoundEvent.of(Identifier.of("replaymod:render_success")), 1));
 
             // Finally, resize the Minecraft framebuffer to the actual width/height of the window
-            MCVer.resizeMainWindow(mc, guiWindow.getFramebufferWidth(), guiWindow.getFramebufferHeight());
 
-            // Async mode is restored by RenderScenePlayer.restoreState(); see the note in SETUP above.
+            if (guiWindow != null) {
+                guiWindow.close();
+                MCVer.resizeMainWindow(mc, guiWindow.getFramebufferWidth(), guiWindow.getFramebufferHeight());
+            }
         }
     }
 
+    /**
+     * Minecraft's offscreen framebuffer leaves alpha at 0. Fix that.
+     */
+    private static void clearFramebufferAlpha(int fbo) {
+        RenderSystem.assertOnRenderThreadOrInit();
+        int prevFbo = GlStateManager.getBoundFramebuffer();
+        GlStateManager._glBindFramebuffer(GlConst.GL_FRAMEBUFFER, fbo);
+        GlStateManager._colorMask(false, false, false, true);
+        GlStateManager._clearColor(0, 0, 0, 1);
+        GlStateManager._clear(GlConst.GL_COLOR_BUFFER_BIT);
+        GlStateManager._colorMask(true, true, true, true);
+        GlStateManager._glBindFramebuffer(GlConst.GL_FRAMEBUFFER, prevFbo);
+    }
 
     public float queueFrame(int sampleIdx, int totalSamples) {
         guiWindow.bind();
 
-        ReplayTimer timer = (ReplayTimer) ((MinecraftAccessor) mc).getTimer(); // Updating the timer will cause the
-        // timeline player to update the game state
+        // Updating the timer will cause the timeline player to update the game state
+        ReplayTimer timer = (ReplayTimer) ((MinecraftAccessor) mc).getTimer();
         try {
             // TODO: GUI update
             int elapsedTicks = timer.beginRenderTick(Util.getMeasuringTimeMs(), true);
@@ -352,14 +333,12 @@ public class VideoRenderer {
         scene.spectateCamera();
         frameIdx++;
 
-//        drawGui();
         return timer.tickDelta;
     }
 
     private void executeTaskQueue() {
         while (true) {
             while (mc.getOverlay() != null) {
-//                drawGui();
                 ((MCVer.MinecraftMethodAccessor) mc).replayModExecuteTaskQueue();
             }
 
@@ -382,12 +361,10 @@ public class VideoRenderer {
             return false;
         }
 
-//            MCVer.pushMatrix();
 
         RenderSystem.clear(GL11.GL_COLOR_BUFFER_BIT | GL11.GL_DEPTH_BUFFER_BIT);
         guiWindow.beginWrite();
 
-//        RenderSystem.clear(256);
 
         DrawContext drawContext = new DrawContext(mc, mc.getBufferBuilders().getEntityVertexConsumers());
         drawContext.draw();
@@ -396,7 +373,6 @@ public class VideoRenderer {
 
         MCVer.pushMatrix();
         AppManager.render(mc);
-//        guiWindow.flip();
         mc.getWindow().swapBuffers(null);
         MCVer.popMatrix();
 
