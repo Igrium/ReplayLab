@@ -253,13 +253,9 @@ public class VideoRenderer {
             renderingVideo = false;
             renderState = RenderState.DONE;
 
-
-            if (!scenePlayerFuture.isDone()) {
-                scenePlayerFuture.cancel(false);
+            if (scenePlayer != null) {
+                scenePlayer.stop();
             }
-
-            // Tear down of the timeline player might only happen the next tick after it was canceled
-            scenePlayer.onTick();
 
             if (debugWasShown) {
                 mc.getDebugHud().toggleDebugHud();
@@ -273,11 +269,10 @@ public class VideoRenderer {
                 mc.options.getSoundVolumeOption(entry.getKey()).setValue(Double.valueOf(entry.getValue()));
             }
 
+            mc.setScreen(null);
             if (forceChunkLoadingHook != null) {
                 forceChunkLoadingHook.uninstall();
             }
-
-            mc.setScreen(null);
 
             mc.getSoundManager().play(PositionedSoundInstance.master(
                     SoundEvent.of(Identifier.of("replaymod:render_success")), 1));
@@ -285,9 +280,7 @@ public class VideoRenderer {
             // Finally, resize the Minecraft framebuffer to the actual width/height of the window
             MCVer.resizeMainWindow(mc, guiWindow.getFramebufferWidth(), guiWindow.getFramebufferHeight());
 
-            if (!wasAsyncMode) {
-                replay.getReplaySender().setAsyncMode(false);
-            }
+            replay.getReplaySender().setAsyncMode(wasAsyncMode);
         }
     }
 
