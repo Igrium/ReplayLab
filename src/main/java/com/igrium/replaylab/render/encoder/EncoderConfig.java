@@ -38,6 +38,11 @@ public abstract class EncoderConfig {
         return new String[0];
     }
 
+    public String getFileFilterName() {
+        var ext = getSupportedExtensions();
+        return ext.length > 0 ? ext[0] : "any";
+    }
+
     /**
      * If <code>true</code>, this encoder wants to output multiple files to a folder rather than a single video file
      */

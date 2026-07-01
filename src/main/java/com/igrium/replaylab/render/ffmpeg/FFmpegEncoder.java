@@ -210,12 +210,16 @@ public class FFmpegEncoder extends EncoderConfig {
         return new FFmpegEncoderProcess(this);
     }
 
+    private static String containerLabel(String ext) {
+        return tt("container." + ext) + " (." + ext + ")";
+    }
+
     @Override
     public void drawProperties(EditorState editor) {
-        if (ImGui.beginCombo(t("gui.ffmpeg.container"), t("container." + container))) {
+        if (ImGui.beginCombo(t("gui.ffmpeg.container"), containerLabel(container))) {
             for (var c : CONTAINERS.keySet()) {
                 boolean selected = c.equals(this.container);
-                if (drawComboItem(t("container." + c), selected)) {
+                if (drawComboItem(containerLabel(c), selected)) {
                     setContainer(c);
                 }
             }
@@ -315,6 +319,11 @@ public class FFmpegEncoder extends EncoderConfig {
     public String[] getSupportedExtensions() {
         ContainerType type = CONTAINERS.get(container);
         return type != null ? type.extensions() : new String[0];
+    }
+
+    @Override
+    public String getFileFilterName() {
+        return tt("container." + container);
     }
 
     private static String t(String key) {

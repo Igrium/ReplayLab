@@ -4,6 +4,7 @@ import com.google.gson.JsonDeserializationContext;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonSerializationContext;
 import com.igrium.craftui.file.FileDialogs;
+import com.igrium.craftui.file.FileDialogs.FileFilter;
 import com.igrium.replaylab.editor.EditorState;
 import com.igrium.replaylab.render.capture.FrameCapture;
 import com.igrium.replaylab.render.capture.FrameCaptureType;
@@ -80,9 +81,23 @@ public class RenderSettingsObj extends ReplayObject {
     public int drawPropertiesPanel(EditorState editor) {
         ImGui.text(tt("gui.replaylab.outputFile"));
         if (ImGui.button(t("gui.replaylab.browse"))) {
-            FileDialogs.showSaveDialog(getOutPath().getParent().toString(), getOutPath().getFileName().toString()).thenAcceptAsync(opt -> {
-                opt.ifPresent(s -> setOutPath(Paths.get(s)));
-            }, RenderUtils::onRenderThread);
+
+            String[] extensions = encoder.getSupportedExtensions();
+            FileFilter[] filters;
+            if (extensions.length > 0) {
+                filters = new FileFilter[] {new FileFilter(encoder.getFileFilterName(), extensions)};
+            } else {
+                filters = new FileFilter[0];
+            }
+
+            FileDialogs.showSaveDialog(
+                    getOutPath().getParent().toString(),
+                    getOutPath().getFileName().toString(),
+                    filters
+            ).thenAcceptAsync(
+                    opt -> opt.ifPresent(s -> setOutPath(Paths.get(s))),
+                    RenderUtils::onRenderThread
+            );
         }
 
         ImGui.sameLine();

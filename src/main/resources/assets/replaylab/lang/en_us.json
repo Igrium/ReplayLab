@@ -109,10 +109,10 @@
   "gui.encpreset.slower": "Slower",
   "gui.encpreset.veryslow": "Very Slow",
 
-  "container.mp4": "MPEG-4 (.mp4)",
-  "container.mkv": "Matroska (.mkv)",
-  "container.mov": "QuickTime (.mov)",
-  "container.webm": "WebM (.webm)",
+  "container.mp4": "MPEG-4",
+  "container.mkv": "Matroska",
+  "container.mov": "QuickTime",
+  "container.webm": "WebM",
 
   "codec.h.264": "H.264",
   "codec.h.265": "H.265",
