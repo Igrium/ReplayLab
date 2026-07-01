@@ -253,6 +253,8 @@ public class VideoRenderer {
             renderingVideo = false;
             renderState = RenderState.DONE;
 
+            guiWindow.close();
+
             if (scenePlayer != null) {
                 scenePlayer.stop();
             }

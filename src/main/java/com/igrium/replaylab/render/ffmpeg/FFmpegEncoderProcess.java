@@ -145,10 +145,10 @@ public class FFmpegEncoderProcess extends EncoderProcess {
         String encoder = codec.encoderName();
 
         args.add("-c:v", encoder);
+        args.add("-pix_fmt", "yuv420p");
 
         if (codec.supportsBitrate()) {
             args.add("-preset", encoderConfig.getEncPreset().name().toLowerCase());
-
             switch (encoderConfig.getRcMode()) {
                 case CRF -> {
                     args.add("-crf", String.valueOf(encoderConfig.getCrfValue()));
