@@ -30,6 +30,21 @@ public abstract class EncoderConfig {
 
     public abstract EncoderProcess spawnEncoder();
 
+    /**
+     * Get the extension(s) the file should use given the encoder's current config.
+     * @return The extensions, excluding "."; An empty array if the encoder doesn't care.
+     */
+    public String[] getSupportedExtensions() {
+        return new String[0];
+    }
+
+    /**
+     * If <code>true</code>, this encoder wants to output multiple files to a folder rather than a single video file
+     */
+    public boolean wantsDirectory() {
+        return false;
+    }
+
     public void drawProperties(EditorState editor) {
         ImGui.text(Language.getInstance().get("gui.replaylab.encoder.noProps"));
     }

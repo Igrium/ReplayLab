@@ -22,20 +22,18 @@ import lombok.Setter;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.Language;
+import org.apache.commons.io.FilenameUtils;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Objects;
 
 public class RenderSettingsObj extends ReplayObject {
 
     @Getter
+    @Setter
     @NonNull
     private Path outPath = FabricLoader.getInstance().getGameDir().resolve("replay_videos/my_movie");
-
-    public void setOutPath(@NonNull Path outPath) {
-        this.outPath = outPath;
-        pathStr.set(outPath.toString());
-    }
 
     @Getter
     @Setter
@@ -90,8 +88,19 @@ public class RenderSettingsObj extends ReplayObject {
         ImGui.sameLine();
         ImGui.setNextItemWidth(-1);
 
+        pathStr.set(outPath.toString());
         if (ImGui.inputText("##filepath", pathStr)) {
             outPath = Paths.get(pathStr.get());
+        }
+
+        // Ensure extension is correct
+        String[] exts = getEncoder().getSupportedExtensions();
+        if (exts.length > 0) {
+            String ext = FilenameUtils.getExtension(pathStr.get()); // Avoids reallocation by using pathStr
+            if (!arrayContains(exts, ext)) {
+                String baseName = FilenameUtils.removeExtension(outPath.getFileName().toString());
+                setOutPath(outPath.getParent().resolve(baseName + "." + exts[0]));
+            }
         }
 
         ImGui.separator();
@@ -122,5 +131,14 @@ public class RenderSettingsObj extends ReplayObject {
 
     private static String tt(String key) {
         return Language.getInstance().get(key);
+    }
+
+    private static <T> boolean arrayContains(T[] array, T value) {
+        for (T val : array) {
+            if (Objects.equals(val, value)) {
+                return true;
+            }
+        }
+        return false;
     }
 }

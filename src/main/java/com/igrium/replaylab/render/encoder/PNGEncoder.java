@@ -32,6 +32,11 @@ public class PNGEncoder extends EncoderConfig {
         return new PNGEncoderProcess();
     }
 
+    @Override
+    public boolean wantsDirectory() {
+        return true;
+    }
+
     /**
      * An encoder that simply writes PNG files.
      */

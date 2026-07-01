@@ -1,6 +1,5 @@
 package com.igrium.replaylab.render.ffmpeg;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.gson.JsonDeserializationContext;
 import com.google.gson.JsonObject;
@@ -18,14 +17,39 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 public class FFmpegEncoder extends EncoderConfig {
     private static final Logger LOGGER = LoggerFactory.getLogger("ReplayLab/FFmpegEncoder");
 
     public enum CodecFamily {
         STANDARD, VPX, PRO
+    }
+
+    public record ContainerType(String[] extensions, String... codecs) {
+        public ContainerType(String extension, String... supportedCodecs) {
+            this(new String[]{extension}, supportedCodecs);
+        }
+
+        public boolean isExtSupported(String ext) {
+            return extensions.length == 0 || arrayContains(extensions, ext);
+        }
+
+        public boolean isCodecSupported(String codec) {
+            return codecs.length == 0 || arrayContains(codecs, codec);
+        }
+
+//        /**
+//         * Because array has no contains method
+//         */
+//        public boolean isCodecSupported(String codec) {
+//            if (codecs.length == 0) return true;
+//            for (var c : codecs) {
+//                if (c.equals(codec)) return true;
+//            }
+//            return false;
+//        }
     }
 
     public record CodecType(String encoderName, boolean supportsBitrate, CodecFamily family, String profile) {
@@ -72,12 +96,13 @@ public class FFmpegEncoder extends EncoderConfig {
 
 //    public record BitratePreset(String label, int bitrate) {};
 
-    public static final Map<String, List<String>> CONTAINERS = ImmutableMap.of(
-            "mp4", List.of("h.264", "h.265", "av1"),
-            "mkv", List.of("h.264", "h.265", "av1", "vp8", "vp9", "prores", "dnxhr"),
-            "mov", List.of("h.264", "h.265", "prores", "dnhxr"),
-            "webm", List.of("vp8", "vp9", "av1")
+    public static final Map<String, ContainerType> CONTAINERS = ImmutableMap.of(
+            "mp4", new ContainerType("mp4", "h.264", "h.265", "av1"),
+            "mkv", new ContainerType("mkv", "h.264", "h.265", "av1", "vp8", "vp9", "prores", "dnxhr"),
+            "mov", new ContainerType("mov", "h.264", "h.265", "prores", "dnhxr"),
+            "webm", new ContainerType("webm", "vp8", "vp9", "av1")
     );
+
 
     // TODO: multiple prores versions
     public static final Map<String, CodecType> CODECS = ImmutableMap.of(
@@ -97,10 +122,14 @@ public class FFmpegEncoder extends EncoderConfig {
 
     public void setContainer(@NonNull String container) {
         this.container = container;
-        List<String> codecs = CONTAINERS.get(this.container);
-        if (codecs != null && !codecs.isEmpty() && !codecs.contains(this.codec)) {
-            setCodec(codecs.getFirst());
+        ContainerType cType = CONTAINERS.get(this.container);
+        if (cType != null && !cType.isCodecSupported(getCodec())) {
+            setCodec(cType.codecs[0]);
         }
+//        List<String> codecs = CONTAINERS.get(this.container);
+//        if (codecs != null && !codecs.isEmpty() && !codecs.contains(this.codec)) {
+//            setCodec(codecs.getFirst());
+//        }
     }
 
     @Getter
@@ -201,6 +230,9 @@ public class FFmpegEncoder extends EncoderConfig {
 
         ImGui.separator();
 
+        var selCodec = CODECS.get(this.codec);
+        ImGui.beginDisabled(!selCodec.supportsBitrate);
+
         if (ImGui.beginCombo(t("gui.ffmpeg.rate_control"), t(rcMode.langKey()))) {
             for (var c : RateControlMode.values()) {
                 boolean selected = c.equals(this.rcMode);
@@ -244,6 +276,7 @@ public class FFmpegEncoder extends EncoderConfig {
             }
         }
 
+        ImGui.endDisabled();
         ImGui.separator();
 
         if (ImGui.beginCombo(t("gui.ffmpeg.preset"), t(encPreset.langKey()))) {
@@ -267,10 +300,15 @@ public class FFmpegEncoder extends EncoderConfig {
     }
 
     private boolean isCodecAllowed(String codec) {
-        var allowed = CONTAINERS.get(container);
-        return allowed == null || allowed.contains(codec);
+        var type = CONTAINERS.get(container);
+        return type == null || type.isCodecSupported(codec);
     }
 
+    @Override
+    public String[] getSupportedExtensions() {
+        ContainerType type = CONTAINERS.get(container);
+        return type != null ? type.extensions() : new String[0];
+    }
 
     private static String t(String key) {
         return Language.getInstance().get(key) + "###" + key;
@@ -278,6 +316,15 @@ public class FFmpegEncoder extends EncoderConfig {
 
     private static String tt(String key) {
         return Language.getInstance().get(key);
+    }
+
+    private static <T> boolean arrayContains(T[] array, T value) {
+        for (T val : array) {
+            if (Objects.equals(val, value)) {
+                return true;
+            }
+        }
+        return false;
     }
 }
 
