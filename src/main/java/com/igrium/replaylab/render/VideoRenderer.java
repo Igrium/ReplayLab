@@ -23,6 +23,7 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.sound.PositionedSoundInstance;
 import net.minecraft.client.texture.NativeImage;
+import net.minecraft.client.util.ScreenshotRecorder;
 import net.minecraft.client.util.Window;
 import net.minecraft.sound.SoundCategory;
 import net.minecraft.sound.SoundEvent;
@@ -130,7 +131,6 @@ public class VideoRenderer {
         renderState = RenderState.STARTING;
         renderingVideo = true;
 
-        boolean wasAsyncMode = replay.getReplaySender().isAsyncMode();
         boolean debugWasShown = mc.getDebugHud().shouldShowDebugHud();
         boolean mouseWasGrabbed = mc.mouse.isCursorLocked();
         EnumMap<SoundCategory, Float> originalSoundLevels = new EnumMap<>(SoundCategory.class);
@@ -140,7 +140,12 @@ public class VideoRenderer {
         RenderScenePlayer scenePlayer = null;
         try {
             /// === SETUP ===
-            replay.getReplaySender().setAsyncMode(false);
+            // NOTE: Do not touch the replay sender's async mode here. The RenderScenePlayer
+            // (AbstractScenePlayer) is the sole owner of the sync/async transition: it uses
+            // setSyncModeAndWait() to fully stop the async sender thread before rendering and
+            // restoreState() to bring it back afterwards. Toggling it here as well raced with
+            // that lifecycle and orphaned ReplayMod's non-daemon "replaymod-async-sender" thread,
+            // which then kept the JVM alive forever after the game window closed (Linux hang).
 
             ScenePropsObject sceneProps = scene.getSceneProps();
 
@@ -199,12 +204,14 @@ public class VideoRenderer {
                 queueFrame(frameIdx, 1);
                 frameCapture.captureFrame(curIdx, renderTexture);
 
+                // TEST (framebuffer readback): read the frame directly from the framebuffer via
+                // glReadPixels (ScreenshotRecorder) -- mirrors the old working `master` path --
+                // instead of copying into a persistent SimpleTexture and reading it back with
+                // glGetTexImage. This isolates the NVIDIA driver thread that deadlocks the JVM on
+                // exit. Must run BEFORE drawGui(), which rebinds/clears the framebuffer.
+                NativeImage nImage = ScreenshotRecorder.takeScreenshot(mc.getFramebuffer());
+
                 drawGui();
-                NativeImage nImage = new NativeImage(NativeImage.Format.RGB, renderMetadata.width(), renderMetadata.height(), true);
-                //noinspection DataFlowIssue
-                RenderSystem.bindTexture(renderTexture.getGlId());
-                nImage.loadFromTextureImage(0, true);
-                nImage.mirrorVertically();
 
                 Throwable e = encoder.getFailureReason();
                 if (e != null) {
@@ -282,7 +289,7 @@ public class VideoRenderer {
             // Finally, resize the Minecraft framebuffer to the actual width/height of the window
             MCVer.resizeMainWindow(mc, guiWindow.getFramebufferWidth(), guiWindow.getFramebufferHeight());
 
-            replay.getReplaySender().setAsyncMode(wasAsyncMode);
+            // Async mode is restored by RenderScenePlayer.restoreState(); see the note in SETUP above.
         }
     }
 
