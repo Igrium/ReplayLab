@@ -24,7 +24,7 @@ public class FFmpegEncoder extends EncoderConfig {
     private static final Logger LOGGER = LoggerFactory.getLogger("ReplayLab/FFmpegEncoder");
 
     public enum CodecFamily {
-        STANDARD, VPX, PRO
+        X264, AV1, VPX, PRO
     }
 
     public record ContainerType(String[] extensions, String... codecs) {
@@ -40,16 +40,6 @@ public class FFmpegEncoder extends EncoderConfig {
             return codecs.length == 0 || arrayContains(codecs, codec);
         }
 
-//        /**
-//         * Because array has no contains method
-//         */
-//        public boolean isCodecSupported(String codec) {
-//            if (codecs.length == 0) return true;
-//            for (var c : codecs) {
-//                if (c.equals(codec)) return true;
-//            }
-//            return false;
-//        }
     }
 
     public record CodecType(String encoderName, boolean supportsBitrate, CodecFamily family, String profile) {
@@ -87,14 +77,35 @@ public class FFmpegEncoder extends EncoderConfig {
     }
 
     public enum EncodingPreset {
-        ULTRAFAST, SUPERFAST, VERYFAST, FASTER, FAST, MEDIUM, SLOW, SLOWER, VERYSLOW;
+        ULTRAFAST(10, "realtime", 12),
+        SUPERFAST(9, "realtime", 8),
+        VERYFAST(8, "realtime", 5),
+        FASTER(6, "good", 4),
+        FAST(5, "good", 3),
+        MEDIUM(4, "good", 2),
+        SLOW(3, "good", 1),
+        SLOWER(1, "good", 0),
+        VERYSLOW(0, "best", 0);
+
+        @Getter
+        final int av1;
+
+        @Getter
+        final String vpxDeadline;
+
+        @Getter
+        final int vpxCpu;
+
+        EncodingPreset(int av1, String vpxDeadline, int vpxCpu) {
+            this.av1 = av1;
+            this.vpxDeadline = vpxDeadline;
+            this.vpxCpu = vpxCpu;
+        }
 
         public String langKey() {
             return "gui.encpreset." + name().toLowerCase();
         }
     }
-
-//    public record BitratePreset(String label, int bitrate) {};
 
     public static final Map<String, ContainerType> CONTAINERS = ImmutableMap.of(
             "mp4", new ContainerType("mp4", "h.264", "h.265", "av1"),
@@ -106,9 +117,9 @@ public class FFmpegEncoder extends EncoderConfig {
 
     // TODO: multiple prores versions
     public static final Map<String, CodecType> CODECS = ImmutableMap.of(
-            "h.264", new CodecType("libx264", true, CodecFamily.STANDARD),
-            "h.265", new CodecType("libx265", true, CodecFamily.STANDARD),
-            "av1", new CodecType("libsvtav1", true, CodecFamily.STANDARD),
+            "h.264", new CodecType("libx264", true, CodecFamily.X264),
+            "h.265", new CodecType("libx265", true, CodecFamily.X264),
+            "av1", new CodecType("libsvtav1", true, CodecFamily.AV1),
             "vp8", new CodecType("libvpx", true, CodecFamily.VPX),
             "vp9", new CodecType("libvpx-vp9", true, CodecFamily.VPX),
             "prores", new CodecType("prores_ks", false, CodecFamily.PRO, "1"), // ProRes 422 LT
@@ -126,10 +137,6 @@ public class FFmpegEncoder extends EncoderConfig {
         if (cType != null && !cType.isCodecSupported(getCodec())) {
             setCodec(cType.codecs[0]);
         }
-//        List<String> codecs = CONTAINERS.get(this.container);
-//        if (codecs != null && !codecs.isEmpty() && !codecs.contains(this.codec)) {
-//            setCodec(codecs.getFirst());
-//        }
     }
 
     @Getter

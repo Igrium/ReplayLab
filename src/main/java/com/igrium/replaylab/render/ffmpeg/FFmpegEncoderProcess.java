@@ -147,8 +147,15 @@ public class FFmpegEncoderProcess extends EncoderProcess {
         args.add("-c:v", encoder);
         args.add("-pix_fmt", "yuv420p");
 
+        // PRESETS
+        FFmpegEncoder.EncodingPreset preset = encoderConfig.getEncPreset();
+        switch (codec.family()) {
+            case X264 -> args.add("-preset", preset.name().toLowerCase());
+            case VPX -> args.add("-deadline", preset.getVpxDeadline(), "-cpu-used", String.valueOf(preset.getVpxCpu()));
+            case AV1 -> args.add("-preset", String.valueOf(preset.getAv1()));
+        }
+
         if (codec.supportsBitrate()) {
-            args.add("-preset", encoderConfig.getEncPreset().name().toLowerCase());
             switch (encoderConfig.getRcMode()) {
                 case CRF -> {
                     args.add("-crf", String.valueOf(encoderConfig.getCrfValue()));
