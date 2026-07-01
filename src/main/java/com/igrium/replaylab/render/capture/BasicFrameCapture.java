@@ -1,9 +1,11 @@
 package com.igrium.replaylab.render.capture;
 
-import com.igrium.replaylab.ReplayLab;
-import com.igrium.replaylab.render.VideoRenderSettings;
-import com.igrium.replaylab.render.VideoRenderer;
-import com.igrium.replaylab.scene.ReplayScene;
+import com.google.gson.JsonDeserializationContext;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonSerializationContext;
+import com.igrium.replaylab.render.RenderMetadata;
+import com.igrium.replaylab.render.SimpleTexture;
+import com.mojang.blaze3d.platform.GlStateManager;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.replaymod.core.events.PostRenderCallback;
 import com.replaymod.core.events.PreRenderCallback;
@@ -11,37 +13,42 @@ import com.replaymod.core.versions.MCVer;
 import com.replaymod.render.mixin.GameRendererAccessor;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.texture.NativeImage;
-import net.minecraft.client.util.ScreenshotRecorder;
-import org.lwjgl.opengl.GL11;
 
-public class OpenGLFrameCapture implements FrameCapture {
-    private final MinecraftClient mc = MinecraftClient.getInstance();
+import static com.mojang.blaze3d.platform.GlConst.*;
 
-    private final VideoRenderer videoRenderer;
-    private final ReplayScene scene;
-    private final VideoRenderSettings renderSettings;
-
-    public OpenGLFrameCapture(VideoRenderer videoRenderer, VideoRenderSettings renderSettings) {
-        this.videoRenderer = videoRenderer;
-        this.scene = videoRenderer.getScene();
-        this.renderSettings = renderSettings;
+public class BasicFrameCapture extends FrameCapture {
+    public BasicFrameCapture(FrameCaptureType<?> type) {
+        super(type);
     }
 
     @Override
-    public void start() {
+    public void writeJson(JsonObject json, JsonSerializationContext context) {
+
     }
 
     @Override
-    public NativeImage capture(int frameIdx) {
-        float tickDelta = videoRenderer.queueNextFrame();
+    public void readJson(JsonObject json, JsonDeserializationContext context) {
+
+    }
+
+    @Override
+    public SimpleTexture generateTexture() {
+        return super.generateTexture();
+    }
+
+    @Override
+    public void captureFrame(int frameIdx, SimpleTexture texture) {
+        RenderSystem.assertOnRenderThread();
+
+        RenderMetadata meta = getMetadata();
+        MinecraftClient mc = MinecraftClient.getInstance();
 
         /// === RENDER ===
-        MCVer.resizeMainWindow(mc, scene.getSceneProps().getResolutionX(), scene.getSceneProps().getResolutionY());
+        MCVer.resizeMainWindow(mc, meta.width(), meta.height());
         MCVer.pushMatrix();
         mc.getFramebuffer().beginWrite(true);
 
-        RenderSystem.clear(GL11.GL_COLOR_BUFFER_BIT | GL11.GL_DEPTH_BUFFER_BIT);
+        RenderSystem.clear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         PreRenderCallback.EVENT.invoker().preRender();
 
@@ -69,12 +76,12 @@ public class OpenGLFrameCapture implements FrameCapture {
         mc.getFramebuffer().endWrite();
         MCVer.popMatrix();
 
-        /// === Save Frame ===
-        return ScreenshotRecorder.takeScreenshot(mc.getFramebuffer());
+        /// === SAVE FRAME ===
+        GlStateManager._glBindFramebuffer(GL_FRAMEBUFFER, mc.getFramebuffer().fbo);
+        GlStateManager._bindTexture(texture.getGlId());
+
+        GlStateManager._glCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 0, 0,
+                mc.getFramebuffer().textureWidth, mc.getFramebuffer().textureHeight);
     }
 
-    @Override
-    public void finish() {
-
-    }
 }

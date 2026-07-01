@@ -1,65 +1,42 @@
 package com.igrium.replaylab.ui;
 
 import com.igrium.craftui.app.AppManager;
-import com.igrium.craftui.file.FileDialogs;
 import com.igrium.replaylab.editor.EditorState;
-import com.igrium.replaylab.render.VideoRenderSettings;
-import com.mojang.blaze3d.systems.RenderSystem;
+import com.igrium.replaylab.scene.ReplayScene;
 import imgui.ImGui;
 import imgui.flag.ImGuiCond;
 import imgui.flag.ImGuiWindowFlags;
 import imgui.type.ImBoolean;
-import imgui.type.ImString;
 import net.minecraft.client.MinecraftClient;
-
-import java.nio.file.Paths;
+import net.minecraft.util.Language;
 
 public class ExportWindow {
 
     private static final ImBoolean isOpen = new ImBoolean();
     private static boolean wantsOpen = false;
 
-    private static final ImString filePathInput = new ImString();
-
     public static void open() {
         wantsOpen = true;
     }
 
-    public static void drawExportWindow(EditorState editor, VideoRenderSettings settings) {
+    public static void drawExportWindow(EditorState editor) {
         if (wantsOpen) {
             ImGui.openPopup("Export Video");
             isOpen.set(true);
             wantsOpen = false;
-
-            filePathInput.set(settings.getOutPath());
         }
 
         ImGui.setNextWindowSize(640, 0, ImGuiCond.Appearing);
         if (ImGui.beginPopupModal("Export Video", isOpen, ImGuiWindowFlags.NoSavedSettings)) {
-            ImGui.text("Output File");
-            if (ImGui.button("Browse")) {
-                FileDialogs.showOpenFolderDialog(settings.getOutPath().toString()).thenAcceptAsync(opt -> {
-                    if (opt.isPresent()) {
-                        String val = opt.get();
-                        filePathInput.set(val);
-                        settings.setOutPath(Paths.get(val));
-                    }
-                }, r -> RenderSystem.recordRenderCall(r::run));
-            }
-            ImGui.sameLine();
-            ImGui.setNextItemWidth(-1);
-
-            if (ImGui.inputText("##filepath", filePathInput)) {
-                settings.setOutPath(Paths.get(filePathInput.get()));
-            }
-
-            if (ImGui.button("Export")) {
+            editor.getScene().getRenderSettings().drawPropertiesPanel(editor);
+            ImGui.separator();
+            if (ImGui.button(t("gui.ok"))) {
                 ImGui.closeCurrentPopup();
-                export(editor, settings);
+                export(editor);
             }
 
             ImGui.sameLine();
-            if (ImGui.button("Cancel")) {
+            if (ImGui.button(t("gui.cancel"))) {
                 ImGui.closeCurrentPopup();
             }
 
@@ -68,10 +45,13 @@ public class ExportWindow {
         }
     }
 
-    private static void export(EditorState editor, VideoRenderSettings settings) {
-        // Render outside of ImGui context
-        MinecraftClient.getInstance().send(() -> {
-            editor.render(settings);
-        });
+    private static void export(EditorState editor) {
+        editor.getScene().saveObject(ReplayScene.RENDER_SETTINGS);
+        editor.saveSceneAsync(); // Save our render settings
+        MinecraftClient.getInstance().send(editor::render); // Render outside ImGui context
+    }
+
+    private static String t(String key) {
+        return Language.getInstance().get(key);
     }
 }

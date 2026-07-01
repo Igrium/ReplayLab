@@ -5,6 +5,10 @@
   "replayobject.blockDisplay": "Block Display",
   "replayobject.camera": "Camera",
 
+  "encoder.replaylab.png": "PNG Sequence",
+  "encoder.replaylab.dummy": "Dummy (testing only)",
+  "encoder.replaylab.ffmpeg": "Video Output (FFmpeg)",
+
   "panel.replaylab.dopesheet_legacy": "Dope Sheet (Legacy)",
   "panel.replaylab.dopesheet": "Dope Sheet",
   "panel.replaylab.curveeditor": "Curve Editor",
@@ -27,6 +31,9 @@
   "gui.replaylab.cameraview": "Camera View",
   "gui.replaylab.playback": "Playback",
   "gui.replaylab.quick": "Quick Mode",
+
+  "gui.replaylab.outputFile": "Output File",
+  "gui.replaylab.browse": "Browse",
 
   "gui.replaylab.general": "General",
 
@@ -54,6 +61,61 @@
   "gui.replaylab.obj.setcam": "Set as Scene Camera",
   "gui.replaylab.obj.copy_transform": "Copy Transforms",
   "gui.replaylab.obj.paste_transform": "Paste Transforms",
+
+  "gui.replaylab.export.ready": "Ready",
+  "gui.replaylab.export.starting": "Starting",
+  "gui.replaylab.export.rendering": "Rendering frame %d / %d",
+  "gui.replaylab.export.finishing": "Finalizing Export",
+  "gui.replaylab.export.done": "Finished",
+
+  "gui.replaylab.encoder": "Encoder",
+
+  "gui.replaylab.encoder.noProps": "This encoder has no configurable properties.",
+  "gui.replaylab.capture.noProps": "This frame capture has no configurable properties.",
+
+  "gui.ffmpeg.container": "Container",
+  "gui.ffmpeg.codec": "Codec",
+  "gui.ffmpeg.rate_control": "Rate Control Mode",
+  "gui.ffmpeg.crf": "Constant Quality Value (CRF)",
+  "gui.ffmpeg.crf.tooltip": "Lower is better quality. Visually lossless: ~18, Standard: ~23, Web: ~28.",
+  "gui.ffmpeg.quality": "Quality",
+  "gui.ffmpeg.bitrate_val": "Bitrate (kbps)",
+  "gui.ffmpeg.preset": "Encoding Speed",
+  "gui.ffmpeg.preset.tooltip": "Increases encoding speed at the cost of quality",
+
+  "gui.ratecontrol.cbr": "Constant Bitrate",
+  "gui.ratecontrol.vbr": "Variable Bitrate",
+  "gui.ratecontrol.crf": "Constant Quality (CRF)",
+
+  "gui.bitrate.br_2_5": "Potato (2.5 Mbps)",
+  "gui.bitrate.br_5": "Low (5 Mbps)",
+  "gui.bitrate.br_10": "Medium (10 Mbps)",
+  "gui.bitrate.br_15": "High (15 Mbps)",
+  "gui.bitrate.br_20": "Ultra (20 Mbps)",
+  "gui.bitrate.custom": "Custom",
+
+  "gui.encpreset.ultrafast": "Ultra Fast",
+  "gui.encpreset.superfast": "Super Fast",
+  "gui.encpreset.veryfast": "Very Fast",
+  "gui.encpreset.faster": "Faster",
+  "gui.encpreset.fast": "Fast",
+  "gui.encpreset.medium": "Medium",
+  "gui.encpreset.slow": "Slow",
+  "gui.encpreset.slower": "Slower",
+  "gui.encpreset.veryslow": "Very Slow",
+
+  "container.mp4": "MPEG-4 (.mp4)",
+  "container.mkv": "Matroska (.mkv)",
+  "container.mov": "QuickTime (.mov)",
+  "container.webm": "WebM (.webm)",
+
+  "codec.h.264": "H.264",
+  "codec.h.265": "H.265",
+  "codec.av1": "AV1",
+  "codec.vp8": "VP8",
+  "codec.vp9": "VP9",
+  "codec.prores": "Apple ProRes 422",
+  "codec.dnxhr": "DNxHR",
 
   "settings.replaylab.behavior": "Behavior",
   "settings.replaylab.auto_set_camera": "Auto Set Camera",

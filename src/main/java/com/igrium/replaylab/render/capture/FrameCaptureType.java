@@ -1,67 +1,82 @@
 package com.igrium.replaylab.render.capture;
 
-import com.igrium.replaylab.render.VideoRenderSettings;
-import com.igrium.replaylab.render.VideoRenderer;
+import com.google.common.collect.BiMap;
+import com.google.common.collect.HashBiMap;
+import com.google.common.collect.Maps;
+import com.google.gson.JsonDeserializationContext;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParseException;
+import com.google.gson.JsonSerializationContext;
 import lombok.Getter;
+import lombok.NonNull;
 import net.minecraft.util.Identifier;
+import org.jetbrains.annotations.Nullable;
 
-public abstract class FrameCaptureType<T extends FrameCapture, C> {
+import java.util.function.Function;
 
-    @Getter
-    private final Class<C> configClass;
+public final class FrameCaptureType<T extends FrameCapture> {
 
-    protected FrameCaptureType(Class<C> configClass) {
-        this.configClass = configClass;
+    /// === REGISTRY ===
+
+    public static final BiMap<Identifier, FrameCaptureType<?>> REGISTRY = Maps.synchronizedBiMap(HashBiMap.create());
+
+    public static <T extends FrameCapture> FrameCaptureType<T> register(FrameCaptureType<T> type, Identifier id) {
+        REGISTRY.put(id, type);
+        return type;
     }
 
-    /**
-     * Create an instance of the desired config type.
-     * @return Config instance.
-     */
-    public abstract C createConfig();
+    public static final FrameCaptureType<BasicFrameCapture> BASIC = register(new FrameCaptureType<>(BasicFrameCapture::new),
+            Identifier.of("replaylab:basic"));
 
-    /**
-     * Instantiate this frame capture.
-     *
-     * @param renderer Renderer being used.
-     * @param settings Video settings being used.
-     * @param config   The config for the frame writer. Always returns an instance from <code>createConfig</code>.
-     * @return The new instance.
-     */
-    public abstract T create(VideoRenderer renderer, VideoRenderSettings settings, C config);
+    /// === FIELDS ===
 
-    /**
-     * Draw the config editor in ImGui.
-     * @param renderSettings The current editor settings.
-     * @param config The config to edit.
-     */
-    public void drawConfigEditor(VideoRenderSettings renderSettings, C config) {};
+    @Getter @NonNull
+    private final Function<FrameCaptureType<T>, T> factory;
 
-    public final Identifier getId() {
-        return FrameCaptures.REGISTRY.inverse().get(this);
+    /// === CONSTRUCTOR ===
+
+    public FrameCaptureType(@NonNull Function<FrameCaptureType<T>, T> factory) {
+        this.factory = factory;
     }
 
-    public interface Factory<T extends FrameCapture> {
-        T create(VideoRenderer renderer, VideoRenderSettings settings);
+    /// === IDENTITY ===
+
+    public Identifier getId() {
+        var id = REGISTRY.inverse().get(this);
+        if (id == null) {
+            throw new IllegalStateException("This FrameCaptureType is not registered!");
+        }
+        return id;
     }
 
-    public static class Simple<T extends FrameCapture> extends FrameCaptureType<T, Object> {
+    public @Nullable Identifier tryGetId() {
+        return REGISTRY.inverse().get(this);
+    }
 
-        private final Factory<T> factory;
+    /// === SERIALIZATION ===
 
-        protected Simple(Factory<T> factory) {
-            super(Object.class);
-            this.factory = factory;
+    public static FrameCapture parse(JsonObject json, JsonDeserializationContext ctx) throws JsonParseException, UnknownFrameCaptureTypeException {
+        var id = Identifier.of(json.get("type").getAsString());
+        var type = REGISTRY.get(id);
+        if (type == null) {
+            throw new UnknownFrameCaptureTypeException(id);
         }
+        FrameCapture capture = type.create();
+        capture.readJson(json, ctx);
+        return capture;
+    }
 
-        @Override
-        public Object createConfig() {
-            return new Object();
-        }
+    public static JsonObject write(FrameCapture capture, JsonSerializationContext ctx) {
+        var id = capture.getType().getId();
+        var json = new JsonObject();
+        capture.writeJson(json, ctx);
+        json.addProperty("type", id.toString());
+        return json;
+    }
 
-        @Override
-        public T create(VideoRenderer renderer, VideoRenderSettings settings, Object config) {
-            return factory.create(renderer, settings);
-        }
+    /// === FACTORY ===
+
+    public T create() {
+        return factory.apply(this);
     }
 }

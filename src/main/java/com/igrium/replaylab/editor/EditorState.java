@@ -15,7 +15,6 @@ import com.igrium.replaylab.operator.PasteObjectsOperator;
 import com.igrium.replaylab.operator.ReplayOperator;
 import com.igrium.replaylab.playback.AbstractScenePlayer;
 import com.igrium.replaylab.playback.RealtimeScenePlayer;
-import com.igrium.replaylab.render.VideoRenderSettings;
 import com.igrium.replaylab.render.VideoRenderer;
 import com.igrium.replaylab.scene.ReplayScene;
 import com.igrium.replaylab.scene.ReplayScenes;
@@ -26,7 +25,6 @@ import com.igrium.replaylab.scene.obj.SerializedReplayObject;
 import com.igrium.replaylab.scene.obj.TransformProvider;
 import com.igrium.replaylab.ui.util.QuickModeInitCallback;
 import com.igrium.replaylab.util.RenderUtils;
-import com.mojang.blaze3d.systems.RenderSystem;
 import com.replaymod.replay.QuickReplaySender;
 import com.replaymod.replay.ReplayHandler;
 import com.replaymod.replay.ReplayModReplay;
@@ -45,11 +43,11 @@ import net.minecraft.util.Util;
 import net.minecraft.util.math.Vec3d;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.joml.Math;
 import org.joml.Vector3d;
 import org.joml.Vector3dc;
 import org.joml.Vector3f;
 import org.slf4j.Logger;
-import org.joml.Math;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -852,6 +850,7 @@ public final class EditorState {
      */
     public void saveScene() throws IllegalStateException, IOException  {
         String name = getSceneName();
+        LOGGER.info("Saving scene '{}'", name);
         if (name == null) {
             throw new IllegalStateException("Scene does not have a name!");
         }
@@ -869,7 +868,7 @@ public final class EditorState {
             try {
                 saveScene();
             } catch (Exception e) {
-                LOGGER.error("Error saving scene {}", sceneName, e);
+                LOGGER.debug("Error saving scene {}", sceneName, e);
                 onException(e);
             }
         }, Util.getIoWorkerExecutor());
@@ -891,21 +890,24 @@ public final class EditorState {
         return getRenderer() != null;
     }
 
-    public void render(VideoRenderSettings settings) {
+    /**
+     * Render the scene using the render settings provided by {@link ReplayScene#getRenderSettings()}
+     */
+    public void render() {
         if (isRendering()) {
             LOGGER.warn("Already rendering!");
             return;
         }
-
-        renderer = new VideoRenderer(settings, getReplayHandlerOrThrow(), getScene());
+        renderer = VideoRenderer.create(getScene());
         try {
             renderer.render();
-        } catch (Throwable e) {
+        } catch (Exception e) {
             LOGGER.error("Error exporting video", e);
             onException(e);
         } finally {
             renderer = null;
         }
+
     }
 
     private class ScrubbingScenePlayer extends AbstractScenePlayer {
