@@ -56,7 +56,7 @@ public abstract class FrameCapture {
 
     public SimpleTexture generateTexture() {
         var meta = getMetadata();
-        return new SimpleTexture(meta.width(), meta.height(), GlConst.GL_RGB);
+        return new SimpleTexture(meta.width(), meta.height(), GlConst.GL_RGBA8);
     }
 
     /**

@@ -127,7 +127,7 @@ public class FFmpegEncoderProcess extends EncoderProcess {
     }
 
     public static void generateBoilerplateArgs(RenderMetadata meta, ImmutableList.Builder<String> builder) {
-        builder.add("-y", "-f", "rawvideo", "-pix_fmt", "rgb24",
+        builder.add("-y", "-f", "rawvideo", "-pix_fmt", "rgba",
                 "-s", meta.width() + "x" + meta.height(),
                 "-r", String.valueOf(meta.fps()),
                 "-i", "pipe:0");

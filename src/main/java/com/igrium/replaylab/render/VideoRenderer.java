@@ -8,6 +8,8 @@ import com.igrium.replaylab.render.encoder.EncoderConfig;
 import com.igrium.replaylab.render.encoder.EncoderProcess;
 import com.igrium.replaylab.scene.ReplayScene;
 import com.igrium.replaylab.scene.objs.ScenePropsObject;
+import com.mojang.blaze3d.platform.GlConst;
+import com.mojang.blaze3d.platform.GlStateManager;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.replaymod.core.mixin.MinecraftAccessor;
 import com.replaymod.core.mixin.TimerAccessor;
@@ -23,7 +25,6 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.sound.PositionedSoundInstance;
 import net.minecraft.client.texture.NativeImage;
-import net.minecraft.client.util.ScreenshotRecorder;
 import net.minecraft.client.util.Window;
 import net.minecraft.sound.SoundCategory;
 import net.minecraft.sound.SoundEvent;
@@ -88,6 +89,12 @@ public class VideoRenderer {
 
     @Getter
     private @Nullable SimpleTexture renderTexture;
+
+    /**
+     * An FBO wrapping {@link #renderTexture} as color attachment 0, used to force alpha opaque (and,
+     * in the future, to run shader / multi-sample passes into the texture). <code>-1</code> when unset.
+     */
+    private int renderFbo = -1;
 
     public VideoRenderer(RenderMetadata renderMetadata, ReplayHandler replay, ReplayScene scene, FrameCapture frameCapture, EncoderConfig encoder) {
         this.renderMetadata = renderMetadata;
@@ -195,6 +202,16 @@ public class VideoRenderer {
             encoder.start(renderMetadata);
             renderTexture = frameCapture.generateTexture();
 
+            // FBO wrapping the render texture. We own it here (alongside renderTexture) so we can
+            // force the captured frame's alpha opaque -- and later run shader / multi-sample passes --
+            // without ever mutating Minecraft's own framebuffer.
+            renderFbo = GlStateManager.glGenFramebuffers();
+            int prevFboSetup = GlStateManager.getBoundFramebuffer();
+            GlStateManager._glBindFramebuffer(GlConst.GL_FRAMEBUFFER, renderFbo);
+            GlStateManager._glFramebufferTexture2D(GlConst.GL_FRAMEBUFFER, GlConst.GL_COLOR_ATTACHMENT0,
+                    GlConst.GL_TEXTURE_2D, renderTexture.getGlId(), 0);
+            GlStateManager._glBindFramebuffer(GlConst.GL_FRAMEBUFFER, prevFboSetup);
+
             renderState = RenderState.RENDERING;
             while (frameIdx < renderMetadata.totalFrames() && !abort) {
                 if (GLFW.glfwWindowShouldClose(mc.getWindow().getHandle()) || ((MinecraftAccessor) mc).getCrashReporter() != null) {
@@ -204,12 +221,27 @@ public class VideoRenderer {
                 queueFrame(frameIdx, 1);
                 frameCapture.captureFrame(curIdx, renderTexture);
 
-                // TEST (framebuffer readback): read the frame directly from the framebuffer via
-                // glReadPixels (ScreenshotRecorder) -- mirrors the old working `master` path --
-                // instead of copying into a persistent SimpleTexture and reading it back with
-                // glGetTexImage. This isolates the NVIDIA driver thread that deadlocks the JVM on
-                // exit. Must run BEFORE drawGui(), which rebinds/clears the framebuffer.
-                NativeImage nImage = ScreenshotRecorder.takeScreenshot(mc.getFramebuffer());
+                // Minecraft's offscreen framebuffer leaves alpha at 0, so the captured texture would be
+                // fully transparent. Force alpha opaque via an alpha-only masked clear on our own FBO
+                // (renderFbo) wrapping the texture -- MC's framebuffer is never mutated.
+                int prevFbo = GlStateManager.getBoundFramebuffer();
+                GlStateManager._glBindFramebuffer(GlConst.GL_FRAMEBUFFER, renderFbo);
+                GlStateManager._colorMask(false, false, false, true);
+                GlStateManager._clearColor(0, 0, 0, 1);
+                GlStateManager._clear(GlConst.GL_COLOR_BUFFER_BIT);
+                GlStateManager._colorMask(true, true, true, true);
+                GlStateManager._glBindFramebuffer(GlConst.GL_FRAMEBUFFER, prevFbo);
+
+                // Read the captured frame back from the render texture (RGBA8). The readback MUST be
+                // RGBA: an RGB glGetTexImage readback (the format conversion it implies) deadlocks the
+                // NVIDIA driver on JVM exit -- the straight RGBA copy does not. Keeping the readback on
+                // our own texture (rather than ScreenshotRecorder on the framebuffer) leaves room to run
+                // shader / multi-sample passes on the texture before this readback. Must run BEFORE
+                // drawGui(), which rebinds/clears the framebuffer.
+                NativeImage nImage = new NativeImage(renderMetadata.width(), renderMetadata.height(), false);
+                RenderSystem.bindTexture(renderTexture.getGlId());
+                nImage.loadFromTextureImage(0, true);
+                nImage.mirrorVertically();
 
                 drawGui();
 
@@ -248,6 +280,11 @@ public class VideoRenderer {
 
             return !abort;
         } finally {
+            if (renderFbo != -1) {
+                GlStateManager._glDeleteFramebuffers(renderFbo);
+                renderFbo = -1;
+            }
+
             if (renderTexture != null) {
                 try {
                     renderTexture.close();
