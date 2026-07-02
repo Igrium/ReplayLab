@@ -36,8 +36,11 @@
   "gui.replaylab.outputFile": "Output File",
   "gui.replaylab.browse": "Browse",
 
-  "gui.replaylab.fileExists.header": "Overwrite?",
-  "gui.replayLab.fileExists": "A file named \"%s\" already exists. Overwrite?",
+  "gui.replaylab.file_exists.header": "Overwrite?",
+  "gui.replayLab.file_exists": "A file named \"%s\" already exists. Overwrite?",
+
+  "gui.replaylab.quickmode.header": "Quick Mode",
+  "gui.replaylab.quickmode": "Quick Mode is currently enabled; this export will be missing game details. Proceed?",
 
   "gui.replaylab.general": "General",
 
