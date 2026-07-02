@@ -204,12 +204,6 @@ public class CurveEditor extends KeyframePanel {
         if (isScrubbing() || stoppedScrubbing()) {
             editorState.scrub(stoppedScrubbing());
         }
-//        if (stoppedScrubbing() ||
-//                (isScrubbing() && replayTime > EditorState.getReplayHandlerOrThrow().getReplaySender().currentTimeStamp())) {
-//            editorState.queueTimeJump();
-//        } else if (isScrubbing()) {
-//            editorState.queueApplyToGame();
-//        }
 
         super.drawContents(editorState);
     }
@@ -333,7 +327,7 @@ public class CurveEditor extends KeyframePanel {
 
         // Vertical auto-fit
         if (!wasNormalized && isNormalized()) {
-            setOffsetY(-1.2);
+            setOffsetY(1.2);
             setZoomFactorY(graphHeight / 2.4f);
             updateNormalizationCache(scene);
         } else if (wasNormalized && !isNormalized()) {
@@ -372,7 +366,7 @@ public class CurveEditor extends KeyframePanel {
                     setZoomFactorY((float) (gHeight / (boundsMax.y - boundsMin.y)));
 
                 setOffsetX(boundsMin.x);
-                setOffsetY(boundsMin.y);
+                setOffsetY(boundsMax.y);
 
                 doneInitialFit = true;
             }
@@ -431,8 +425,8 @@ public class CurveEditor extends KeyframePanel {
             // Amount of units the graph is tall
             float heightUnits = gHeight / zoomFactorY;
 
-            double startValue = Math.floor(offsetY / majorIntervalY) * majorIntervalY;
-            double endValue = Math.ceil((offsetY + heightUnits) / majorIntervalY) * majorIntervalY;
+            double startValue = Math.floor((offsetY - heightUnits) / majorIntervalY) * majorIntervalY;
+            double endValue = Math.ceil(offsetY / majorIntervalY) * majorIntervalY;
 
             // Y intervals
             for (double value = startValue; value <= endValue; value += minorIntervalY) {
@@ -635,16 +629,16 @@ public class CurveEditor extends KeyframePanel {
                     float pixelNeg1 = valueToPixelY(-1) + graphY;
                     float pixelPos1 = valueToPixelY(1) + graphY;
 
-                    // Gray out the area ABOVE -1 (from graphY down to the boundary line)
-                    if (pixelNeg1 > graphY) {
-                        drawList.addLine(pixelIn, pixelNeg1, pixelOut, pixelNeg1, separatorColor);
-                        drawList.addRectFilled(pixelIn, graphY, pixelOut, pixelNeg1, outOfNormalColor);
+                    // Gray out the area ABOVE +1 (from graphY down to the boundary line)
+                    if (pixelPos1 > graphY) {
+                        drawList.addLine(pixelIn, pixelPos1, pixelOut, pixelPos1, separatorColor);
+                        drawList.addRectFilled(pixelIn, graphY, pixelOut, pixelPos1, outOfNormalColor);
                     }
 
-                    // Gray out the area BELOW 1 (from the boundary line down to graphY + graphHeight)
-                    if (pixelPos1 < graphY + graphHeight) {
-                        drawList.addLine(pixelIn, pixelPos1, pixelOut, pixelPos1, separatorColor);
-                        drawList.addRectFilled(pixelIn, pixelPos1, pixelOut, graphY + graphHeight, outOfNormalColor);
+                    // Gray out the area BELOW -1 (from the boundary line down to graphY + graphHeight)
+                    if (pixelNeg1 < graphY + graphHeight) {
+                        drawList.addLine(pixelIn, pixelNeg1, pixelOut, pixelNeg1, separatorColor);
+                        drawList.addRectFilled(pixelIn, pixelNeg1, pixelOut, graphY + graphHeight, outOfNormalColor);
                     }
                 }
             }
@@ -966,7 +960,7 @@ public class CurveEditor extends KeyframePanel {
                     double dy = ImGui.getMouseDragDeltaY(2) / zoomFactorY;
 
                     offsetX = panStartPos.x() - dx;
-                    offsetY = panStartPos.y() - dy;
+                    offsetY = panStartPos.y() + dy;
                 }
             } else {
                 panStartPos = null;
@@ -1010,11 +1004,11 @@ public class CurveEditor extends KeyframePanel {
     }
 
     private float valueToPixelY(double value) {
-        return (float) ((value - offsetY) * zoomFactorY);
+        return (float) ((offsetY - value) * zoomFactorY);
     }
 
     private double pixelYToValue(double pixel) {
-        return pixel / zoomFactorY + offsetY;
+        return offsetY - pixel / zoomFactorY;
     }
 
     /**
