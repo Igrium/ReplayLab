@@ -149,8 +149,8 @@ public final class EditorState {
     /**
      * Whether the viewport is currently displaying the camera view
      */
-    @Getter
-    private boolean cameraView;
+    @Getter @Setter
+    private boolean cameraView = true;
 
     /**
      * All keyframe (handles) which are currently selected
@@ -238,18 +238,6 @@ public final class EditorState {
         setSceneName(sceneName);
     }
 
-    /**
-     * Set whether the viewport is currently displaying the camera view
-     */
-    public void setCameraView(boolean cameraView) {
-        if (cameraView == this.cameraView) return;
-        this.cameraView = cameraView;
-        if (cameraView) {
-            spectateCamera();
-        } else {
-            MinecraftClient.getInstance().setCameraEntity(MinecraftClient.getInstance().player);
-        }
-    }
 
     public boolean isObjectActive(String objId) {
         return activeObject != null && activeObject.equals(objId);
@@ -474,8 +462,12 @@ public final class EditorState {
         if (scenePlayer != null && scenePlayer.isActive()) {
             setPlayhead(scenePlayer.getTimePassed());
         }
+        if (scene.getSceneCameraObject() == null) {
+            setCameraView(false);
+        }
         if (isCameraView()) {
-            spectateCamera();
+
+            scene.spectateCamera();
 
             Entity cameraEnt = scene.getSceneCamera();
             ReplayObject cameraObj = scene.getSceneCameraObject();
@@ -512,6 +504,7 @@ public final class EditorState {
 
         } else {
             pilotingCamera = false;
+            MinecraftClient.getInstance().setCameraEntity(null);
         }
     }
 
