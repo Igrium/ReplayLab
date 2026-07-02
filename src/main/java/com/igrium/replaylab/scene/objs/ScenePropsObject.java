@@ -17,6 +17,7 @@ import imgui.type.ImInt;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.Setter;
+import net.minecraft.util.Language;
 import org.apache.commons.lang3.mutable.Mutable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -73,11 +74,6 @@ public final class ScenePropsObject extends ReplayObject {
     public void setResolution(int resolutionX, int resolutionY) {
         setResolutionX(resolutionX);
         setResolutionY(resolutionY);
-    }
-
-    @Override
-    public boolean isHiddenInOutliner() {
-        return true;
     }
 
     @Override
@@ -208,5 +204,10 @@ public final class ScenePropsObject extends ReplayObject {
 
 
         return modified ? ObjectEditState.COMMIT | ObjectEditState.RESAMPLE : ObjectEditState.NONE;
+    }
+
+    @Override
+    public String getDisplayName() {
+        return Language.getInstance().get("replayobject.sceneProps");
     }
 }

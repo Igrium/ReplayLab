@@ -43,7 +43,7 @@ public class ChannelList {
         for (var objEntry : objs.entrySet()) {
             String objName = objEntry.getKey();
             ReplayObject obj = objEntry.getValue();
-            if (obj == null)
+            if (obj == null || obj.getType().hideInDopeSheet())
                 continue;
 
             boolean anyUnlocked = false;
@@ -68,7 +68,7 @@ public class ChannelList {
                 ImGui.pushStyleColor(ImGuiCol.Text, ImGui.getColorU32(ImGuiCol.TextDisabled));
             }
             ImGui.alignTextToFramePadding();
-            boolean open = ImGui.treeNodeEx(objName);
+            boolean open = ImGui.treeNodeEx(obj.getDisplayName() + "###" + objName);
             if (renderObjDisabled) {
                 ImGui.popStyleColor();
             }
@@ -117,8 +117,8 @@ public class ChannelList {
                     float cursorX = ImGui.getCursorScreenPosX();
                     float cursorY = ImGui.getCursorScreenPosY();
 
-                    boolean selected =
-                            hasFlag(flags, ChannelListFlags.HIGHLIGHT_SELECTION) && selection.isChannelSelected(objName, chEntry.getKey());
+                    boolean selected = hasFlag(flags, ChannelListFlags.HIGHLIGHT_SELECTION)
+                            && selection.isChannelSelected(objName, chEntry.getKey());
                     if (selected) {
                         ImGui.pushStyleColor(ImGuiCol.Text, SELECTED_COLOR);
                     }

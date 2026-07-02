@@ -4,6 +4,7 @@
   "replayobject.dummy": "Dummy",
   "replayobject.blockDisplay": "Block Display",
   "replayobject.camera": "Camera",
+  "replayobject.sceneProps": "Scene Properties",
 
   "encoder.replaylab.png": "PNG Sequence",
   "encoder.replaylab.dummy": "Dummy (testing only)",

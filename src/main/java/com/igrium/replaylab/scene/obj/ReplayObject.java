@@ -98,13 +98,6 @@ public abstract class ReplayObject {
     public void remapReferences(String oldName, String newName) {}
 
     /**
-     * <code>true</code> if this object should be hidden from the outliner
-     */
-    public boolean isHiddenInOutliner() {
-        return false;
-    }
-
-    /**
      * Called when the user has pressed the "insert keyframe" keybind with this object selected.
      * @param timestamp The current playback timestamp.
      * @return If the keyframe was created and an undo step should be created.
@@ -271,6 +264,11 @@ public abstract class ReplayObject {
      */
     public @Nullable String getId() {
         return getScene().getObjects().inverse().get(this);
+    }
+
+    public String getDisplayName() {
+        String id = getId();
+        return id != null ? id : "";
     }
 
     public ReplayObject copy() {

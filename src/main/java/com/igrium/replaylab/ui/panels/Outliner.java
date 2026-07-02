@@ -48,7 +48,7 @@ public class Outliner extends UIPanel {
         ImGui.sameLine();
         drawRemoveObjectButton(editorState);
 
-        // Seletable uses header colors
+        // Selectable uses header colors
         ImGui.pushStyleColor(ImGuiCol.Header, ColorHelper.withAlpha(48, ImGui.getColorU32(ImGuiCol.HeaderActive)));
 
         if (ImGui.beginChild("objects")) {
@@ -63,8 +63,8 @@ public class Outliner extends UIPanel {
                 for (int i = 0; i < objs.length; i++) {
                     String id = objs[i];
                     ReplayObject obj = editorState.getScene().getObject(id);
-                    if (obj == null || obj.isHiddenInOutliner())
-                        continue; // Don't show scene object
+                    if (obj == null || obj.getType().hideInOutliner())
+                        continue;
 
                     if (id.equals(currentRenamingItem)) {
                         if (firstRenamingFrame) {} {
@@ -86,7 +86,7 @@ public class Outliner extends UIPanel {
                             ImGui.pushStyleColor(ImGuiCol.Header, ColorHelper.withAlpha(128, ImGui.getColorU32(ImGuiCol.Header)));
                             activeIdx = i;
                         }
-                        if (ImGui.selectable(id, isSelected)) {
+                        if (ImGui.selectable(obj.getDisplayName() + "###" + id, isSelected)) {
                             clickedIdx = i;
                         }
                         if (isActive) {
