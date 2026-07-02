@@ -107,7 +107,7 @@ public class DopeSheetNew extends KeyframePanel {
 
     private final ImBoolean snapKeyframes = new ImBoolean();
 
-    private final ImBoolean selectedOnly = new ImBoolean(true);
+    private final ImBoolean selectedOnly = new ImBoolean(false);
 
     /**
      * The global pixel position of a selection box start position

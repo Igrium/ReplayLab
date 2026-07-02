@@ -125,7 +125,7 @@ public class CurveEditor extends KeyframePanel {
 
     private final ImBoolean snapKeyframes = new ImBoolean();
 
-    private final ImBoolean selectedOnly = new ImBoolean(true);
+    private final ImBoolean selectedOnly = new ImBoolean(false);
 
     private boolean doneInitialFit = false;
 

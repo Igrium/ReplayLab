@@ -7,7 +7,6 @@ import imgui.flag.ImGuiCol;
 import imgui.type.ImBoolean;
 import lombok.NonNull;
 import net.minecraft.util.Language;
-import org.apache.commons.codec.language.bm.Lang;
 import org.apache.commons.lang3.mutable.Mutable;
 import org.jetbrains.annotations.Nullable;
 
@@ -51,19 +50,34 @@ public class ReplayLabControls {
     /**
      * Draw a dropdown box with all the objects in the scene that match a given predicate
      *
-     * @param label        ImGui label of the dropdown.
-     * @param selectedName The name of the currently selected object.
-     * @param predicate    A predicate for whether a given object should be allowed.
-     * @param objects      The objects to choose from.
+     * @param label      ImGui label of the dropdown.
+     * @param selectedId The ID of the currently selected object.
+     * @param predicate  A predicate for whether a given object should be allowed.
+     * @param objects    The objects to choose from.
      * @return If the selection was updated this frame.
      */
-    public static boolean objectSelector(@NonNull String label, Mutable<String> selectedName,
+    public static boolean objectSelector(@NonNull String label, @NonNull Mutable<String> selectedId,
                                          Predicate<? super ReplayObject> predicate, Map<String, ReplayObject> objects) {
-        return stringCombo(label, selectedName, () -> objects.entrySet()
-                .stream()
-                .filter(e -> predicate.test(e.getValue()))
-                .map(Map.Entry::getKey)
-                .iterator());
+        boolean updated = false;
+        ReplayObject selObj = objects.get(selectedId.getValue());
+
+        String selDisp = selObj != null ? selObj.getDisplayName() : selectedId.getValue();
+        if (ImGui.beginCombo(label, selDisp != null ? selDisp : "")) {
+            for (var objEntry : objects.entrySet()) {
+                if (!predicate.test(objEntry.getValue())) continue;
+
+                boolean selected = Objects.equals(selectedId.getValue(), objEntry.getKey());
+                if (ImGui.selectable(objEntry.getValue().getDisplayName() + "###" + objEntry.getKey(), selected)) {
+                    updated = true;
+                    selectedId.setValue(objEntry.getKey());
+                }
+                if (selected) {
+                    ImGui.setItemDefaultFocus();
+                }
+            }
+            ImGui.endCombo();
+        }
+        return updated;
     }
 
     public static boolean toggleButton(String label, ImBoolean pressed) {
