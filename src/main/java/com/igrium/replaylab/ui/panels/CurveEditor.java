@@ -226,6 +226,7 @@ public class CurveEditor extends KeyframePanel {
                     if (ch == null) return;
 
                     var dragging = keyDragOffsets.keySet().stream()
+                            .filter(hRef -> hRef.keyRef().channelRef().equals(chRef))
                             .map(hRef -> new ChannelUtils.LocalHandleRef(hRef.keyIndex(), hRef.handleIndex()))
                             .collect(Collectors.toSet());
 
