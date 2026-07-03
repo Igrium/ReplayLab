@@ -13,7 +13,6 @@ public class Keybinds {
     private int copy = ImGuiKey.ImGuiMod_Ctrl | ImGuiKey.C;
     private int paste = ImGuiKey.ImGuiMod_Ctrl | ImGuiKey.V;
 
-    private int playPause = ImGuiKey.Space;
     private int cameraView = ImGuiKey.C;
     private int cameraToView = ImGuiKey.ImGuiMod_Shift | ImGuiKey.C;
     private int activeToCam = ImGuiKey.ImGuiMod_Alt | ImGuiKey.C;
@@ -38,10 +37,12 @@ public class Keybinds {
 
     private int cameraRoll = ImGuiKey.R;
 
+    private int playPause = ImGuiKey.Space;
     private int sceneStart = ImGuiKey.Home;
     private int sceneEnd = ImGuiKey.End;
     private int prevKey = ImGuiKey.Comma;
     private int nextKey = ImGuiKey.Period;
+    private int quickMode = ImGuiKey.ImGuiMod_Alt | ImGuiKey.Q;
 
     public void copyFrom(Keybinds other) {
         this.undo = other.undo;
@@ -50,7 +51,6 @@ public class Keybinds {
         this.copy = other.copy;
         this.paste = other.paste;
 
-        this.playPause = other.playPause;
         this.cameraView = other.cameraView;
         this.cameraToView = other.cameraToView;
         this.activeToCam = other.activeToCam;
@@ -74,10 +74,12 @@ public class Keybinds {
 
         this.cameraRoll = other.cameraRoll;
 
+        this.playPause = other.playPause;
         this.sceneStart = other.sceneStart;
         this.sceneEnd = other.sceneEnd;
         this.prevKey = other.prevKey;
         this.nextKey = other.nextKey;
+        this.quickMode = other.quickMode;
     }
 
     public void reset() {
@@ -98,10 +100,6 @@ public class Keybinds {
 
     public static int paste() {
         return getKeybinds().getPaste();
-    }
-
-    public static int playPause() {
-        return getKeybinds().getPlayPause();
     }
 
     public static int cameraView() {
@@ -172,9 +170,12 @@ public class Keybinds {
         return getKeybinds().getGizmoScale();
     }
 
-
     public static int cameraRoll() {
         return getKeybinds().getCameraRoll();
+    }
+
+    public static int playPause() {
+        return getKeybinds().getPlayPause();
     }
 
     public static int sceneStart() {
@@ -191,6 +192,10 @@ public class Keybinds {
 
     public static int nextKey() {
         return getKeybinds().getNextKey();
+    }
+
+    public static int quickMode() {
+        return getKeybinds().getQuickMode();
     }
 
     private static Keybinds getKeybinds() {

@@ -6,6 +6,7 @@ import com.igrium.replaylab.editor.EditorState;
 import com.igrium.replaylab.operator.RemoveObjectsOperator;
 import com.igrium.replaylab.operator.RenameObjectOperator;
 import com.igrium.replaylab.scene.obj.ReplayObject;
+import com.igrium.replaylab.ui.panels.UIPanel;
 import com.igrium.replaylab.util.ShortcutUtils;
 import imgui.ImGui;
 import imgui.type.ImString;
@@ -109,9 +110,11 @@ public class ViewportControls {
 
 
         /// === ROLL ===
-        // I removed zoom scrolling because it conflicted with replay mod's camera speed shift
+        editorState.setRollingCamera(editorState.isPilotingCamera()
+                && ShortcutUtils.isKeyChordDown(Keybinds.cameraRoll()));
 
-        editorState.setRollingCamera(editorState.isPilotingCamera() && ShortcutUtils.isKeyChordDown(Keybinds.cameraRoll()));
+        UIPanel.processGlobalHotkeys(editorState);
+        UIPanel.testAddKeyShortcut(editorState);
     }
 
     private void raycastSelect(EditorState editorState) {

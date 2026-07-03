@@ -3,6 +3,7 @@ package com.igrium.replaylab.util;
 import static imgui.flag.ImGuiKey.*;
 
 import com.google.common.collect.ImmutableMap;
+import com.igrium.replaylab.game.LanguageReloadEvent;
 import imgui.ImGui;
 import imgui.flag.ImGuiKey;
 import it.unimi.dsi.fastutil.ints.*;
@@ -17,6 +18,12 @@ import java.util.function.IntConsumer;
 @UtilityClass
 public final class ShortcutUtils {
 
+    private static final Int2ObjectMap<String> chordLabels = Int2ObjectMaps.synchronize(new Int2ObjectOpenHashMap<>());
+
+    static {
+        LanguageReloadEvent.EVENT.register(e -> chordLabels.clear());
+    }
+
     public static final Map<Integer, String> MOD_NAMES = ImmutableMap.of(
             ImGuiKey.ImGuiMod_None, "key.keyboard.unknown",
             ImGuiKey.ImGuiMod_Ctrl, "key.shortcut.ctrl",
@@ -29,8 +36,11 @@ public final class ShortcutUtils {
         return t(MOD_NAMES.getOrDefault(modCode, "key.keyboard.unknown"));
     }
 
-    // TODO: cache once we reload resourcepacks or switch language
     public static String getChordLabel(int chord) {
+        return chordLabels.computeIfAbsent(chord, ShortcutUtils::computeChordLabel);
+    }
+
+    public static String computeChordLabel(int chord) {
         StringBuilder sb = new StringBuilder();
         for (int mod : ShortcutUtils.getChordMods(chord)) {
             sb.append(getModName(mod)).append(" + ");

@@ -198,9 +198,6 @@ public class ReplayLabUI extends DockSpaceApp {
 
             viewportControls.drawViewport(editorState);
 
-            UIPanel.processGlobalHotkeys(editorState);
-            UIPanel.testAddKeyShortcut(editorState);
-
         }
         ImGui.end();
 
@@ -378,7 +375,7 @@ public class ReplayLabUI extends DockSpaceApp {
 
         if (ImGui.beginMenu(t("gui.replaylab.playback"))) {
             ImBoolean quickMode = new ImBoolean(editorState.isQuickMode());
-            if (ImGui.menuItem(t("gui.replaylab.quick"), "", quickMode)) {
+            if (ImGui.menuItem(t("gui.replaylab.quick"), getChordLabel(Keybinds.quickMode()), quickMode)) {
                 editorState.setQuickMode(quickMode.get());
             }
             ImGui.separator();

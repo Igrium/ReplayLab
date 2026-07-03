@@ -7,13 +7,14 @@ import imgui.ImGui;
 import imgui.flag.ImGuiKey;
 import imgui.flag.ImGuiTableColumnFlags;
 import imgui.flag.ImGuiTableFlags;
-import lombok.Getter;
 import net.minecraft.util.Language;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.function.IntConsumer;
 
 public class KeybindEditor {
+    private static final Keybinds DEFAULT = new Keybinds();
+
     // Tracks which binding is actively being remapped
     private String currentlyEditing = null;
 
@@ -26,58 +27,58 @@ public class KeybindEditor {
 
     protected boolean draw() {
         Keybinds current = mutableConfig.getKeybinds();
-        Keybinds defBinds = new Keybinds();
         boolean changed = false;
 
         if (ImGui.beginTable("Keybinds", 2, ImGuiTableFlags.Borders)) {
             ImGui.tableSetupColumn("Action", ImGuiTableColumnFlags.WidthFixed);
             ImGui.tableSetupColumn("Shortcut", ImGuiTableColumnFlags.WidthStretch);
 
-            changed |= drawBinding("key.replaylab.undo", current.getUndo(), defBinds.getUndo(), current::setUndo);
-            changed |= drawBinding("key.replaylab.redo", current.getRedo(), defBinds.getRedo(), current::setRedo);
+            changed |= drawBinding("key.replaylab.undo", current.getUndo(), DEFAULT.getUndo(), current::setUndo);
+            changed |= drawBinding("key.replaylab.redo", current.getRedo(), DEFAULT.getRedo(), current::setRedo);
 
-            changed |= drawBinding("key.replaylab.copy", current.getCopy(), defBinds.getCopy(), current::setCopy);
-            changed |= drawBinding("key.replaylab.paste", current.getPaste(), defBinds.getPaste(), current::setPaste);
-
-            ImGui.separator();
-
-            changed |= drawBinding("key.replaylab.playpause", current.getPlayPause(), defBinds.getPlayPause(), current::setPlayPause);
-            changed |= drawBinding("key.replaylab.cameraview", current.getCameraView(), defBinds.getCameraView(), current::setCameraView);
-            changed |= drawBinding("key.replaylab.active_to_cam", current.getActiveToCam(), defBinds.getActiveToCam(), current::setActiveToCam);
-            changed |= drawBinding("key.replaylab.frame", current.getFrameSelected(), defBinds.getFrameSelected(), current::setFrameSelected);
+            changed |= drawBinding("key.replaylab.copy", current.getCopy(), DEFAULT.getCopy(), current::setCopy);
+            changed |= drawBinding("key.replaylab.paste", current.getPaste(), DEFAULT.getPaste(), current::setPaste);
 
             ImGui.separator();
 
-            changed |= drawBinding("key.replaylab.scene_start", current.getSceneStart(), defBinds.getSceneStart(), current::setSceneStart);
-            changed |= drawBinding("key.replaylab.scene_end", current.getSceneEnd(), defBinds.getSceneEnd(), current::setSceneEnd);
-            changed |= drawBinding("key.replaylab.prev_key", current.getPrevKey(), defBinds.getPrevKey(), current::setPrevKey);
-            changed |= drawBinding("key.replaylab.next_key", current.getNextKey(), defBinds.getNextKey(), current::setNextKey);
+            changed |= drawBinding("key.replaylab.cameraview", current.getCameraView(), DEFAULT.getCameraView(), current::setCameraView);
+            changed |= drawBinding("key.replaylab.active_to_cam", current.getActiveToCam(), DEFAULT.getActiveToCam(), current::setActiveToCam);
+            changed |= drawBinding("key.replaylab.frame", current.getFrameSelected(), DEFAULT.getFrameSelected(), current::setFrameSelected);
 
             ImGui.separator();
 
-            changed |= drawBinding("key.replaylab.select_all", current.getSelectAll(), defBinds.getSelectAll(), current::setSelectAll);
-            changed |= drawBinding("key.replaylab.select_none", current.getSelectNone(), defBinds.getSelectNone(), current::setSelectNone);
-            changed |= drawBinding("key.replaylab.delete", current.getDeleteSelected(), defBinds.getDeleteSelected(), current::setDeleteSelected);
+            changed |= drawBinding("key.replaylab.playpause", current.getPlayPause(), DEFAULT.getPlayPause(), current::setPlayPause);
+            changed |= drawBinding("key.replaylab.scene_start", current.getSceneStart(), DEFAULT.getSceneStart(), current::setSceneStart);
+            changed |= drawBinding("key.replaylab.scene_end", current.getSceneEnd(), DEFAULT.getSceneEnd(), current::setSceneEnd);
+            changed |= drawBinding("key.replaylab.prev_key", current.getPrevKey(), DEFAULT.getPrevKey(), current::setPrevKey);
+            changed |= drawBinding("key.replaylab.next_key", current.getNextKey(), DEFAULT.getNextKey(), current::setNextKey);
+            changed |= drawBinding("key.replaylab.quickmode", current.getQuickMode(), DEFAULT.getQuickMode(), current::setQuickMode);
 
             ImGui.separator();
 
-            changed |= drawBinding("key.replaylab.add_key", current.getAddKey(), defBinds.getAddKey(), current::setAddKey);
-            changed |= drawBinding("key.replaylab.add_key_pos", current.getAddKeyPos(), defBinds.getAddKeyPos(), current::setAddKeyPos);
-            changed |= drawBinding("key.replaylab.add_key_rot", current.getAddKeyRot(),  defBinds.getAddKeyRot(), current::setAddKeyRot);
-            changed |= drawBinding("key.replaylab.add_key_scale", current.getAddKeyScale(), defBinds.getAddKeyScale(), current::setAddKeyScale);
-            changed |= drawBinding("key.replaylab.add_key_s", current.getAddKeySingle(), defBinds.getAddKeySingle(), current::setAddKeySingle);
+            changed |= drawBinding("key.replaylab.select_all", current.getSelectAll(), DEFAULT.getSelectAll(), current::setSelectAll);
+            changed |= drawBinding("key.replaylab.select_none", current.getSelectNone(), DEFAULT.getSelectNone(), current::setSelectNone);
+            changed |= drawBinding("key.replaylab.delete", current.getDeleteSelected(), DEFAULT.getDeleteSelected(), current::setDeleteSelected);
 
             ImGui.separator();
 
-            changed |= drawBinding("key.replaylab.local_transforms", current.getLocalTransforms(), defBinds.getLocalTransforms(), current::setLocalTransforms);
-            changed |= drawBinding("key.replaylab.gizmo_all", current.getGizmoAll(), defBinds.getGizmoAll(), current::setGizmoAll);
-            changed |= drawBinding("key.replaylab.gizmo_pos", current.getGizmoPos(), defBinds.getGizmoPos(), current::setGizmoPos);
-            changed |= drawBinding("key.replaylab.gizmo_rot", current.getGizmoRot(), defBinds.getGizmoRot(), current::setGizmoRot);
-            changed |= drawBinding("key.replaylab.gizmo_scale", current.getGizmoScale(), defBinds.getGizmoScale(), current::setGizmoScale);
+            changed |= drawBinding("key.replaylab.add_key", current.getAddKey(), DEFAULT.getAddKey(), current::setAddKey);
+            changed |= drawBinding("key.replaylab.add_key_pos", current.getAddKeyPos(), DEFAULT.getAddKeyPos(), current::setAddKeyPos);
+            changed |= drawBinding("key.replaylab.add_key_rot", current.getAddKeyRot(),  DEFAULT.getAddKeyRot(), current::setAddKeyRot);
+            changed |= drawBinding("key.replaylab.add_key_scale", current.getAddKeyScale(), DEFAULT.getAddKeyScale(), current::setAddKeyScale);
+            changed |= drawBinding("key.replaylab.add_key_s", current.getAddKeySingle(), DEFAULT.getAddKeySingle(), current::setAddKeySingle);
 
             ImGui.separator();
 
-            changed |= drawBinding("key.replaylab.camera_roll", current.getCameraRoll(), defBinds.getCameraRoll(), current::setCameraRoll);
+            changed |= drawBinding("key.replaylab.local_transforms", current.getLocalTransforms(), DEFAULT.getLocalTransforms(), current::setLocalTransforms);
+            changed |= drawBinding("key.replaylab.gizmo_all", current.getGizmoAll(), DEFAULT.getGizmoAll(), current::setGizmoAll);
+            changed |= drawBinding("key.replaylab.gizmo_pos", current.getGizmoPos(), DEFAULT.getGizmoPos(), current::setGizmoPos);
+            changed |= drawBinding("key.replaylab.gizmo_rot", current.getGizmoRot(), DEFAULT.getGizmoRot(), current::setGizmoRot);
+            changed |= drawBinding("key.replaylab.gizmo_scale", current.getGizmoScale(), DEFAULT.getGizmoScale(), current::setGizmoScale);
+
+            ImGui.separator();
+
+            changed |= drawBinding("key.replaylab.camera_roll", current.getCameraRoll(), DEFAULT.getCameraRoll(), current::setCameraRoll);
             ImGui.setItemTooltip(t("key.replaylab.camera_roll.tooltip"));
 
             ImGui.endTable();
@@ -90,7 +91,7 @@ public class KeybindEditor {
         if (ImGui.beginPopup("resetConfirm")) {
             ImGui.text(t("gui.replaylab.keybinds.reset_confirm"));
             if (ImGui.button(t("gui.ok"))) {
-                current.copyFrom(defBinds);
+                current.copyFrom(DEFAULT);
                 ImGui.closeCurrentPopup();
                 changed = true;
             }

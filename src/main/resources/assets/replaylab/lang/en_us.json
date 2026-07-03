@@ -149,16 +149,18 @@
   "key.replaylab.copy": "Copy",
   "key.replaylab.paste": "Paste",
 
-  "key.replaylab.playpause": "Play/Pause",
   "key.replaylab.cameraview": "Toggle Camera View",
   "key.replaylab.camera_to_view": "Snap Camera to Viewport",
   "key.replaylab.active_to_cam": "Set Scene Camera to Selected",
   "key.replaylab.frame": "Frame Selected",
 
+  "key.replaylab.playpause": "Play/Pause",
   "key.replaylab.scene_start": "Scene Start",
   "key.replaylab.scene_end": "Scene End",
   "key.replaylab.prev_key": "Previous Keyframe",
   "key.replaylab.next_key": "Next Keyframe",
+  "key.replaylab.quickmode": "Toggle Quick Mode",
+
 
   "key.replaylab.select_all": "Select All",
   "key.replaylab.select_none": "Deselect All",

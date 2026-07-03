@@ -20,6 +20,7 @@
         "MixinCamera",
         "MixinClientPlayerEntity",
         "MixinGameRenderer",
+        "MixinLanguageManager",
         "MixinMinecraftClient",
         "MixinWorldRenderer"
     ]

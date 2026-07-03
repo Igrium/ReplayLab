@@ -115,6 +115,9 @@ public abstract class UIPanel {
             editorState.applyOperator(new SetSceneCameraOperator(editorState.getActiveObject()));
         }
 
+        if (ImGui.shortcut(Keybinds.quickMode())) {
+            editorState.setQuickMode(!editorState.isQuickMode());
+        }
     }
 
     public static void testAddKeyShortcut(EditorState editorState) {
