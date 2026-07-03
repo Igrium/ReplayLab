@@ -122,11 +122,6 @@ public class DopeSheetNew extends KeyframePanel {
     private boolean mouseDragging;
     private boolean mouseStartedDragging;
 
-    /**
-     * The keys that were selected for right-click
-     */
-    private final Map<KeyframeReference, Keyframe> contextKeys = new HashMap<>();
-
     public DopeSheetNew(Identifier id) {
         super(id);
     }
@@ -480,6 +475,7 @@ public class DopeSheetNew extends KeyframePanel {
             }
             ImGui.endGroup();
             float renderedGraphWidth = ImGui.getItemRectSizeX();
+            boolean graphHovered = ImGui.isItemHovered();
 
             /// === FITTING ===
             if (wantsFit) {
@@ -510,61 +506,17 @@ public class DopeSheetNew extends KeyframePanel {
 
             /// === RIGHT CLICK ===
             boolean rightClicked = ImGui.isItemClicked(ImGuiMouseButton.Right);
-            if (rightClicked) {
-                contextKeys.clear();
-                // We cache the keyframe itself in the context keys because it won't change when the menu is open
-                selectedKeys.forSelectedKeyframes(ref -> {
-                    Keyframe key = ref.get(scene.getObjects());
-                    if (key != null) {
-                        contextKeys.put(ref, key);
-                    }
-                });
+            if (rightClicked && hoveringAnyKey) {
                 ImGui.openPopup("contextMenu");
             }
 
             if (ImGui.beginPopup("contextMenu")) {
-                ImGui.beginDisabled(contextKeys.isEmpty());
-                if (ImGui.beginMenu("Handle Type")) {
-                    // If every selected handle has the same handle type, find it.
-                    Keyframe.HandleType handleType = null;
-                    for (var entry : contextKeys.entrySet()) {
-                        var typeA = entry.getValue().getHandleAType();
-                        var typeB = entry.getValue().getHandleBType();
-
-                        if (typeA != typeB)
-                            break;
-
-                        if (handleType == null) {
-                            handleType = typeA;
-                        } else if (handleType != typeA) {
-                            handleType = null;
-                            break;
-                        }
-                    }
-                    Keyframe.HandleType newHandleType = null;
-                    for (var type : Keyframe.HandleType.values()) {
-                        if (ImGui.menuItem(t(type.getTranslationKey()), "", handleType == type)) {
-                            newHandleType = type;
-                        }
-                    }
-                    if (newHandleType != null) {
-
-                        List<KeyHandleReference> handleRefs = new ArrayList<>(contextKeys.size() * 2);
-                        for (var key : contextKeys.keySet()) {
-                            handleRefs.add(new KeyHandleReference(key, 0));
-                        }
-                        var handleOperator = new SetHandleTypeOperator(newHandleType, handleRefs);
-                        editor.applyOperator(handleOperator);
-                    }
-
-                    ImGui.endMenu();
-                }
-                ImGui.endDisabled();
+                KeyframePanel.keyContextMenu(editor, editor.getKeySelection().effectiveSelectedHandles());
                 ImGui.endPopup();
             }
 
             /// === ZOOM ===
-            if (ImGui.isItemHovered()) {
+            if (graphHovered) {
                 float mWheel = ImGui.getIO().getMouseWheel();
                 if (mWheel != 0) {
                     float mouseGlobalX = ImGui.getMousePosX();
@@ -595,11 +547,8 @@ public class DopeSheetNew extends KeyframePanel {
             /// === BOX SELECT ===
             // Start/stop
             {
-                boolean isHoveringGraph = ImGui.isMouseHoveringRect(graphX, graphY, graphX + renderedGraphWidth, graphY + graphHeight);
-
                 if (!isBoxSelecting() && !isDragging() && !isScrubbing() && !hoveringAnyKey
-                        && isHoveringGraph
-                        && ImGui.isWindowHovered(ImGuiHoveredFlags.ChildWindows)
+                        && graphHovered
                         && ImGui.isMouseClicked(0)) {
 
                     boxSelectStart = ImGui.getMousePos();

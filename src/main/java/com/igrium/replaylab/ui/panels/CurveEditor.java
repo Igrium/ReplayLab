@@ -134,11 +134,6 @@ public class CurveEditor extends KeyframePanel {
      */
     private @Nullable ImVec2 boxSelectStart;
 
-    /**
-     * The keyframe that is currently being edited in the context menu
-     */
-    private @Nullable KeyHandleReference contextKey = null;
-
     public boolean isScrubbing() {
         return header.isScrubbing();
     }
@@ -740,53 +735,11 @@ public class CurveEditor extends KeyframePanel {
 
             /// === RIGHT CLICK ===
             if (rightClickedOn != null) {
-                contextKey = rightClickedOn;
                 ImGui.openPopup("contextMenu");
             }
 
             if (ImGui.beginPopup("contextMenu")) {
-
-                ImGui.menuItem("Test menu item");
-
-                // Handle selection
-                if (ImGui.beginMenu("Handle Type")) {
-                    // If every selected handle has the same handle type, find it.
-                    Keyframe.HandleType handleType = null;
-                    for (KeyHandleReference handle : selectedKeys.effectiveSelectedHandles()) {
-                        Keyframe key = handle.keyRef().get(scene.getObjects());
-                        if (key != null) {
-                            Keyframe.HandleType type = switch (handle.handleIndex()) {
-                                case 1 -> key.getHandleAType();
-                                case 2 -> key.getHandleBType();
-                                default -> null;
-                            };
-
-                            if (type == null) continue; // Shouldn't happen
-
-                            if (handleType == null) {
-                                handleType = type;
-                            } else if (handleType != type) {
-                                handleType = null;
-                                break;
-                            }
-                        }
-                    }
-
-
-                    Keyframe.HandleType newHandleType = null;
-
-                    for (var type : Keyframe.HandleType.values()) {
-                        if (ImGui.menuItem(t(type.getTranslationKey()), "", handleType == type)) {
-                            newHandleType = type;
-                        }
-                    }
-
-                    if (newHandleType != null) {
-                        editor.applyOperator(new SetHandleTypeOperator(newHandleType, selectedKeys));
-                    }
-
-                    ImGui.endMenu();
-                }
+                KeyframePanel.keyContextMenu(editor, selectedKeys.effectiveSelectedHandles());
                 ImGui.endPopup();
             }
 

@@ -2,6 +2,7 @@ package com.igrium.replaylab.math;
 
 import com.igrium.replaylab.scene.key.Keyframe;
 import lombok.experimental.UtilityClass;
+import org.joml.Vector2d;
 
 @UtilityClass
 public class Beziers {
@@ -85,5 +86,28 @@ public class Beziers {
             t = Math.clamp(t, 0.0, 1.0);
         }
         return t;
+    }
+
+    /**
+     * Compute the integral of a bezier as a curve in 2D space.
+     *
+     * @param bezier Bezier to use.
+     * @param tVal   T value to cut at.
+     * @return The integral
+     */
+    public static double integrateCurve(Bezier2dc bezier, double tVal) {
+        // Vibe coded because I don't understand a fuck about this math
+        double node = Math.sqrt(3.0 / 5.0); // outer Gauss–Legendre nodes: ±√(3/5)
+        final double[] xi = {-node, 0, node}; // ±√(3/5)
+        final double[] w = {5.0 / 9, 8.0 / 9, 5.0 / 9};
+
+        double sum = 0;
+        Vector2d d = new Vector2d();
+        for (int i = 0; i < 3; i++) {
+            double t = 0.5 * tVal * (xi[i] + 1.0);
+            double dxdt = bezier.derive(t, d).x;     // x'(t)
+            sum += w[i] * bezier.sampleY(t) * dxdt;
+        }
+        return 0.5 * tVal * sum;
     }
 }

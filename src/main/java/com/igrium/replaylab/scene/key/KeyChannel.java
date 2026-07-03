@@ -175,9 +175,8 @@ public class KeyChannel {
         Keyframe key = keys[keyIndex];
         Keyframe next = keys[nextIndex];
 
-        Bezier2d bezier = Beziers.fromKeyframes(key, next, new Bezier2d());
-        double t = Beziers.intersectX(bezier, timestamp);
-        return bezier.sampleY(t);
+        return key.getInterpolationMode().sample(key, next, timestamp);
+
     }
 
     public boolean isEmpty() {

@@ -62,6 +62,9 @@ public final class Keyframe implements Comparable<Keyframe> {
     @Getter @Setter
     private HandleType handleBType = HandleType.AUTO_CLAMPED;
 
+    @Getter @Setter
+    private InterpolationMode interpolationMode = InterpolationMode.BEZIER;
+
     public Keyframe(int time, double value) {
         center.set(time, value);
     }

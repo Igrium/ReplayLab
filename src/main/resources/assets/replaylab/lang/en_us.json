@@ -71,6 +71,9 @@
   "gui.replaylab.obj.copy_transform": "Copy Transforms",
   "gui.replaylab.obj.paste_transform": "Paste Transforms",
 
+  "gui.replaylab.handle_type": "Handle Type",
+  "gui.replaylab.interp_mode": "Interpolation Mode",
+
   "gui.replaylab.export.ready": "Ready",
   "gui.replaylab.export.starting": "Starting",
   "gui.replaylab.export.rendering": "Rendering frame %d / %d",
@@ -190,5 +193,9 @@
   "handle_type.aligned": "Aligned",
   "handle_type.vector": "Vector",
   "handle_type.auto": "Auto",
-  "handle_type.autoClamped": "Auto (Clamped)"
+  "handle_type.autoClamped": "Auto (Clamped)",
+
+  "interp_mode.bezier": "Bézier",
+  "interp_mode.linear": "Linear",
+  "interp_mode.constant": "Constant"
 }
