@@ -10,6 +10,17 @@ public class FCurveHandleCalc {
     public static final byte HD_AUTOTYPE_NORMAL = 0;
     public static final byte HD_AUTOTYPE_LOCKED_FINAL = 1;
 
+    /**
+     * Force the very first and very last auto handles of a non-cyclic curve to be horizontal,
+     * so the animation eases in from a standstill and eases out to a stop.
+     */
+    public static final int SMOOTH_FLATTEN_ENDS = 1;
+    /**
+     * Treat the curve as cyclic, wrapping the first and last points together so the
+     * handles are computed continuously across the loop instead of at hard endpoints.
+     */
+    public static final int SMOOTH_CYCLIC = 2;
+
     public static class BezTriple {
         // vec[0] = Left Handle, vec[1] = Control Point, vec[2] = Right Handle
         public Vector3d[] vec = new Vector3d[]{new Vector3d(), new Vector3d(), new Vector3d()};
@@ -430,7 +441,8 @@ public class FCurveHandleCalc {
         }
     }
 
-    private static void bezierHandleCalcSmoothFcurve(BezTriple[] bezt, int total, int start, int count, boolean cycle) {
+    private static void bezierHandleCalcSmoothFcurve(BezTriple[] bezt, int total, int start, int count, boolean cycle,
+                                                     int flags) {
         if (count < 2) return;
 
         int solveCount = count;
@@ -516,10 +528,20 @@ public class FCurveHandleCalc {
         } else {
             Vector2d tmp = new Vector2d();
 
+            // Flatten only the genuine ends of the whole (non-cyclic) curve, not internal chunk boundaries.
+            boolean flatten = (flags & SMOOTH_FLATTEN_ENDS) != 0;
+            boolean flattenFirst = flatten && start == 0;
+            boolean flattenLast = flatten && start + count == total;
+
             if (!solveFirst) {
                 tmp.set(beztFirst.vec[2].x - beztFirst.vec[1].x, beztFirst.vec[2].y - beztFirst.vec[1].y);
                 firstHandleAdj = bezierCalcHandleAdj(tmp, dx[1]);
                 bezierLockUnknown(a, b, c, d, 0, tmp.y);
+            } else if (flattenFirst) {
+                // Fixed horizontal tangent: keep the auto x-length, force zero slope so motion eases in.
+                tmp.set(beztFirst.vec[2].x - beztFirst.vec[1].x, 0.0);
+                firstHandleAdj = bezierCalcHandleAdj(tmp, dx[1]);
+                bezierLockUnknown(a, b, c, d, 0, 0.0);
             } else {
                 bezierEqNoaccelRight(a, b, c, d, dy, l, 0);
             }
@@ -528,6 +550,11 @@ public class FCurveHandleCalc {
                 tmp.set(beztLast.vec[1].x - beztLast.vec[0].x, beztLast.vec[1].y - beztLast.vec[0].y);
                 lastHandleAdj = bezierCalcHandleAdj(tmp, dx[count - 1]);
                 bezierLockUnknown(a, b, c, d, count - 1, tmp.y);
+            } else if (flattenLast) {
+                // Fixed horizontal tangent: keep the auto x-length, force zero slope so motion eases out.
+                tmp.set(beztLast.vec[1].x - beztLast.vec[0].x, 0.0);
+                lastHandleAdj = bezierCalcHandleAdj(tmp, dx[count - 1]);
+                bezierLockUnknown(a, b, c, d, count - 1, 0.0);
             } else {
                 bezierEqNoaccelLeft(a, b, c, d, dy, l, count - 1);
             }
@@ -571,6 +598,10 @@ public class FCurveHandleCalc {
     }
 
     public static void nurbHandleSmoothFcurve(Keyframe[] keys) {
+        nurbHandleSmoothFcurve(keys, SMOOTH_FLATTEN_ENDS);
+    }
+
+    public static void nurbHandleSmoothFcurve(Keyframe[] keys, int flags) {
         if (keys.length == 0) return;
 
         BezTriple[] bez = new BezTriple[keys.length];
@@ -578,14 +609,17 @@ public class FCurveHandleCalc {
             bez[i] = new BezTriple().fromKeyframe(keys[i]);
         }
 
-        nurbHandleSmoothFcurve(bez, bez.length, false);
+        nurbHandleSmoothFcurve(bez, bez.length, flags);
 
         for (int i = 0; i < keys.length; i++) {
             bez[i].toKeyframe(keys[i]);
         }
     }
 
-    public static void nurbHandleSmoothFcurve(BezTriple[] bezt, int total, boolean cyclic) {
+
+    public static void nurbHandleSmoothFcurve(BezTriple[] bezt, int total, int flags) {
+        boolean cyclic = (flags & SMOOTH_CYCLIC) != 0;
+
         // Execute the global first pass (VECTOR and basic AUTO setup)
         calcBasicHandles(bezt, total, cyclic);
 
@@ -602,7 +636,7 @@ public class FCurveHandleCalc {
             }
 
             if (searchBase == 0) {
-                bezierHandleCalcSmoothFcurve(bezt, total, 0, total, cyclic);
+                bezierHandleCalcSmoothFcurve(bezt, total, 0, total, cyclic, flags);
                 return;
             }
         }
@@ -614,7 +648,7 @@ public class FCurveHandleCalc {
             if (j == total - 1 && cyclic) j = 0;
 
             if (!isFreeAutoPoint(bezt[j])) {
-                bezierHandleCalcSmoothFcurve(bezt, total, start, count + 1, cyclic);
+                bezierHandleCalcSmoothFcurve(bezt, total, start, count + 1, cyclic, flags);
                 start = j;
                 count = 1;
             } else {
@@ -623,7 +657,7 @@ public class FCurveHandleCalc {
         }
 
         if (count > 1) {
-            bezierHandleCalcSmoothFcurve(bezt, total, start, count, cyclic);
+            bezierHandleCalcSmoothFcurve(bezt, total, start, count, cyclic, flags);
         }
     }
 }
