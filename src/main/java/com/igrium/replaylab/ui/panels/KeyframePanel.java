@@ -2,7 +2,6 @@ package com.igrium.replaylab.ui.panels;
 
 import com.igrium.replaylab.config.Keybinds;
 import com.igrium.replaylab.editor.EditorState;
-import com.igrium.replaylab.editor.KeySelectionSet;
 import com.igrium.replaylab.editor.KeySelectionSet.KeyHandleReference;
 import com.igrium.replaylab.editor.KeySelectionSet.KeyframeReference;
 import com.igrium.replaylab.operator.RemoveKeyframesOperator;
@@ -11,17 +10,12 @@ import com.igrium.replaylab.operator.SetInterpModeOperator;
 import com.igrium.replaylab.scene.key.InterpolationMode;
 import com.igrium.replaylab.scene.key.Keyframe;
 import com.igrium.replaylab.scene.key.Keyframe.HandleType;
-import com.igrium.replaylab.scene.obj.ReplayObject;
-import com.igrium.replaylab.util.SimpleMutable;
 import imgui.ImGui;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.Language;
-import org.apache.commons.lang3.mutable.Mutable;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.Map;
 
 /**
  * A panel designed to render keyframes (auto-listens to hotkeys, etc)
@@ -127,7 +121,7 @@ public abstract class KeyframePanel extends UIPanel {
             }
 
             if (newInterpMode != null) {
-                editor.applyOperator(new SetInterpModeOperator(newInterpMode, selKeys)); 
+                editor.applyOperator(new SetInterpModeOperator(newInterpMode, selKeys));
             }
 
             ImGui.endMenu();

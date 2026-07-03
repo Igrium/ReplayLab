@@ -567,7 +567,6 @@ public class CurveEditor extends KeyframePanel {
                         double displayKey = rawToDisplay(key.getCenter().y(), extents);
                         float keyY = valueToPixelY(displayKey) + graphY;
 
-
                         float keyHandleX = msToPixelX(key.getGlobalBX()) + graphX;
                         double displayKeyHandle = rawToDisplay(key.getGlobalBY(), extents);
                         float keyHandleY = valueToPixelY(displayKeyHandle) + graphY;
@@ -580,8 +579,17 @@ public class CurveEditor extends KeyframePanel {
                         double displayNextHandle = rawToDisplay(next.getGlobalAY(), extents);
                         float nextHandleY = valueToPixelY(displayNextHandle) + graphY;
 
-                        drawList.addBezierCubic(keyX, keyY, keyHandleX, keyHandleY, nextHandleX, nextHandleY, nextX, nextY,
-                                chColor, chSelected ? 2 : 1);
+                        float thickness = chSelected ? 2 : 1;
+                        switch(key.getInterpolationMode()) {
+                            case BEZIER -> drawList.addBezierCubic(keyX, keyY, keyHandleX, keyHandleY,
+                                    nextHandleX, nextHandleY, nextX, nextY, chColor, thickness);
+                            case LINEAR -> drawList.addLine(keyX, keyY, nextX, nextY, chColor, thickness);
+                            case CONSTANT -> {
+                                drawList.addLine(keyX, keyY, nextX, keyY, chColor, thickness);
+                                drawList.addLine(nextX, keyY, nextX, nextY, chColor, thickness);
+                            }
+                        }
+
                     }
 
                     // Continue lines to edge of screen
