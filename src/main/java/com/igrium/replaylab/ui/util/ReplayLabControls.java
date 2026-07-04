@@ -1,14 +1,20 @@
 package com.igrium.replaylab.ui.util;
 
+import com.igrium.replaylab.config.ReplayLabConfig;
 import com.igrium.replaylab.scene.obj.ReplayObject;
 import com.igrium.replaylab.ui.ReplayLabIcons;
+import com.igrium.replaylab.util.Timestamps;
 import imgui.ImGui;
 import imgui.flag.ImGuiCol;
 import imgui.type.ImBoolean;
+import imgui.type.ImInt;
+import imgui.type.ImString;
 import lombok.NonNull;
 import net.minecraft.util.Language;
 import org.apache.commons.lang3.mutable.Mutable;
 import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Map;
 import java.util.Objects;
@@ -16,6 +22,7 @@ import java.util.function.Predicate;
 
 public class ReplayLabControls {
     private static final ImBoolean isSelected = new ImBoolean();
+    private static final Logger LOGGER = LoggerFactory.getLogger(ReplayLabControls.class);
 
     /**
      * Draw a dropdown box with a collection of strings.
@@ -127,5 +134,36 @@ public class ReplayLabControls {
             ImGui.setItemTooltip(Language.getInstance().get(tooltip));
         }
         return result;
+    }
+
+    private static final ImString timestampInBuffer = new ImString(16);
+
+    public static boolean inputTimestamp(String label, ImInt timestamp, Timestamps.Display display, int imGuiTextInputFlags) {
+        timestampInBuffer.set(Timestamps.toTimestamp(timestamp.get(), display));
+        if (ImGui.inputText(label, timestampInBuffer, imGuiTextInputFlags)) {
+            String out = timestampInBuffer.get();
+            try {
+                timestamp.set(Timestamps.fromTimestamp(out));
+                return true;
+            } catch (NumberFormatException ignored) {
+            }
+        }
+        return false;
+    }
+
+    public static boolean inputTimestamp(String label, ImInt timestamp, Timestamps.Display display) {
+        return inputTimestamp(label, timestamp, display, 0);
+    }
+
+    public static boolean inputTimestamp(String label, ImInt timestamp, int imGuiTextInputFlags) {
+        return inputTimestamp(label, timestamp, timestampDisplay(), imGuiTextInputFlags);
+    }
+
+    public static boolean inputTimestamp(String label, ImInt timestamp) {
+        return inputTimestamp(label, timestamp, timestampDisplay(), 0);
+    }
+
+    private static Timestamps.Display timestampDisplay() {
+        return ReplayLabConfig.getInstance().getTimestampMode();
     }
 }

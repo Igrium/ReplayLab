@@ -159,14 +159,14 @@ public final class ScenePropsObject extends ReplayObject {
 
         fpsInput.set(fps);
         if (ImGui.inputFloat("FPS", fpsInput)) {
-            editingFps = true;
+            setFps(fpsInput.get());
         }
-        setFps(fpsInput.get());
-
-        if (editingFps && !ImGui.isItemActive()) {
-            editingFps = false;
-            modified = true;
-        }
+        modified |= ImGui.isItemDeactivatedAfterEdit();
+//
+//        if (editingFps && !ImGui.isItemActive()) {
+//            editingFps = false;
+//            modified = true;
+//        }
 
         cameraObjectInput.setValue(cameraObject);
         if (ReplayLabControls.objectSelector("Camera Object", cameraObjectInput,
@@ -176,32 +176,17 @@ public final class ScenePropsObject extends ReplayObject {
         }
 
         startTimeInput.set(startTime);
-        if (ImGui.inputInt("Start Time", startTimeInput)) {
-            editingStartTime = true;
+        if (ReplayLabControls.inputTimestamp("Start Time", startTimeInput)) {
+            startTime = Math.max(0, startTimeInput.get());
         }
-        startTime = startTimeInput.get();
-        if (startTime < 0)
-            startTime = 0;
+        modified |= ImGui.isItemDeactivatedAfterEdit();
 
-        if (editingStartTime && !ImGui.isItemActive()) {
-            editingStartTime = false;
-            modified = true;
-        }
 
         lengthInput.set(length);
-        if (ImGui.inputInt("Length (ms)", lengthInput)) {
-            editingLength = true;
+        if (ReplayLabControls.inputTimestamp("Length", lengthInput)) {
+            length = Math.max(0, lengthInput.get());
         }
-        length = lengthInput.get();
-        if (length < 0) {
-            length = 0;
-        }
-
-        if (editingLength && !ImGui.isItemActive()) {
-            editingLength = false;
-            modified = true;
-        }
-
+        modified |= ImGui.isItemDeactivatedAfterEdit();
 
         return modified ? ObjectEditState.COMMIT | ObjectEditState.RESAMPLE : ObjectEditState.NONE;
     }

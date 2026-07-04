@@ -3,6 +3,7 @@ package com.igrium.replaylab.ui.settings;
 import com.igrium.replaylab.config.ReplayLabConfig;
 import com.igrium.replaylab.math.DynamicRotation;
 import com.igrium.replaylab.scene.key.Keyframe;
+import com.igrium.replaylab.util.Timestamps;
 import imgui.ImGui;
 import imgui.type.ImBoolean;
 import lombok.Getter;
@@ -31,7 +32,7 @@ public class SettingsEditor {
             if (ImGui.beginTabItem(t("gui.replaylab.general"))) {
 
                 /// Behavior
-                ImGui.separatorText(t("settings.replaylab.behavior"));
+                ImGui.separatorText(tt("settings.replaylab.behavior"));
 
                 changed |= drawCheckBox(t("settings.replaylab.auto_set_camera"),
                         c.isAutoSetCamera(), c::setAutoSetCamera);
@@ -51,8 +52,24 @@ public class SettingsEditor {
                     ImGui.endCombo();
                 }
 
+                /// Interface
+                ImGui.separatorText(tt("settings.replaylab.interface"));
+
+                changed |= drawCheckBox(t("settings.replaylab.display_degrees"), c.isDisplayDegrees(), c::setDisplayDegrees);
+                ImGui.setItemTooltip(tt("settings.replaylab.display_degrees.tooltip"));
+
+                if (ImGui.beginCombo(t("settings.replaylab.timestamp_mode"), t(c.getTimestampMode().getTranslationKey()))) {
+                    for (var val : Timestamps.Display.values()) {
+                        if (ImGui.selectable(t(val.getTranslationKey()), val == c.getTimestampMode())) {
+                            c.setTimestampMode(val);
+                            changed = true;
+                        }
+                    }
+                    ImGui.endCombo();
+                }
+
                 /// 3D OBJECT SETTINGS
-                ImGui.separatorText(t("settings.replaylab.settings_3d"));
+                ImGui.separatorText(tt("settings.replaylab.settings_3d"));
 
                 if (ImGui.beginCombo(t("settings.replaylab.default_rot_mode"), t(c.getDefaultRotMode().getLabel()))) {
                     for (DynamicRotation.RotationMode mode : DynamicRotation.RotationMode.values()) {
@@ -67,9 +84,6 @@ public class SettingsEditor {
 
                 changed |= drawCheckBox(t("settings.replaylab.rot_mode_convert"), c.isRotModeConvert(), c::setRotModeConvert);
                 ImGui.setItemTooltip(tt("settings.replaylab.rot_mode_convert.tooltip"));
-
-                changed |= drawCheckBox(t("settings.replaylab.display_degrees"), c.isDisplayDegrees(), c::setDisplayDegrees);
-                ImGui.setItemTooltip(tt("settings.replaylab.display_degrees.tooltip"));
 
                 ImGui.endTabItem();
             }

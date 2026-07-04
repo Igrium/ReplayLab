@@ -5,6 +5,7 @@ import com.google.gson.GsonBuilder;
 import com.igrium.replaylab.ReplayLab;
 import com.igrium.replaylab.math.DynamicRotation.RotationMode;
 import com.igrium.replaylab.scene.key.Keyframe;
+import com.igrium.replaylab.util.Timestamps;
 import lombok.Getter;
 import lombok.Setter;
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -62,10 +63,13 @@ public class ReplayLabConfig {
 
     private Keyframe.HandleType defaultHandleType = Keyframe.HandleType.AUTO_CLAMPED;
 
+    // Display
+    private Timestamps.Display timestampMode = Timestamps.Display.MINUTES;
+    private boolean displayDegrees = true;
+
     // 3D objects
     private RotationMode defaultRotMode = RotationMode.EULER_YXZ;
     private boolean rotModeConvert = true;
-    private boolean displayDegrees = true;
 
     public synchronized void saveConfig(Path path) throws IOException {
         LOGGER.info("Saving ReplayLab config to {}", path);

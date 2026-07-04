@@ -75,9 +75,9 @@ public class Timestamps {
         splitTimestamp(ms, split);
 
         return switch (display) {
-            case HOURS -> String.format("%02d:%02d:%02d.%03d", split[3], split[2], split[1], split[0]);
-            case MINUTES -> String.format("%02d:%02d.%03d", split[2], split[1], split[0]);
-            case SECONDS -> String.format("%02d.%03d", split[1], split[0]);
+            case HOURS -> String.format("%02d:%02d:%02d.%02d", split[3], split[2], split[1], split[0]);
+            case MINUTES -> String.format("%02d:%02d.%02d", split[2], split[1], split[0]);
+            case SECONDS -> String.format("%02d.%02d", split[1], split[0]);
             default -> "";
         };
 

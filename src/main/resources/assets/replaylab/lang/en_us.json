@@ -136,13 +136,16 @@
   "settings.replaylab.inspect_on_create.tooltip": "Automatically open the inspector panel when creating a new object",
   "settings.replaylab.default_handle_type": "Default Handle Type",
 
+  "settings.replaylab.interface": "Interface",
+  "settings.replaylab.display_degrees": "Display Rotations as Degrees",
+  "settings.replaylab.display_degrees.tooltip": "Display rotations as degrees in the GUI (radians are still used internally).",
+  "settings.replaylab.timestamp_mode": "Timestamp Display Mode",
+
   "settings.replaylab.settings_3d": "3D Object Settings",
   "settings.replaylab.default_rot_mode": "Default Rotation Mode",
   "settings.replaylab.default_rot_mode.tooltip": "The rotation mode (euler, quaternion, etc) to use on new objects.",
   "settings.replaylab.rot_mode_convert": "Convert values when switching rotation mode",
   "settings.replaylab.rot_mode_convert.tooltip": "When switching rotation modes, update values to be equivalent in the new rotation mode. Does not work on animated values.",
-  "settings.replaylab.display_degrees": "Display rotations as degrees",
-  "settings.replaylab.display_degrees.tooltip": "Display rotations as degrees in the GUI (radians are still used internally).",
 
   "key.replaylab.undo": "Undo",
   "key.replaylab.redo": "Redo",
@@ -199,5 +202,10 @@
 
   "interp_mode.bezier": "Bézier",
   "interp_mode.linear": "Linear",
-  "interp_mode.constant": "Constant"
+  "interp_mode.constant": "Constant",
+
+  "timestamp_display.milliseconds": "Milliseconds",
+  "timestamp_display.seconds": "Seconds",
+  "timestamp_display.minutes": "Minutes",
+  "timestamp_display.hours": "Hours"
 }
