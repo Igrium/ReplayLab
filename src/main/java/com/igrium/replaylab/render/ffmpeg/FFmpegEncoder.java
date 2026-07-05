@@ -77,15 +77,15 @@ public class FFmpegEncoder extends EncoderConfig {
     }
 
     public enum EncodingPreset {
-        ULTRAFAST(10, "realtime", 12),
-        SUPERFAST(9, "realtime", 8),
-        VERYFAST(8, "realtime", 5),
-        FASTER(6, "good", 4),
-        FAST(5, "good", 3),
-        MEDIUM(4, "good", 2),
-        SLOW(3, "good", 1),
-        SLOWER(1, "good", 0),
-        VERYSLOW(0, "best", 0);
+        ULTRAFAST(13, "realtime", 12),
+        SUPERFAST(12, "realtime", 8),
+        VERYFAST(11, "realtime", 5),
+        FASTER(9, "good", 4),
+        FAST(8, "good", 3),
+        MEDIUM(7, "good", 2),
+        SLOW(5, "good", 1),
+        SLOWER(3, "good", 0),
+        VERYSLOW(1, "best", 0);
 
         @Getter
         final int av1;

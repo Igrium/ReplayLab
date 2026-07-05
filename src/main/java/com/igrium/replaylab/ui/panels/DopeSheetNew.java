@@ -688,7 +688,7 @@ public class DopeSheetNew extends KeyframePanel {
         /// === HEADER ===
 
         ImGui.setCursorPos(headerCursorX, headerCursorY);
-        header.drawHeader(headerHeight, zoomFactor, (float) offsetX, scene.getLength(), playhead,
+        header.drawHeader(editor, headerHeight, zoomFactor, (float) offsetX, scene.getLength(), playhead,
                 graphHeight, keyTimes.toIntArray(), TimelineFlags.INVERT_KEY_SNAP);
     }
 

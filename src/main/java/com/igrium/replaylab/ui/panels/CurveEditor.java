@@ -936,7 +936,8 @@ public class CurveEditor extends KeyframePanel {
         if (!hasFlag(TimelineFlags.NO_HEADER, flags)) {
             ImGui.setCursorPosX(headerCursorX);
             ImGui.setCursorPosY(headerCursorY);
-            header.drawHeader(headerHeight, zoomFactorX, (float) offsetX, scene.getLength(), playhead, graphHeight, keyTimes.toIntArray(), flags);
+            header.drawHeader(editor, headerHeight, zoomFactorX, (float) offsetX, scene.getLength(), playhead,
+                    graphHeight, keyTimes.toIntArray(), flags);
         }
 
     }

@@ -49,6 +49,9 @@
   "gui.replaylab.tooltip_normalize": "Normalize Curves",
   "gui.replaylab.selected_only": "Only show selected objects",
 
+  "gui.replaylab.copy_ts": "Copy Timestamp",
+  "gui.replaylab.set_scene_start": "Set scene start here",
+
   "gui.replaylab.pos": "Position",
   "gui.replaylab.rot": "Rotation",
   "gui.replaylab.scale": "Scale",

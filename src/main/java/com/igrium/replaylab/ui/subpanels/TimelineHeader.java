@@ -1,21 +1,32 @@
 package com.igrium.replaylab.ui.subpanels;
 
+import com.igrium.craftui.CraftUIFonts;
+import com.igrium.replaylab.config.ReplayLabConfig;
+import com.igrium.replaylab.editor.EditorState;
+import com.igrium.replaylab.operator.SetSceneStartOperator;
+import com.igrium.replaylab.ui.util.ReplayLabControls;
 import com.igrium.replaylab.ui.util.TimelineFlags;
+import com.igrium.replaylab.util.Timestamps;
+import imgui.ImColor;
 import imgui.ImDrawList;
 import imgui.ImGui;
 import imgui.ImVec2;
 import imgui.flag.ImGuiCol;
+import imgui.flag.ImGuiMouseButton;
 import imgui.flag.ImGuiWindowFlags;
 import imgui.type.ImInt;
 import it.unimi.dsi.fastutil.floats.FloatUnaryOperator;
 import lombok.Getter;
 import lombok.experimental.Accessors;
+import net.minecraft.util.Colors;
+import net.minecraft.util.Language;
 import org.jetbrains.annotations.Nullable;
 
 public class TimelineHeader {
 
     private static final int TICK_MULTIPLE = 10;
     private static final float SNAP_THRESHOLD_PX = 8f;
+
 
     /**
      * Compute the distance between each major interval in a timeline header.
@@ -53,7 +64,8 @@ public class TimelineHeader {
     /**
      * True if the user stopped scrubbing the playhead on this frame.
      */
-    @Getter @Accessors(fluent = true)
+    @Getter
+    @Accessors(fluent = true)
     private boolean stoppedScrubbing;
 
     /**
@@ -63,19 +75,23 @@ public class TimelineHeader {
     @Getter
     private float widthMs;
 
+    private int contextTime;
+    private String contextTimeStr = "";
+
+
     /**
      * Draw the header of the dope sheet or curve editor.
      *
-     * @param headerHeight   Vertical height of the header (pixels)
-     * @param zoomFactor     The number of pixels per millisecond
-     * @param offsetX        Distance the timeline has been scrolled from the scene start (ms)
-     * @param length         Total length of the scene (ms)
-     * @param playhead       Current playhead position (ms). Updated as the user scrubs.
-     * @param windowHeight   Vertical height of the editor (pixels). Used for drawing the playhead line.
-     * @param keys           Every frame that has a keyframe on it
-     * @param flags          Render flags.
+     * @param headerHeight Vertical height of the header (pixels)
+     * @param zoomFactor   The number of pixels per millisecond
+     * @param offsetX      Distance the timeline has been scrolled from the scene start (ms)
+     * @param length       Total length of the scene (ms)
+     * @param playhead     Current playhead position (ms). Updated as the user scrubs.
+     * @param windowHeight Vertical height of the editor (pixels). Used for drawing the playhead line.
+     * @param keys         Every frame that has a keyframe on it
+     * @param flags        Render flags.
      */
-    public void drawHeader(float headerHeight, float zoomFactor, float offsetX, int length,
+    public void drawHeader(EditorState editorState, float headerHeight, float zoomFactor, float offsetX, int length,
                            @Nullable ImInt playhead, float windowHeight, int @Nullable [] keys, int flags) {
         stoppedScrubbing = false;
 
@@ -90,6 +106,40 @@ public class TimelineHeader {
         ImDrawList drawList = ImGui.getWindowDrawList();
         ImGui.invisibleButton("#header", width, headerHeight);
 
+        // === HOVER AND RIGHT-CLICK ===
+        boolean hovered = ImGui.isItemHovered();
+
+        if (ImGui.isItemClicked(ImGuiMouseButton.Right)) {
+            ImGui.openPopup("headerPopup");
+            contextTime = (int) pixelToMs.apply(ImGui.getMousePosX() - cursorX);
+            contextTimeStr = Timestamps.toTimestamp(contextTime, 3,
+                    ReplayLabConfig.getInstance().getTimestampMode());
+        }
+
+        if (ImGui.beginPopup("headerPopup")) {
+
+            ImGui.pushFont(CraftUIFonts.getFont(ReplayLabControls.ROBOTO_MONO));
+            ImGui.beginDisabled();
+            ImGui.text(contextTimeStr);
+            ImGui.endDisabled();
+            ImGui.popFont();
+
+            ImGui.separator();
+
+            if (ImGui.menuItem(t("gui.replaylab.copy_ts"))) {
+                ImGui.setClipboardText(contextTimeStr);
+            }
+
+            if (ImGui.menuItem(t("gui.replaylab.set_scene_start"))) {
+                editorState.applyOperator(new SetSceneStartOperator(editorState.getScene().sceneToReplayTime(contextTime), true));
+            }
+
+            ImGui.endPopup();
+        } else {
+            contextTime = -1;
+        }
+
+        // === TICKS ===
         int majorInterval = (int) computeMajorInterval(zoomFactor);
         int minorInterval = majorInterval / 2;
         int tinyInterval = majorInterval / 4;
@@ -106,19 +156,11 @@ public class TimelineHeader {
             snapTargetMs = minorInterval;
         }
 
-        // === TICKS ===
         if (!hasFlag(TimelineFlags.NO_TICKS, flags)) {
             drawList.pushClipRect(cursorX, cursorY, cursorX + width, cursorY + headerHeight);
 
             // The amount of milliseconds the window is wide
             widthMs = width / zoomFactor;
-
-            // Round the first tick to draw down
-
-            int headerStartTick = Math.floorDiv((int) offsetX, TICK_MULTIPLE) * TICK_MULTIPLE;
-
-            // Round the last tick to draw up
-            int headerEndTick = Math.floorDiv((int) (offsetX + widthMs), TICK_MULTIPLE) * TICK_MULTIPLE;
 
             int startTick = Math.floorDiv((int) offsetX, majorInterval) * majorInterval;
             int endTick = Math.ceilDiv((int) (offsetX + widthMs), majorInterval) * majorInterval;
@@ -163,14 +205,7 @@ public class TimelineHeader {
             }
 
             if (scrubbing) {
-                int newPlayhead = (int) pixelToMs.apply(ImGui.getMousePosX() - cursorX);
-
-                if (newPlayhead < 0)
-                    newPlayhead = 0;
-
-                if (newPlayhead > length)
-                    newPlayhead = length;
-
+                int newPlayhead = (int) Math.clamp(pixelToMs.apply(ImGui.getMousePosX() - cursorX), 0, length);
 
                 boolean ctrlPressed = ImGui.getIO().getKeyCtrl();
                 boolean shiftPressed = ImGui.getIO().getKeyShift();
@@ -204,10 +239,20 @@ public class TimelineHeader {
 
             var drawList2 = ImGui.getWindowDrawList();
             if (playheadX > cursorX) {
-                drawList2.addRectFilled(playheadX - radius, cursorY + headerHeight / 2, playheadX + radius, cursorY + headerHeight, color);
+                drawList2.addRectFilled(playheadX - radius, cursorY + headerHeight / 2, playheadX + radius,
+                        cursorY + headerHeight, color);
                 if (windowHeight > 0) {
-                    drawList2.addLine(playheadX, cursorY + headerHeight, playheadX, cursorY + headerHeight + windowHeight, color);
+                    drawList2.addLine(playheadX, cursorY + headerHeight, playheadX,
+                            cursorY + headerHeight + windowHeight, color);
                 }
+            }
+
+            if ((hovered || contextTime >= 0) && windowHeight > 0) {
+                float x = contextTime >= 0 ? msToPixel.apply(contextTime) + cursorX : ImGui.getMousePosX();
+
+                if (Math.abs(x - playheadX) > 10)
+                    drawList2.addLine(x, cursorY + headerHeight, x, cursorY + headerHeight + windowHeight,
+                            Colors.BLACK);
             }
 
             ImGui.endChild();
@@ -236,5 +281,9 @@ public class TimelineHeader {
 
     private static boolean hasFlag(int flag, int flags) {
         return (flags & flag) == flag;
+    }
+
+    private static String t(String key) {
+        return Language.getInstance().get(key) + "###" + key;
     }
 }

@@ -1,5 +1,6 @@
 package com.igrium.replaylab.util;
 
+import com.igrium.replaylab.config.ReplayLabConfig;
 import lombok.Getter;
 import lombok.experimental.UtilityClass;
 
@@ -92,6 +93,10 @@ public class Timestamps {
 
     public static String toTimestamp(int ms, Display display) {
         return toTimestamp(ms, 2, display);
+    }
+
+    public static String toTimestamp(int ms) {
+        return toTimestamp(ms, ReplayLabConfig.getInstance().getTimestampMode());
     }
 
     /**

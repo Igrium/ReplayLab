@@ -9,7 +9,6 @@ import com.igrium.replaylab.util.Timestamps;
 import imgui.ImGui;
 import imgui.flag.ImGuiMouseCursor;
 import imgui.type.ImBoolean;
-import net.minecraft.util.Identifier;
 import net.minecraft.util.Language;
 import net.minecraft.util.Util;
 
@@ -22,8 +21,6 @@ public class ViewportFooter {
 
     private final ImBoolean cameraViewInput = new ImBoolean();
     private final ImBoolean tmpBoolean = new ImBoolean();
-
-    private static final Identifier ROBOTO_MONO = Identifier.of("replaylab:roboto-mono");
 
     public void drawPlaybackControls(EditorState editorState) {
         ImGui.pushFont(ReplayLabIcons.getFont());
@@ -138,7 +135,7 @@ public class ViewportFooter {
     }
 
     private void timestampView(String id, int timestamp, String tooltip) {
-        ImGui.pushFont(CraftUIFonts.getFont(ROBOTO_MONO));
+        ImGui.pushFont(CraftUIFonts.getFont(ReplayLabControls.ROBOTO_MONO));
         ImGui.beginGroup();
 
         String str = Timestamps.toTimestamp(timestamp, 3, ReplayLabConfig.getInstance().getTimestampMode());

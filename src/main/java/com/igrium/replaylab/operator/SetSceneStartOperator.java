@@ -10,6 +10,13 @@ public class SetSceneStartOperator implements ReplayOperator {
 
     private int prevStart;
 
+    /**
+     * Create a new instance
+     *
+     * @param newStart  The new start time in milliseconds
+     * @param shiftKeys If set, shift the keys and playhead to counteract the scene move so they're in the same place
+     *                 in the replay
+     */
     public SetSceneStartOperator(int newStart, boolean shiftKeys) {
         this.newStart = Math.max(0, newStart);
         this.shiftKeys = shiftKeys;
@@ -32,6 +39,7 @@ public class SetSceneStartOperator implements ReplayOperator {
                     }
                 }
             }
+            editor.setPlayhead(editor.getPlayhead() - delta);
         }
 
         return true;
@@ -50,6 +58,7 @@ public class SetSceneStartOperator implements ReplayOperator {
                     }
                 }
             }
+            editor.setPlayhead(editor.getPlayhead() + delta);
         }
     }
 
@@ -66,6 +75,7 @@ public class SetSceneStartOperator implements ReplayOperator {
                     }
                 }
             }
+            editor.setPlayhead(editor.getPlayhead() - delta);
         }
     }
 }
