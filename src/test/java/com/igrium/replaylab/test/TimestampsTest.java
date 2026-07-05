@@ -63,18 +63,19 @@ public class TimestampsTest {
     @Test
     public void testToTimestamp_Seconds() {
         // SECONDS mode shows total elapsed seconds (unwrapped), not seconds-within-minute.
-        assertEquals("3723.040", Timestamps.toTimestamp(SAMPLE_MS, Display.SECONDS));
+        // Sub-second precision is truncated to two digits (centiseconds).
+        assertEquals("3723.04", Timestamps.toTimestamp(SAMPLE_MS, Display.SECONDS));
     }
 
     @Test
     public void testToTimestamp_Minutes() {
         // MINUTES mode shows total elapsed minutes (unwrapped), not minutes-within-hour.
-        assertEquals("62:03.040", Timestamps.toTimestamp(SAMPLE_MS, Display.MINUTES));
+        assertEquals("62:03.04", Timestamps.toTimestamp(SAMPLE_MS, Display.MINUTES));
     }
 
     @Test
     public void testToTimestamp_Hours() {
-        assertEquals("01:02:03.040", Timestamps.toTimestamp(SAMPLE_MS, Display.HOURS));
+        assertEquals("01:02:03.04", Timestamps.toTimestamp(SAMPLE_MS, Display.HOURS));
     }
 
     @Test
@@ -93,17 +94,19 @@ public class TimestampsTest {
     }
 
     @Test
-    public void testToTimestamp_SingleDigitMillisIsZeroPaddedToThree() {
-        // ms is zero-padded to 3 digits so it round-trips as the correct decimal
-        // fraction (.004, not .04 which would parse back as 40ms).
-        assertEquals("00.004", Timestamps.toTimestamp(4, Display.SECONDS));
-        assertEquals(4, Timestamps.fromTimestamp(Timestamps.toTimestamp(4, Display.SECONDS)));
+    public void testToTimestamp_MillisAreTruncatedToTwoDigits() {
+        // Sub-second display is truncated (not rounded) to centisecond precision,
+        // so anything below 10ms is truncated away entirely.
+        assertEquals("00.00", Timestamps.toTimestamp(4, Display.SECONDS));
+        assertEquals("00.04", Timestamps.toTimestamp(49, Display.SECONDS));
     }
 
     @Test
-    public void testToTimestamp_ThreeDigitMillisRoundTrips() {
-        assertEquals("00.999", Timestamps.toTimestamp(999, Display.SECONDS));
-        assertEquals(999, Timestamps.fromTimestamp(Timestamps.toTimestamp(999, Display.SECONDS)));
+    public void testToTimestamp_CentisecondAlignedMillisRoundTrip() {
+        // Only values that are an exact multiple of 10ms survive the truncation
+        // to centiseconds and round-trip back to the original value.
+        assertEquals("00.99", Timestamps.toTimestamp(990, Display.SECONDS));
+        assertEquals(990, Timestamps.fromTimestamp(Timestamps.toTimestamp(990, Display.SECONDS)));
     }
 
     @Test

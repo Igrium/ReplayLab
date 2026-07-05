@@ -2,7 +2,6 @@ package com.igrium.replaylab.ui;
 
 
 import com.igrium.craftui.app.DockSpaceApp;
-import com.igrium.craftui.util.RaycastUtils;
 import com.igrium.replaylab.ReplayLab;
 import com.igrium.replaylab.config.Keybinds;
 import com.igrium.replaylab.editor.EditorState;
@@ -10,30 +9,24 @@ import com.igrium.replaylab.operator.*;
 import com.igrium.replaylab.scene.obj.EntityProvider;
 import com.igrium.replaylab.scene.obj.ReplayObject;
 import com.igrium.replaylab.scene.obj.ReplayObject3D;
-import com.igrium.replaylab.scene.obj.ReplayObjects;
 import com.igrium.replaylab.scene.objs.ScenePropsObject;
+import com.igrium.replaylab.ui.gizmos.GizmoRenderer;
 import com.igrium.replaylab.ui.panels.*;
 import com.igrium.replaylab.ui.subpanels.ExceptionPopup;
-import com.igrium.replaylab.ui.subpanels.ObjectContextMenu;
 import com.igrium.replaylab.ui.subpanels.ViewportControls;
+import com.igrium.replaylab.ui.subpanels.ViewportFooter;
 import com.igrium.replaylab.ui.util.ReplayLabControls;
-import com.igrium.replaylab.ui.gizmos.GizmoRenderer;
-import com.igrium.replaylab.util.ShortcutUtils;
 import com.replaymod.replay.ReplayHandler;
 import com.replaymod.replay.ReplayModReplay;
 import imgui.ImGui;
-import imgui.flag.*;
+import imgui.flag.ImGuiCol;
+import imgui.flag.ImGuiStyleVar;
 import imgui.type.ImBoolean;
 import lombok.Getter;
 import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.Mouse;
 import net.minecraft.client.util.Window;
-import net.minecraft.client.world.ClientWorld;
-import net.minecraft.entity.Entity;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.Language;
-import net.minecraft.util.hit.EntityHitResult;
-import net.minecraft.util.hit.HitResult;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Matrix4f;
@@ -95,6 +88,8 @@ public class ReplayLabUI extends DockSpaceApp {
 
     @Getter
     private final QuickModePopup quickModePopup = new QuickModePopup();
+
+    private final ViewportFooter footer = new ViewportFooter();
 
     // =========================================================================
     // Deferred action flags (set during render, executed in preRender)
@@ -191,7 +186,7 @@ public class ReplayLabUI extends DockSpaceApp {
 
         if (beginViewport) {
             ImGui.pushStyleColor(ImGuiCol.ChildBg, bgColor);
-            drawPlaybackControls();
+            footer.drawPlaybackControls(editorState);
             ImGui.popStyleColor();
 
             GizmoRenderer.drawGizmos(editorState, getViewportBounds());
@@ -355,9 +350,9 @@ public class ReplayLabUI extends DockSpaceApp {
                 editorState.setCameraView(camView.get());
             }
 
-            if (ImGui.menuItem(t("key.replaylab.camera_to_view"), getChordLabel(Keybinds.cameraToView()))) {
-                // TODO: implement
-            }
+//            if (ImGui.menuItem(t("key.replaylab.camera_to_view"), getChordLabel(Keybinds.cameraToView()))) {
+//                // TODO: implement
+//            }
 
             ReplayObject obj = editorState.getScene().getObject(editorState.getActiveObject());
             ImGui.beginDisabled(!(obj instanceof EntityProvider<?>));
@@ -402,103 +397,9 @@ public class ReplayLabUI extends DockSpaceApp {
     // Playback controls
     // =========================================================================
 
-    private final ImBoolean cameraViewInput = new ImBoolean();
-    private final ImBoolean tmpBoolean = new ImBoolean();
-
-    private void drawPlaybackControls() {
-        ImGui.pushFont(ReplayLabIcons.getFont());
-        float buttonSize = ImGui.getTextLineHeightWithSpacing() * 1.25f;
-        viewportFooterHeight = buttonSize + ImGui.getStyle().getWindowPaddingY() * 2;
-        ImGui.popFont();
-
-        ImGui.setCursorPosY(ImGui.getContentRegionMaxY() - viewportFooterHeight);
-        ImGui.setNextWindowBgAlpha(1);
-
-        if (!ImGui.beginChild("Playback", ImGui.getContentRegionAvailX(), viewportFooterHeight, true)) {
-            ImGui.endChild();
-            return;
-        }
-
-        // Scene name (left-aligned)
-        ImGui.alignTextToFramePadding();
-        ImGui.text("Scene: " + editorState.getSceneName());
-        ImGui.sameLine();
-
-        // Transport buttons (center-aligned)
-        float groupWidth = (buttonSize + ImGui.getStyle().getItemSpacingX()) * 5 - ImGui.getStyle().getItemSpacingX();
-        ImGui.setCursorPosX(ImGui.getContentRegionMaxX() / 2 - groupWidth / 2);
-        ImGui.alignTextToFramePadding();
-
-        if (playbackIcon(ReplayLabIcons.ICON_TO_START_ALT, t("key.replaylab.scene_start"), buttonSize)) {
-            editorState.jumpSceneStart();
-        }
-        playbackIcon(ReplayLabIcons.ICON_TO_START, t("key.replaylab.prev_key"), buttonSize);
-
-        char playPauseIcon = editorState.isPlaying() ? ReplayLabIcons.ICON_PAUSE : ReplayLabIcons.ICON_PLAY;
-        if (playbackIcon(playPauseIcon, t("key.replaylab.playpause"), buttonSize)) {
-            editorState.togglePlayback();
-        }
-
-        playbackIcon(ReplayLabIcons.ICON_TO_END, t("key.replaylab.next_key"), buttonSize);
-        if (playbackIcon(ReplayLabIcons.ICON_TO_END_ALT, t("key.replaylab.scene_end"), buttonSize)) {
-            editorState.jumpSceneEnd();
-        }
-
-        // Camera controls & gizmos (right-aligned)
-        ImGui.setCursorPosX(ImGui.getContentRegionMaxX() - prevCameraControlsGroupWidth);
-        ImGui.beginGroup();
-
-        tmpBoolean.set(editorState.showGizmoPos() && editorState.showGizmoRot() && editorState.showGizmoScale());
-        if (ReplayLabControls.toggleButton(ReplayLabIcons.ICON_FREE_TRANSFORM, "gizmoAll", tmpBoolean, "key.replaylab.gizmo_all")) {
-            editorState.showGizmoPos(tmpBoolean.get());
-            editorState.showGizmoRot(tmpBoolean.get());
-            editorState.showGizmoScale(tmpBoolean.get());
-        }
-        ImGui.sameLine();
-        tmpBoolean.set(editorState.showGizmoPos());
-        if (ReplayLabControls.toggleButton(ReplayLabIcons.ICON_MOVE, "gizmoPos", tmpBoolean, "key.replaylab.gizmo_pos")) {
-            editorState.showGizmoPos(tmpBoolean.get());
-            if (!ImGui.getIO().getKeyCtrl()) {
-                editorState.showGizmoRot(false);
-                editorState.showGizmoScale(false);
-            }
-        }
-        ImGui.sameLine();
-        tmpBoolean.set(editorState.showGizmoRot());
-        if (ReplayLabControls.toggleButton(ReplayLabIcons.ICON_ROTATE, "gizmoRot", tmpBoolean, "key.replaylab.gizmo_rot")) {
-            editorState.showGizmoRot(tmpBoolean.get());
-            if (!ImGui.getIO().getKeyCtrl()) {
-                editorState.showGizmoPos(false);
-                editorState.showGizmoScale(false);
-            }
-        }
-        ImGui.sameLine();
-        tmpBoolean.set(editorState.showGizmoScale());
-        if (ReplayLabControls.toggleButton(ReplayLabIcons.ICON_SCALE, "gizmoScale", tmpBoolean, "key.replaylab.gizmo_scale")) {
-            editorState.showGizmoScale(tmpBoolean.get());
-            if (!ImGui.getIO().getKeyCtrl()) {
-                editorState.showGizmoPos(false);
-                editorState.showGizmoRot(false);
-            }
-        }
-        ImGui.sameLine();
-        tmpBoolean.set(editorState.isLocalGizmos());
-        char localIcon = tmpBoolean.get() ? ReplayLabIcons.ICON_CUBE : ReplayLabIcons.ICON_GLOBE;
-        if (ReplayLabControls.toggleButton(localIcon, "freeTransform", tmpBoolean, "key.replaylab.local_transforms")) {
-            editorState.setLocalGizmos(tmpBoolean.get());
-        }
-        ImGui.sameLine();
-        cameraViewInput.set(editorState.isCameraView());
-        if (ReplayLabControls.toggleButton(ReplayLabIcons.ICON_VIDEOCAM, "cameraView", cameraViewInput, "key.replaylab.cameraview")) {
-            editorState.setCameraView(cameraViewInput.get());
-        }
 
 
-        ImGui.endGroup();
-        prevCameraControlsGroupWidth = ImGui.getItemRectSizeX();
 
-        ImGui.endChild();
-    }
 
     // =========================================================================
     // Object / operator helpers
@@ -576,15 +477,7 @@ public class ReplayLabUI extends DockSpaceApp {
     // Widget helpers
     // =========================================================================
 
-    private boolean playbackIcon(char icon, String tooltip, float buttonSize) {
-        ImGui.pushFont(ReplayLabIcons.getFont());
-        boolean res = ImGui.button(String.valueOf(icon), buttonSize, buttonSize);
-        ImGui.popFont();
 
-        if (ImGui.isItemHovered()) ImGui.setTooltip(tooltip);
-        ImGui.sameLine();
-        return res;
-    }
 
     private boolean toggleButton(char icon, @Nullable String tooltip, ImBoolean value) {
         ImGui.pushFont(ReplayLabIcons.getFont());

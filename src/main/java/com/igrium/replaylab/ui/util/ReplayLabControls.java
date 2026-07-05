@@ -138,9 +138,9 @@ public class ReplayLabControls {
 
     private static final ImString timestampInBuffer = new ImString(16);
 
-    public static boolean inputTimestamp(String label, ImInt timestamp, Timestamps.Display display, int imGuiTextInputFlags) {
+    public static boolean inputTimestamp(String label, ImInt timestamp, Timestamps.Display display, int imGuiInputTextFlags) {
         timestampInBuffer.set(Timestamps.toTimestamp(timestamp.get(), display));
-        if (ImGui.inputText(label, timestampInBuffer, imGuiTextInputFlags)) {
+        if (ImGui.inputText(label, timestampInBuffer, imGuiInputTextFlags)) {
             String out = timestampInBuffer.get();
             try {
                 timestamp.set(Timestamps.fromTimestamp(out));
@@ -155,8 +155,8 @@ public class ReplayLabControls {
         return inputTimestamp(label, timestamp, display, 0);
     }
 
-    public static boolean inputTimestamp(String label, ImInt timestamp, int imGuiTextInputFlags) {
-        return inputTimestamp(label, timestamp, timestampDisplay(), imGuiTextInputFlags);
+    public static boolean inputTimestamp(String label, ImInt timestamp, int imGuiInputTextFlags) {
+        return inputTimestamp(label, timestamp, timestampDisplay(), imGuiInputTextFlags);
     }
 
     public static boolean inputTimestamp(String label, ImInt timestamp) {

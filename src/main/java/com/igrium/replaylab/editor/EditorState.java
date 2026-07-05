@@ -213,6 +213,10 @@ public final class EditorState {
         return playheadRef.get();
     }
 
+    public int getSceneTime() {
+        return scene.sceneToReplayTime(getPlayhead());
+    }
+
     public void setPlayhead(int playhead) {
         playheadRef.set(playhead);
     }

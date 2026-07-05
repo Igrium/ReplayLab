@@ -61,11 +61,12 @@ public class Timestamps {
     /**
      * Convert the supplied timestamp into a timestamp string
      *
-     * @param ms      Timestamp in milliseconds
-     * @param display The display mode to use
+     * @param ms       Timestamp in milliseconds
+     * @param decimals The amount of decimal places to use for the seconds value
+     * @param display  The display mode to use
      * @return <code>[hours]:[minuites]:[seconds].[milliseconds]</code>
      */
-    public static String toTimestamp(int ms, Display display) {
+    public static String toTimestamp(int ms, int decimals, Display display) {
         if (display == Display.MILLISECONDS) {
             return String.valueOf(ms);
         }
@@ -73,14 +74,24 @@ public class Timestamps {
         int length = display.ordinal() + 1;
         int[] split = new int[length];
         splitTimestamp(ms, split);
+        // We only want to show two digits
+        int rounded;
+        if (decimals > 0) {
+            int divisor = (int) Math.pow(10, 3 - decimals);
+            rounded = split[0] / divisor;
+        } else rounded = 0;
 
         return switch (display) {
-            case HOURS -> String.format("%02d:%02d:%02d.%02d", split[3], split[2], split[1], split[0]);
-            case MINUTES -> String.format("%02d:%02d.%02d", split[2], split[1], split[0]);
-            case SECONDS -> String.format("%02d.%02d", split[1], split[0]);
+            case HOURS -> String.format("%02d:%02d:%02d.%0" + decimals + "d", split[3], split[2], split[1], rounded);
+            case MINUTES -> String.format("%02d:%02d.%0" + decimals + "d", split[2], split[1], rounded);
+            case SECONDS -> String.format("%02d.%0" + decimals + "d", split[1], rounded);
             default -> "";
         };
 
+    }
+
+    public static String toTimestamp(int ms, Display display) {
+        return toTimestamp(ms, 2, display);
     }
 
     /**

@@ -55,7 +55,9 @@
   "gui.replaylab.rot_mode": "Rotation Mode",
   "gui.replaylab.camera": "Camera",
 
-
+  "gui.replaylab.replay_time": "Replay Time (global)",
+  "gui.replaylab.scene_time": "Scene Time (local)",
+  "gui.replaylab.clipboard": "Copied to clipboard!",
 
   "gui.replaylab.keybinds": "Keybinds",
   "gui.replaylab.keybind.new": "> Press a new key <",
