@@ -52,18 +52,19 @@ public class ViewportFooter {
         timestampView("##replayTime", editorState.getSceneTime(), tt("gui.replaylab.scene_time"));
         ImGui.sameLine();
 
-        if (playbackIcon(ReplayLabIcons.ICON_TO_START_ALT, tt("key.replaylab.scene_start"), buttonSize)) {
+        if (playbackIcon(ReplayLabIcons.ICON_TO_START_ALT +
+                "##sceneStart", tt("key.replaylab.scene_start"), buttonSize)) {
             editorState.jumpSceneStart();
         }
-        playbackIcon(ReplayLabIcons.ICON_TO_START, tt("key.replaylab.prev_key"), buttonSize);
+        playbackIcon(ReplayLabIcons.ICON_TO_START + "##prevKey", tt("key.replaylab.prev_key"), buttonSize);
 
         char playPauseIcon = editorState.isPlaying() ? ReplayLabIcons.ICON_PAUSE : ReplayLabIcons.ICON_PLAY;
-        if (playbackIcon(playPauseIcon, tt("key.replaylab.playpause"), buttonSize)) {
+        if (playbackIcon(playPauseIcon + "##playPause", tt("key.replaylab.playpause"), buttonSize)) {
             editorState.togglePlayback();
         }
 
-        playbackIcon(ReplayLabIcons.ICON_TO_END, tt("key.replaylab.next_key"), buttonSize);
-        if (playbackIcon(ReplayLabIcons.ICON_TO_END_ALT, tt("key.replaylab.scene_end"), buttonSize)) {
+        playbackIcon(ReplayLabIcons.ICON_TO_END + "##nextKey", tt("key.replaylab.next_key"), buttonSize);
+        if (playbackIcon(ReplayLabIcons.ICON_TO_END_ALT + "##sceneEnd", tt("key.replaylab.scene_end"), buttonSize)) {
             editorState.jumpSceneEnd();
         }
 
@@ -79,14 +80,16 @@ public class ViewportFooter {
         ImGui.beginGroup();
 
         tmpBoolean.set(editorState.showGizmoPos() && editorState.showGizmoRot() && editorState.showGizmoScale());
-        if (ReplayLabControls.toggleButton(ReplayLabIcons.ICON_FREE_TRANSFORM, "gizmoAll", tmpBoolean, "key.replaylab.gizmo_all")) {
+        if (ReplayLabControls.toggleButton(ReplayLabIcons.ICON_FREE_TRANSFORM, "gizmoAll", tmpBoolean,
+                "key.replaylab.gizmo_all")) {
             editorState.showGizmoPos(tmpBoolean.get());
             editorState.showGizmoRot(tmpBoolean.get());
             editorState.showGizmoScale(tmpBoolean.get());
         }
         ImGui.sameLine();
         tmpBoolean.set(editorState.showGizmoPos());
-        if (ReplayLabControls.toggleButton(ReplayLabIcons.ICON_MOVE, "gizmoPos", tmpBoolean, "key.replaylab.gizmo_pos")) {
+        if (ReplayLabControls.toggleButton(ReplayLabIcons.ICON_MOVE, "gizmoPos", tmpBoolean,
+                "key.replaylab.gizmo_pos")) {
             editorState.showGizmoPos(tmpBoolean.get());
             if (!ImGui.getIO().getKeyCtrl()) {
                 editorState.showGizmoRot(false);
@@ -95,7 +98,8 @@ public class ViewportFooter {
         }
         ImGui.sameLine();
         tmpBoolean.set(editorState.showGizmoRot());
-        if (ReplayLabControls.toggleButton(ReplayLabIcons.ICON_ROTATE, "gizmoRot", tmpBoolean, "key.replaylab.gizmo_rot")) {
+        if (ReplayLabControls.toggleButton(ReplayLabIcons.ICON_ROTATE, "gizmoRot", tmpBoolean,
+                "key.replaylab.gizmo_rot")) {
             editorState.showGizmoRot(tmpBoolean.get());
             if (!ImGui.getIO().getKeyCtrl()) {
                 editorState.showGizmoPos(false);
@@ -104,7 +108,8 @@ public class ViewportFooter {
         }
         ImGui.sameLine();
         tmpBoolean.set(editorState.showGizmoScale());
-        if (ReplayLabControls.toggleButton(ReplayLabIcons.ICON_SCALE, "gizmoScale", tmpBoolean, "key.replaylab.gizmo_scale")) {
+        if (ReplayLabControls.toggleButton(ReplayLabIcons.ICON_SCALE, "gizmoScale", tmpBoolean,
+                "key.replaylab.gizmo_scale")) {
             editorState.showGizmoScale(tmpBoolean.get());
             if (!ImGui.getIO().getKeyCtrl()) {
                 editorState.showGizmoPos(false);
@@ -114,12 +119,14 @@ public class ViewportFooter {
         ImGui.sameLine();
         tmpBoolean.set(editorState.isLocalGizmos());
         char localIcon = tmpBoolean.get() ? ReplayLabIcons.ICON_CUBE : ReplayLabIcons.ICON_GLOBE;
-        if (ReplayLabControls.toggleButton(localIcon, "freeTransform", tmpBoolean, "key.replaylab.local_transforms")) {
+        if (ReplayLabControls.toggleButton(localIcon, "freeTransform", tmpBoolean,
+                "key.replaylab.local_transforms")) {
             editorState.setLocalGizmos(tmpBoolean.get());
         }
         ImGui.sameLine();
         cameraViewInput.set(editorState.isCameraView());
-        if (ReplayLabControls.toggleButton(ReplayLabIcons.ICON_VIDEOCAM, "cameraView", cameraViewInput, "key.replaylab.cameraview")) {
+        if (ReplayLabControls.toggleButton(ReplayLabIcons.ICON_VIDEOCAM, "cameraView", cameraViewInput,
+                "key.replaylab.cameraview")) {
             editorState.setCameraView(cameraViewInput.get());
         }
 
@@ -160,7 +167,7 @@ public class ViewportFooter {
             ImGui.setMouseCursor(ImGuiMouseCursor.Hand);
         }
         if (Util.getMeasuringTimeMs() - clipboardCopyTime < 1000) {
-            ImGui.setTooltip(tt("gui.replaylab.clipboard"));
+            ImGui.setTooltip(tt("gui.replaylab.clipboarded"));
         } else if (hovered) {
             ImGui.setTooltip(tooltip);
         }
@@ -168,7 +175,7 @@ public class ViewportFooter {
         ImGui.popFont();
     }
 
-    private boolean playbackIcon(char icon, String tooltip, float buttonSize) {
+    private boolean playbackIcon(String icon, String tooltip, float buttonSize) {
         ImGui.pushFont(ReplayLabIcons.getFont());
         boolean res = ImGui.button(String.valueOf(icon), buttonSize, buttonSize);
         ImGui.popFont();

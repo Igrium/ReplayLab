@@ -9,7 +9,8 @@
         "MixinAppManager",
         "MixinEntity",
         "MixinGuiReplayViewer",
-        "MixinKeyBindingRegistry"
+        "MixinKeyBindingRegistry",
+        "MixinPathPreviewRenderer"
     ],
     "injectors": {
         "defaultRequire": 1

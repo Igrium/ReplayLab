@@ -57,7 +57,7 @@
 
   "gui.replaylab.replay_time": "Replay Time (global)",
   "gui.replaylab.scene_time": "Scene Time (local)",
-  "gui.replaylab.clipboard": "Copied to clipboard!",
+  "gui.replaylab.clipboarded": "Copied to clipboard!",
 
   "gui.replaylab.keybinds": "Keybinds",
   "gui.replaylab.keybind.new": "> Press a new key <",
@@ -81,6 +81,7 @@
   "gui.replaylab.export.rendering": "Rendering frame %d / %d",
   "gui.replaylab.export.finishing": "Finalizing Export",
   "gui.replaylab.export.done": "Finished",
+
 
   "gui.replaylab.encoder": "Encoder",
 
