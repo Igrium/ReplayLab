@@ -97,7 +97,9 @@ public class KeyChannel {
     }
 
     /**
-     * Sort all the keyframes in this channel. Although not required, Improves the performance of calls to <code>sample</code>.
+     * Sort all the keyframes in this channel. Although not required,
+     * Improves the performance of calls to <code>sample</code>.
+     *
      * @return an array such that <code>result[newIndex] = oldIndex</code> for every keyframe in the channel.
      */
     public int[] sortKeys() {
@@ -139,6 +141,7 @@ public class KeyChannel {
 
     /**
      * Sample the curve at a given timestamp.
+     *
      * @param timestamp Timestamp to sample at.
      * @return The scalar value of the curve at that time.
      */
@@ -146,12 +149,23 @@ public class KeyChannel {
         // Because of how selections are handled, we need to ensure the keyframe list is sorted each frame (boo)
         // Optimizations in the dope sheet should ensure that they're usually pre-sorted, so we just need to check.
         Keyframe[] keys = this.keyframes.toArray(Keyframe[]::new);
+        Arrays.sort(keys);
+        return sample(keys, timestamp);
+
+    }
+
+    /**
+     * Sample a channel curve at a given point
+     *
+     * @param keys      Sorted array of keyframes
+     * @param timestamp Timestamp to sample at
+     * @return The scalar value of the curve at that time
+     */
+    public static double sample(Keyframe[] keys, int timestamp) {
         if (keys.length == 0)
             return 0;
         else if (keys.length == 1)
             return keys[0].getValue();
-
-        Arrays.sort(keys);
 
         // If out of bounds
         if (timestamp <= keys[0].getTime()) {
@@ -176,7 +190,6 @@ public class KeyChannel {
         Keyframe next = keys[nextIndex];
 
         return key.getInterpolationMode().sample(key, next, timestamp);
-
     }
 
     public boolean isEmpty() {
@@ -332,6 +345,62 @@ public class KeyChannel {
         ChannelUtils.computeHandles(this, null);
 
         return added;
+    }
+
+    /**
+     * Compute the integral of the sampled curve from time 0 to a certain time.
+     * Matches the semantics of <code>sample</code>: the curve extrapolates as a
+     * constant outside the keyed range.
+     *
+     * @param maxTime Timestamp to integrate to
+     * @return The integral of the sampled curve on <code>[0, maxTime]</code>
+     * @apiNote Does not take modifiers into account
+     * @implNote Like the other sampling methods, this works best if the channel has been sorted.
+     */
+    public double integrate(double maxTime) {
+        Keyframe[] keys = keyframes.toArray(Keyframe[]::new);
+        Arrays.sort(keys);
+        return integrate(keys, maxTime);
+    }
+
+
+    /**
+     * Compute the integral of the sampled curve from time 0 to a certain time.
+     * Matches the semantics of <code>sample</code>: the curve extrapolates as a
+     * constant outside the keyed range.
+     *
+     * @param keys    Sorted array of keyframes
+     * @param maxTime Timestamp to integrate to
+     * @return The integral of the sampled curve on <code>[0, maxTime]</code>
+     */
+    public static double integrate(Keyframe[] keys, double maxTime) {
+        if (keys.length == 0) return 0;
+        if (keys.length == 1) return keys[0].getValue() * maxTime;
+
+        double integral = 0;
+
+        // sample() clamps to the first key's value before its time,
+        // so that region integrates as a constant from t=0
+        double firstTime = keys[0].getTime();
+        if (firstTime > 0) {
+            integral += keys[0].getValue() * Math.min(maxTime, firstTime);
+        }
+
+        for (int i = 0; i < keys.length - 1; i++) {
+            Keyframe key = keys[i];
+            Keyframe next = keys[i + 1];
+            if (key.getTime() >= maxTime) break;
+
+            integral += key.getInterpolationMode().integrate(key, next, maxTime);
+        }
+
+        // Same clamping past the last key
+        Keyframe last = keys[keys.length - 1];
+        if (maxTime > last.getTime()) {
+            integral += last.getValue() * (maxTime - last.getTime());
+        }
+
+        return integral;
     }
 }
 

@@ -35,7 +35,6 @@ public final class Keyframe implements Comparable<Keyframe> {
         HandleType(String translationKey) {
             this.translationKey = "handle_type." + translationKey;
         }
-
     }
 
     /**
@@ -68,6 +67,9 @@ public final class Keyframe implements Comparable<Keyframe> {
     public Keyframe(int time, double value) {
         center.set(time, value);
     }
+
+    // no-arg for gson
+    public Keyframe() {};
 
     public Keyframe(Keyframe other) {
         copyFrom(other);

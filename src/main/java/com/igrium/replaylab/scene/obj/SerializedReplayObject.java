@@ -10,6 +10,7 @@ import java.util.Map;
  * An immutable, serialized form of a replay object designed for use in undo/redo
  */
 public class SerializedReplayObject {
+
     @Getter
     private final String type;
     @Getter

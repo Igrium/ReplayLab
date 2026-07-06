@@ -7,6 +7,7 @@ import com.google.common.collect.Maps;
 import com.igrium.replaylab.editor.EditorState;
 import com.igrium.replaylab.operator.ReplayOperator;
 import com.igrium.replaylab.render.RenderSettingsObj;
+import com.igrium.replaylab.scene.key.KeyChannel;
 import com.igrium.replaylab.scene.obj.*;
 import com.igrium.replaylab.scene.objs.ScenePropsObject;
 import com.igrium.replaylab.util.NameUtils;
@@ -24,6 +25,8 @@ import java.util.*;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
+
+import static com.igrium.replaylab.scene.objs.ScenePropsObject.PROP_SPEED;
 
 /**
  * Keeps track of all the runtime stuff regarding a scene.
@@ -111,7 +114,14 @@ public class ReplayScene {
      */
     public int sceneToReplayTime(int sceneTimestamp) {
         // TODO: Update this to handle time dilation
-        return sceneTimestamp + getStartTime();
+        ScenePropsObject props = getSceneProps();
+        KeyChannel chan = props.getChannel(PROP_SPEED);
+
+        if (chan == null || chan.isEmpty()) {
+            return (int) (props.getStartTime() + sceneTimestamp * props.getSpeed());
+        } else {
+            return (int) (props.getStartTime() + chan.integrate(sceneTimestamp));
+        }
     }
 
     public float getFps() {

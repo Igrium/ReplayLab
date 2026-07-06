@@ -7,7 +7,6 @@ import com.igrium.replaylab.editor.KeySelectionSet;
 import com.igrium.replaylab.scene.ReplayScene;
 import com.igrium.replaylab.scene.key.KeyChannel;
 import json.GsonSerializationContext;
-import com.igrium.replaylab.util.MutableDouble;
 import imgui.ImColor;
 import imgui.ImGui;
 import it.unimi.dsi.fastutil.objects.Object2DoubleArrayMap;
@@ -39,6 +38,21 @@ public abstract class ReplayObject {
         }
     }
 
+    public record Property(DoubleSupplier getter, DoubleConsumer setter,
+                           double minVal, double maxVal, boolean noMods) {
+        public Property(DoubleSupplier getter, DoubleConsumer setter) {
+            this(getter, setter,  Double.MIN_VALUE, Double.MAX_VALUE, false);
+        }
+
+        public double getValue() {
+            return getter.getAsDouble();
+        }
+
+        public void setValue(double value) {
+            setter.accept(value);
+        }
+    }
+
     @Getter
     private final ReplayObjectType<?> type;
 
@@ -50,7 +64,7 @@ public abstract class ReplayObject {
      * @apiNote Does <em>not</em> automatically serialize. Make sure to implement <code>readJson</code> and <code>writeJson</code>
      */
     @Getter
-    private final Map<String, MutableDouble> properties = new HashMap<>();
+    private final Map<String, Property> properties = new HashMap<>();
 
     /**
      * All animation channels in the object. Not all properties have a channel.
@@ -122,7 +136,11 @@ public abstract class ReplayObject {
     }
 
     protected final void addProperty(String name, DoubleSupplier getter, DoubleConsumer setter) {
-        getProperties().put(name, MutableDouble.of(getter, setter));
+        getProperties().put(name, new Property(getter, setter));
+    }
+
+    protected final void addProperty(String name, Property property) {
+        getProperties().put(name, property);
     }
 
     public final boolean hasProperty(String name) {
@@ -130,14 +148,18 @@ public abstract class ReplayObject {
     }
 
     public final double getPropertyOrThrow(String propName) throws UnknownPropertyException {
-        MutableDouble prop = properties.get(propName);
+        Property prop = properties.get(propName);
         if (prop == null) throw new UnknownPropertyException(propName);
-        return prop.getDoubleValue();
+        return prop.getValue();
     }
 
     public @Nullable Double getProperty(String propName) {
-        MutableDouble prop = properties.get(propName);
-        return prop != null ? prop.getDoubleValue() : null;
+        Property prop = properties.get(propName);
+        return prop != null ? prop.getValue() : null;
+    }
+
+    public @Nullable Property getPropertyDef(String propName) {
+        return properties.get(propName);
     }
 
     public final void setPropertyOrThrow(String propName, double value) throws UnknownPropertyException {
@@ -147,9 +169,9 @@ public abstract class ReplayObject {
     }
 
     public boolean setProperty(String propName, double value) {
-        MutableDouble prop = properties.get(propName);
+        Property prop = properties.get(propName);
         if (prop != null) {
-            prop.setDoubleValue(value);
+            prop.setValue(value);
             return true;
         } else {
             return false;

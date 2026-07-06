@@ -1,7 +1,6 @@
 package com.igrium.replaylab.ui.util;
 
 import com.igrium.replaylab.config.Keybinds;
-import com.igrium.replaylab.config.ReplayLabConfig;
 import imgui.ImGui;
 import imgui.flag.ImGuiCol;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
@@ -37,17 +36,19 @@ public final class KeyWidgets {
     /**
      * The state of a keyframable widget after it has been rendered.
      * @param updated The indices of the values which have been updated this frame.
+     * @param dropped The indices of the values which were being dragged and have just been dropped (released).
      * @param newKeys The indices of the values that should have a keyframe inserted.
      */
-    public record WidgetState(int @NonNull [] updated, int @NonNull[] newKeys) {
+    public record WidgetState(int @NonNull [] updated, int @NonNull[] dropped, int @NonNull[] newKeys) {
 
         private static final int[] EMPTY = new int[0];
         private static final int[] SINGLE = new int[] {0};
 
-        public static final WidgetState DEFAULT = new WidgetState(EMPTY, EMPTY);
-        public static final WidgetState UPDATED = new WidgetState(SINGLE, EMPTY);
-        public static final WidgetState NEW_KEY = new WidgetState(EMPTY, SINGLE);
-        public static final WidgetState UPDATED_NEW_KEY = new WidgetState(SINGLE, SINGLE);
+        public static final WidgetState DEFAULT = new WidgetState(EMPTY, EMPTY, EMPTY);
+        public static final WidgetState UPDATED = new WidgetState(SINGLE, EMPTY, EMPTY);
+        public static final WidgetState DROPPED = new WidgetState(SINGLE, SINGLE, EMPTY);
+        public static final WidgetState NEW_KEY = new WidgetState(EMPTY, EMPTY, SINGLE);
+        public static final WidgetState DROPPED_NEW_KEY = new WidgetState(SINGLE, SINGLE, SINGLE);
 
         public boolean isUpdated() {
             return updated.length > 0;
@@ -61,20 +62,38 @@ public final class KeyWidgets {
             return false;
         }
 
+        public boolean isDropped() {
+            return dropped.length > 0;
+        }
+
+        public boolean isDropped(int idx) {
+            // Data set is likely very small, so complexity doesn't matter
+            for (var i : dropped) {
+                if (i == idx) return true;
+            }
+            return false;
+        }
+
         public boolean hasNewKey() {
             return newKeys.length > 0;
         }
 
         public static WidgetState of(boolean updated, boolean newKey) {
-            if (updated) {
-                return newKey ? UPDATED_NEW_KEY : UPDATED;
-            } else {
-                return newKey ? NEW_KEY : DEFAULT;
-            }
+            return of(updated, false, newKey);
         }
 
-        public static WidgetState of(int @Nullable [] updated, int @Nullable [] newKeys) {
-            return new WidgetState(updated != null ? updated : EMPTY, newKeys != null ? newKeys : EMPTY);
+        public static WidgetState of(boolean updated, boolean dropped, boolean newKey) {
+            return new WidgetState(
+                    updated ? SINGLE : EMPTY,
+                    dropped ? SINGLE : EMPTY,
+                    newKey ? SINGLE : EMPTY);
+        }
+
+        public static WidgetState of(int @Nullable [] updated, int @Nullable [] dropped, int @Nullable [] newKeys) {
+            return new WidgetState(
+                    updated != null ? updated : EMPTY,
+                    dropped != null ? dropped : EMPTY,
+                    newKeys != null ? newKeys : EMPTY);
         }
 
     }
@@ -84,10 +103,11 @@ public final class KeyWidgets {
     public static WidgetState dragFloat3(String label, float[] v, float vSpeed, KeyState state) {
         pushStyle(state);
         boolean updated = ImGui.dragFloat3(label, v, vSpeed);
+        boolean dropped = ImGui.isItemDeactivatedAfterEdit();
         boolean shortcut = shortcut();
         popStyle(state);
 
-        return WidgetState.of(updated, shortcut);
+        return WidgetState.of(updated, dropped, shortcut);
     }
 
     public static WidgetState dragFloatN(String label, double[] v, float vSpeed, KeyState... states) {
@@ -106,6 +126,7 @@ public final class KeyWidgets {
         boolean anyNewKey = false;
 
         IntList updatedValues = null;
+        IntList droppedValues = null;
 
         for (int i = 0; i < v.length; i++) {
             ImGui.pushID(i);
@@ -126,6 +147,7 @@ public final class KeyWidgets {
 
             pushStyle(state);
             boolean updated = ImGui.dragScalar("", active, vSpeed);
+            boolean dropped = ImGui.isItemDeactivatedAfterEdit();
             boolean wantNewKey = shortcut();
             boolean wantNewKeySingle = shortcutAlt();
             popStyle(state);
@@ -136,6 +158,14 @@ public final class KeyWidgets {
                     updatedValues = new IntArrayList(v.length);
 
                 updatedValues.add(i);
+            }
+
+            if (dropped) {
+                // Don't allocate unless we need it.
+                if (droppedValues == null)
+                    droppedValues = new IntArrayList(v.length);
+
+                droppedValues.add(i);
             }
 
             int ctxResult = drawContextMenu();
@@ -182,7 +212,10 @@ public final class KeyWidgets {
         }
 
 
-        return WidgetState.of(updatedValues != null ? updatedValues.toIntArray() : null, newKeyArray);
+        return WidgetState.of(
+                updatedValues != null ? updatedValues.toIntArray() : null,
+                droppedValues != null ? droppedValues.toIntArray() : null,
+                newKeyArray);
     }
 
     /// === UTILITY ===

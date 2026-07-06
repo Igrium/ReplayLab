@@ -9,6 +9,8 @@ import com.igrium.replaylab.scene.obj.EntityObject;
 import com.igrium.replaylab.scene.obj.ObjectEditState;
 import com.igrium.replaylab.scene.obj.ReplayObject;
 import com.igrium.replaylab.scene.obj.ReplayObjectType;
+import com.igrium.replaylab.ui.util.KeyWidgets.WidgetState;
+import com.igrium.replaylab.ui.util.PropertyWidgets;
 import com.igrium.replaylab.ui.util.ReplayLabControls;
 import com.igrium.replaylab.util.SimpleMutable;
 import imgui.ImGui;
@@ -29,6 +31,10 @@ public final class ScenePropsObject extends ReplayObject {
 
     private static final Logger LOGGER = LoggerFactory.getLogger("ReplayLab/ScenePropsObject");
 
+    private static final double MAX_SPEED = 200;
+
+    public static String PROP_SPEED = "speed";
+
     @Getter @Setter @NonNull
     private String cameraObject = "";
 
@@ -36,7 +42,7 @@ public final class ScenePropsObject extends ReplayObject {
     private int startTime;
 
     @Getter
-    private int length = 10000; // 10 seconds default
+    private int length = 10_000; // 10 seconds default
 
     @Getter
     private float fps = 24f;
@@ -47,8 +53,16 @@ public final class ScenePropsObject extends ReplayObject {
     @Getter
     private int resolutionY = 1080;
 
+    @Getter
+    private double speed = 1;
+
+    public void setSpeed(double speed) {
+        this.speed = Math.clamp(speed, 0, MAX_SPEED);
+    }
+
     public ScenePropsObject(ReplayObjectType<?> type, ReplayScene scene) {
         super(type, scene);
+        addProperty(PROP_SPEED, new Property(this::getSpeed, this::setSpeed, 0, MAX_SPEED, true));
     }
 
     public void setStartTime(int startTime) {
@@ -111,6 +125,9 @@ public final class ScenePropsObject extends ReplayObject {
         if (json.has("resolutionY")) {
             setResolutionY(json.getAsJsonPrimitive("resolutionY").getAsInt());
         }
+        if (json.has("speed")) {
+            setSpeed(json.getAsJsonPrimitive("speed").getAsDouble());
+        }
     }
 
     @Override
@@ -121,6 +138,7 @@ public final class ScenePropsObject extends ReplayObject {
         json.addProperty("fps", getFps());
         json.addProperty("resolutionX", getResolutionX());
         json.addProperty("resolutionY", getResolutionY());
+        json.addProperty("speed", getSpeed());
     }
 
     private final Mutable<String> cameraObjectInput = new SimpleMutable<>();
@@ -130,14 +148,11 @@ public final class ScenePropsObject extends ReplayObject {
 
     boolean editingRes = false;
     final int[] resInput = new int[2];
-    boolean editingStartTime = false;
-    boolean editingLength = false;
-    boolean editingFps = false;
 
     @Override
     public int drawPropertiesPanel(EditorState editor) {
 
-        boolean modified = false;
+        int rFlags = 0;
 
         if (!editingRes) {
             resInput[0] = getResolutionX();
@@ -153,7 +168,7 @@ public final class ScenePropsObject extends ReplayObject {
                 resInput[1] = 2;
         } else if (editingRes && !ImGui.isItemActive()) {
             setResolution(resInput[0], resInput[1]);
-            modified = true;
+            rFlags = ObjectEditState.CREATE_UNDO_STEP;
             editingRes = false;
         }
 
@@ -161,17 +176,14 @@ public final class ScenePropsObject extends ReplayObject {
         if (ImGui.inputFloat("FPS", fpsInput)) {
             setFps(fpsInput.get());
         }
-        modified |= ImGui.isItemDeactivatedAfterEdit();
-//
-//        if (editingFps && !ImGui.isItemActive()) {
-//            editingFps = false;
-//            modified = true;
-//        }
+        if (ImGui.isItemDeactivatedAfterEdit()) {
+            rFlags |= ObjectEditState.CREATE_UNDO_STEP;
+        }
 
         cameraObjectInput.setValue(cameraObject);
         if (ReplayLabControls.objectSelector("Camera Object", cameraObjectInput,
                 obj -> obj instanceof EntityObject<?>, getScene().getObjects())) {
-            modified = true;
+            rFlags |= ObjectEditState.COMMIT;
             setCameraObject(cameraObjectInput.getValue());
         }
 
@@ -179,16 +191,24 @@ public final class ScenePropsObject extends ReplayObject {
         if (ReplayLabControls.inputTimestamp("Start Time", startTimeInput)) {
             startTime = Math.max(0, startTimeInput.get());
         }
-        modified |= ImGui.isItemDeactivatedAfterEdit();
-
+        if (ImGui.isItemDeactivatedAfterEdit()) {
+            rFlags |= ObjectEditState.COMMIT | ObjectEditState.RESAMPLE;
+        }
 
         lengthInput.set(length);
         if (ReplayLabControls.inputTimestamp("Length", lengthInput)) {
             length = Math.max(0, lengthInput.get());
         }
-        modified |= ImGui.isItemDeactivatedAfterEdit();
+        if (ImGui.isItemDeactivatedAfterEdit()) {
+            rFlags |= ObjectEditState.CREATE_UNDO_STEP;
+        }
 
-        return modified ? ObjectEditState.COMMIT | ObjectEditState.RESAMPLE : ObjectEditState.NONE;
+        WidgetState sState = PropertyWidgets.dragFloatN(this, "Speed", .125f, editor.getPlayhead(), PROP_SPEED);
+        if (sState.isDropped() || sState.hasNewKey()) {
+            rFlags |= ObjectEditState.COMMIT;
+        }
+
+        return rFlags;
     }
 
     @Override
