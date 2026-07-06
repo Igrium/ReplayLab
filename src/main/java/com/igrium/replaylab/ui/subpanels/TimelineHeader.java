@@ -3,6 +3,7 @@ package com.igrium.replaylab.ui.subpanels;
 import com.igrium.craftui.CraftUIFonts;
 import com.igrium.replaylab.config.ReplayLabConfig;
 import com.igrium.replaylab.editor.EditorState;
+import com.igrium.replaylab.operator.SetSceneLengthOperator;
 import com.igrium.replaylab.operator.SetSceneStartOperator;
 import com.igrium.replaylab.ui.util.ReplayLabControls;
 import com.igrium.replaylab.ui.util.TimelineFlags;
@@ -130,9 +131,17 @@ public class TimelineHeader {
                 ImGui.setClipboardText(contextTimeStr);
             }
 
+            ImGui.beginDisabled(contextTime >= length);
             if (ImGui.menuItem(t("gui.replaylab.set_scene_start"))) {
                 editorState.applyOperator(new SetSceneStartOperator(editorState.getScene().sceneToReplayTime(contextTime), true));
             }
+            ImGui.endDisabled();
+
+            ImGui.beginDisabled(contextTime < 0);
+            if (ImGui.menuItem(t("gui.replaylab.set_scene_end"))) {
+                editorState.applyOperator(new SetSceneLengthOperator(contextTime));
+            }
+            ImGui.endDisabled();
 
             ImGui.endPopup();
         } else {

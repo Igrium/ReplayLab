@@ -9,6 +9,7 @@ public class SetSceneStartOperator implements ReplayOperator {
     private final boolean shiftKeys;
 
     private int prevStart;
+    private int prevLength;
 
     /**
      * Create a new instance
@@ -26,6 +27,7 @@ public class SetSceneStartOperator implements ReplayOperator {
     public boolean execute(EditorState editor) {
         ScenePropsObject sceneProps = editor.getScene().getSceneProps();
         prevStart = sceneProps.getStartTime();
+        prevLength = sceneProps.getLength(); // Avoid undo contamination if setLength clamps
 
         if (newStart == prevStart) return false;
         sceneProps.setStartTime(newStart);
@@ -40,6 +42,7 @@ public class SetSceneStartOperator implements ReplayOperator {
                 }
             }
             editor.setPlayhead(editor.getPlayhead() - delta);
+            sceneProps.setLength(sceneProps.getLength() - delta);
         }
 
         return true;
@@ -47,7 +50,8 @@ public class SetSceneStartOperator implements ReplayOperator {
 
     @Override
     public void undo(EditorState editor) {
-        editor.getScene().getSceneProps().setStartTime(prevStart);
+        ScenePropsObject sceneProps = editor.getScene().getSceneProps();
+        sceneProps.setStartTime(prevStart);
 
         if (shiftKeys) {
             int delta = newStart - prevStart;
@@ -59,12 +63,14 @@ public class SetSceneStartOperator implements ReplayOperator {
                 }
             }
             editor.setPlayhead(editor.getPlayhead() + delta);
+            sceneProps.setLength(prevLength);
         }
     }
 
     @Override
     public void redo(EditorState editor) {
-        editor.getScene().getSceneProps().setStartTime(newStart);
+        ScenePropsObject sceneProps = editor.getScene().getSceneProps();
+        sceneProps.setStartTime(newStart);
 
         if (shiftKeys) {
             int delta = newStart - prevStart;
@@ -76,6 +82,7 @@ public class SetSceneStartOperator implements ReplayOperator {
                 }
             }
             editor.setPlayhead(editor.getPlayhead() - delta);
+            sceneProps.setLength(sceneProps.getLength() - delta);
         }
     }
 }

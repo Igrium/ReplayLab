@@ -51,6 +51,7 @@
 
   "gui.replaylab.copy_ts": "Copy Timestamp",
   "gui.replaylab.set_scene_start": "Set scene start here",
+  "gui.replaylab.set_scene_end": "Set scene end here",
 
   "gui.replaylab.pos": "Position",
   "gui.replaylab.rot": "Rotation",
