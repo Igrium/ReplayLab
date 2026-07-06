@@ -73,8 +73,8 @@ public abstract class AbstractScenePlayer extends EventRegistrations {
         if (future != null && !future.isDone()) {
             future.cancel(false);
             restoreState();
+            unregister();
         }
-        unregister();
     }
 
     private void restoreState() {
