@@ -46,7 +46,7 @@ public class ViewportFooter {
         ImGui.beginGroup();
         ImGui.alignTextToFramePadding();
 
-        timestampView("##replayTime", editorState.getSceneTime(), tt("gui.replaylab.scene_time"));
+        timestampView("##replayTime", editorState.getSceneTime(), tt("gui.replaylab.replay_time"));
         ImGui.sameLine();
 
         if (playbackIcon(ReplayLabIcons.ICON_TO_START_ALT +
@@ -135,11 +135,13 @@ public class ViewportFooter {
     }
 
     private void timestampView(String id, int timestamp, String tooltip) {
-        ImGui.pushFont(CraftUIFonts.getFont(ReplayLabControls.ROBOTO_MONO));
         ImGui.beginGroup();
 
+        ImGui.pushFont(CraftUIFonts.getFont(ReplayLabControls.ROBOTO_MONO));
         String str = Timestamps.toTimestamp(timestamp, 3, ReplayLabConfig.getInstance().getTimestampMode());
         ImGui.text(str);
+        ImGui.popFont();
+
 
         float rectMinX = ImGui.getItemRectMinX();
         float rectMinY = ImGui.getItemRectMinY();
@@ -165,11 +167,10 @@ public class ViewportFooter {
         }
         if (Util.getMeasuringTimeMs() - clipboardCopyTime < 1000) {
             ImGui.setTooltip(tt("gui.replaylab.clipboarded"));
-        } else if (hovered) {
-            ImGui.setTooltip(tooltip);
+        } else {
+            ImGui.setItemTooltip(tooltip);
         }
 
-        ImGui.popFont();
     }
 
     private boolean playbackIcon(String icon, String tooltip, float buttonSize) {

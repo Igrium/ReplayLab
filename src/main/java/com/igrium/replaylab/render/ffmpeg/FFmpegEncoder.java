@@ -53,7 +53,7 @@ public class FFmpegEncoder extends EncoderConfig {
         CBR, VBR, CRF;
 
         public String langKey() {
-            return "gui.ratecontrol." + name().toLowerCase();
+            return "ratecontrol." + name().toLowerCase();
         }
     }
 
@@ -72,7 +72,7 @@ public class FFmpegEncoder extends EncoderConfig {
         }
 
         public String langKey() {
-            return "gui.bitrate." + name().toLowerCase();
+            return "bitrate." + name().toLowerCase();
         }
     }
 
@@ -103,7 +103,7 @@ public class FFmpegEncoder extends EncoderConfig {
         }
 
         public String langKey() {
-            return "gui.encpreset." + name().toLowerCase();
+            return "encpreset." + name().toLowerCase();
         }
     }
 
@@ -216,7 +216,7 @@ public class FFmpegEncoder extends EncoderConfig {
 
     @Override
     public void drawProperties(EditorState editor) {
-        if (ImGui.beginCombo(t("gui.ffmpeg.container"), containerLabel(container))) {
+        if (ImGui.beginCombo(t("gui.replaylab.ffmpeg.container"), containerLabel(container))) {
             for (var c : CONTAINERS.keySet()) {
                 boolean selected = c.equals(this.container);
                 if (drawComboItem(containerLabel(c), selected)) {
@@ -226,7 +226,7 @@ public class FFmpegEncoder extends EncoderConfig {
             ImGui.endCombo();
         }
 
-        if (ImGui.beginCombo(t("gui.ffmpeg.codec"), t("codec." + codec))) {
+        if (ImGui.beginCombo(t("gui.replaylab.ffmpeg.codec"), t("codec." + codec))) {
             for (var c : CODECS.keySet()) {
                 ImGui.beginDisabled(!isCodecAllowed(c));
 
@@ -244,7 +244,7 @@ public class FFmpegEncoder extends EncoderConfig {
         var selCodec = CODECS.get(this.codec);
         ImGui.beginDisabled(!selCodec.supportsBitrate);
 
-        if (ImGui.beginCombo(t("gui.ffmpeg.rate_control"), t(rcMode.langKey()))) {
+        if (ImGui.beginCombo(t("gui.replaylab.ffmpeg.rate_control"), t(rcMode.langKey()))) {
             for (var c : RateControlMode.values()) {
                 boolean selected = c.equals(this.rcMode);
                 if (ImGui.selectable(t(c.langKey()), selected)) {
@@ -259,20 +259,20 @@ public class FFmpegEncoder extends EncoderConfig {
 
         if (this.rcMode == RateControlMode.CRF) {
             int[] crfIn = {crfValue};
-            if (ImGui.dragScalar(t("gui.ffmpeg.crf"), crfIn, .25f, 0, 63)) {
+            if (ImGui.dragScalar(t("gui.replaylab.ffmpeg.crf"), crfIn, .25f, 0, 63)) {
                 setCrfValue(crfIn[0]);
             }
-            ImGui.setItemTooltip(tt("gui.ffmpeg.crf.tooltip"));
+            ImGui.setItemTooltip(tt("gui.replaylab.ffmpeg.crf.tooltip"));
 
         } else {
-            String label = bitratePreset != null ? bitratePreset.langKey() : "gui.bitrate.custom";
-            if (ImGui.beginCombo(t("gui.ffmpeg.quality"), tt(label))) {
+            String label = bitratePreset != null ? bitratePreset.langKey() : "bitrate.custom";
+            if (ImGui.beginCombo(t("gui.replaylab.ffmpeg.quality"), tt(label))) {
                 for (var preset : BitratePreset.values()) {
                     if (drawComboItem(t(preset.langKey()), preset == this.bitratePreset)) {
                         setBitratePreset(preset);
                     }
                 }
-                if (drawComboItem(t("gui.bitrate.custom"), this.bitratePreset == null)) {
+                if (drawComboItem(t("bitrate.custom"), this.bitratePreset == null)) {
                     setBitratePreset(null);
                 }
 
@@ -281,7 +281,7 @@ public class FFmpegEncoder extends EncoderConfig {
 
             if (bitratePreset == null) {
                 ImInt brInput = new ImInt(bitrate);
-                if (ImGui.inputInt(t("gui.ffmpeg.bitrate_val"), brInput, 1000, 5000)) {
+                if (ImGui.inputInt(t("gui.replaylab.ffmpeg.bitrate_val"), brInput, 1000, 5000)) {
                     setBitrate(brInput.get());
                 }
             }
@@ -290,7 +290,7 @@ public class FFmpegEncoder extends EncoderConfig {
         ImGui.endDisabled();
         ImGui.separator();
 
-        if (ImGui.beginCombo(t("gui.ffmpeg.preset"), t(encPreset.langKey()))) {
+        if (ImGui.beginCombo(t("gui.replaylab.ffmpeg.preset"), t(encPreset.langKey()))) {
             for (var preset : EncodingPreset.values()) {
                 if (drawComboItem(t(preset.langKey()), preset == this.encPreset)) {
                     setEncPreset(preset);
@@ -299,7 +299,7 @@ public class FFmpegEncoder extends EncoderConfig {
             ImGui.endCombo();
         }
 
-        ImGui.setItemTooltip(tt("gui.ffmpeg.preset.tooltip"));
+        ImGui.setItemTooltip(tt("gui.replaylab.ffmpeg.preset.tooltip"));
     }
 
     private static boolean drawComboItem(String label, boolean selected) {

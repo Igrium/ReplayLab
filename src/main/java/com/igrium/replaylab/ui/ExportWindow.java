@@ -67,7 +67,7 @@ public class ExportWindow {
             }
 
             if (ImGui.beginPopupModal(confirmKey, ImGuiWindowFlags.AlwaysAutoResize | ImGuiWindowFlags.NoSavedSettings)) {
-                ImGui.text(tt("gui.replayLab.file_exists").formatted(renderSettings.getOutPath().getFileName().toString()));
+                ImGui.text(tt("gui.replaylab.file_exists").formatted(renderSettings.getOutPath().getFileName().toString()));
                 if (ImGui.button(t("gui.ok"))) {
                     ImGui.closeCurrentPopup();
                     wantsClose = true;
