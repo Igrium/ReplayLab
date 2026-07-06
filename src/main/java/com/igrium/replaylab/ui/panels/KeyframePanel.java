@@ -7,10 +7,14 @@ import com.igrium.replaylab.editor.KeySelectionSet.KeyframeReference;
 import com.igrium.replaylab.operator.keyframe.RemoveKeyframesOperator;
 import com.igrium.replaylab.operator.keyframe.SetHandleTypeOperator;
 import com.igrium.replaylab.operator.keyframe.SetInterpModeOperator;
+import com.igrium.replaylab.operator.keyframe.SetKeyPosOperator;
 import com.igrium.replaylab.scene.key.InterpolationMode;
 import com.igrium.replaylab.scene.key.Keyframe;
 import com.igrium.replaylab.scene.key.Keyframe.HandleType;
+import com.igrium.replaylab.ui.util.ReplayLabControls;
 import imgui.ImGui;
+import imgui.type.ImDouble;
+import imgui.type.ImInt;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.Language;
 
@@ -54,6 +58,9 @@ public abstract class KeyframePanel extends UIPanel {
         testAddKeyShortcut(editorState);
     }
 
+    private static final ImInt tsIn = new ImInt();
+    private static final ImDouble doubleIn = new ImDouble();
+
     protected static void keyContextMenu(EditorState editor, Collection<KeyHandleReference> selHandles) {
         if (ImGui.beginMenu(t("gui.replaylab.handle_type"))) {
 
@@ -92,12 +99,12 @@ public abstract class KeyframePanel extends UIPanel {
             ImGui.endMenu();
         }
 
-        if (ImGui.beginMenu(t("gui.replaylab.interp_mode"))) {
-            List<KeyframeReference> selKeys = selHandles.stream()
-                    .map(KeyHandleReference::keyRef)
-                    .distinct()
-                    .toList();
+        List<KeyframeReference> selKeys = selHandles.stream()
+                .map(KeyHandleReference::keyRef)
+                .distinct()
+                .toList();
 
+        if (ImGui.beginMenu(t("gui.replaylab.interp_mode"))) {
 
             // If every keyframe has the same interpolation mode, find it.
             InterpolationMode interpMode = null;
@@ -124,7 +131,27 @@ public abstract class KeyframePanel extends UIPanel {
                 editor.applyOperator(new SetInterpModeOperator(newInterpMode, selKeys));
             }
 
+
             ImGui.endMenu();
+        }
+
+        if (selKeys.size() == 1) {
+            KeyframeReference keyRef = selKeys.getFirst();
+            Keyframe key = keyRef.get(editor.getScene().getObjects());
+            if (key != null) {
+                tsIn.set(key.getTimeInt());
+                doubleIn.set(key.getValue());
+
+                ReplayLabControls.inputTimestamp("Time", tsIn);
+                if (ImGui.isItemDeactivatedAfterEdit()) {
+                    editor.applyOperator(new SetKeyPosOperator(keyRef, tsIn.get(), key.getValue()));
+                }
+
+                ImGui.inputDouble("Value", doubleIn);
+                if (ImGui.isItemDeactivatedAfterEdit()) {
+                    editor.applyOperator(new SetKeyPosOperator(keyRef, key.getTime(), doubleIn.get()));
+                }
+            }
         }
     }
 
