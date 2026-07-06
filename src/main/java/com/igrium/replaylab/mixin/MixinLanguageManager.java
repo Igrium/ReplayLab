@@ -1,6 +1,6 @@
 package com.igrium.replaylab.mixin;
 
-import com.igrium.replaylab.game.LanguageReloadEvent;
+import com.igrium.replaylab.LanguageReloadEvent;
 import com.llamalad7.mixinextras.sugar.Local;
 import net.minecraft.client.resource.language.LanguageManager;
 import net.minecraft.client.resource.language.TranslationStorage;

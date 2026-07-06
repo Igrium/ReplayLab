@@ -1,11 +1,10 @@
 package com.igrium.replaylab.ui.panels;
 
 import com.igrium.replaylab.config.Keybinds;
-import com.igrium.replaylab.config.ReplayLabConfig;
 import com.igrium.replaylab.editor.EditorState;
-import com.igrium.replaylab.operator.InsertKeyframeOperator;
+import com.igrium.replaylab.operator.keyframe.InsertKeyframeOperator;
 import com.igrium.replaylab.operator.ReplayOperator;
-import com.igrium.replaylab.operator.SetSceneCameraOperator;
+import com.igrium.replaylab.operator.scene.SetSceneCameraOperator;
 import com.igrium.replaylab.scene.obj.ReplayObject;
 import imgui.ImGui;
 import imgui.type.ImBoolean;

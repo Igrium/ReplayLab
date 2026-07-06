@@ -1,9 +1,10 @@
-package com.igrium.replaylab.operator;
+package com.igrium.replaylab.operator.keyframe;
 
 import com.igrium.replaylab.editor.EditorState;
 import com.igrium.replaylab.editor.KeySelectionSet;
 import com.igrium.replaylab.editor.KeySelectionSet.ChannelReference;
 import com.igrium.replaylab.editor.KeySelectionSet.KeyHandleReference;
+import com.igrium.replaylab.operator.object.MultiObjectOperator;
 import com.igrium.replaylab.scene.key.ChannelUtils;
 import com.igrium.replaylab.scene.key.KeyChannel;
 import com.igrium.replaylab.scene.key.Keyframe;

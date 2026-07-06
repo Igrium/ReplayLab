@@ -6,6 +6,10 @@ import com.igrium.replaylab.ReplayLab;
 import com.igrium.replaylab.config.Keybinds;
 import com.igrium.replaylab.editor.EditorState;
 import com.igrium.replaylab.operator.*;
+import com.igrium.replaylab.operator.keyframe.InsertKeyframeOperator;
+import com.igrium.replaylab.operator.object.RemoveObjectOperator;
+import com.igrium.replaylab.operator.object.RemoveObjectsOperator;
+import com.igrium.replaylab.operator.scene.SetSceneCameraOperator;
 import com.igrium.replaylab.scene.obj.EntityProvider;
 import com.igrium.replaylab.scene.obj.ReplayObject;
 import com.igrium.replaylab.scene.obj.ReplayObject3D;
@@ -35,7 +39,7 @@ import org.slf4j.Logger;
 import java.io.IOException;
 import java.util.List;
 
-import static com.igrium.replaylab.util.ShortcutUtils.getChordLabel;
+import static com.igrium.replaylab.config.ShortcutUtils.getChordLabel;
 
 /**
  * The main CraftApp for the replay lab editor.

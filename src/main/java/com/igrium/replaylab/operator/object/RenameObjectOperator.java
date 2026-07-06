@@ -1,6 +1,7 @@
-package com.igrium.replaylab.operator;
+package com.igrium.replaylab.operator.object;
 
 import com.igrium.replaylab.editor.EditorState;
+import com.igrium.replaylab.operator.ReplayOperator;
 
 public class RenameObjectOperator implements ReplayOperator {
     private final String oldName;

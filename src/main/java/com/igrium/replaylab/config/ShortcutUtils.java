@@ -1,17 +1,15 @@
-package com.igrium.replaylab.util;
+package com.igrium.replaylab.config;
 
 import static imgui.flag.ImGuiKey.*;
 
 import com.google.common.collect.ImmutableMap;
-import com.igrium.replaylab.game.LanguageReloadEvent;
+import com.igrium.replaylab.LanguageReloadEvent;
 import imgui.ImGui;
 import imgui.flag.ImGuiKey;
 import it.unimi.dsi.fastutil.ints.*;
 import lombok.experimental.UtilityClass;
 import net.minecraft.util.Language;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
 import java.util.function.IntConsumer;
 

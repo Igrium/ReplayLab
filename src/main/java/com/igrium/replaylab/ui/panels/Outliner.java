@@ -2,9 +2,9 @@ package com.igrium.replaylab.ui.panels;
 
 import com.igrium.replaylab.config.Keybinds;
 import com.igrium.replaylab.editor.EditorState;
-import com.igrium.replaylab.operator.AddObjectOperator;
-import com.igrium.replaylab.operator.RemoveObjectsOperator;
-import com.igrium.replaylab.operator.RenameObjectOperator;
+import com.igrium.replaylab.operator.object.AddObjectOperator;
+import com.igrium.replaylab.operator.object.RemoveObjectsOperator;
+import com.igrium.replaylab.operator.object.RenameObjectOperator;
 import com.igrium.replaylab.scene.obj.ReplayObject;
 import com.igrium.replaylab.scene.obj.ReplayObjects;
 import com.igrium.replaylab.ui.subpanels.ObjectContextMenu;

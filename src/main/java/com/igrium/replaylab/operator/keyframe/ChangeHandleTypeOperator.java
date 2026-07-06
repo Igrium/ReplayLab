@@ -1,7 +1,8 @@
-package com.igrium.replaylab.operator;
+package com.igrium.replaylab.operator.keyframe;
 
 import com.igrium.replaylab.editor.EditorState;
 import com.igrium.replaylab.editor.KeySelectionSet.KeyHandleReference;
+import com.igrium.replaylab.operator.ReplayOperator;
 import com.igrium.replaylab.scene.key.Keyframe;
 import com.igrium.replaylab.scene.key.Keyframe.HandleType;
 

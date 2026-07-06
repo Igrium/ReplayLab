@@ -2,13 +2,12 @@ package com.igrium.replaylab.ui.gizmos;
 
 import com.igrium.craftui.app.CraftApp;
 import com.igrium.replaylab.editor.EditorState;
-import com.igrium.replaylab.operator.CommitObjectUpdateOperator;
+import com.igrium.replaylab.operator.object.CommitObjectUpdateOperator;
 import com.igrium.replaylab.scene.obj.ObjectEditState;
 import com.igrium.replaylab.scene.obj.ReplayObject;
 import imgui.ImGui;
 import imgui.ImGuiViewport;
 import imgui.extension.imguizmo.ImGuizmo;
-import imgui.flag.ImGuiConfigFlags;
 import lombok.Getter;
 import lombok.experimental.Accessors;
 import lombok.experimental.UtilityClass;

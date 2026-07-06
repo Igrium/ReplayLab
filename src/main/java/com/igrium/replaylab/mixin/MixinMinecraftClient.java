@@ -1,6 +1,6 @@
 package com.igrium.replaylab.mixin;
 
-import com.igrium.replaylab.util.RenderUtils;
+import com.igrium.replaylab.render.RenderUtils;
 import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import net.minecraft.client.MinecraftClient;

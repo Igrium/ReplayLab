@@ -6,7 +6,7 @@ import com.igrium.replaylab.editor.EditorState;
 import com.igrium.replaylab.editor.KeySelectionSet;
 import com.igrium.replaylab.scene.ReplayScene;
 import com.igrium.replaylab.scene.key.KeyChannel;
-import com.igrium.replaylab.util.GsonSerializationContext;
+import json.GsonSerializationContext;
 import com.igrium.replaylab.util.MutableDouble;
 import imgui.ImColor;
 import imgui.ImGui;

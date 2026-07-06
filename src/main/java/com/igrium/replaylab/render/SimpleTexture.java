@@ -1,6 +1,5 @@
 package com.igrium.replaylab.render;
 
-import com.igrium.replaylab.util.RenderUtils;
 import com.mojang.blaze3d.platform.GlConst;
 import com.mojang.blaze3d.platform.GlStateManager;
 import lombok.Getter;

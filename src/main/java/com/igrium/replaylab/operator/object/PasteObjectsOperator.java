@@ -1,9 +1,10 @@
-package com.igrium.replaylab.operator;
+package com.igrium.replaylab.operator.object;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonParseException;
 import com.google.gson.reflect.TypeToken;
 import com.igrium.replaylab.editor.EditorState;
+import com.igrium.replaylab.operator.ReplayOperator;
 import com.igrium.replaylab.scene.ReplayScene;
 import com.igrium.replaylab.scene.obj.ReplayObject;
 import com.igrium.replaylab.scene.obj.ReplayObjects;

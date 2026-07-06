@@ -1,4 +1,4 @@
-package com.igrium.replaylab.util;
+package com.igrium.replaylab.render;
 
 import com.mojang.blaze3d.systems.RenderSystem;
 import lombok.experimental.UtilityClass;

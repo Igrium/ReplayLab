@@ -1,7 +1,8 @@
-package com.igrium.replaylab.operator;
+package com.igrium.replaylab.operator.scene;
 
 import com.igrium.replaylab.editor.EditorState;
 import com.igrium.replaylab.math.DynamicRotation;
+import com.igrium.replaylab.operator.ReplayOperator;
 import com.igrium.replaylab.scene.obj.ReplayObject;
 import com.igrium.replaylab.scene.obj.ReplayObject3D;
 import net.minecraft.client.MinecraftClient;

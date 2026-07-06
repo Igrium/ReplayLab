@@ -2,7 +2,7 @@ package com.igrium.replaylab.ui.settings;
 
 import com.igrium.replaylab.config.Keybinds;
 import com.igrium.replaylab.config.ReplayLabConfig;
-import com.igrium.replaylab.util.ShortcutUtils;
+import com.igrium.replaylab.config.ShortcutUtils;
 import imgui.ImGui;
 import imgui.flag.ImGuiKey;
 import imgui.flag.ImGuiTableColumnFlags;

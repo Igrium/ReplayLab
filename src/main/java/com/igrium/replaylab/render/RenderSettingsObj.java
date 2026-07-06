@@ -14,7 +14,6 @@ import com.igrium.replaylab.render.encoder.EncoderTypes;
 import com.igrium.replaylab.scene.ReplayScene;
 import com.igrium.replaylab.scene.obj.ReplayObject;
 import com.igrium.replaylab.scene.obj.ReplayObjectType;
-import com.igrium.replaylab.util.RenderUtils;
 import imgui.ImGui;
 import imgui.type.ImString;
 import lombok.Getter;

@@ -1,6 +1,7 @@
-package com.igrium.replaylab.operator;
+package com.igrium.replaylab.operator.scene;
 
 import com.igrium.replaylab.editor.EditorState;
+import com.igrium.replaylab.operator.ReplayOperator;
 import com.igrium.replaylab.scene.obj.EntityProvider;
 import com.igrium.replaylab.scene.obj.ReplayObject;
 

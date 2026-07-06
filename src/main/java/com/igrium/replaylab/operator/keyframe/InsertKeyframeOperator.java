@@ -1,8 +1,9 @@
-package com.igrium.replaylab.operator;
+package com.igrium.replaylab.operator.keyframe;
 
 import com.igrium.replaylab.ReplayLab;
 import com.igrium.replaylab.editor.EditorState;
 import com.igrium.replaylab.editor.KeySelectionSet;
+import com.igrium.replaylab.operator.object.MultiObjectOperator;
 import com.igrium.replaylab.scene.obj.ReplayObject;
 import org.slf4j.Logger;
 

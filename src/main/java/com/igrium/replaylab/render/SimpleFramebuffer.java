@@ -1,6 +1,5 @@
 package com.igrium.replaylab.render;
 
-import com.igrium.replaylab.util.RenderUtils;
 import com.mojang.blaze3d.platform.GlConst;
 import com.mojang.blaze3d.platform.GlStateManager;
 import com.mojang.blaze3d.systems.RenderSystem;
@@ -8,7 +7,6 @@ import lombok.Getter;
 import net.minecraft.client.texture.AbstractTexture;
 
 import java.io.Closeable;
-import java.io.IOException;
 
 /**
  * A simplified framebuffer which wraps a texture into its color attachment
