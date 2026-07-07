@@ -4,6 +4,7 @@ import com.google.gson.JsonObject;
 import com.igrium.replaylab.anim.KeyChannel;
 import lombok.Getter;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -13,14 +14,21 @@ public class SerializedReplayObject {
 
     @Getter
     private final String type;
+
     @Getter
     private final Map<String, KeyChannel> channels;
+
+    @Getter
+    private final Map<String, List<JsonObject>> modifiers;
+
     @Getter
     private final JsonObject attributes;
 
-    public SerializedReplayObject(String type, Map<String, KeyChannel> channels, JsonObject attributes) {
+
+    public SerializedReplayObject(String type, Map<String, KeyChannel> channels, Map<String, List<JsonObject>> modifiers, JsonObject attributes) {
         this.type = type;
         this.channels = channels;
+        this.modifiers = modifiers;
         this.attributes = attributes;
     }
 }

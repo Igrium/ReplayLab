@@ -49,6 +49,12 @@
   "gui.replaylab.tooltip_normalize": "Normalize Curves",
   "gui.replaylab.selected_only": "Only show selected objects",
 
+  "gui.replaymod.restrict_range": "Restrict Range",
+  "gui.replaylab.mod_start": "Start Time",
+  "gui.replaylab.mod_end": "End Time",
+  "gui.replaylab.mod_in": "Blend In",
+  "gui.replaylab.mod_out": "Blend Out",
+
   "gui.replaylab.copy_ts": "Copy Timestamp",
   "gui.replaylab.set_scene_start": "Set scene start here",
   "gui.replaylab.set_scene_end": "Set scene end here",
@@ -85,7 +91,6 @@
   "gui.replaylab.export.rendering": "Rendering frame %d / %d",
   "gui.replaylab.export.finishing": "Finalizing Export",
   "gui.replaylab.export.done": "Finished",
-
 
   "gui.replaylab.encoder": "Encoder",
 

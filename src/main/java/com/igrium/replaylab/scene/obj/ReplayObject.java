@@ -2,6 +2,7 @@ package com.igrium.replaylab.scene.obj;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.gson.*;
+import com.igrium.replaylab.anim.modifier.CurveModifier;
 import com.igrium.replaylab.editor.EditorState;
 import com.igrium.replaylab.editor.KeySelectionSet;
 import com.igrium.replaylab.scene.ReplayScene;
@@ -19,6 +20,7 @@ import org.joml.Vector3dc;
 import java.util.*;
 import java.util.function.DoubleConsumer;
 import java.util.function.DoubleSupplier;
+import java.util.function.Function;
 
 /**
  * An object that can be animated within a replay
@@ -41,7 +43,7 @@ public abstract class ReplayObject {
     public record Property(DoubleSupplier getter, DoubleConsumer setter,
                            double minVal, double maxVal, boolean noMods) {
         public Property(DoubleSupplier getter, DoubleConsumer setter) {
-            this(getter, setter,  Double.MIN_VALUE, Double.MAX_VALUE, false);
+            this(getter, setter, Double.MIN_VALUE, Double.MAX_VALUE, false);
         }
 
         public double getValue() {
@@ -61,7 +63,9 @@ public abstract class ReplayObject {
 
     /**
      * All properties exposed to animation.
-     * @apiNote Does <em>not</em> automatically serialize. Make sure to implement <code>readJson</code> and <code>writeJson</code>
+     *
+     * @apiNote Does <em>not</em> automatically serialize. Make sure to implement <code>readJson</code> and
+     * <code>writeJson</code>
      */
     @Getter
     private final Map<String, Property> properties = new HashMap<>();
@@ -71,6 +75,9 @@ public abstract class ReplayObject {
      */
     @Getter
     private final Map<String, KeyChannel> channels = new HashMap<>();
+
+    @Getter
+    private final Map<String, List<CurveModifier>> modifiers = new HashMap<>();
 
     /**
      * The value of each property last time it was sampled.
@@ -86,18 +93,21 @@ public abstract class ReplayObject {
     /**
      * Called when the object is added to the scene
      */
-    public void onAdded() {}
+    public void onAdded() {
+    }
 
     /**
      * Called when the object is removed from the scene
      */
-    public void onRemoved() {}
+    public void onRemoved() {
+    }
 
     /**
      * Called when the object is added to the scene for the first time.
      * Does not include undo, redo, or deserialization
      */
-    public void onCreated() {}
+    public void onCreated() {
+    }
 
     public final boolean isSceneCamera() {
         String id = getId();
@@ -106,13 +116,16 @@ public abstract class ReplayObject {
 
     /**
      * Remap any property that references an object.
+     *
      * @param oldName Old name of the object.
      * @param newName New name of the object.
      */
-    public void remapReferences(String oldName, String newName) {}
+    public void remapReferences(String oldName, String newName) {
+    }
 
     /**
      * Called when the user has pressed the "insert keyframe" keybind with this object selected.
+     *
      * @param timestamp The current playback timestamp.
      * @return If the keyframe was created and an undo step should be created.
      */
@@ -120,7 +133,6 @@ public abstract class ReplayObject {
     public boolean insertKey(int timestamp) {
         return false;
     }
-
 
 
     public final @Nullable KeyChannel getChannel(String name) {
@@ -186,6 +198,7 @@ public abstract class ReplayObject {
      * @param context Current json context.
      */
     protected abstract void writeJson(JsonObject json, JsonSerializationContext context);
+
     /**
      * Overwrite this object's attributes from values in a json object.
      *
@@ -196,12 +209,14 @@ public abstract class ReplayObject {
 
     /**
      * Apply all current properties to the game.
+     *
      * @param timestamp Timestamp to apply. Rarely used as properties will already have been updated.
      */
     public abstract void apply(int timestamp);
 
     /**
      * Sample all keyframed properties in this object, writing them into the object's internal memory.
+     *
      * @param timestamp Timestamp to sample.
      * @apiNote Does NOT apply properties to the game! Use {@link #sampleAndApply}.
      */
@@ -217,6 +232,7 @@ public abstract class ReplayObject {
 
     /**
      * Sample all channels and apply properties to the game.
+     *
      * @param timestamp Timestamp to sample.
      */
     public final void sampleAndApply(int timestamp) {
@@ -231,17 +247,19 @@ public abstract class ReplayObject {
      * @param cameraPos        World-space position of the camera.
      * @param viewMatrix       View matrix (rotation, etc.) of the camera. Does not include position.
      * @param projectionMatrix Projection matrix of the camera.
-     * @param hideUI           Don't draw any visual gizmos (some objects may still need to update things while UI disabled)
+     * @param hideUI           Don't draw any visual gizmos (some objects may still need to update things while UI
+     *                         disabled)
      * @return {@link ObjectEditState}
      */
     public int drawGizmos(EditorState editor, Vector3dc cameraPos,
-                                           Matrix4fc viewMatrix, Matrix4fc projectionMatrix, boolean hideUI) {
+                          Matrix4fc viewMatrix, Matrix4fc projectionMatrix, boolean hideUI) {
         // Default no-op
         return ObjectEditState.NONE;
     }
 
     /**
      * Called during the ImGui render process to draw the object's configurable properties.
+     *
      * @return {@link ObjectEditState}
      */
     public int drawPropertiesPanel(EditorState editor) {
@@ -253,6 +271,7 @@ public abstract class ReplayObject {
 
     /**
      * Serialize this replay object for use in the undo stack (or disk).
+     *
      * @return Serialized replay object.
      */
     public SerializedReplayObject save() {
@@ -264,11 +283,14 @@ public abstract class ReplayObject {
             channels.put(entry.getKey(), entry.getValue().copy());
         }
 
-        return new SerializedReplayObject(type.getId(), ImmutableMap.copyOf(channels), attributes);
+        var mods = transformMapValues(modifiers, m -> m.toJson(gsonContext));
+
+        return new SerializedReplayObject(type.getId(), ImmutableMap.copyOf(channels), mods, attributes);
     }
 
     /**
      * Clear and parse a serialized replay object, applying its attributes to this.
+     *
      * @param serialized Serialized replay object from the undo stack (or disk).
      */
     public void parse(SerializedReplayObject serialized) {
@@ -278,10 +300,34 @@ public abstract class ReplayObject {
         for (var entry : serialized.getChannels().entrySet()) {
             channels.put(entry.getKey(), entry.getValue().copy());
         }
+
+        modifiers.clear();
+        modifiers.putAll(transformMapValues(serialized.getModifiers(), j -> CurveModifier.fromJson(j, gsonContext)));
+    }
+
+    private static <K, T, R> Map<K, List<R>> transformMapValues(Map<K, List<T>> sourceMap,
+                                                                Function<T, R> valueTransformer) {
+
+        Map<K, List<R>> transformedMap = new HashMap<>();
+
+        for (var entry : sourceMap.entrySet()) {
+            K key = entry.getKey();
+            List<T> originalList = entry.getValue();
+
+            List<R> transformedList = new ArrayList<>(originalList.size());
+            for (T originalItem : originalList) {
+                transformedList.add(valueTransformer.apply(originalItem));
+            }
+
+            transformedMap.put(key, transformedList);
+        }
+
+        return transformedMap;
     }
 
     /**
      * Get this object's ID in the scene.
+     *
      * @return Object ID, or <code>null</code> if it's not currently in the scene.
      */
     public @Nullable String getId() {
@@ -301,6 +347,7 @@ public abstract class ReplayObject {
 
     /**
      * Return the color that the curve editor should use for a channel in this object.
+     *
      * @param chName Name of the channel.
      * @return ARGB packed int color.
      */
@@ -331,7 +378,9 @@ public abstract class ReplayObject {
      * @param scale     If a scale keyframe is requested
      * @return The new keyframes.
      */
-    public Collection<? extends KeySelectionSet.KeyframeReference> insertKeyframe(EditorState editor, int timestamp, boolean pos, boolean rot, boolean scale) {
+    public Collection<? extends KeySelectionSet.KeyframeReference> insertKeyframe(EditorState editor, int timestamp,
+                                                                                  boolean pos, boolean rot,
+                                                                                  boolean scale) {
         // Default NOOP
         return Collections.emptyList();
     }
