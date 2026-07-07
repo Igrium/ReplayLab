@@ -14,6 +14,7 @@ import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.util.Util;
 import org.apache.commons.io.output.TeeOutputStream;
 import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.jetbrains.annotations.Nullable;
 import org.lwjgl.system.MemoryUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -44,14 +45,13 @@ public class FFmpegEncoderProcess extends EncoderProcess {
     private final FFmpegEncoder encoderConfig;
 
 
-    private Process process;
+    private @Nullable Process process;
     /**
      * The output stream from THIS process to FFmpeg (confusing naming convention from Process)
      */
-    private OutputStream outputStream;
-    private String commandArgs;
+    private @Nullable OutputStream outputStream;
 
-    private WritableByteChannel channel;
+    private @Nullable WritableByteChannel channel;
     private final ByteArrayOutputStream ffmpegLog = new ByteArrayOutputStream(4096);
 
     public FFmpegEncoderProcess(FFmpegEncoder encoderConfig) {
@@ -97,23 +97,27 @@ public class FFmpegEncoderProcess extends EncoderProcess {
 
     @Override
     protected CompletableFuture<?> finishEncoding() throws IOException {
-        outputStream.close();
-        return process.onExit().thenAccept(p -> {
-            int exitValue = p.exitValue();
-            if (exitValue != 0) {
-                throw new EncoderException("FFmpeg exited with code " + exitValue);
-            }
-        }).orTimeout(20, TimeUnit.SECONDS);
+        if (outputStream != null) outputStream.close();
+        if (process != null) {
+            return process.onExit().thenAccept(p -> {
+                int exitValue = p.exitValue();
+                if (exitValue != 0) {
+                    throw new EncoderException("FFmpeg exited with code " + exitValue);
+                }
+            }).orTimeout(20, TimeUnit.SECONDS);
+        } else {
+            return CompletableFuture.completedFuture(null);
+        }
     }
 
     @Override
     protected void onFailed(Throwable reason) {
         try {
-            outputStream.close();
+            if (outputStream != null) outputStream.close();
         } catch (IOException e) {
             LOGGER.error("Error while closing output stream", e);
         }
-        process.destroy();
+        if (process != null) process.destroy();
     }
 
     public static List<String> generateCommand(RenderMetadata metadata, FFmpegEncoder encoderConfig) {
@@ -193,5 +197,38 @@ public class FFmpegEncoderProcess extends EncoderProcess {
         if (height != getMetadata().height()) {
             throw new IllegalArgumentException("Frame height != video height");
         }
+    }
+
+    /**
+     * Ensure the user has ffmpeg on their system
+     * @apiNote Spawns a temp process; could be expensive.
+     */
+    public static boolean hasFFmpeg() {
+        String path = AccessorRenderSettings.invokeFindFFmpeg();
+        if (path == null || path.isBlank()) {
+            return false;
+        }
+
+        try {
+            Process process = new ProcessBuilder(path, "-version")
+                    .redirectErrorStream(true)
+                    .start();
+
+            boolean finished = process.waitFor(1, TimeUnit.SECONDS);
+            if (!finished) {
+                process.destroyForcibly();
+                return false;
+            }
+            return process.exitValue() == 0;
+        } catch (IOException e) {
+            return false;
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return false;
+        }
+    }
+
+    public static CompletableFuture<Boolean> hasFFmpegAsync() {
+        return CompletableFuture.supplyAsync(FFmpegEncoderProcess::hasFFmpeg);
     }
 }

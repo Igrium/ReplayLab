@@ -6,7 +6,9 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonSerializationContext;
 import com.igrium.replaylab.editor.EditorState;
 import com.igrium.replaylab.render.encoder.EncoderConfig;
+import com.igrium.replaylab.render.encoder.EncoderProcess;
 import com.igrium.replaylab.render.encoder.EncoderType;
+import com.igrium.replaylab.ui.NoFFmpegPopup;
 import imgui.ImGui;
 import imgui.type.ImInt;
 import lombok.Getter;
@@ -126,6 +128,14 @@ public class FFmpegEncoder extends EncoderConfig {
             "dnxhr", new CodecType("dnxhd", false, CodecFamily.PRO, "dnxhr_hq")
     );
 
+    private @Nullable Boolean hasFFmpeg;
+
+    public boolean hasFFmpeg() {
+        if (hasFFmpeg == null) {
+            hasFFmpeg = FFmpegEncoderProcess.hasFFmpeg();
+        }
+        return hasFFmpeg;
+    }
 
     @Getter
     @NonNull
@@ -216,6 +226,11 @@ public class FFmpegEncoder extends EncoderConfig {
 
     @Override
     public void drawProperties(EditorState editor) {
+        if (!hasFFmpeg()) {
+            NoFFmpegPopup.render();
+            return;
+        }
+
         if (ImGui.beginCombo(t("gui.replaylab.ffmpeg.container"), containerLabel(container))) {
             for (var c : CONTAINERS.keySet()) {
                 boolean selected = c.equals(this.container);

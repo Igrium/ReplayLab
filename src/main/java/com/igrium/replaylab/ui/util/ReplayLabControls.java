@@ -6,12 +6,14 @@ import com.igrium.replaylab.ui.ReplayLabIcons;
 import com.igrium.replaylab.util.Timestamps;
 import imgui.ImGui;
 import imgui.flag.ImGuiCol;
+import imgui.flag.ImGuiMouseCursor;
 import imgui.type.ImBoolean;
 import imgui.type.ImInt;
 import imgui.type.ImString;
 import lombok.NonNull;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.Language;
+import net.minecraft.util.Util;
 import org.apache.commons.lang3.mutable.Mutable;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
@@ -167,5 +169,19 @@ public class ReplayLabControls {
 
     private static Timestamps.Display timestampDisplay() {
         return ReplayLabConfig.getInstance().getTimestampMode();
+    }
+
+    public static void hyperlink(String text, String link) {
+        ImGui.pushStyleColor(ImGuiCol.Text, ImGuiCol.Button);
+        ImGui.text(text);
+        ImGui.popStyleColor();
+
+        if (ImGui.isItemHovered()) {
+            ImGui.setMouseCursor(ImGuiMouseCursor.Hand);
+        }
+
+        if (ImGui.isItemClicked(0)) {
+            Util.getOperatingSystem().open(link);
+        }
     }
 }

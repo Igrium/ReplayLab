@@ -59,7 +59,7 @@ public abstract class EncoderProcess {
      * @param metadata Encoding metadata
      * @throws IllegalStateException If the encoder isn't ready to start
      */
-    public synchronized void start(RenderMetadata metadata) throws IllegalStateException {
+    public synchronized void start(RenderMetadata metadata) throws IllegalStateException, EncoderException {
         if (state == EncodingState.ENCODING || state == EncodingState.FINISHED) {
             throw new IllegalStateException("Encoder is not ready to start! (Current state: " + state + ")");
         }

@@ -302,7 +302,9 @@ public abstract class ReplayObject {
         }
 
         modifiers.clear();
-        modifiers.putAll(transformMapValues(serialized.getModifiers(), j -> CurveModifier.fromJson(j, gsonContext)));
+        if (serialized.getModifiers() != null) {
+            modifiers.putAll(transformMapValues(serialized.getModifiers(), j -> CurveModifier.fromJson(j, gsonContext)));
+        }
     }
 
     private static <K, T, R> Map<K, List<R>> transformMapValues(Map<K, List<T>> sourceMap,
