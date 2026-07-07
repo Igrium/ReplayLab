@@ -5,10 +5,10 @@ import com.igrium.replaylab.editor.KeySelectionSet;
 import com.igrium.replaylab.editor.KeySelectionSet.ChannelReference;
 import com.igrium.replaylab.editor.KeySelectionSet.KeyHandleReference;
 import com.igrium.replaylab.operator.object.MultiObjectOperator;
-import com.igrium.replaylab.scene.key.ChannelUtils;
-import com.igrium.replaylab.scene.key.KeyChannel;
-import com.igrium.replaylab.scene.key.Keyframe;
-import com.igrium.replaylab.scene.key.Keyframe.HandleType;
+import com.igrium.replaylab.anim.ChannelUtils;
+import com.igrium.replaylab.anim.KeyChannel;
+import com.igrium.replaylab.anim.Keyframe;
+import com.igrium.replaylab.anim.Keyframe.HandleType;
 import com.igrium.replaylab.scene.obj.ReplayObject;
 import it.unimi.dsi.fastutil.ints.IntSet;
 

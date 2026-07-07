@@ -11,7 +11,7 @@ import com.igrium.replaylab.math.DynamicRotation;
 import com.igrium.replaylab.math.DynamicRotation.RotationMode;
 import com.igrium.replaylab.math.Transform3;
 import com.igrium.replaylab.scene.ReplayScene;
-import com.igrium.replaylab.scene.key.KeyChannel;
+import com.igrium.replaylab.anim.KeyChannel;
 import com.igrium.replaylab.ui.gizmos.GizmoRenderer;
 import com.igrium.replaylab.ui.util.PropertyWidgets;
 import json.JsonUtils;

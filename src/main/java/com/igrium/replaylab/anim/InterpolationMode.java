@@ -1,4 +1,4 @@
-package com.igrium.replaylab.scene.key;
+package com.igrium.replaylab.anim;
 
 import com.igrium.replaylab.math.Bezier2d;
 import com.igrium.replaylab.math.Beziers;

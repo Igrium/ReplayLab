@@ -1,12 +1,10 @@
-package com.igrium.replaylab.scene.key;
+package com.igrium.replaylab.anim;
 
 import com.google.gson.*;
 import com.google.gson.annotations.JsonAdapter;
 import com.igrium.replaylab.ReplayLab;
 import com.igrium.replaylab.config.ReplayLabConfig;
 import com.igrium.replaylab.editor.KeySelectionSet;
-import com.igrium.replaylab.math.Bezier2d;
-import com.igrium.replaylab.math.Beziers;
 import it.unimi.dsi.fastutil.ints.*;
 import lombok.Getter;
 import lombok.Setter;

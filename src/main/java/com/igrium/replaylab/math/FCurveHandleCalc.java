@@ -1,7 +1,7 @@
 package com.igrium.replaylab.math;
 
-import com.igrium.replaylab.scene.key.Keyframe;
-import com.igrium.replaylab.scene.key.Keyframe.HandleType;
+import com.igrium.replaylab.anim.Keyframe;
+import com.igrium.replaylab.anim.Keyframe.HandleType;
 import org.joml.Vector2d;
 import org.joml.Vector3d;
 

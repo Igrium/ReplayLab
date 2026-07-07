@@ -18,7 +18,7 @@ import com.igrium.replaylab.playback.RealtimeScenePlayer;
 import com.igrium.replaylab.render.VideoRenderer;
 import com.igrium.replaylab.scene.ReplayScene;
 import com.igrium.replaylab.scene.ReplayScenes;
-import com.igrium.replaylab.scene.key.KeyChannel;
+import com.igrium.replaylab.anim.KeyChannel;
 import com.igrium.replaylab.scene.obj.ReplayObject;
 import com.igrium.replaylab.scene.obj.ReplayObject3D;
 import com.igrium.replaylab.scene.obj.SerializedReplayObject;

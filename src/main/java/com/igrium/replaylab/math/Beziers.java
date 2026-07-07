@@ -1,6 +1,6 @@
 package com.igrium.replaylab.math;
 
-import com.igrium.replaylab.scene.key.Keyframe;
+import com.igrium.replaylab.anim.Keyframe;
 import lombok.experimental.UtilityClass;
 import org.joml.Vector2d;
 

@@ -5,13 +5,11 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonSerializationContext;
 import com.igrium.replaylab.editor.EditorState;
 import com.igrium.replaylab.scene.ReplayScene;
-import com.igrium.replaylab.scene.key.Keyframe;
+import com.igrium.replaylab.anim.Keyframe;
 import com.igrium.replaylab.scene.obj.ObjectEditState;
 import com.igrium.replaylab.scene.obj.ReplayObject;
 import com.igrium.replaylab.scene.obj.ReplayObjectType;
 import imgui.ImGui;
-import imgui.flag.ImGuiDataType;
-import imgui.type.ImDouble;
 import lombok.Getter;
 import lombok.Setter;
 

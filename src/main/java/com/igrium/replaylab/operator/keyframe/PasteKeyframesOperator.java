@@ -8,7 +8,7 @@ import com.google.gson.reflect.TypeToken;
 import com.igrium.replaylab.editor.EditorState;
 import com.igrium.replaylab.editor.KeySelectionSet.ChannelReference;
 import com.igrium.replaylab.operator.object.MultiObjectOperator;
-import com.igrium.replaylab.scene.key.KeyChannel;
+import com.igrium.replaylab.anim.KeyChannel;
 import com.igrium.replaylab.scene.obj.ReplayObject;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.LoggerFactory;

@@ -4,7 +4,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.igrium.replaylab.ReplayLab;
 import com.igrium.replaylab.math.DynamicRotation.RotationMode;
-import com.igrium.replaylab.scene.key.Keyframe;
+import com.igrium.replaylab.anim.Keyframe;
 import com.igrium.replaylab.util.Timestamps;
 import lombok.Getter;
 import lombok.Setter;

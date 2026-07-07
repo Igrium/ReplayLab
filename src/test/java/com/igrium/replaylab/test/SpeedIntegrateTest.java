@@ -1,9 +1,9 @@
 package com.igrium.replaylab.test;
 
-import com.igrium.replaylab.scene.key.ChannelUtils;
-import com.igrium.replaylab.scene.key.KeyChannel;
-import com.igrium.replaylab.scene.key.Keyframe;
-import com.igrium.replaylab.scene.key.Keyframe.HandleType;
+import com.igrium.replaylab.anim.ChannelUtils;
+import com.igrium.replaylab.anim.KeyChannel;
+import com.igrium.replaylab.anim.Keyframe;
+import com.igrium.replaylab.anim.Keyframe.HandleType;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;

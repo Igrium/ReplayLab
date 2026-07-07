@@ -2,7 +2,7 @@ package com.igrium.replaylab.ui.settings;
 
 import com.igrium.replaylab.config.ReplayLabConfig;
 import com.igrium.replaylab.math.DynamicRotation;
-import com.igrium.replaylab.scene.key.Keyframe;
+import com.igrium.replaylab.anim.Keyframe;
 import com.igrium.replaylab.util.Timestamps;
 import imgui.ImGui;
 import imgui.type.ImBoolean;

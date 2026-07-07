@@ -1,4 +1,4 @@
-package com.igrium.replaylab.scene.key;
+package com.igrium.replaylab.anim;
 
 import com.igrium.replaylab.math.FCurveHandleCalc;
 import lombok.experimental.UtilityClass;
@@ -6,7 +6,7 @@ import lombok.experimental.UtilityClass;
 import java.util.Arrays;
 import java.util.Collection;
 
-import com.igrium.replaylab.scene.key.Keyframe.HandleType;
+import com.igrium.replaylab.anim.Keyframe.HandleType;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Vector2d;
 import org.slf4j.LoggerFactory;

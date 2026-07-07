@@ -7,7 +7,7 @@ import com.google.common.collect.Maps;
 import com.igrium.replaylab.editor.EditorState;
 import com.igrium.replaylab.operator.ReplayOperator;
 import com.igrium.replaylab.render.RenderSettingsObj;
-import com.igrium.replaylab.scene.key.KeyChannel;
+import com.igrium.replaylab.anim.KeyChannel;
 import com.igrium.replaylab.scene.obj.*;
 import com.igrium.replaylab.scene.objs.ScenePropsObject;
 import com.igrium.replaylab.util.NameUtils;

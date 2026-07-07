@@ -1,8 +1,8 @@
 package com.igrium.replaylab.editor;
 
 import com.google.common.collect.AbstractIterator;
-import com.igrium.replaylab.scene.key.KeyChannel;
-import com.igrium.replaylab.scene.key.Keyframe;
+import com.igrium.replaylab.anim.KeyChannel;
+import com.igrium.replaylab.anim.Keyframe;
 import com.igrium.replaylab.scene.obj.ReplayObject;
 import it.unimi.dsi.fastutil.ints.*;
 import org.jetbrains.annotations.Nullable;
@@ -12,8 +12,6 @@ import org.joml.Vector2dc;
 import java.util.*;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
-import java.util.stream.IntStream;
-import java.util.stream.Stream;
 
 /**
  * Provides easy access to a set of selected object, keyframes, and then keyframe handles

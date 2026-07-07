@@ -1,7 +1,7 @@
 package com.igrium.replaylab.scene.obj;
 
 import com.google.gson.JsonObject;
-import com.igrium.replaylab.scene.key.KeyChannel;
+import com.igrium.replaylab.anim.KeyChannel;
 import lombok.Getter;
 
 import java.util.Map;

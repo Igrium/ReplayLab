@@ -1,4 +1,4 @@
-package com.igrium.replaylab.scene.key;
+package com.igrium.replaylab.anim;
 
 import com.google.gson.TypeAdapter;
 import com.google.gson.annotations.JsonAdapter;
@@ -10,7 +10,6 @@ import lombok.Setter;
 import org.jetbrains.annotations.NotNull;
 import org.joml.Vector2d;
 import org.joml.Vector2dc;
-import org.joml.Vector3dc;
 
 import java.io.IOException;
 

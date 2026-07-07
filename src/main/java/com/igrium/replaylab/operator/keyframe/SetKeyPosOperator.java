@@ -3,7 +3,7 @@ package com.igrium.replaylab.operator.keyframe;
 import com.igrium.replaylab.editor.EditorState;
 import com.igrium.replaylab.editor.KeySelectionSet;
 import com.igrium.replaylab.operator.ReplayOperator;
-import com.igrium.replaylab.scene.key.Keyframe;
+import com.igrium.replaylab.anim.Keyframe;
 
 public class SetKeyPosOperator implements ReplayOperator {
     private final KeySelectionSet.KeyframeReference keyRef;

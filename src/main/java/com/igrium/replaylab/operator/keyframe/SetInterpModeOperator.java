@@ -3,8 +3,8 @@ package com.igrium.replaylab.operator.keyframe;
 import com.igrium.replaylab.editor.EditorState;
 import com.igrium.replaylab.editor.KeySelectionSet.KeyframeReference;
 import com.igrium.replaylab.operator.object.MultiObjectOperator;
-import com.igrium.replaylab.scene.key.InterpolationMode;
-import com.igrium.replaylab.scene.key.Keyframe;
+import com.igrium.replaylab.anim.InterpolationMode;
+import com.igrium.replaylab.anim.Keyframe;
 import com.igrium.replaylab.scene.obj.ReplayObject;
 
 import java.util.Collection;
