@@ -10,7 +10,7 @@ import net.fabricmc.loader.api.FabricLoader;
 import java.nio.file.Path;
 
 /**
- * Various config values relating
+ * Various config values relating to rendering
  */
 @Getter @Accessors(fluent = true)
 @EqualsAndHashCode @Builder

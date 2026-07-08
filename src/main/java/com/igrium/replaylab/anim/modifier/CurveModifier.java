@@ -1,9 +1,6 @@
 package com.igrium.replaylab.anim.modifier;
 
-import com.google.gson.JsonDeserializationContext;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParseException;
-import com.google.gson.JsonSerializationContext;
+import com.google.gson.*;
 import com.igrium.replaylab.editor.EditorState;
 import com.igrium.replaylab.scene.obj.ObjectEditState;
 import com.igrium.replaylab.ui.util.ReplayLabControls;
@@ -15,6 +12,8 @@ import lombok.Getter;
 import lombok.Setter;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.Language;
+
+import java.lang.reflect.Type;
 
 public abstract class CurveModifier {
     @Getter
@@ -167,22 +166,12 @@ public abstract class CurveModifier {
     public final JsonObject toJson(JsonSerializationContext context) {
         JsonObject json = new JsonObject();
         writeJson(json, context);
-        json.addProperty("type", type.getId().toString());
+        json.addProperty("type", getType().getId().toString());
         return json;
     }
 
-    public static CurveModifier fromJson(JsonObject json, JsonDeserializationContext context) {
-        if (!json.has("type")) {
-            throw new JsonParseException("Invalid json object. Missing 'type'");
-        }
-        Identifier id = Identifier.of(json.get("type").getAsString());
-        CurveModifierType<?> type = CurveModifierType.REGISTRY.get(id);
-        if (type == null) {
-            throw new IllegalArgumentException("Unknown curve modifier type: " + id);
-        }
-        CurveModifier mod = type.create();
-        mod.readJson(json, context);
-        return mod;
+    public final CurveModifier copy() {
+        return getType().copy(this);
     }
 
     private static String t(String key) {

@@ -10,7 +10,7 @@ import java.util.Map;
 /**
  * An immutable, serialized form of a replay object designed for use in undo/redo
  */
-public class SerializedReplayObject {
+public final class SerializedReplayObject {
 
     @Getter
     private final String type;
@@ -19,16 +19,11 @@ public class SerializedReplayObject {
     private final Map<String, KeyChannel> channels;
 
     @Getter
-    private final Map<String, List<JsonObject>> modifiers;
-
-    @Getter
     private final JsonObject attributes;
 
-
-    public SerializedReplayObject(String type, Map<String, KeyChannel> channels, Map<String, List<JsonObject>> modifiers, JsonObject attributes) {
+    public SerializedReplayObject(String type, Map<String, KeyChannel> channels, JsonObject attributes) {
         this.type = type;
         this.channels = channels;
-        this.modifiers = modifiers;
         this.attributes = attributes;
     }
 }

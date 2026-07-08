@@ -76,9 +76,6 @@ public abstract class ReplayObject {
     @Getter
     private final Map<String, KeyChannel> channels = new HashMap<>();
 
-    @Getter
-    private final Map<String, List<CurveModifier>> modifiers = new HashMap<>();
-
     /**
      * The value of each property last time it was sampled.
      */
@@ -283,9 +280,7 @@ public abstract class ReplayObject {
             channels.put(entry.getKey(), entry.getValue().copy());
         }
 
-        var mods = transformMapValues(modifiers, m -> m.toJson(gsonContext));
-
-        return new SerializedReplayObject(type.getId(), ImmutableMap.copyOf(channels), mods, attributes);
+        return new SerializedReplayObject(type.getId(), ImmutableMap.copyOf(channels), attributes);
     }
 
     /**
@@ -301,10 +296,6 @@ public abstract class ReplayObject {
             channels.put(entry.getKey(), entry.getValue().copy());
         }
 
-        modifiers.clear();
-        if (serialized.getModifiers() != null) {
-            modifiers.putAll(transformMapValues(serialized.getModifiers(), j -> CurveModifier.fromJson(j, gsonContext)));
-        }
     }
 
     private static <K, T, R> Map<K, List<R>> transformMapValues(Map<K, List<T>> sourceMap,

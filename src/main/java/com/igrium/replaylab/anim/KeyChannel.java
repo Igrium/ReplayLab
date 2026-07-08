@@ -1,10 +1,14 @@
 package com.igrium.replaylab.anim;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.gson.*;
 import com.google.gson.annotations.JsonAdapter;
 import com.igrium.replaylab.ReplayLab;
+import com.igrium.replaylab.anim.modifier.CurveModifier;
+import com.igrium.replaylab.anim.modifier.CurveModifierType;
 import com.igrium.replaylab.config.ReplayLabConfig;
 import com.igrium.replaylab.editor.KeySelectionSet;
+import com.igrium.replaylab.scene.obj.ReplayObject;
 import it.unimi.dsi.fastutil.ints.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -19,7 +23,7 @@ import java.util.stream.IntStream;
  * A single "channel" of keyframes. A given channel always contain a single curve of scalar values.
  */
 @JsonAdapter(KeyChannelSerializer.class)
-public class KeyChannel {
+public final class KeyChannel {
 
     private static final Logger LOGGER = ReplayLab.getLogger("KeyChannel");
 
@@ -38,12 +42,16 @@ public class KeyChannel {
     @Getter @Setter
     private transient boolean hidden;
 
+    @Getter
+    private final List<CurveModifier> modifiers;
+
     public KeyChannel() {
-        this(new ArrayList<>());
+        this(new ArrayList<>(), new ArrayList<>());
     }
 
-    protected KeyChannel(List<Keyframe> keyframes) {
+    protected KeyChannel(List<Keyframe> keyframes, List<CurveModifier> modifiers) {
         this.keyframes = keyframes;
+        this.modifiers = modifiers;
     }
 
     /**
@@ -242,7 +250,14 @@ public class KeyChannel {
         for (Keyframe key : keyframes) {
             copied.add(new Keyframe(key));
         }
-        var ch = new KeyChannel(copied);
+
+        List<CurveModifier> copiedMods = new ArrayList<>(modifiers.size());
+
+        for (var mod : modifiers) {
+            copiedMods.add(mod.copy());
+        }
+
+        var ch = new KeyChannel(copied, copiedMods);
         ch.locked = locked;
         return ch;
     }
@@ -406,20 +421,44 @@ class KeyChannelSerializer implements JsonSerializer<KeyChannel>, JsonDeserializ
 
     @Override
     public KeyChannel deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
-        JsonArray arr = json.getAsJsonArray();
-        List<Keyframe> keys = new ArrayList<>(arr.size());
+        JsonArray arr;
+        JsonArray mods;
+        // Backwards compat
+        if (json.isJsonArray()) {
+            arr = json.getAsJsonArray();
+            mods = new JsonArray();
+        } else {
+            JsonObject obj = json.getAsJsonObject();
+            arr = obj.has("keys") ? obj.getAsJsonArray("keys") : new JsonArray();
+            mods = obj.has("mods") ?  obj.getAsJsonArray("mods") : new JsonArray();
+        }
 
+        List<Keyframe> keys = new ArrayList<>(arr.size());
         for (var el : arr) {
             keys.add(context.deserialize(el, Keyframe.class));
         }
         keys.sort(Comparator.comparing(Keyframe::getTime));
 
-        return new KeyChannel(keys);
+        List<CurveModifier> modifiers = new ArrayList<>(mods.size());
+        for (var mod : mods) {
+            modifiers.add(CurveModifierType.fromJson(mod.getAsJsonObject(), context));
+        }
+
+        return new KeyChannel(keys, modifiers);
     }
 
     @Override
     public JsonElement serialize(KeyChannel src, Type typeOfSrc, JsonSerializationContext context) {
-        return context.serialize(src.getKeyframes());
+        JsonObject obj = new JsonObject();
+        obj.add("keys", context.serialize(src.getKeyframes()));
+
+        JsonArray mods = new JsonArray();
+        for (var mod : src.getModifiers()) {
+            mods.add(mod.toJson(context));
+        }
+        obj.add("mods", mods);
+
+        return obj;
     }
 }
 

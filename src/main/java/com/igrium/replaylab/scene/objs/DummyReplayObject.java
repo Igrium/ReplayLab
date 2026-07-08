@@ -3,6 +3,7 @@ package com.igrium.replaylab.scene.objs;
 import com.google.gson.JsonDeserializationContext;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonSerializationContext;
+import com.igrium.replaylab.anim.modifier.CurveModifierType;
 import com.igrium.replaylab.editor.EditorState;
 import com.igrium.replaylab.scene.ReplayScene;
 import com.igrium.replaylab.anim.Keyframe;
@@ -12,6 +13,7 @@ import com.igrium.replaylab.scene.obj.ReplayObjectType;
 import imgui.ImGui;
 import lombok.Getter;
 import lombok.Setter;
+import org.slf4j.LoggerFactory;
 
 public class DummyReplayObject extends ReplayObject {
 
@@ -45,15 +47,38 @@ public class DummyReplayObject extends ReplayObject {
 
     @Override
     public int drawPropertiesPanel(EditorState editor) {
-        boolean modified = false;
+        int flags = 0;
+        dummyValInput[0] = getDummyValue();
 
-        dummyValInput[0] = dummyValue;
-        if (ImGui.dragScalar("Dummy Value", dummyValInput, 1)) {
-            modified = true;
+        if (ImGui.dragScalar("Dummy Value", dummyValInput)) {
+            flags |= ObjectEditState.UPDATE_SCENE;
+            setDummyValue(dummyValInput[0]);
         }
-        dummyValue = dummyValInput[0];
+        if (ImGui.isItemDeactivatedAfterEdit()) {
+            flags |= ObjectEditState.COMMIT;
+        }
 
-        return modified ? ObjectEditState.UPDATE_SCENE : ObjectEditState.NONE;
+        if (ImGui.button("Add test modifier")) {
+            var mod = CurveModifierType.TRANSLATE.create();
+            mod.setOffsetY(10);
+            var chan = getOrCreateChannel("dummyValue");
+            chan.getModifiers().add(mod);
+
+            LoggerFactory.getLogger("ReplayLab/DummyReplayObject").info("modifiers: {}", chan.getModifiers());
+            flags |= ObjectEditState.CREATE_UNDO_STEP;
+        }
+
+//        boolean modified = false;
+//
+//        dummyValInput[0] = dummyValue;
+//        if (ImGui.dragScalar("Dummy Value", dummyValInput, 1)) {
+//            modified = true;
+//        }
+//        dummyValue = dummyValInput[0];
+//
+//
+
+        return flags;
     }
 
     @Override
