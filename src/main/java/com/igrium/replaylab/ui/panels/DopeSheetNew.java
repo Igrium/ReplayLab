@@ -12,8 +12,6 @@ import com.igrium.replaylab.anim.KeyChannel;
 import com.igrium.replaylab.anim.Keyframe;
 import com.igrium.replaylab.scene.obj.ReplayObject;
 import com.igrium.replaylab.ui.ReplayLabIcons;
-import com.igrium.replaylab.ui.subpanels.ChannelList;
-import com.igrium.replaylab.ui.subpanels.ChannelListFlags;
 import com.igrium.replaylab.ui.subpanels.TimelineHeader;
 import com.igrium.replaylab.ui.util.ReplayLabControls;
 import com.igrium.replaylab.ui.util.TimelineFlags;
@@ -27,8 +25,6 @@ import imgui.type.ImInt;
 import it.unimi.dsi.fastutil.Pair;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
-import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
-import it.unimi.dsi.fastutil.ints.IntSet;
 import it.unimi.dsi.fastutil.objects.ObjectObjectImmutablePair;
 import lombok.Getter;
 import lombok.Setter;
@@ -48,7 +44,6 @@ public class DopeSheetNew extends KeyframePanel {
 
     private static final float SNAP_THRESHOLD_PX = 4f;
     private static final float INTERVAL_DIVISOR = 4f;
-    private static final float MAX_ZOOM = 16f;
 
     private enum KeyframeShape {
         DIAMOND,
@@ -59,19 +54,6 @@ public class DopeSheetNew extends KeyframePanel {
 
     private record KeyDrawData(int ms, boolean selected, KeyframeShape shape) {
     }
-
-    /**
-     * The X pan amount in milliseconds
-     */
-    @Getter
-    @Setter @Deprecated
-    private double offsetX;
-
-    /**
-     * The amount of pixels per millisecond
-     */
-    @Getter @Deprecated
-    private float zoomFactor = 0.1f;
 
     /**
      * All the keyframes that have had an update <em>comitted</em> this frame.
@@ -111,11 +93,6 @@ public class DopeSheetNew extends KeyframePanel {
      */
     private @Nullable ImVec2 boxSelectStart;
 
-    /**
-     * The keyframe that is currently being edited in the context menu
-     */
-    private @Nullable KeyframeReference contextKey;
-
     private boolean mouseDragging;
     private boolean mouseStartedDragging;
 
@@ -131,40 +108,17 @@ public class DopeSheetNew extends KeyframePanel {
         return boxSelectStart != null;
     }
 
-    public void setZoomFactor(float zoomFactor) {
-        if (zoomFactor <= 0) {
-            throw new IllegalArgumentException("zoomFactor must be greater than 0.");
-        }
-        this.zoomFactor = Math.min(zoomFactor, MAX_ZOOM);
-    }
-
-    /**
-     * Modify the zoom of the editor, centering it around a supplied point
-     *
-     * @param targetZoom New zoom factor.
-     * @param center     Point to center around (ms)
-     */
-    public void setZoomFactor(float targetZoom, double center) {
-        targetZoom = Math.min(targetZoom, MAX_ZOOM);
-        if (targetZoom == this.zoomFactor) return;
-
-        double newOffset = center - (center - offsetX) * (this.zoomFactor / targetZoom);
-        this.zoomFactor = targetZoom;
-        this.offsetX = newOffset;
-    }
-
     @Override
     protected void drawInternal(EditorState editorState, Map<String, ReplayObject> objects) {
         drawDopeSheet(editorState, editorState.getSelectedObjects(), editorState.getKeySelection(),
                 editorState.getPlayheadRef());
 
         // Jump forward if playing and off screen
-        double endMs = offsetX + getHeader().getWidthMs();
-        if (editorState.isPlaying() && (editorState.getPlayhead() > endMs || editorState.getPlayhead() < offsetX)) {
+        double endMs = getOffsetX() + getHeader().getWidthMs();
+        if (editorState.isPlaying() && (editorState.getPlayhead() > endMs || editorState.getPlayhead() < getOffsetX())) {
             setOffsetX(editorState.getPlayhead());
         }
 
-        long replayTime = editorState.getScene().sceneToReplayTime(editorState.getPlayhead());
         if (isScrubbing() || stoppedScrubbing()) {
             editorState.scrub(stoppedScrubbing());
         }
@@ -198,6 +152,11 @@ public class DopeSheetNew extends KeyframePanel {
         }
     }
 
+    @Override
+    protected int getHeaderFlags() {
+        return TimelineFlags.INVERT_KEY_SNAP;
+    }
+
     private boolean wantsFit;
 
     @Override
@@ -218,6 +177,7 @@ public class DopeSheetNew extends KeyframePanel {
         ReplayScene scene = editor.getScene();
         droppedKeys.clear();
         updatedKeys.clear();
+        keyTimes.clear();
         Map<String, ReplayObject> objs;
         if (selectedObjects != null && selectedOnly.get()) {
             objs = new HashMap<>(selectedObjects.size());
@@ -234,34 +194,18 @@ public class DopeSheetNew extends KeyframePanel {
         mouseStartedDragging = draggingNow && !mouseDragging;
         mouseDragging = draggingNow;
 
-        float headerCursorY = ImGui.getCursorPosY();
-
-
-        /// === BUTTONS ===
-
         wantsFit |= ImGui.shortcut(Keybinds.frameSelected());
 
         float graphHeight = ImGui.getContentRegionAvailY();
-        float headerCursorX;
 
         boolean wantStartDragging = false;
 
-        // All keyframes rendered (used for playhead snapping)
-        IntSet keyTimes = new IntOpenHashSet();
+        var expandedObjects = getExpandedChannels();
 
         /// === MAIN ===
         // We'll manually implement scrolling so keyframe graph can "consume" it.
         ImGui.beginChild("main", ImGui.getContentRegionAvailX(), -1, false, ImGuiWindowFlags.NoScrollWithMouse);
         {
-            ///  === CHANNEL LIST ===
-            ImGui.beginGroup();
-            var expandedObjects = ChannelList.drawChannelList(selectedKeys, objs, 192,
-                    ChannelListFlags.ALLOW_SELECTION);
-            ImGui.endGroup();
-            float channelListHeight = ImGui.getItemRectSizeY();
-            ImGui.sameLine();
-            headerCursorX = ImGui.getCursorPosX() + ImGui.getStyle().getItemSpacing().x;
-
             /// === KEYFRAMES ===
             float graphX = ImGui.getCursorScreenPosX();
             float graphY = ImGui.getCursorScreenPosY();
@@ -440,18 +384,18 @@ public class DopeSheetNew extends KeyframePanel {
 
                     if (pixelIn > 0) {
                         float pixelInGlobal = pixelIn + graphX;
-                        drawList.addLine(pixelInGlobal, graphY, pixelInGlobal, graphY + channelListHeight,
+                        drawList.addLine(pixelInGlobal, graphY, pixelInGlobal, graphY + graphHeight,
                                 ImGui.getColorU32(ImGuiCol.Separator));
-                        drawList.addRectFilled(graphX, graphY, pixelInGlobal, graphY + channelListHeight,
+                        drawList.addRectFilled(graphX, graphY, pixelInGlobal, graphY + graphHeight,
                                 ImGui.getColorU32(ImGuiCol.ModalWindowDimBg));
                     }
 
                     if (pixelOut < graphWidth) {
                         float pixelOutGlobal = pixelOut + graphX;
-                        drawList.addLine(pixelOutGlobal, graphY, pixelOutGlobal, graphY + channelListHeight,
+                        drawList.addLine(pixelOutGlobal, graphY, pixelOutGlobal, graphY + graphHeight,
                                 ImGui.getColorU32(ImGuiCol.Separator));
                         drawList.addRectFilled(pixelOutGlobal, graphY, graphX + graphWidth,
-                                graphY + channelListHeight, ImGui.getColorU32(ImGuiCol.ModalWindowDimBg));
+                                graphY + graphHeight, ImGui.getColorU32(ImGuiCol.ModalWindowDimBg));
                     }
 
                 }
@@ -485,7 +429,7 @@ public class DopeSheetNew extends KeyframePanel {
 
                 if (computeTimeBounds(keys, bounds)) {
                     setOffsetX(bounds.x);
-                    setZoomFactor((float) (renderedGraphWidth / (bounds.y - offsetX)));
+                    setZoomFactorX((float) (renderedGraphWidth / (bounds.y - getOffsetX())));
                 }
             }
 
@@ -507,7 +451,7 @@ public class DopeSheetNew extends KeyframePanel {
                     float mouseGlobalX = ImGui.getMousePosX();
                     double mouseXMs = pixelXToMs(mouseGlobalX - graphX);
                     float factor = (float) Math.pow(2, mWheel * .125);
-                    setZoomFactor(zoomFactor * factor, mouseXMs);
+                    setZoomFactorX(getZoomFactorX() * factor, mouseXMs);
                 }
                 // zoom logic
             } else {
@@ -518,12 +462,12 @@ public class DopeSheetNew extends KeyframePanel {
             /// === PANNING ===
             if (ImGui.isMouseDragging(2)) {
                 if (panStartPos == null && ImGui.isWindowHovered(ImGuiHoveredFlags.ChildWindows)) {
-                    panStartPos = offsetX;
+                    panStartPos = getOffsetX();
                 }
 
                 if (panStartPos != null) {
-                    double dx = ImGui.getMouseDragDeltaX(2) / zoomFactor;
-                    offsetX = panStartPos - dx;
+                    double dx = ImGui.getMouseDragDeltaX(2) / getZoomFactorX();
+                    setOffsetX(panStartPos - dx);
                 }
             } else {
                 panStartPos = null;
@@ -585,7 +529,7 @@ public class DopeSheetNew extends KeyframePanel {
         if (isDragging()) {
             if (mouseDragging) {
                 float dx = ImGui.getMouseDragDeltaX();
-                double rawDeltaMs = dx / zoomFactor;
+                double rawDeltaMs = dx / getZoomFactorX();
                 double snapAdjustMs = 0;
 
                 // Snap to other keyframes
@@ -607,7 +551,7 @@ public class DopeSheetNew extends KeyframePanel {
                             for (Keyframe candidate : channel.getKeyframes()) {
                                 if (draggingFrames.contains(candidate)) continue;
 
-                                double distPx = Math.abs((candidate.getTime() - anchorMs) * zoomFactor);
+                                double distPx = Math.abs((candidate.getTime() - anchorMs) * getZoomFactorX());
                                 if (distPx < SNAP_THRESHOLD_PX && distPx < bestDistPx) {
                                     bestDistPx = distPx;
                                     bestSnapMs = candidate.getTime();
@@ -618,7 +562,7 @@ public class DopeSheetNew extends KeyframePanel {
                         if (bestDistPx < Double.MAX_VALUE) {
                             snapAdjustMs = bestSnapMs - anchorMs;
                         } else if (snapKeyframes.get()) {
-                            double snapInterval = TimelineHeader.computeMajorInterval(zoomFactor) / INTERVAL_DIVISOR;
+                            double snapInterval = TimelineHeader.computeMajorInterval(getZoomFactorX()) / INTERVAL_DIVISOR;
                             double nearestIntervalMs = snapInterval * Math.round(anchorMs / snapInterval);
 
                             snapAdjustMs = nearestIntervalMs - anchorMs;
@@ -669,12 +613,6 @@ public class DopeSheetNew extends KeyframePanel {
                 }
             });
         }
-
-        /// === HEADER ===
-
-        ImGui.setCursorPos(headerCursorX, headerCursorY);
-//        header.drawHeader(editor, headerHeight, zoomFactor, (float) offsetX, scene.getLength(), playhead,
-//                graphHeight, keyTimes.toIntArray(), TimelineFlags.INVERT_KEY_SNAP);
 
         wantsFit = false;
     }
@@ -781,11 +719,11 @@ public class DopeSheetNew extends KeyframePanel {
     }
 
     private float msToPixelX(double ms) {
-        return (float) ((ms - offsetX) * zoomFactor);
+        return (float) ((ms - getOffsetX()) * getZoomFactorX());
     }
 
     private double pixelXToMs(float pixel) {
-        return pixel / zoomFactor + offsetX;
+        return pixel / getZoomFactorX() + getOffsetX();
     }
 
     private static int replaceAlpha(int colorArgb, int newAlpha) {

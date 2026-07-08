@@ -14,10 +14,8 @@ import com.igrium.replaylab.anim.KeyChannel;
 import com.igrium.replaylab.anim.Keyframe;
 import com.igrium.replaylab.scene.obj.ReplayObject;
 import com.igrium.replaylab.ui.ReplayLabIcons;
-import com.igrium.replaylab.ui.subpanels.ChannelList;
 import com.igrium.replaylab.ui.subpanels.ChannelListFlags;
 import com.igrium.replaylab.ui.util.ReplayLabControls;
-import com.igrium.replaylab.ui.util.TimelineFlags;
 import com.igrium.replaylab.ui.subpanels.TimelineHeader;
 import imgui.ImDrawList;
 import imgui.ImGui;
@@ -25,10 +23,7 @@ import imgui.ImVec2;
 import imgui.flag.*;
 import imgui.type.ImBoolean;
 import imgui.type.ImInt;
-import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
-import it.unimi.dsi.fastutil.ints.IntSet;
 import lombok.Getter;
-import lombok.Setter;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.Language;
 import net.minecraft.util.math.ColorHelper;
@@ -48,12 +43,13 @@ public class CurveEditor extends KeyframePanel {
 
     public CurveEditor(Identifier id) {
         super(id);
-        channelListFlags |= ChannelListFlags.SHOW_COLORS;
+        channelListFlags |= ChannelListFlags.SHOW_COLORS | ChannelListFlags.HIGHLIGHT_SELECTION;
     }
 
     private final Map<ChannelReference, ChannelExtents> normalizationCache = new HashMap<>();
     private final ImBoolean normalized = new ImBoolean(false);
 
+    private boolean wasNormalized;
 
     public boolean isNormalized() {
         return normalized.get();
@@ -62,32 +58,6 @@ public class CurveEditor extends KeyframePanel {
     public void setNormalized(boolean normalized) {
         this.normalized.set(normalized);
     }
-
-    /**
-     * The X pan amount in milliseconds
-     */
-    @Getter
-    @Setter
-    private double offsetX;
-
-    /**
-     * The Y pan amount in curve units
-     */
-    @Getter
-    @Setter
-    private double offsetY;
-
-    /**
-     * Amount of pixels per millisecond
-     */
-    @Getter
-    private float zoomFactorX = 0.1f;
-
-    /**
-     * Amount of pixels per curve unit
-     */
-    @Getter
-    private float zoomFactorY = 0.1f;
 
     /**
      * All the handles that have had an updated <em>committed</em> this frame.
@@ -120,8 +90,6 @@ public class CurveEditor extends KeyframePanel {
      */
     private final Vector2d dragStartPos = new Vector2d();
 
-    private final TimelineHeader header = new TimelineHeader();
-
     // Not null if currently panning
     private @Nullable Vector2d panStartPos;
 
@@ -131,18 +99,13 @@ public class CurveEditor extends KeyframePanel {
 
     private boolean doneInitialFit = false;
 
+    private boolean wantsFit;
+
+
     /**
      * The global pixel position of a selection box start position
      */
     private @Nullable ImVec2 boxSelectStart;
-
-    public boolean isScrubbing() {
-        return header.isScrubbing();
-    }
-
-    public boolean stoppedScrubbing() {
-        return header.stoppedScrubbing();
-    }
 
     public boolean isDragging() {
         return !keyDragOffsets.isEmpty();
@@ -152,42 +115,6 @@ public class CurveEditor extends KeyframePanel {
         return boxSelectStart != null;
     }
 
-    public void setZoomFactorX(float zoomFactorX) {
-        if (zoomFactorX <= 0) {
-            throw new IllegalArgumentException("Zoom factor must be greater than 0");
-        }
-        this.zoomFactorX = zoomFactorX;
-    }
-
-    public void setZoomFactorY(float zoomFactorY) {
-        if (zoomFactorY <= 0) {
-            throw new IllegalArgumentException("Zoom factor must be greater than 0");
-        }
-        this.zoomFactorY = zoomFactorY;
-    }
-
-    /**
-     * Modify the zoom of the editor on the X axis, centering it around a supplied point.
-     *
-     * @param zoomFactorX New zoom factor.
-     * @param center     Point to center around (ms)
-     */
-    public void setZoomFactorX(float zoomFactorX, double center) {
-        if (zoomFactorX == this.zoomFactorX) return;
-
-        double newOffsetX = center - (center - offsetX) * (this.zoomFactorX / zoomFactorX);
-        this.zoomFactorX = zoomFactorX;
-        this.offsetX = newOffsetX;
-    }
-
-    public void setZoomFactorY(float targetZoom, double center) {
-        if (targetZoom == this.zoomFactorY) return;
-
-        double newOffsetY = center - (center - offsetY) * (this.zoomFactorY / targetZoom);
-        this.zoomFactorY = targetZoom;
-        this.offsetY = newOffsetY;
-    }
-
     @Override
     public void onAppliedOperator(ReplayOperator op, EditorState editorState) {
         updateNormalizationCache(editorState.getScene());
@@ -195,7 +122,21 @@ public class CurveEditor extends KeyframePanel {
 
     @Override
     protected void drawControlButtons(EditorState editorState) {
-        ImGui.button("Button");
+        ReplayLabControls.toggleButton(ReplayLabIcons.ICON_ARROW_POINTER, "selectedOnly", selectedOnly,
+                "gui.replaylab.selected_only");
+        ImGui.sameLine();
+
+        ReplayLabControls.toggleButton(ReplayLabIcons.ICON_MAGNET, "snapKeyframes", snapKeyframes,
+                "gui.replaylab.tooltip_snap");
+        ImGui.sameLine();
+        wantsFit = ReplayLabControls.iconButton(ReplayLabIcons.ICON_RESIZE_FULL_ALT, "wantsFit",
+                "gui.replaylab.tooltip_fit");
+
+        wasNormalized = isNormalized();
+
+        ImGui.sameLine();
+        ReplayLabControls.toggleButton(ReplayLabIcons.ICON_ARROWS_V, "normalize", normalized,
+                "gui.replaylab.tooltip_normalize");
     }
 
     @Override
@@ -214,8 +155,8 @@ public class CurveEditor extends KeyframePanel {
                 editorState.getPlayheadRef(), flags);
 
         // Jump forward if playing and off screen
-        double endMs = offsetX + header.getWidthMs();
-        if (editorState.isPlaying() && (editorState.getPlayhead() > endMs || editorState.getPlayhead() < offsetX)) {
+        double endMs = getOffsetX() + getHeader().getWidthMs();
+        if (editorState.isPlaying() && (editorState.getPlayhead() > endMs || editorState.getPlayhead() < getOffsetX())) {
             setOffsetX(editorState.getPlayhead());
         }
 
@@ -251,6 +192,7 @@ public class CurveEditor extends KeyframePanel {
 
     }
 
+
     /**
      * Draw the curve editor.
      *
@@ -267,6 +209,7 @@ public class CurveEditor extends KeyframePanel {
         ReplayScene scene = editor.getScene();
         droppedHandles.clear();
         updatedHandles.clear();
+        keyTimes.clear();
 
         Map<String, ReplayObject> objs;
         if (selectedObjects != null && selectedOnly.get()) {
@@ -280,48 +223,16 @@ public class CurveEditor extends KeyframePanel {
             objs = scene.getObjects();
         }
 
-        float majorIntervalX = TimelineHeader.computeMajorInterval(zoomFactorX);
+        float majorIntervalX = TimelineHeader.computeMajorInterval(getZoomFactorX());
         float minorIntervalX = majorIntervalX / 2;
 
-        float majorIntervalY = TimelineHeader.computeMajorInterval(zoomFactorY);
+        float majorIntervalY = TimelineHeader.computeMajorInterval(getZoomFactorY());
         float minorIntervalY = majorIntervalY / 2;
-
-        float headerCursorY = ImGui.getCursorPosY();
-        float headerHeight = ImGui.getTextLineHeight() * 2f;
-
-        ImGui.dummy(0, headerHeight);
-        ImGui.sameLine();
 
         /// === BUTTONS ===
 
-        ReplayLabControls.toggleButton(ReplayLabIcons.ICON_ARROW_POINTER, "selectedOnly", selectedOnly,
-                "gui.replaylab.selected_only");
-        ImGui.sameLine();
-
-        ReplayLabControls.toggleButton(ReplayLabIcons.ICON_MAGNET, "snapKeyframes", snapKeyframes,
-                "gui.replaylab.tooltip_snap");
-        ImGui.sameLine();
-        boolean wantsFit = ReplayLabControls.iconButton(ReplayLabIcons.ICON_RESIZE_FULL_ALT, "wantsFit",
-                "gui.replaylab.tooltip_fit");
-
         wantsFit |= ImGui.shortcut(Keybinds.frameSelected());
 
-        boolean wasNormalized = isNormalized();
-
-        ImGui.sameLine();
-        ReplayLabControls.toggleButton(ReplayLabIcons.ICON_ARROWS_V, "normalize", normalized,
-                "gui.replaylab.tooltip_normalize");
-
-
-        /// === CHANNEL LIST ===
-        ImGui.beginChild("channels", 192, -1, false, ImGuiWindowFlags.NoScrollbar);
-        ChannelList.drawChannelList(selectedKeys, objs, 192,
-                ChannelListFlags.SHOW_HIDE | ChannelListFlags.ALLOW_SELECTION
-                        | ChannelListFlags.HIGHLIGHT_SELECTION | ChannelListFlags.SHOW_COLORS);
-        ImGui.endChild();
-
-        ImGui.sameLine();
-        float headerCursorX = ImGui.getCursorPosX();
         float graphHeight = ImGui.getContentRegionAvailY();
 
         float mouseGlobalX = ImGui.getMousePosX();
@@ -337,8 +248,6 @@ public class CurveEditor extends KeyframePanel {
         }
 
         /// === GRAPH ===
-
-        IntSet keyTimes = new IntOpenHashSet();
 
         if (ImGui.beginChild("keygraph", ImGui.getContentRegionAvailX(), graphHeight, false)) {
             float graphX = ImGui.getCursorScreenPosX();
@@ -387,10 +296,10 @@ public class CurveEditor extends KeyframePanel {
                         float factor = (float) Math.pow(2, mWheel * .125);
 
                         if (!ImGui.getIO().getKeyShift()) {
-                            setZoomFactorX(zoomFactorX * factor, mouseXMs);
+                            setZoomFactorX(getZoomFactorX() * factor, mouseXMs);
                         }
                         if (!ImGui.getIO().getKeyCtrl()) {
-                            setZoomFactorY(zoomFactorY * factor, mouseYValue);
+                            setZoomFactorY(getZoomFactorY() * factor, mouseYValue);
                         }
 
                     }
@@ -404,9 +313,9 @@ public class CurveEditor extends KeyframePanel {
                     ImGui.getColorU32(ImGuiCol.FrameBg));
 
             // Amount of milliseconds the graph is wide
-            float widthMs = gWidth / zoomFactorX;
-            float startTick = (float) Math.floor(offsetX / majorIntervalX) * majorIntervalX;
-            float endTick = (float) Math.ceil((offsetX + widthMs) / majorIntervalX) * majorIntervalX;
+            float widthMs = gWidth / getZoomFactorX();
+            float startTick = (float) Math.floor(getOffsetX() / majorIntervalX) * majorIntervalX;
+            float endTick = (float) Math.ceil((getOffsetX() + widthMs) / majorIntervalX) * majorIntervalX;
             int colMajor = replaceAlpha(ImGui.getColorU32(ImGuiCol.Text), 48);
             int colMinor = replaceAlpha(colMajor, 16);
 
@@ -425,10 +334,10 @@ public class CurveEditor extends KeyframePanel {
             }
 
             // Amount of units the graph is tall
-            float heightUnits = gHeight / zoomFactorY;
+            float heightUnits = gHeight / getZoomFactorY();
 
-            double startValue = Math.floor((offsetY - heightUnits) / majorIntervalY) * majorIntervalY;
-            double endValue = Math.ceil(offsetY / majorIntervalY) * majorIntervalY;
+            double startValue = Math.floor((getOffsetY() - heightUnits) / majorIntervalY) * majorIntervalY;
+            double endValue = Math.ceil(getOffsetY() / majorIntervalY) * majorIntervalY;
 
             // Y intervals
             for (double value = startValue; value <= endValue; value += minorIntervalY) {
@@ -810,8 +719,8 @@ public class CurveEditor extends KeyframePanel {
 
                 // Snapping
                 if (snap && smallestKeyDragOffset != null) {
-                    float thresholdX = 8f / zoomFactorX;
-                    float thresholdY = 8f / zoomFactorY;
+                    float thresholdX = 8f / getZoomFactorX();
+                    float thresholdY = 8f / getZoomFactorY();
 
                     // The position of the closest dragged keyframe to the mouse.
                     double smallestOffsetX = smallestKeyDragOffset.offset().x();
@@ -920,15 +829,15 @@ public class CurveEditor extends KeyframePanel {
             /// === PANNING ===
             if (ImGui.isMouseDragging(2)) {
                 if (panStartPos == null && ImGui.isWindowHovered(ImGuiHoveredFlags.ChildWindows)) {
-                    panStartPos = new Vector2d(offsetX, offsetY);
+                    panStartPos = new Vector2d(getOffsetX(), getOffsetY());
                 }
 
                 if (panStartPos != null) {
-                    double dx = ImGui.getMouseDragDeltaX(2) / zoomFactorX;
-                    double dy = ImGui.getMouseDragDeltaY(2) / zoomFactorY;
+                    double dx = ImGui.getMouseDragDeltaX(2) / getZoomFactorX();
+                    double dy = ImGui.getMouseDragDeltaY(2) / getZoomFactorY();
 
-                    offsetX = panStartPos.x() - dx;
-                    offsetY = panStartPos.y() + dy;
+                    setOffsetX(panStartPos.x() - dx);
+                    setOffsetY(panStartPos.y() + dy);
                 }
             } else {
                 panStartPos = null;
@@ -937,15 +846,7 @@ public class CurveEditor extends KeyframePanel {
 
         }
         ImGui.endChild();
-
-        /// === HEADER ===
-        if (!hasFlag(TimelineFlags.NO_HEADER, flags)) {
-            ImGui.setCursorPosX(headerCursorX);
-            ImGui.setCursorPosY(headerCursorY);
-            header.drawHeader(editor, headerHeight, zoomFactorX, (float) offsetX, scene.getLength(), playhead,
-                    graphHeight, keyTimes.toIntArray(), flags);
-        }
-
+        wantsFit = false;
     }
 
     /**
@@ -965,19 +866,19 @@ public class CurveEditor extends KeyframePanel {
     }
 
     private float msToPixelX(double ms) {
-        return (float) ((ms - offsetX) * zoomFactorX);
+        return (float) ((ms - getOffsetX()) * getZoomFactorX());
     }
 
     private float pixelXToMs(float pixel) {
-        return (float) (pixel / zoomFactorX + offsetX);
+        return (float) (pixel / getZoomFactorX() + getOffsetX());
     }
 
     private float valueToPixelY(double value) {
-        return (float) ((offsetY - value) * zoomFactorY);
+        return (float) ((getOffsetY() - value) * getZoomFactorY());
     }
 
     private double pixelYToValue(double pixel) {
-        return offsetY - pixel / zoomFactorY;
+        return getOffsetY() - pixel / getZoomFactorY();
     }
 
     /**

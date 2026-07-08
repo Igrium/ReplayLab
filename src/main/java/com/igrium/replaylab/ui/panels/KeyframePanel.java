@@ -21,6 +21,8 @@ import imgui.flag.ImGuiTableColumnFlags;
 import imgui.flag.ImGuiTableFlags;
 import imgui.type.ImDouble;
 import imgui.type.ImInt;
+import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
+import it.unimi.dsi.fastutil.ints.IntSet;
 import lombok.Getter;
 import lombok.Setter;
 import net.minecraft.util.Identifier;
@@ -36,7 +38,8 @@ import java.util.Map;
  */
 public abstract class KeyframePanel extends UIPanel {
 
-    private static final float MAX_ZOOM = 16f;
+    private static final float MAX_ZOOM_X = 64f;
+    private static final float MAX_ZOOM_Y = 1024f;
 
     @Getter
     private final TimelineHeader header = new TimelineHeader();
@@ -45,7 +48,7 @@ public abstract class KeyframePanel extends UIPanel {
      * All the channels which are currently expanded in the channel list
      */
     @Getter
-    private Collection<String> expandedChannels = Collections.emptyList();
+    private Collection<String> expandedChannels = Collections.emptySet();
 
     @Getter @Setter
     private double offsetX;
@@ -60,11 +63,11 @@ public abstract class KeyframePanel extends UIPanel {
     private float zoomFactorX = 0.1f;
 
     public void setZoomFactorX(float zoomFactorX) {
-        this.zoomFactorX = Math.clamp(0, zoomFactorX, MAX_ZOOM);
+        this.zoomFactorX = Math.clamp(zoomFactorX, 0 , MAX_ZOOM_X);
     }
 
     public void setZoomFactorX(float zoomFactorX, double center) {
-        zoomFactorX = Math.clamp(0, zoomFactorX, MAX_ZOOM);
+        zoomFactorX = Math.clamp(zoomFactorX, 0, MAX_ZOOM_X);
         if (zoomFactorX == this.zoomFactorX) return;
 
         double newOffset = center - (center - offsetX) * (this.zoomFactorX / zoomFactorX);
@@ -72,15 +75,15 @@ public abstract class KeyframePanel extends UIPanel {
         this.offsetX = newOffset;
     }
 
-    @Getter
+    @Getter @Setter
     private float zoomFactorY = 0.1f;
 
-    public void setZoomFactorY(float zoomFactorY) {
-        this.zoomFactorY = Math.clamp(0, zoomFactorY, MAX_ZOOM);
-    }
+//    public void setZoomFactorY(float zoomFactorY) {
+//        this.zoomFactorY = Math.clamp(zoomFactorY, 0, MAX_ZOOM_Y);
+//    }
 
     public void setZoomFactorY(float zoomFactorY, double center) {
-        zoomFactorY = Math.clamp(0, zoomFactorY, MAX_ZOOM);
+//        zoomFactorY = Math.clamp(zoomFactorY, 0, MAX_ZOOM_Y);
 
         double newOffset = center - (center - offsetY) * (this.zoomFactorY / zoomFactorY);
         this.zoomFactorY = zoomFactorY;
@@ -89,8 +92,24 @@ public abstract class KeyframePanel extends UIPanel {
 
     protected int channelListFlags = ChannelListFlags.ALLOW_SELECTION | ChannelListFlags.SHOW_HIDE;
 
+    /**
+     * Every ms timestamp that has a keyframe on it, as of the last time {@link #drawInternal} ran.
+     * Subclasses should clear and repopulate this each time they draw their keyframes; it's used
+     * to snap the playhead to keyframes in the header.
+     */
+    protected final IntSet keyTimes = new IntOpenHashSet();
+
+    private float cachedContentHeight = 100f;
+
     public KeyframePanel(Identifier id) {
         super(id);
+    }
+
+    /**
+     * Flags passed to the header when it's drawn. Override to customize snapping behavior.
+     */
+    protected int getHeaderFlags() {
+        return 0;
     }
 
     public boolean isScrubbing() {
@@ -122,13 +141,16 @@ public abstract class KeyframePanel extends UIPanel {
             // Header
             ImGui.tableNextColumn();
             header.drawHeader(editorState, ImGui.getTextLineHeight() * 2f, getZoomFactorX(), (float) getOffsetX(),
-                    editorState.getScene().getLength(), editorState.getPlayheadRef(), 100, new int[0], 0);
+                    editorState.getScene().getLength(), editorState.getPlayheadRef(), cachedContentHeight,
+                    keyTimes.toIntArray(), getHeaderFlags());
 
             // Channel list
             ImGui.tableNextRow();
+            float rowStartY = ImGui.getCursorPosY();
             ImGui.tableNextColumn();
 
-            ChannelList.drawChannelList(editorState.getKeySelection(), objs, ImGui.getContentRegionAvailX(), channelListFlags);
+            expandedChannels = ChannelList.drawChannelList(editorState.getKeySelection(), objs,
+                    ImGui.getContentRegionAvailX(), channelListFlags);
 
             // Main
             ImGui.tableNextColumn();
@@ -139,6 +161,7 @@ public abstract class KeyframePanel extends UIPanel {
             ImGui.text("Mods");
 
             ImGui.endTable();
+            cachedContentHeight = ImGui.getCursorPosY() - rowStartY;
         }
 
         if (ImGui.shortcut(Keybinds.deleteSelected())) {
