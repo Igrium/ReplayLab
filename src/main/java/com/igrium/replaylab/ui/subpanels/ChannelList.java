@@ -31,7 +31,7 @@ public class ChannelList {
      * @return A collection of all objects which are currently expanded. Needed for the dope sheet.
      */
     public static Collection<String> drawChannelList(KeySelectionSet selection, Map<
-            ? extends String, ? extends ReplayObject> objs, int width, int flags) {
+            ? extends String, ? extends ReplayObject> objs, float width, int flags) {
         Set<String> expandedObjs = new HashSet<>(objs.size());
 
         // Channels which have "toggle visible" clicked (don't allocate until needed)

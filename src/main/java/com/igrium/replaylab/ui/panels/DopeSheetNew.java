@@ -64,13 +64,13 @@ public class DopeSheetNew extends KeyframePanel {
      * The X pan amount in milliseconds
      */
     @Getter
-    @Setter
+    @Setter @Deprecated
     private double offsetX;
 
     /**
      * The amount of pixels per millisecond
      */
-    @Getter
+    @Getter @Deprecated
     private float zoomFactor = 0.1f;
 
     /**
@@ -99,8 +99,6 @@ public class DopeSheetNew extends KeyframePanel {
      */
     private @Nullable KeyOffsetPair smallestKeyDragOffset;
 
-    private final TimelineHeader header = new TimelineHeader();
-
     // Not null if currently panning
     private @Nullable Double panStartPos;
 
@@ -123,14 +121,6 @@ public class DopeSheetNew extends KeyframePanel {
 
     public DopeSheetNew(Identifier id) {
         super(id);
-    }
-
-    public boolean isScrubbing() {
-        return header.isScrubbing();
-    }
-
-    public boolean stoppedScrubbing() {
-        return header.stoppedScrubbing();
     }
 
     public boolean isDragging() {
@@ -164,11 +154,12 @@ public class DopeSheetNew extends KeyframePanel {
     }
 
     @Override
-    protected void drawContents(EditorState editorState) {
-        drawDopeSheet(editorState, editorState.getSelectedObjects(), editorState.getKeySelection(), editorState.getPlayheadRef());
+    protected void drawInternal(EditorState editorState, Map<String, ReplayObject> objects) {
+        drawDopeSheet(editorState, editorState.getSelectedObjects(), editorState.getKeySelection(),
+                editorState.getPlayheadRef());
 
         // Jump forward if playing and off screen
-        double endMs = offsetX + header.getWidthMs();
+        double endMs = offsetX + getHeader().getWidthMs();
         if (editorState.isPlaying() && (editorState.getPlayhead() > endMs || editorState.getPlayhead() < offsetX)) {
             setOffsetX(editorState.getPlayhead());
         }
@@ -177,12 +168,6 @@ public class DopeSheetNew extends KeyframePanel {
         if (isScrubbing() || stoppedScrubbing()) {
             editorState.scrub(stoppedScrubbing());
         }
-//        if (stoppedScrubbing() ||
-//                (isScrubbing() && replayTime > EditorState.getReplayHandlerOrThrow().getReplaySender().currentTimeStamp())) {
-//            editorState.queueTimeJump();
-//        } else if (isScrubbing()) {
-//            editorState.queueApplyToGame();
-//        }
 
         var droppedObjects = getDroppedKeys().stream()
                 .map(KeyframeReference::objectName)
@@ -211,8 +196,21 @@ public class DopeSheetNew extends KeyframePanel {
         if (!keyDragOffsets.isEmpty()) {
             editorState.queueApplyToGame();
         }
+    }
 
-        super.drawContents(editorState);
+    private boolean wantsFit;
+
+    @Override
+    protected void drawControlButtons(EditorState editorState) {
+        ReplayLabControls.toggleButton(ReplayLabIcons.ICON_ARROW_POINTER, "selectedOnly", selectedOnly,
+                "gui.replaylab.selected_only");
+        ImGui.sameLine();
+
+        ReplayLabControls.toggleButton(ReplayLabIcons.ICON_MAGNET, "snapKeyframes", snapKeyframes,
+                "gui.replaylab.tooltip_snap");
+        ImGui.sameLine();
+        wantsFit = ReplayLabControls.iconButton(ReplayLabIcons.ICON_RESIZE_FULL_ALT, "fitKeys",
+                "gui.replaylab.tooltip_fit");
     }
 
     public void drawDopeSheet(EditorState editor, @Nullable Collection<String> selectedObjects,
@@ -237,21 +235,9 @@ public class DopeSheetNew extends KeyframePanel {
         mouseDragging = draggingNow;
 
         float headerCursorY = ImGui.getCursorPosY();
-        float headerHeight = ImGui.getTextLineHeight() * 2f;
 
-        ImGui.dummy(0, headerHeight);
-        ImGui.sameLine();
 
         /// === BUTTONS ===
-        ReplayLabControls.toggleButton(ReplayLabIcons.ICON_ARROW_POINTER, "selectedOnly", selectedOnly,
-                "gui.replaylab.selected_only");
-        ImGui.sameLine();
-
-        ReplayLabControls.toggleButton(ReplayLabIcons.ICON_MAGNET, "snapKeyframes", snapKeyframes,
-                "gui.replaylab.tooltip_snap");
-        ImGui.sameLine();
-        boolean wantsFit = ReplayLabControls.iconButton(ReplayLabIcons.ICON_RESIZE_FULL_ALT, "fitKeys",
-                "gui.replaylab.tooltip_fit");
 
         wantsFit |= ImGui.shortcut(Keybinds.frameSelected());
 
@@ -687,8 +673,10 @@ public class DopeSheetNew extends KeyframePanel {
         /// === HEADER ===
 
         ImGui.setCursorPos(headerCursorX, headerCursorY);
-        header.drawHeader(editor, headerHeight, zoomFactor, (float) offsetX, scene.getLength(), playhead,
-                graphHeight, keyTimes.toIntArray(), TimelineFlags.INVERT_KEY_SNAP);
+//        header.drawHeader(editor, headerHeight, zoomFactor, (float) offsetX, scene.getLength(), playhead,
+//                graphHeight, keyTimes.toIntArray(), TimelineFlags.INVERT_KEY_SNAP);
+
+        wantsFit = false;
     }
 
     /**

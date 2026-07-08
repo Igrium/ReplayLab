@@ -46,8 +46,14 @@ public class CurveEditor extends KeyframePanel {
     /** Pixel radius within which a bezier handle is considered "collapsed" onto its keyframe. */
     private static final float HANDLE_SNAP_THRESHOLD = 12f;
 
+    public CurveEditor(Identifier id) {
+        super(id);
+        channelListFlags |= ChannelListFlags.SHOW_COLORS;
+    }
+
     private final Map<ChannelReference, ChannelExtents> normalizationCache = new HashMap<>();
     private final ImBoolean normalized = new ImBoolean(false);
+
 
     public boolean isNormalized() {
         return normalized.get();
@@ -101,9 +107,6 @@ public class CurveEditor extends KeyframePanel {
      */
     private final Map<KeyHandleReference, Vector2dc> keyDragOffsets = new HashMap<>();
 
-    public CurveEditor(Identifier id) {
-        super(id);
-    }
 
 
     private record KeyOffsetPair(KeyHandleReference ref, Vector2dc offset) { }
@@ -166,14 +169,14 @@ public class CurveEditor extends KeyframePanel {
     /**
      * Modify the zoom of the editor on the X axis, centering it around a supplied point.
      *
-     * @param targetZoom New zoom factor.
+     * @param zoomFactorX New zoom factor.
      * @param center     Point to center around (ms)
      */
-    public void setZoomFactorX(float targetZoom, double center) {
-        if (targetZoom == this.zoomFactorX) return;
+    public void setZoomFactorX(float zoomFactorX, double center) {
+        if (zoomFactorX == this.zoomFactorX) return;
 
-        double newOffsetX = center - (center - offsetX) * (this.zoomFactorX / targetZoom);
-        this.zoomFactorX = targetZoom;
+        double newOffsetX = center - (center - offsetX) * (this.zoomFactorX / zoomFactorX);
+        this.zoomFactorX = zoomFactorX;
         this.offsetX = newOffsetX;
     }
 
@@ -191,7 +194,12 @@ public class CurveEditor extends KeyframePanel {
     }
 
     @Override
-    protected void drawContents(EditorState editorState) {
+    protected void drawControlButtons(EditorState editorState) {
+        ImGui.button("Button");
+    }
+
+    @Override
+    protected void drawInternal(EditorState editorState, Map<String, ReplayObject> objects) {
         drawAndManageHandles(editorState, 0);
         long replayTime = editorState.getScene().sceneToReplayTime(editorState.getPlayhead());
 
@@ -199,7 +207,6 @@ public class CurveEditor extends KeyframePanel {
             editorState.scrub(stoppedScrubbing());
         }
 
-        super.drawContents(editorState);
     }
 
     public void drawAndManageHandles(EditorState editorState, int flags) {

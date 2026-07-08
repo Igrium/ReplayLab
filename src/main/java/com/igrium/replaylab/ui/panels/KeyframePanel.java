@@ -11,26 +11,136 @@ import com.igrium.replaylab.operator.keyframe.SetKeyPosOperator;
 import com.igrium.replaylab.anim.InterpolationMode;
 import com.igrium.replaylab.anim.Keyframe;
 import com.igrium.replaylab.anim.Keyframe.HandleType;
+import com.igrium.replaylab.scene.obj.ReplayObject;
+import com.igrium.replaylab.ui.subpanels.ChannelList;
+import com.igrium.replaylab.ui.subpanels.ChannelListFlags;
+import com.igrium.replaylab.ui.subpanels.TimelineHeader;
 import com.igrium.replaylab.ui.util.ReplayLabControls;
 import imgui.ImGui;
+import imgui.flag.ImGuiTableColumnFlags;
+import imgui.flag.ImGuiTableFlags;
 import imgui.type.ImDouble;
 import imgui.type.ImInt;
+import lombok.Getter;
+import lombok.Setter;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.Language;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 /**
  * A panel designed to render keyframes (auto-listens to hotkeys, etc)
  */
 public abstract class KeyframePanel extends UIPanel {
+
+    private static final float MAX_ZOOM = 16f;
+
+    @Getter
+    private final TimelineHeader header = new TimelineHeader();
+
+    /**
+     * All the channels which are currently expanded in the channel list
+     */
+    @Getter
+    private Collection<String> expandedChannels = Collections.emptyList();
+
+    @Getter @Setter
+    private double offsetX;
+
+    @Getter @Setter
+    private double offsetY;
+
+    /**
+     * The amount of pixels per millisecond
+     */
+    @Getter
+    private float zoomFactorX = 0.1f;
+
+    public void setZoomFactorX(float zoomFactorX) {
+        this.zoomFactorX = Math.clamp(0, zoomFactorX, MAX_ZOOM);
+    }
+
+    public void setZoomFactorX(float zoomFactorX, double center) {
+        zoomFactorX = Math.clamp(0, zoomFactorX, MAX_ZOOM);
+        if (zoomFactorX == this.zoomFactorX) return;
+
+        double newOffset = center - (center - offsetX) * (this.zoomFactorX / zoomFactorX);
+        this.zoomFactorX = zoomFactorX;
+        this.offsetX = newOffset;
+    }
+
+    @Getter
+    private float zoomFactorY = 0.1f;
+
+    public void setZoomFactorY(float zoomFactorY) {
+        this.zoomFactorY = Math.clamp(0, zoomFactorY, MAX_ZOOM);
+    }
+
+    public void setZoomFactorY(float zoomFactorY, double center) {
+        zoomFactorY = Math.clamp(0, zoomFactorY, MAX_ZOOM);
+
+        double newOffset = center - (center - offsetY) * (this.zoomFactorY / zoomFactorY);
+        this.zoomFactorY = zoomFactorY;
+        this.offsetY = newOffset;
+    }
+
+    protected int channelListFlags = ChannelListFlags.ALLOW_SELECTION | ChannelListFlags.SHOW_HIDE;
+
     public KeyframePanel(Identifier id) {
         super(id);
     }
 
+    public boolean isScrubbing() {
+        return header.isScrubbing();
+    }
+
+    public boolean stoppedScrubbing() {
+        return header.stoppedScrubbing();
+    }
+
     @Override
     protected void drawContents(EditorState editorState) {
+
+        int flags = ImGuiTableFlags.Resizable;
+
+        var objs = editorState.getScene().getObjects();
+
+        if (ImGui.beginTable("panelTable", 3, flags)) {
+
+            ImGui.tableSetupColumn("##channels", ImGuiTableColumnFlags.WidthFixed);
+            ImGui.tableSetupColumn("##contents", ImGuiTableColumnFlags.WidthStretch);
+            ImGui.tableSetupColumn("##mods", ImGuiTableColumnFlags.WidthFixed);
+
+            // Control buttons
+            ImGui.tableNextRow();
+            ImGui.tableNextColumn();
+            drawControlButtons(editorState);
+
+            // Header
+            ImGui.tableNextColumn();
+            header.drawHeader(editorState, ImGui.getTextLineHeight() * 2f, getZoomFactorX(), (float) getOffsetX(),
+                    editorState.getScene().getLength(), editorState.getPlayheadRef(), 100, new int[0], 0);
+
+            // Channel list
+            ImGui.tableNextRow();
+            ImGui.tableNextColumn();
+
+            ChannelList.drawChannelList(editorState.getKeySelection(), objs, ImGui.getContentRegionAvailX(), channelListFlags);
+
+            // Main
+            ImGui.tableNextColumn();
+            drawInternal(editorState, editorState.getScene().getObjects());
+
+            // Modifiers
+            ImGui.tableNextColumn();
+            ImGui.text("Mods");
+
+            ImGui.endTable();
+        }
+
         if (ImGui.shortcut(Keybinds.deleteSelected())) {
             // we need to clear selected keyframes
             var selected = editorState.getKeySelection().getSelectedKeyframes();
@@ -55,8 +165,12 @@ public abstract class KeyframePanel extends UIPanel {
             editorState.pasteKeyframes(ImGui.getClipboardText());
         }
 
+
         testAddKeyShortcut(editorState);
     }
+
+    protected abstract void drawControlButtons(EditorState editorState);
+    protected abstract void drawInternal(EditorState editorState, Map<String, ReplayObject> objects);
 
     private static final ImInt tsIn = new ImInt();
     private static final ImDouble doubleIn = new ImDouble();

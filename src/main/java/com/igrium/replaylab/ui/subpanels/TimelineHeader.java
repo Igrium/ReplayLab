@@ -13,7 +13,6 @@ import imgui.ImGui;
 import imgui.ImVec2;
 import imgui.flag.ImGuiCol;
 import imgui.flag.ImGuiMouseButton;
-import imgui.flag.ImGuiWindowFlags;
 import imgui.type.ImInt;
 import it.unimi.dsi.fastutil.floats.FloatUnaryOperator;
 import lombok.Getter;
@@ -237,20 +236,20 @@ public class TimelineHeader {
 
             int color = ImGui.getColorU32(ImGuiCol.CheckMark) | 0xFF000000;
 
-            // Dumb hack to make playhead draw over window properly
-            ImGui.setCursorPos(0, 0);
-            ImGui.beginChild("overlay", ImGui.getContentRegionAvailX(), ImGui.getContentRegionAvailY(), false,
-                    ImGuiWindowFlags.NoBackground | ImGuiWindowFlags.NoInputs);
+            // Draw directly to the foreground draw list in screen space. This avoids
+            // the old beginChild/setCursorPos(0,0) hack, which reset the cursor relative
+            // to the enclosing window/table cell rather than this header, and corrupted
+            // the layout of any table this header was drawn inside of.
+            ImDrawList fgDrawList = ImGui.getForegroundDrawList();
 
             float playheadX = msToPixel.apply(playhead.get()) + cursorX;
             float radius = ImGui.getFontSize() / 2f;
 
-            var drawList2 = ImGui.getWindowDrawList();
             if (playheadX > cursorX) {
-                drawList2.addRectFilled(playheadX - radius, cursorY + headerHeight / 2, playheadX + radius,
+                fgDrawList.addRectFilled(playheadX - radius, cursorY + headerHeight / 2, playheadX + radius,
                         cursorY + headerHeight, color);
                 if (windowHeight > 0) {
-                    drawList2.addLine(playheadX, cursorY + headerHeight, playheadX,
+                    fgDrawList.addLine(playheadX, cursorY + headerHeight, playheadX,
                             cursorY + headerHeight + windowHeight, color);
                 }
             }
@@ -259,11 +258,9 @@ public class TimelineHeader {
                 float x = contextTime >= 0 ? msToPixel.apply(contextTime) + cursorX : ImGui.getMousePosX();
 
                 if (Math.abs(x - playheadX) > 10)
-                    drawList2.addLine(x, cursorY + headerHeight, x, cursorY + headerHeight + windowHeight,
+                    fgDrawList.addLine(x, cursorY + headerHeight, x, cursorY + headerHeight + windowHeight,
                             Colors.BLACK);
             }
-
-            ImGui.endChild();
         }
     }
 
