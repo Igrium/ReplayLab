@@ -1,5 +1,6 @@
 package com.igrium.replaylab.ui;
 
+import com.igrium.replaylab.ui.util.ReplayLabControls;
 import imgui.ImGui;
 import lombok.experimental.UtilityClass;
 import net.minecraft.util.Language;
@@ -28,7 +29,8 @@ public class NoFFmpegPopup {
 
     public static void render() {
         ImGui.text(tt("replaymod.gui.rendering.error.message"));
-        ImGui.text(LINK);
+        ReplayLabControls.hyperlink(LINK, LINK);
+//        ImGui.text(LINK);
 
 //        if (ImGui.button(t("chat.link.open"))) {
 //            Util.getOperatingSystem().open(LINK);

@@ -317,6 +317,11 @@ public class FFmpegEncoder extends EncoderConfig {
         ImGui.setItemTooltip(tt("gui.replaylab.ffmpeg.preset.tooltip"));
     }
 
+    @Override
+    public boolean mayExport() {
+        return hasFFmpeg();
+    }
+
     private static boolean drawComboItem(String label, boolean selected) {
         boolean success = ImGui.selectable(label, selected);
         if (selected) {

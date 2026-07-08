@@ -172,7 +172,7 @@ public class ReplayLabControls {
     }
 
     public static void hyperlink(String text, String link) {
-        ImGui.pushStyleColor(ImGuiCol.Text, ImGuiCol.Button);
+        ImGui.pushStyleColor(ImGuiCol.Text, ImGui.getStyle().getColor(ImGuiCol.ButtonHovered));
         ImGui.text(text);
         ImGui.popStyleColor();
 

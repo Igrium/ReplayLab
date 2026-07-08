@@ -17,6 +17,7 @@ public class ExportWindow {
     public static void open() {
         wantsOpen = true;
     }
+
     public static void drawExportWindow(EditorState editor) {
         if (wantsOpen) {
             ImGui.openPopup("Export Video");
@@ -34,6 +35,7 @@ public class ExportWindow {
             String confirmKey = t("gui.replaylab.file_exists.header");
             String quickModeKey = t("gui.replaylab.quickmode.header");
 
+            ImGui.beginDisabled(!renderSettings.getEncoder().mayExport());
             if (ImGui.button(t("gui.ok"))) {
                 if (editor.isQuickMode()) {
                     ImGui.openPopup(quickModeKey);
@@ -44,6 +46,7 @@ public class ExportWindow {
                     export(editor);
                 }
             }
+            ImGui.endDisabled();
             if (ImGui.beginPopupModal(quickModeKey, ImGuiWindowFlags.AlwaysAutoResize | ImGuiWindowFlags.NoSavedSettings)) {
                 ImGui.text(tt("gui.replaylab.quickmode"));
                 if (ImGui.button(t("gui.ok"))) {

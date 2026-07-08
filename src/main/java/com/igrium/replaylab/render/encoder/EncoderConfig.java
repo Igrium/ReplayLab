@@ -50,6 +50,13 @@ public abstract class EncoderConfig {
         return false;
     }
 
+    /**
+     * If the exporter's current config is valid for export
+     */
+    public boolean mayExport() {
+        return true;
+    }
+
     public void drawProperties(EditorState editor) {
         ImGui.text(Language.getInstance().get("gui.replaylab.encoder.noProps"));
     }
