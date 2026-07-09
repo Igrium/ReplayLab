@@ -30,13 +30,7 @@ public class Inspector extends UIPanel {
 
     protected void drawObjectProperties(ReplayObject object, EditorState editorState) {
         int state = object.drawPropertiesPanel(editorState);
-
-        if (hasFlag(state, ObjectEditState.UPDATE_SCENE)) {
-            editorState.applyToGame(hasFlag(state, ObjectEditState.RESAMPLE) ? o -> true : o -> o != object);
-        }
-        if (hasFlag(state, ObjectEditState.CREATE_UNDO_STEP)) {
-            editorState.applyOperator(new CommitObjectUpdateOperator(false, object.getId()), false);
-        }
+        ObjectEditState.handleUpdate(editorState, object, state);
     }
 
     private static boolean hasFlag(int flags, int flag) {

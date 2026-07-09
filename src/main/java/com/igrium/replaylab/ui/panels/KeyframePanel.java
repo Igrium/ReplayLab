@@ -1,8 +1,11 @@
 package com.igrium.replaylab.ui.panels;
 
+import com.igrium.replaylab.anim.InterpolationMode;
+import com.igrium.replaylab.anim.KeyChannel;
+import com.igrium.replaylab.anim.Keyframe;
+import com.igrium.replaylab.anim.Keyframe.HandleType;
 import com.igrium.replaylab.config.Keybinds;
 import com.igrium.replaylab.editor.EditorState;
-import com.igrium.replaylab.editor.KeySelectionSet;
 import com.igrium.replaylab.editor.KeySelectionSet.ChannelReference;
 import com.igrium.replaylab.editor.KeySelectionSet.KeyHandleReference;
 import com.igrium.replaylab.editor.KeySelectionSet.KeyframeReference;
@@ -10,10 +13,8 @@ import com.igrium.replaylab.operator.keyframe.RemoveKeyframesOperator;
 import com.igrium.replaylab.operator.keyframe.SetHandleTypeOperator;
 import com.igrium.replaylab.operator.keyframe.SetInterpModeOperator;
 import com.igrium.replaylab.operator.keyframe.SetKeyPosOperator;
-import com.igrium.replaylab.anim.InterpolationMode;
-import com.igrium.replaylab.anim.Keyframe;
-import com.igrium.replaylab.anim.Keyframe.HandleType;
 import com.igrium.replaylab.scene.ReplayScene;
+import com.igrium.replaylab.scene.obj.ObjectEditState;
 import com.igrium.replaylab.scene.obj.ReplayObject;
 import com.igrium.replaylab.ui.subpanels.ChannelList;
 import com.igrium.replaylab.ui.subpanels.ChannelListFlags;
@@ -28,6 +29,7 @@ import imgui.type.ImDouble;
 import imgui.type.ImInt;
 import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
 import it.unimi.dsi.fastutil.ints.IntSet;
+import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import lombok.Getter;
 import lombok.Setter;
 import net.minecraft.util.Identifier;
@@ -147,6 +149,20 @@ public abstract class KeyframePanel extends UIPanel {
             objs = scene.getObjects();
         }
 
+        // Don't allocate unless we need it
+        Object2IntMap<String> editStates = null;
+
+        List<ChannelReference> channels;
+        // Shortcut if no keys selected
+        if (editorState.getKeySelection().isEmpty()) {
+            channels = List.of();
+        } else {
+            channels = editorState.getKeySelection()
+                    .streamSelectedChannelRefs()
+                    .filter(chRef -> objs.containsKey(chRef.objectName()))
+                    .toList();
+        }
+
         int flags = ImGuiTableFlags.Resizable;
         if (!separateChannelScrolling) {
             flags |= ImGuiTableFlags.ScrollY;
@@ -170,6 +186,14 @@ public abstract class KeyframePanel extends UIPanel {
             header.drawHeader(editorState, ImGui.getTextLineHeight() * 2f, getZoomFactorX(), (float) getOffsetX(),
                     editorState.getScene().getLength(), editorState.getPlayheadRef(), cachedContentHeight,
                     keyTimes.toIntArray(), getHeaderFlags());
+
+            // Modifiers header
+            ImGui.tableNextColumn();
+
+            ChannelReference selChanRef = channels.size() == 1 ? channels.getFirst() : null;
+            KeyChannel selChannel = selChanRef != null ? selChanRef.get(objs) : null;
+
+            int chanEditState = CurveModifierEditor.drawHeader(editorState, selChannel);
 
 
             // Channel list
@@ -195,21 +219,12 @@ public abstract class KeyframePanel extends UIPanel {
             ImGui.tableNextColumn();
 
             if (ImGui.beginChild("modifiers", ImGui.getContentRegionAvailX(), ImGui.getContentRegionAvailY())) {
-
-                List<ChannelReference> channels;
-                // Shortcut if no keys selected
-                if (editorState.getKeySelection().isEmpty()) {
-                    channels = List.of();
-                } else {
-                    channels = editorState.getKeySelection()
-                            .streamSelectedChannelRefs()
-                            .filter(chRef -> objs.containsKey(chRef.objectName()))
-                            .toList();
-                }
-
-                CurveModifierEditor.drawModifierEditor(editorState, channels.size() == 1
-                        ? channels.getFirst().get(objs) : null);
+                chanEditState |= CurveModifierEditor.drawEditor(editorState, selChannel);
                 ImGui.endChild();
+            }
+
+            if (selChanRef != null && chanEditState != ObjectEditState.NONE) {
+                ObjectEditState.handleUpdate(editorState, objs.get(selChanRef.objectName()), chanEditState);
             }
 
             ImGui.endTable();
@@ -345,7 +360,9 @@ public abstract class KeyframePanel extends UIPanel {
     }
 
 
-
+    private static boolean hasFlag(int flags, int flag) {
+        return (flags & flag) != 0;
+    }
     private static String t(String key) {
         return Language.getInstance().get(key) + "###" + key;
     }

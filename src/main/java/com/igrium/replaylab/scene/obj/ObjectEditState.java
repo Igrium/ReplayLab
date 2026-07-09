@@ -1,5 +1,7 @@
 package com.igrium.replaylab.scene.obj;
 
+import com.igrium.replaylab.editor.EditorState;
+import com.igrium.replaylab.operator.object.CommitObjectUpdateOperator;
 import lombok.experimental.UtilityClass;
 
 /**
@@ -27,4 +29,17 @@ public final class ObjectEditState {
 
 
     public static final int COMMIT = UPDATE_SCENE | CREATE_UNDO_STEP;
+
+    public static void handleUpdate(EditorState editor, ReplayObject object, int state) {
+        if (hasFlag(state, UPDATE_SCENE)) {
+            editor.applyToGame(hasFlag(state, ObjectEditState.RESAMPLE) ? o -> true : o -> o != object);
+        }
+        if (hasFlag(state, ObjectEditState.CREATE_UNDO_STEP)) {
+            editor.applyOperator(new CommitObjectUpdateOperator(false, object.getId()), false);
+        }
+    }
+
+    private static boolean hasFlag(int flags, int flag) {
+        return (flags & flag) != 0;
+    }
 }

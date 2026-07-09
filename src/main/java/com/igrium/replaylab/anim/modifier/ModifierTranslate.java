@@ -3,6 +3,9 @@ package com.igrium.replaylab.anim.modifier;
 import com.google.gson.JsonDeserializationContext;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonSerializationContext;
+import com.igrium.replaylab.editor.EditorState;
+import com.igrium.replaylab.scene.obj.ObjectEditState;
+import imgui.ImGui;
 import it.unimi.dsi.fastutil.doubles.Double2DoubleFunction;
 import lombok.Getter;
 import lombok.Setter;
@@ -21,6 +24,32 @@ public class ModifierTranslate extends CurveModifier {
     @Override
     public double compute(int timestamp, float intensity, Double2DoubleFunction sampler) {
         return sampler.get(timestamp - offsetX * intensity) + offsetY * intensity;
+    }
+
+    private final double[] doubleBuffer = new double[1];
+
+    @Override
+    public int drawPropertiesPanel(EditorState editor) {
+        int flags = 0;
+        doubleBuffer[0] = offsetX;
+        if (ImGui.dragScalar("Time Offset", doubleBuffer)) {
+            offsetX = doubleBuffer[0];
+            flags |= ObjectEditState.RESAMPLE | ObjectEditState.UPDATE_SCENE;
+        }
+        if (ImGui.isItemDeactivatedAfterEdit()) {
+            flags |= ObjectEditState.COMMIT;
+        }
+
+        doubleBuffer[0] = offsetY;
+        if (ImGui.dragScalar("Value Offset", doubleBuffer)) {
+            offsetY = doubleBuffer[0];
+            flags |= ObjectEditState.RESAMPLE |  ObjectEditState.UPDATE_SCENE;
+        }
+        if (ImGui.isItemDeactivatedAfterEdit()) {
+            flags |= ObjectEditState.COMMIT;
+        }
+
+        return flags | super.drawPropertiesPanel(editor);
     }
 
     @Override

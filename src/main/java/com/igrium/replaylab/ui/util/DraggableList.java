@@ -7,6 +7,7 @@ import imgui.flag.ImGuiCol;
 import imgui.flag.ImGuiMouseButton;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
+import lombok.experimental.UtilityClass;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -16,40 +17,32 @@ import java.util.List;
 /**
  * A list of UI controls that can be re-ordered via drag/drop.
  * <p>
- * Begin a re-orderable list with {@link #begin(String)} and end it with {@link #end()}.
- * To draw an item, use {@link #beginItem(String)} and {@link #endItem()}. The latter returns an integer.
- * If it's greater than or equal to zero, this indicates the new index in the list this item should
- * be moved to (the caller is responsible for actually mutating its backing list).
+ * Wrap the list in {@link #begin(String)} / {@link #end()}, and each item in
+ * {@link #beginItem(String)} / {@link #endItem()}. {@code endItem} returns -1 normally, or, on the
+ * frame a drag is released, the index the dragged item should move to. The caller mutates its own
+ * backing list.
  * <p>
- * When the user starts dragging an item, a little black line will appear between the two items it
- * will be placed between. This black line always appears in the closest space to the mouse cursor.
+ * While dragging, an insertion line is drawn in the gap nearest the cursor.
  * <p>
- * The result is reported via an immediate callback (ImGui convention): {@code endItem} returns the
- * target index only on the frame the drag is released, and only for the item that was dragged.
- * All other calls return {@code -1}.
- * <p>
- * Persistent drag state is keyed by the string ID passed to {@link #begin(String)}, mirroring
- * ImGui's own ID-keyed storage, so this class exposes a purely static API.
+ * State lives in a static map keyed by the list's string ID, so the whole API is static.
  */
+@UtilityClass
 public class DraggableList {
 
-    /**
-     * Persistent, per-list state. Keyed by the hashed list ID so the same visual list keeps its
-     * drag state across frames.
-     */
+    // Per-list state, kept between frames.
     private static class State {
-        /** The item the user pressed down on but may not yet be dragging. -1 if none. */
+        // Item the mouse pressed down on, -1 if none.
         int pressedIndex = -1;
-        /** The item currently being dragged. -1 if none. */
+        // Item being dragged, -1 if none.
         int draggingIndex = -1;
-        /** Display label of the item currently being dragged, shown floating by the cursor. */
+        // Label of the dragged item, drawn next to the cursor.
         String draggingLabel;
 
-        /** Item geometry captured on the previous complete frame. */
+        // Item bounds from last frame.
         final List<Float> prevMinYs = new ArrayList<>();
         final List<Float> prevMaxYs = new ArrayList<>();
 
-        // --- Per-frame scratch ---
+        // Scratch for the current frame.
         int currentIndex;
         float itemMinY;
         float listMinX;
@@ -60,14 +53,14 @@ public class DraggableList {
 
     private static final Int2ObjectMap<State> STATES = new Int2ObjectOpenHashMap<>();
 
-    /** Stack of active lists, to support nesting. */
+    // Stack of active lists, so lists can nest.
     private static final Deque<State> STACK = new ArrayDeque<>();
 
     /**
-     * Begin a re-orderable list. Must be paired with {@link #end()}.
+     * Begin a re-orderable list. Pair with {@link #end()}.
      *
-     * @param id A unique ID for this list. As with ImGui labels, text after a {@code ##} marker is
-     *           used for the ID but not displayed.
+     * @param id Unique ID for this list. Like ImGui labels, text after {@code ##} is used for the
+     *           ID but not shown.
      */
     public static void begin(String id) {
         int idHash = imHashStr(id);
@@ -84,10 +77,10 @@ public class DraggableList {
     }
 
     /**
-     * Begin an item. Draw the item's contents between this and {@link #endItem()}.
+     * Begin an item. Draw its contents between this and {@link #endItem()}.
      *
-     * @param label Display label for this item. Shown floating by the cursor while the item is
-     *              dragged. Text after a {@code ##} marker is stripped, as with ImGui labels.
+     * @param label Label for this item, drawn by the cursor while it's dragged. Text after
+     *              {@code ##} is stripped, like ImGui labels.
      */
     public static void beginItem(String label) {
         State state = STACK.peek();
@@ -96,7 +89,7 @@ public class DraggableList {
         }
         state.itemMinY = ImGui.getCursorScreenPosY();
 
-        // Capture the label of the item being dragged so end() can render it near the cursor.
+        // Remember the dragged item's label so end() can draw it by the cursor.
         if (state.currentIndex == state.draggingIndex) {
             state.draggingLabel = label != null ? label.substring(0, findRenderedTextEnd(label)) : null;
         }
@@ -108,9 +101,8 @@ public class DraggableList {
     /**
      * End an item.
      *
-     * @return On the frame the drag is released, and only for the item that was being dragged,
-     * the new index that item should be moved to. {@code -1} in all other cases (including when the
-     * item is dropped back into its original position).
+     * @return The index the dragged item should move to, but only on the frame its drag is released.
+     * {@code -1} otherwise, including when the item is dropped back where it started.
      */
     public static int endItem() {
         State state = STACK.peek();
@@ -130,12 +122,12 @@ public class DraggableList {
 
         boolean hovering = ImGui.isMouseHoveringRect(state.listMinX, min, state.listMaxX, max);
 
-        // Track which item the press started on.
+        // Remember which item the press landed on.
         if (ImGui.isMouseClicked(ImGuiMouseButton.Left) && hovering) {
             state.pressedIndex = index;
         }
 
-        // Promote a press into a drag once the mouse actually moves.
+        // Turn a press into a drag once the mouse moves.
         if (state.pressedIndex == index && state.draggingIndex == -1
                 && ImGui.isMouseDragging(ImGuiMouseButton.Left)) {
             state.draggingIndex = index;
@@ -143,7 +135,7 @@ public class DraggableList {
 
         int result = -1;
 
-        // On release, report the target index for the dragged item.
+        // Report the target index when the drag is released.
         if (state.draggingIndex == index && ImGui.isMouseReleased(ImGuiMouseButton.Left)) {
             int slot = computeInsertionSlot(state.prevMinYs, state.prevMaxYs);
             result = resolveTargetIndex(slot, index);
@@ -166,17 +158,16 @@ public class DraggableList {
             throw new IllegalStateException("Mismatched start/end");
         }
 
-        // Clear stale press/drag state if the mouse was released outside any item.
+        // Clear stale state if the mouse was released outside any item.
         if (ImGui.isMouseReleased(ImGuiMouseButton.Left)) {
             state.pressedIndex = -1;
             state.draggingIndex = -1;
         }
 
-        // Draw drag feedback while dragging.
         if (state.draggingIndex >= 0 && !state.minYs.isEmpty()) {
             ImDrawList drawList = ImGui.getWindowDrawList();
 
-            // (1) Highlight the dragged item's row in place, so it's clear what's moving.
+            // Highlight the dragged row in place.
             if (state.draggingIndex < state.minYs.size()) {
                 float dragMinY = state.minYs.get(state.draggingIndex);
                 float dragMaxY = state.maxYs.get(state.draggingIndex);
@@ -185,7 +176,7 @@ public class DraggableList {
                         ImGui.getColorU32(ImGuiCol.DragDropTarget));
             }
 
-            // Insertion line at the gap closest to the cursor.
+            // Insertion line at the gap nearest the cursor.
             int slot = computeInsertionSlot(state.minYs, state.maxYs);
             float lineY;
             if (slot <= 0) {
@@ -198,22 +189,20 @@ public class DraggableList {
             drawList.addLine(state.listMinX, lineY, state.listMaxX, lineY,
                     ImGui.getColorU32(ImGuiCol.DragDropTarget), 2f);
 
-            // (3) Floating label following the cursor.
+            // Label following the cursor.
             if (state.draggingLabel != null && !state.draggingLabel.isEmpty()) {
                 drawFloatingLabel(state.draggingLabel);
             }
         }
 
-        // Swap geometry into the previous-frame buffers.
+        // Save this frame's bounds for next frame.
         state.prevMinYs.clear();
         state.prevMinYs.addAll(state.minYs);
         state.prevMaxYs.clear();
         state.prevMaxYs.addAll(state.maxYs);
     }
 
-    /**
-     * Compute the insertion slot [0, n] closest to the mouse cursor, given item bounds.
-     */
+    // Returns the insertion slot [0, n] nearest the cursor, given the item bounds.
     private static int computeInsertionSlot(List<Float> minY, List<Float> maxY) {
         float mouseY = ImGui.getMousePosY();
         int slot = 0;
@@ -226,18 +215,14 @@ public class DraggableList {
         return slot;
     }
 
-    /**
-     * Convert an insertion slot into the resulting index of the dragged item, or -1 if it didn't move.
-     */
+    // Turns an insertion slot into the dragged item's new index, or -1 if it didn't move.
     private static int resolveTargetIndex(int slot, int draggedIndex) {
         // Removing the dragged item shifts everything after it down by one.
         int target = (slot > draggedIndex) ? slot - 1 : slot;
         return (target == draggedIndex) ? -1 : target;
     }
 
-    /**
-     * Draw a small floating label near the cursor, mirroring an ImGui tooltip's look.
-     */
+    // Draws a small label by the cursor, styled like an ImGui tooltip.
     private static void drawFloatingLabel(String label) {
         ImDrawList drawList = ImGui.getForegroundDrawList();
 
@@ -281,10 +266,6 @@ public class DraggableList {
             toHash = toHash.substring(idx + 2);
         }
 
-        // Combine with seed. We don't use crc32 here — Java's String.hashCode
-        // is used instead, per instructions. This produces different values
-        // than the C++ version, but that's fine for our purposes.
-        int hash = toHash.hashCode();
-        return hash;
+        return toHash.hashCode();
     }
 }

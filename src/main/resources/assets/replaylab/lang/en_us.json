@@ -51,7 +51,7 @@
 
   "gui.replaylab.one_channel": "Exactly one (1) channel must be selected to edit modifiers",
 
-  "curve_modifier.replaylab.translate": "Translate Curve",
+  "curve_modifier.replaylab.translate": "Translate",
 
   "gui.replaymod.restrict_range": "Restrict Range",
   "gui.replaylab.mod_start": "Start Time",

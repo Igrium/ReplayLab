@@ -66,7 +66,7 @@ public final class EditorState {
 
     /// ===== Static Members =====
 
-    private static final Logger LOGGER = ReplayLab.getLogger("ReplayLabEditorState");
+    private static final Logger LOGGER = ReplayLab.getLogger("ReplayLab/EditorState");
 
     public static @Nullable ReplayHandler getReplayHandler() {
         return ReplayModReplay.instance.getReplayHandler();
@@ -847,7 +847,7 @@ public final class EditorState {
      */
     public void saveScene() throws IllegalStateException, IOException  {
         String name = getSceneName();
-        LOGGER.info("Saving scene '{}'", name);
+        LOGGER.debug("Saving scene '{}'", name);
         if (name == null) {
             throw new IllegalStateException("Scene does not have a name!");
         }
