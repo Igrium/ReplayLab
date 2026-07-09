@@ -86,8 +86,6 @@ public class DopeSheetNew extends KeyframePanel {
 
     private final ImBoolean snapKeyframes = new ImBoolean();
 
-    private final ImBoolean selectedOnly = new ImBoolean(false);
-
     /**
      * The global pixel position of a selection box start position
      */
@@ -110,7 +108,7 @@ public class DopeSheetNew extends KeyframePanel {
 
     @Override
     protected void drawInternal(EditorState editorState, Map<String, ReplayObject> objects) {
-        drawDopeSheet(editorState, editorState.getSelectedObjects(), editorState.getKeySelection(),
+        drawDopeSheet(editorState, objects, editorState.getKeySelection(),
                 editorState.getPlayheadRef());
 
         // Jump forward if playing and off screen
@@ -161,7 +159,7 @@ public class DopeSheetNew extends KeyframePanel {
 
     @Override
     protected void drawControlButtons(EditorState editorState) {
-        ReplayLabControls.toggleButton(ReplayLabIcons.ICON_ARROW_POINTER, "selectedOnly", selectedOnly,
+        ReplayLabControls.toggleButton(ReplayLabIcons.ICON_ARROW_POINTER, "selectedOnly", getSelectedOnlyRef(),
                 "gui.replaylab.selected_only");
         ImGui.sameLine();
 
@@ -172,23 +170,12 @@ public class DopeSheetNew extends KeyframePanel {
                 "gui.replaylab.tooltip_fit");
     }
 
-    public void drawDopeSheet(EditorState editor, @Nullable Collection<String> selectedObjects,
+    public void drawDopeSheet(EditorState editor, Map<String, ReplayObject> objs,
                               KeySelectionSet selectedKeys, @Nullable ImInt playhead) {
         ReplayScene scene = editor.getScene();
         droppedKeys.clear();
         updatedKeys.clear();
         keyTimes.clear();
-        Map<String, ReplayObject> objs;
-        if (selectedObjects != null && selectedOnly.get()) {
-            objs = new HashMap<>(selectedObjects.size());
-            for (var objEntry : scene.getObjects().entrySet()) {
-                if (selectedObjects.contains(objEntry.getKey())) {
-                    objs.put(objEntry.getKey(), objEntry.getValue());
-                }
-            }
-        } else {
-            objs = scene.getObjects();
-        }
 
         boolean draggingNow = ImGui.isMouseDragging(0);
         mouseStartedDragging = draggingNow && !mouseDragging;
@@ -204,7 +191,7 @@ public class DopeSheetNew extends KeyframePanel {
 
         /// === MAIN ===
         // We'll manually implement scrolling so keyframe graph can "consume" it.
-        ImGui.beginChild("main", ImGui.getContentRegionAvailX(), -1, false, ImGuiWindowFlags.NoScrollWithMouse);
+//        ImGui.beginChild("main", ImGui.getContentRegionAvailX(), -1, false, ImGuiWindowFlags.NoScrollWithMouse);
         {
             /// === KEYFRAMES ===
             float graphX = ImGui.getCursorScreenPosX();
@@ -219,7 +206,9 @@ public class DopeSheetNew extends KeyframePanel {
                 ImGui.pushStyleVar(ImGuiStyleVar.ItemSpacing, ImGui.getStyle().getItemSpacingX(), 0);
 
                 ImDrawList drawList = ImGui.getWindowDrawList();
-                drawList.pushClipRect(graphX, graphY, graphX + graphWidth, graphY + graphHeight);
+                // Intersect with the table's current clip rect (rather than replacing it) so this doesn't
+                // override the scroll-aware clipping the table already applies to this column/row.
+                drawList.pushClipRect(graphX, graphY, graphX + graphWidth, graphY + graphHeight, true);
                 int rowIndex = 0;
 
                 for (var objEntry : objs.entrySet()) {
@@ -523,7 +512,7 @@ public class DopeSheetNew extends KeyframePanel {
                 }
             }
         }
-        ImGui.endChild();
+//        ImGui.endChild();
 
         /// === DRAGGING ===
         if (isDragging()) {

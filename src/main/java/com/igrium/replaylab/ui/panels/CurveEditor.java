@@ -44,6 +44,7 @@ public class CurveEditor extends KeyframePanel {
     public CurveEditor(Identifier id) {
         super(id);
         channelListFlags |= ChannelListFlags.SHOW_COLORS | ChannelListFlags.HIGHLIGHT_SELECTION;
+        setSeparateChannelScrolling(true);
     }
 
     private final Map<ChannelReference, ChannelExtents> normalizationCache = new HashMap<>();
@@ -95,8 +96,6 @@ public class CurveEditor extends KeyframePanel {
 
     private final ImBoolean snapKeyframes = new ImBoolean();
 
-    private final ImBoolean selectedOnly = new ImBoolean(false);
-
     private boolean doneInitialFit = false;
 
     private boolean wantsFit;
@@ -122,7 +121,7 @@ public class CurveEditor extends KeyframePanel {
 
     @Override
     protected void drawControlButtons(EditorState editorState) {
-        ReplayLabControls.toggleButton(ReplayLabIcons.ICON_ARROW_POINTER, "selectedOnly", selectedOnly,
+        ReplayLabControls.toggleButton(ReplayLabIcons.ICON_ARROW_POINTER, "selectedOnly", getSelectedOnlyRef(),
                 "gui.replaylab.selected_only");
         ImGui.sameLine();
 
@@ -141,8 +140,7 @@ public class CurveEditor extends KeyframePanel {
 
     @Override
     protected void drawInternal(EditorState editorState, Map<String, ReplayObject> objects) {
-        drawAndManageHandles(editorState, 0);
-        long replayTime = editorState.getScene().sceneToReplayTime(editorState.getPlayhead());
+        drawAndManageHandles(editorState, objects,0);
 
         if (isScrubbing() || stoppedScrubbing()) {
             editorState.scrub(stoppedScrubbing());
@@ -150,8 +148,8 @@ public class CurveEditor extends KeyframePanel {
 
     }
 
-    public void drawAndManageHandles(EditorState editorState, int flags) {
-        drawCurveEditor(editorState, editorState.getSelectedObjects(), editorState.getKeySelection(),
+    public void drawAndManageHandles(EditorState editorState, Map<String, ReplayObject> objs, int flags) {
+        drawCurveEditor(editorState, objs, editorState.getKeySelection(),
                 editorState.getPlayheadRef(), flags);
 
         // Jump forward if playing and off screen
@@ -197,31 +195,18 @@ public class CurveEditor extends KeyframePanel {
      * Draw the curve editor.
      *
      * @param editor          The editor state
-     * @param selectedObjects The objects to display the keyframes of. <code>null</code> to display all objects
      * @param selectedKeys    All keyframe handles which are currently selected.
      *                        Updated as the user selects/deselects keyframes.
      * @param playhead        Current playhead position. Updated as the player scrubs.
      * @param flags           Render flags.
      */
-    public void drawCurveEditor(EditorState editor, @Nullable Collection<String> selectedObjects,
+    public void drawCurveEditor(EditorState editor, Map<String, ReplayObject> objs,
                                 KeySelectionSet selectedKeys, @Nullable ImInt playhead, int flags) {
 
         ReplayScene scene = editor.getScene();
         droppedHandles.clear();
         updatedHandles.clear();
         keyTimes.clear();
-
-        Map<String, ReplayObject> objs;
-        if (selectedObjects != null && selectedOnly.get()) {
-            objs = new HashMap<>(selectedObjects.size());
-            for (var objEntry : scene.getObjects().entrySet()) {
-                if (selectedObjects.contains(objEntry.getKey())) {
-                    objs.put(objEntry.getKey(), objEntry.getValue());
-                }
-            }
-        } else {
-            objs = scene.getObjects();
-        }
 
         float majorIntervalX = TimelineHeader.computeMajorInterval(getZoomFactorX());
         float minorIntervalX = majorIntervalX / 2;

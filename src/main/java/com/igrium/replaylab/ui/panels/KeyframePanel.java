@@ -11,6 +11,7 @@ import com.igrium.replaylab.operator.keyframe.SetKeyPosOperator;
 import com.igrium.replaylab.anim.InterpolationMode;
 import com.igrium.replaylab.anim.Keyframe;
 import com.igrium.replaylab.anim.Keyframe.HandleType;
+import com.igrium.replaylab.scene.ReplayScene;
 import com.igrium.replaylab.scene.obj.ReplayObject;
 import com.igrium.replaylab.ui.subpanels.ChannelList;
 import com.igrium.replaylab.ui.subpanels.ChannelListFlags;
@@ -19,6 +20,7 @@ import com.igrium.replaylab.ui.util.ReplayLabControls;
 import imgui.ImGui;
 import imgui.flag.ImGuiTableColumnFlags;
 import imgui.flag.ImGuiTableFlags;
+import imgui.type.ImBoolean;
 import imgui.type.ImDouble;
 import imgui.type.ImInt;
 import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
@@ -28,10 +30,7 @@ import lombok.Setter;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.Language;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * A panel designed to render keyframes (auto-listens to hotkeys, etc)
@@ -62,6 +61,20 @@ public abstract class KeyframePanel extends UIPanel {
     @Getter
     private float zoomFactorX = 0.1f;
 
+    @Getter @Setter
+    private boolean separateChannelScrolling;
+
+    @Getter
+    private final ImBoolean selectedOnlyRef = new ImBoolean(true);
+
+    public boolean isSelectedOnly() {
+        return selectedOnlyRef.get();
+    }
+
+    public void setSelectedOnly(boolean selectedOnly) {
+        selectedOnlyRef.set(selectedOnly);
+    }
+
     public void setZoomFactorX(float zoomFactorX) {
         this.zoomFactorX = Math.clamp(zoomFactorX, 0 , MAX_ZOOM_X);
     }
@@ -77,14 +90,7 @@ public abstract class KeyframePanel extends UIPanel {
 
     @Getter @Setter
     private float zoomFactorY = 0.1f;
-
-//    public void setZoomFactorY(float zoomFactorY) {
-//        this.zoomFactorY = Math.clamp(zoomFactorY, 0, MAX_ZOOM_Y);
-//    }
-
     public void setZoomFactorY(float zoomFactorY, double center) {
-//        zoomFactorY = Math.clamp(zoomFactorY, 0, MAX_ZOOM_Y);
-
         double newOffset = center - (center - offsetY) * (this.zoomFactorY / zoomFactorY);
         this.zoomFactorY = zoomFactorY;
         this.offsetY = newOffset;
@@ -123,15 +129,33 @@ public abstract class KeyframePanel extends UIPanel {
     @Override
     protected void drawContents(EditorState editorState) {
 
+
+        ReplayScene scene = editorState.getScene();
+
+        Map<String, ReplayObject> objs;
+        if (isSelectedOnly()) {
+            objs = new HashMap<>(scene.getObjects().size());
+            for (var entry : scene.getObjects().entrySet()) {
+                if (editorState.isObjectSelected(entry.getKey())) {
+                    objs.put(entry.getKey(), entry.getValue());
+                }
+            }
+        } else {
+            objs = scene.getObjects();
+        }
+
         int flags = ImGuiTableFlags.Resizable;
-
-        var objs = editorState.getScene().getObjects();
-
-        if (ImGui.beginTable("panelTable", 3, flags)) {
+        if (!separateChannelScrolling) {
+            flags |= ImGuiTableFlags.ScrollY;
+        }
+        if (ImGui.beginTable("panelTable", 3, flags, ImGui.getContentRegionAvailX(), ImGui.getContentRegionAvailY())) {
 
             ImGui.tableSetupColumn("##channels", ImGuiTableColumnFlags.WidthFixed);
             ImGui.tableSetupColumn("##contents", ImGuiTableColumnFlags.WidthStretch);
             ImGui.tableSetupColumn("##mods", ImGuiTableColumnFlags.WidthFixed);
+
+            ImGui.tableSetupScrollFreeze(0, 1);
+
 
             // Control buttons
             ImGui.tableNextRow();
@@ -144,17 +168,25 @@ public abstract class KeyframePanel extends UIPanel {
                     editorState.getScene().getLength(), editorState.getPlayheadRef(), cachedContentHeight,
                     keyTimes.toIntArray(), getHeaderFlags());
 
+
             // Channel list
             ImGui.tableNextRow();
             float rowStartY = ImGui.getCursorPosY();
             ImGui.tableNextColumn();
 
-            expandedChannels = ChannelList.drawChannelList(editorState.getKeySelection(), objs,
-                    ImGui.getContentRegionAvailX(), channelListFlags);
+            if (separateChannelScrolling && ImGui.beginChild("channels",
+                    ImGui.getContentRegionAvailX(), ImGui.getContentRegionAvailY())) {
+                expandedChannels = ChannelList.drawChannelList(editorState.getKeySelection(), objs,
+                        ImGui.getContentRegionAvailX(), channelListFlags);
+                ImGui.endChild();
+            } else {
+                expandedChannels = ChannelList.drawChannelList(editorState.getKeySelection(), objs,
+                        ImGui.getContentRegionAvailX(), channelListFlags);
+            }
 
             // Main
             ImGui.tableNextColumn();
-            drawInternal(editorState, editorState.getScene().getObjects());
+            drawInternal(editorState, objs);
 
             // Modifiers
             ImGui.tableNextColumn();
