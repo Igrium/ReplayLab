@@ -5,6 +5,7 @@ import com.igrium.replaylab.editor.EditorState;
 import com.igrium.replaylab.scene.obj.ObjectEditState;
 import com.igrium.replaylab.ui.util.ReplayLabControls;
 import imgui.ImGui;
+import imgui.flag.ImGuiTreeNodeFlags;
 import imgui.type.ImBoolean;
 import imgui.type.ImInt;
 import it.unimi.dsi.fastutil.doubles.Double2DoubleFunction;
@@ -97,31 +98,38 @@ public abstract class CurveModifier {
 
         ImGui.separator();
 
+        ImGui.alignTextToFramePadding();
+        boolean open = ImGui.treeNodeEx("##", ImGuiTreeNodeFlags.AllowItemOverlap);
+        ImGui.sameLine();
+
         tmpBool.set(isRestrictRange());
         if (ImGui.checkbox(t("gui.replaymod.restrict_range"), tmpBool)) {
             setRestrictRange(tmpBool.get());
             flags |= ObjectEditState.RESAMPLE | ObjectEditState.COMMIT;
         }
 
-        ImGui.beginDisabled(!isRestrictRange());
+        if (open) {
+            ImGui.beginDisabled(!isRestrictRange());
 
-        tmpInt.set(start);
-        flags |= rangeInput(t("gui.replaylab.mod_start"), tmpInt);
-        start = tmpInt.get();
+            tmpInt.set(start);
+            flags |= rangeInput(t("gui.replaylab.mod_start"), tmpInt);
+            start = tmpInt.get();
 
-        tmpInt.set(end);
-        flags |= rangeInput(t("gui.replaylab.mod_end"), tmpInt);
-        end = tmpInt.get();
+            tmpInt.set(end);
+            flags |= rangeInput(t("gui.replaylab.mod_end"), tmpInt);
+            end = tmpInt.get();
 
-        tmpInt.set(blendIn);
-        flags |= rangeInput(t("gui.replaylab.mod_in"), tmpInt);
-        blendIn = tmpInt.get();
+            tmpInt.set(blendIn);
+            flags |= rangeInput(t("gui.replaylab.mod_in"), tmpInt);
+            blendIn = tmpInt.get();
 
-        tmpInt.set(blendOut);
-        flags |= rangeInput(t("gui.replaylab.mod_out"), tmpInt);
-        blendOut = tmpInt.get();
+            tmpInt.set(blendOut);
+            flags |= rangeInput(t("gui.replaylab.mod_out"), tmpInt);
+            blendOut = tmpInt.get();
 
-        ImGui.endDisabled();
+            ImGui.endDisabled();
+            ImGui.treePop();
+        }
 
         return flags;
     }

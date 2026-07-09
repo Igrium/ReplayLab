@@ -36,6 +36,10 @@ public class CurveModifierType<T extends CurveModifier> {
         return id;
     }
 
+    public String getTranslationKey() {
+        return getId().toTranslationKey("curve_modifier");
+    }
+
     public static CurveModifier fromJson(JsonObject json, JsonDeserializationContext context) {
         if (!json.has("type")) {
             throw new JsonParseException("Invalid json object. Missing 'type'");

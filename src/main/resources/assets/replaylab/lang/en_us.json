@@ -49,6 +49,10 @@
   "gui.replaylab.tooltip_normalize": "Normalize Curves",
   "gui.replaylab.selected_only": "Only show selected objects",
 
+  "gui.replaylab.one_channel": "Exactly one (1) channel must be selected to edit modifiers",
+
+  "curve_modifier.replaylab.translate": "Translate Curve",
+
   "gui.replaymod.restrict_range": "Restrict Range",
   "gui.replaylab.mod_start": "Start Time",
   "gui.replaylab.mod_end": "End Time",

@@ -2,6 +2,8 @@ package com.igrium.replaylab.ui.panels;
 
 import com.igrium.replaylab.config.Keybinds;
 import com.igrium.replaylab.editor.EditorState;
+import com.igrium.replaylab.editor.KeySelectionSet;
+import com.igrium.replaylab.editor.KeySelectionSet.ChannelReference;
 import com.igrium.replaylab.editor.KeySelectionSet.KeyHandleReference;
 import com.igrium.replaylab.editor.KeySelectionSet.KeyframeReference;
 import com.igrium.replaylab.operator.keyframe.RemoveKeyframesOperator;
@@ -15,6 +17,7 @@ import com.igrium.replaylab.scene.ReplayScene;
 import com.igrium.replaylab.scene.obj.ReplayObject;
 import com.igrium.replaylab.ui.subpanels.ChannelList;
 import com.igrium.replaylab.ui.subpanels.ChannelListFlags;
+import com.igrium.replaylab.ui.subpanels.CurveModifierEditor;
 import com.igrium.replaylab.ui.subpanels.TimelineHeader;
 import com.igrium.replaylab.ui.util.ReplayLabControls;
 import imgui.ImGui;
@@ -190,7 +193,24 @@ public abstract class KeyframePanel extends UIPanel {
 
             // Modifiers
             ImGui.tableNextColumn();
-            ImGui.text("Mods");
+
+            if (ImGui.beginChild("modifiers", ImGui.getContentRegionAvailX(), ImGui.getContentRegionAvailY())) {
+
+                List<ChannelReference> channels;
+                // Shortcut if no keys selected
+                if (editorState.getKeySelection().isEmpty()) {
+                    channels = List.of();
+                } else {
+                    channels = editorState.getKeySelection()
+                            .streamSelectedChannelRefs()
+                            .filter(chRef -> objs.containsKey(chRef.objectName()))
+                            .toList();
+                }
+
+                CurveModifierEditor.drawModifierEditor(editorState, channels.size() == 1
+                        ? channels.getFirst().get(objs) : null);
+                ImGui.endChild();
+            }
 
             ImGui.endTable();
             cachedContentHeight = ImGui.getCursorPosY() - rowStartY;

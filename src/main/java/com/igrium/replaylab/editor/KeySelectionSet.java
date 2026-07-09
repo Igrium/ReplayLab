@@ -12,6 +12,7 @@ import org.joml.Vector2dc;
 import java.util.*;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+import java.util.stream.Stream;
 
 /**
  * Provides easy access to a set of selected object, keyframes, and then keyframe handles
@@ -172,6 +173,13 @@ public class KeySelectionSet {
     }
 
     /**
+     * Stream every object with a selected element.
+     */
+    public Stream<String> streamSelectedObjects() {
+        return selected.keySet().stream();
+    }
+
+    /**
      * Iterate over every channel in an object with a selected element.
      *
      * @param object Object to iterate through.
@@ -196,6 +204,16 @@ public class KeySelectionSet {
     }
 
     /**
+     * Stream every channel in an object with a selected element.
+     *
+     * @param object Object to iterate through.
+     */
+    public Stream<String> streamSelectedChannels(String object) {
+        var map = selected.get(object);
+        return map != null ? map.keySet().stream() : Stream.of();
+    }
+
+    /**
      * Iterate over every channel in the scene with a selected element.
      *
      * @param c A consumer that accepts an object and its selected channels.
@@ -215,6 +233,23 @@ public class KeySelectionSet {
         Map<String, Set<String>> dest = new HashMap<>();
         forSelectedChannels(dest::put);
         return dest;
+    }
+
+    /**
+     * Stream a reference to every channel in the scene with a selected element.
+     */
+    public Stream<ChannelReference> streamSelectedChannelRefs() {
+        return selected.entrySet().stream().flatMap(objEntry ->
+                objEntry.getValue().keySet().stream().map(ch -> new ChannelReference(objEntry.getKey(), ch)));
+    }
+
+    /**
+     * Get a reference to every channel in the scene with a selected element.
+     *
+     * @return A collection of selected channel references.
+     */
+    public Collection<ChannelReference> getSelectedChannelRefs() {
+        return streamSelectedChannelRefs().toList();
     }
 
     /**
@@ -273,6 +308,15 @@ public class KeySelectionSet {
         Set<KeyframeReference> dest = new HashSet<>();
         forSelectedKeyframes(dest::add);
         return dest;
+    }
+
+    /**
+     * Stream a reference to every selected keyframe in the scene.
+     */
+    public Stream<KeyframeReference> streamSelectedKeyframes() {
+        return streamSelectedChannelRefs().flatMap(chRef ->
+                getSelectedKeyframes(chRef.objectName(), chRef.channelName()).intStream()
+                        .mapToObj(keyIdx -> new KeyframeReference(chRef, keyIdx)));
     }
 
 
@@ -335,6 +379,15 @@ public class KeySelectionSet {
         Set<KeyHandleReference> dest = new HashSet<>();
         forSelectedHandles(dest::add);
         return dest;
+    }
+
+    /**
+     * Stream a reference to every selected handle in the scene.
+     */
+    public Stream<KeyHandleReference> streamSelectedHandles() {
+        return streamSelectedKeyframes().flatMap(keyRef ->
+                getSelectedHandles(keyRef.objectName(), keyRef.channelName()).get(keyRef.keyIndex()).intStream()
+                        .mapToObj(handleIdx -> new KeyHandleReference(keyRef, handleIdx)));
     }
 
     /**
