@@ -48,7 +48,7 @@ public abstract class CurveModifier {
      * @return The sampled value
      * @implNote <b>May be called on any thread!</b> Implementations must ensure thread-safety
      */
-    public abstract double compute(int timestamp, float intensity, Double2DoubleFunction sampler);
+    public abstract double compute(double timestamp, float intensity, Double2DoubleFunction sampler);
 
     /**
      * Compute and apply this modifier
@@ -58,7 +58,7 @@ public abstract class CurveModifier {
      * @return The sampled value
      * @implNote <b>May be called on any thread!</b> Implementations must ensure thread-safety
      */
-    public final double compute(int timestamp, Double2DoubleFunction sampler) {
+    public final double compute(double timestamp, Double2DoubleFunction sampler) {
         float intensity;
         if (isRestrictRange()) {
             if (timestamp <= start || timestamp >= end) {

@@ -220,7 +220,7 @@ public abstract class ReplayObject {
     public void sample(int timestamp) {
         for (var entry : channels.entrySet()) {
             if (!entry.getValue().getKeyframes().isEmpty()) {
-                double val = entry.getValue().sample(timestamp);
+                double val = entry.getValue().sample(timestamp, true);
                 sampledValues.put(entry.getKey(), val);
                 setProperty(entry.getKey(), val);
             }

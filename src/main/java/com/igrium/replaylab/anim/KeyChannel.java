@@ -5,6 +5,7 @@ import com.google.gson.*;
 import com.google.gson.annotations.JsonAdapter;
 import com.igrium.replaylab.ReplayLab;
 import com.igrium.replaylab.anim.modifier.CurveModifier;
+import com.igrium.replaylab.anim.modifier.CurveModifierSampler;
 import com.igrium.replaylab.anim.modifier.CurveModifierType;
 import com.igrium.replaylab.config.ReplayLabConfig;
 import com.igrium.replaylab.editor.KeySelectionSet;
@@ -49,7 +50,7 @@ public final class KeyChannel {
         this(new ArrayList<>(), new ArrayList<>());
     }
 
-    protected KeyChannel(List<Keyframe> keyframes, List<CurveModifier> modifiers) {
+    KeyChannel(List<Keyframe> keyframes, List<CurveModifier> modifiers) {
         this.keyframes = keyframes;
         this.modifiers = modifiers;
     }
@@ -145,20 +146,28 @@ public final class KeyChannel {
         selection.remapSelection(objName, chName, newIndexMapping);
     }
 
+
     /**
      * Sample the curve at a given timestamp.
      *
      * @param timestamp Timestamp to sample at.
      * @return The scalar value of the curve at that time.
      */
-    public double sample(int timestamp) {
+    public double sample(int timestamp, boolean includeModifiers) {
         // Because of how selections are handled, we need to ensure the keyframe list is sorted each frame (boo)
         // Optimizations in the dope sheet should ensure that they're usually pre-sorted, so we just need to check.
         Keyframe[] keys = this.keyframes.toArray(Keyframe[]::new);
         Arrays.sort(keys);
-        return sample(keys, timestamp);
+
+        if (includeModifiers && !modifiers.isEmpty()) {
+            CurveModifierSampler sampler = new CurveModifierSampler(modifiers, ts -> sample(keys, (int) ts));
+            return sampler.sample(timestamp);
+        } else {
+            return sample(keys, timestamp);
+        }
 
     }
+
 
     /**
      * Sample a channel curve at a given point

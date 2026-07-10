@@ -10,6 +10,9 @@ import com.igrium.replaylab.anim.Keyframe;
 import com.igrium.replaylab.scene.obj.ObjectEditState;
 import com.igrium.replaylab.scene.obj.ReplayObject;
 import com.igrium.replaylab.scene.obj.ReplayObjectType;
+import com.igrium.replaylab.ui.util.KeyWidgets;
+import com.igrium.replaylab.ui.util.PropertyWidgets;
+import com.igrium.replaylab.ui.util.ReplayLabControls;
 import imgui.ImGui;
 import lombok.Getter;
 import lombok.Setter;
@@ -50,13 +53,17 @@ public class DummyReplayObject extends ReplayObject {
         int flags = 0;
         dummyValInput[0] = getDummyValue();
 
-        if (ImGui.dragScalar("Dummy Value", dummyValInput)) {
-            flags |= ObjectEditState.UPDATE_SCENE;
-            setDummyValue(dummyValInput[0]);
-        }
-        if (ImGui.isItemDeactivatedAfterEdit()) {
-            flags |= ObjectEditState.COMMIT;
-        }
+        KeyWidgets.WidgetState state = PropertyWidgets.dragFloatN(this, "Dummy Value", 1, editor.getPlayhead(), "dummyValue");
+        if (state.isUpdated()) flags |= ObjectEditState.UPDATE_SCENE;
+        if (state.isDropped()) flags |= ObjectEditState.CREATE_UNDO_STEP;
+
+//        if (ImGui.dragScalar("Dummy Value", dummyValInput)) {
+//            flags |= ObjectEditState.UPDATE_SCENE;
+//            setDummyValue(dummyValInput[0]);
+//        }
+//        if (ImGui.isItemDeactivatedAfterEdit()) {
+//            flags |= ObjectEditState.COMMIT;
+//        }
 
         if (ImGui.button("Add test modifier")) {
             var mod = CurveModifierType.TRANSLATE.create();

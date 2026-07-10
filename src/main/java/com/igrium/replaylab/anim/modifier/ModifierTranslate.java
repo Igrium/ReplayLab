@@ -22,7 +22,7 @@ public class ModifierTranslate extends CurveModifier {
     }
 
     @Override
-    public double compute(int timestamp, float intensity, Double2DoubleFunction sampler) {
+    public double compute(double timestamp, float intensity, Double2DoubleFunction sampler) {
         return sampler.get(timestamp - offsetX * intensity) + offsetY * intensity;
     }
 
