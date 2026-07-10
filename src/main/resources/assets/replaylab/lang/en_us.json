@@ -50,6 +50,8 @@
   "gui.replaylab.selected_only": "Only show selected objects",
 
   "gui.replaylab.one_channel": "Exactly one (1) channel must be selected to edit modifiers",
+  "gui.replaylab.no_mods": "This channel has no modifiers",
+  "gui.replaylab.add_mod": "Add Modifier",
 
   "curve_modifier.replaylab.translate": "Translate",
 

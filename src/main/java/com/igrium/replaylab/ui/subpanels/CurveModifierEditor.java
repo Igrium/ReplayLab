@@ -1,8 +1,14 @@
 package com.igrium.replaylab.ui.subpanels;
 
+import com.igrium.craftui.CraftUI;
+import com.igrium.craftui.MaterialIcons;
 import com.igrium.replaylab.anim.KeyChannel;
 import com.igrium.replaylab.anim.modifier.CurveModifier;
+import com.igrium.replaylab.anim.modifier.CurveModifierType;
 import com.igrium.replaylab.editor.EditorState;
+import com.igrium.replaylab.editor.KeySelectionSet.ChannelReference;
+import com.igrium.replaylab.operator.keyframe.AddModifierOperator;
+import com.igrium.replaylab.operator.keyframe.RemoveModifierOperator;
 import com.igrium.replaylab.scene.obj.ObjectEditState;
 import com.igrium.replaylab.ui.util.DraggableList;
 import imgui.ImGui;
@@ -14,16 +20,19 @@ import org.jetbrains.annotations.Nullable;
 @UtilityClass
 public class CurveModifierEditor {
 
-    public static int drawHeader(EditorState editorState, @Nullable KeyChannel channel) {
+    public static int drawHeader(EditorState editorState, @Nullable ChannelReference chRef, @Nullable KeyChannel channel) {
         ImGui.beginDisabled(channel == null);
 
-        ImGui.button("+");
+        if (ImGui.beginCombo("##addMod", t("gui.replaylab.add_mod"))) {
+            drawAddModifier(editorState, chRef);
+            ImGui.endCombo();
+        }
 
         ImGui.endDisabled();
         return 0;
     }
 
-    public static int drawEditor(EditorState editorState, @Nullable KeyChannel channel) {
+    public static int drawEditor(EditorState editorState, @Nullable ChannelReference chRef, @Nullable KeyChannel channel) {
         int flags = ObjectEditState.NONE;
 
         if (channel == null) {
@@ -35,12 +44,22 @@ public class CurveModifierEditor {
         // Duplicate to avoid concurrent modification
         CurveModifier[] mods = channel.getModifiers().toArray(CurveModifier[]::new);
 
+        int toDelete = -1;
         for (int i = 0; i < mods.length; i++) {
             String key = tt(mods[i].getType().getTranslationKey()) + "###" + i;
 
             DraggableList.beginItem(key);
-            if (ImGui.collapsingHeader(key, ImGuiTreeNodeFlags.DefaultOpen)) {
+            float buttonSize = ImGui.getFrameHeight();
+            ImGui.setNextItemAllowOverlap();
+            boolean open = ImGui.collapsingHeader(key, ImGuiTreeNodeFlags.DefaultOpen);
+            ImGui.sameLine(ImGui.getContentRegionAvailX() - buttonSize);
+            if (ImGui.button("" + MaterialIcons.ICON_DELETE)) {
+                toDelete = i;
+            }
+            if (open) {
+                ImGui.indent();
                 flags |= mods[i].drawPropertiesPanel(editorState);
+                ImGui.unindent();
             }
             int targetPos = DraggableList.endItem();
 
@@ -51,12 +70,28 @@ public class CurveModifierEditor {
                 flags |= ObjectEditState.COMMIT | ObjectEditState.RESAMPLE;
             }
         }
-
         DraggableList.end();
+
+        if (toDelete >= 0 && chRef != null) {
+            editorState.applyOperator(new RemoveModifierOperator(chRef, toDelete));
+        }
         return flags;
+    }
+
+    private static void drawAddModifier(EditorState editor, @Nullable ChannelReference ref) {
+        for (var type : CurveModifierType.REGISTRY.values()) {
+            assert type != null; // Idea's null checking can get a little over-eager
+            if (ImGui.selectable(t(type.getTranslationKey())) && ref != null) {
+                editor.applyOperator(new AddModifierOperator(ref, type.create()));
+            }
+        }
     }
 
     private static String tt(String key) {
         return Language.getInstance().get(key);
+    }
+
+    private static String t(String key) {
+        return Language.getInstance().get(key) + "###" + key;
     }
 }

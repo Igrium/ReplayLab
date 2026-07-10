@@ -193,8 +193,7 @@ public abstract class KeyframePanel extends UIPanel {
             ChannelReference selChanRef = channels.size() == 1 ? channels.getFirst() : null;
             KeyChannel selChannel = selChanRef != null ? selChanRef.get(objs) : null;
 
-            int chanEditState = CurveModifierEditor.drawHeader(editorState, selChannel);
-
+            int chanEditState = CurveModifierEditor.drawHeader(editorState, selChanRef, selChannel);
 
             // Channel list
             ImGui.tableNextRow();
@@ -219,7 +218,7 @@ public abstract class KeyframePanel extends UIPanel {
             ImGui.tableNextColumn();
 
             if (ImGui.beginChild("modifiers", ImGui.getContentRegionAvailX(), ImGui.getContentRegionAvailY())) {
-                chanEditState |= CurveModifierEditor.drawEditor(editorState, selChannel);
+                chanEditState |= CurveModifierEditor.drawEditor(editorState, selChanRef, selChannel);
                 ImGui.endChild();
             }
 

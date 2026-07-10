@@ -5,14 +5,18 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonSerializationContext;
 import com.igrium.replaylab.editor.EditorState;
 import com.igrium.replaylab.scene.obj.ObjectEditState;
+import com.igrium.replaylab.ui.util.ReplayLabControls;
 import imgui.ImGui;
+import imgui.type.ImInt;
 import it.unimi.dsi.fastutil.doubles.Double2DoubleFunction;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.nio.IntBuffer;
+
 public class ModifierTranslate extends CurveModifier {
     @Getter @Setter
-    private double offsetX;
+    private int offsetX;
 
     @Getter @Setter
     private double offsetY;
@@ -26,14 +30,15 @@ public class ModifierTranslate extends CurveModifier {
         return sampler.get(timestamp - offsetX * intensity) + offsetY * intensity;
     }
 
+    private final ImInt intBuffer = new ImInt();
     private final double[] doubleBuffer = new double[1];
 
     @Override
     public int drawPropertiesPanel(EditorState editor) {
         int flags = 0;
-        doubleBuffer[0] = offsetX;
-        if (ImGui.dragScalar("Time Offset", doubleBuffer)) {
-            offsetX = doubleBuffer[0];
+        intBuffer.set(offsetX);
+        if (ReplayLabControls.inputTimestamp("Time Offset", intBuffer)) {
+            offsetX = intBuffer.get();
             flags |= ObjectEditState.RESAMPLE | ObjectEditState.UPDATE_SCENE;
         }
         if (ImGui.isItemDeactivatedAfterEdit()) {
@@ -56,7 +61,7 @@ public class ModifierTranslate extends CurveModifier {
     public void readJson(JsonObject json, JsonDeserializationContext context) {
         super.readJson(json, context);
         if (json.has("offsetX")) {
-            this.offsetX = json.get("offsetX").getAsDouble();
+            this.offsetX = json.get("offsetX").getAsInt();
         }
 
         if (json.has("offsetY")) {
