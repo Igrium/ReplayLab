@@ -25,7 +25,6 @@ import imgui.type.ImBoolean;
 import imgui.type.ImInt;
 import lombok.Getter;
 import net.minecraft.util.Identifier;
-import net.minecraft.util.Language;
 import net.minecraft.util.math.ColorHelper;
 import org.jetbrains.annotations.Nullable;
 import org.joml.*;
@@ -99,6 +98,12 @@ public class CurveEditor extends KeyframePanel {
     private boolean doneInitialFit = false;
 
     private boolean wantsFit;
+
+    // Tracks whether the mouse was already dragging last frame, so we only
+    // start a new drag on the exact frame dragging begins (matching DopeSheetNew).
+    // Otherwise a drag started outside this panel and moved in while still held
+    // would be picked up here and start moving the selected keyframe.
+    private boolean mouseWasDragging;
 
 
     /**
@@ -353,9 +358,7 @@ public class CurveEditor extends KeyframePanel {
                     if (chEntry.getValue().isHidden())
                         continue;
 
-                    // Don't allocate new ChannelReference unless we need to
-                    ChannelExtents extents = isNormalized() ?
-                            normalizationCache.get(new ChannelReference(objName, chEntry.getKey())) : null;
+                    ChannelExtents extents = getExtents(objName, chEntry.getKey());
 
                     int chColor = obj.getChannelColor(chEntry.getKey());
                     boolean chSelected = selectedKeys.isChannelSelected(objName, chEntry.getKey());
@@ -390,28 +393,29 @@ public class CurveEditor extends KeyframePanel {
                             double displayA = rawToDisplay(key.getGlobalAY(), extents);
                             float handleAY = valueToPixelY(displayA) + graphY;
 
-                            drawList.addCircle(handleAX, handleAY, 3f, lSelected ? selColor : handleEndColor);
-
                             float handleBX = msToPixelX(key.getGlobalBX()) + graphX;
                             double displayB = rawToDisplay(key.getGlobalBY(), extents);
                             float handleBY = valueToPixelY(displayB) + graphY;
 
-                            drawList.addCircle(handleBX, handleBY, 3f, rSelected ? selColor : handleEndColor);
+                            if (chSelected) {
+                                int lColor = getHandleColor(key.getHandleAType());
+                                if (!(lSelected || cSelected)) {
+                                    lColor = replaceAlpha(lColor, 63);
+                                }
 
-                            int lColor = getHandleColor(key.getHandleAType());
-                            if (!(lSelected || cSelected)) {
-                                lColor = replaceAlpha(lColor, 63);
+                                int rColor = getHandleColor(key.getHandleBType());
+                                if (!(rSelected || cSelected)) {
+                                    rColor = replaceAlpha(rColor, 63);
+                                }
+
+
+                                drawList.addCircle(handleAX, handleAY, 3f, lSelected ? selColor : handleEndColor);
+                                drawList.addCircle(handleBX, handleBY, 3f, rSelected ? selColor : handleEndColor);
+
+                                drawList.addLine(handleAX, handleAY, keyX, keyY, lColor);
+                                drawList.addLine(handleBX, handleBY, keyX, keyY, rColor);
                             }
 
-                            int rColor = getHandleColor(key.getHandleBType());
-                            if (!(rSelected || cSelected)) {
-                                rColor = replaceAlpha(rColor, 63);
-                            }
-
-                            drawList.addLine(handleAX, handleAY, keyX, keyY, lColor);
-                            drawList.addLine(handleBX, handleBY, keyX, keyY, rColor);
-
-                            boolean channelSelected = selectedKeys.isChannelSelected(objName, chEntry.getKey());
                             boolean isHandleAClose = Math.hypot(handleAX - keyX, handleAY - keyY) <= HANDLE_SNAP_THRESHOLD;
                             boolean isHandleBClose = Math.hypot(handleBX - keyX, handleBY - keyY) <= HANDLE_SNAP_THRESHOLD;
 
@@ -433,7 +437,7 @@ public class CurveEditor extends KeyframePanel {
                             }
 
                             // On the other hand, right-clicking should always prioritize the selected channel
-                            if (rightClicked && (channelSelected || rightClickedOn == null)) {
+                            if (rightClicked && (chSelected || rightClickedOn == null)) {
                                 KeyframeReference keyRef = new KeyframeReference(objName, chEntry.getKey(), keyIdx);
 
                                 if (keyHovered(keyX, keyY, mouseGlobalX, mouseGlobalY)) {
@@ -602,8 +606,7 @@ public class CurveEditor extends KeyframePanel {
                     for (var chEntry : obj.getChannels().entrySet()) {
                         if (chEntry.getValue().isHidden() || chEntry.getValue().isLocked())
                             continue;
-                        ChannelExtents extents = isNormalized() ?
-                                normalizationCache.get(new ChannelReference(objName, chEntry.getKey())) : null;
+                        ChannelExtents extents = getExtents(objName, chEntry.getKey());
                         int keyIdx = 0;
                         for (Keyframe key : chEntry.getValue().getKeyframes()) {
 
@@ -658,7 +661,7 @@ public class CurveEditor extends KeyframePanel {
                 keyDragOffsets.clear();
                 smallestKeyDragOffset = null;
 
-            } else if (!isDragging() && !isBoxSelecting() && ImGui.isMouseDragging(0)
+            } else if (!isDragging() && !isBoxSelecting() && ImGui.isMouseDragging(0) && !mouseWasDragging
                     && hoveringAnyKey && !isScrubbing()) {
 
                 /// Start Dragging
@@ -674,10 +677,7 @@ public class CurveEditor extends KeyframePanel {
                     Vector2d pos = hRef.get(scene.getObjects());
                     if (pos == null) return;
 
-                    // MODIFICATION: Convert raw Y positions to Display Space before calculating offsets
-//                    ChannelExtents extents = normalizationCache.get(new ChannelId(hRef.objectName(), hRef.channelName()));
-                    ChannelExtents extents = isNormalized() ?
-                            normalizationCache.get(new ChannelReference(hRef.objectName(), hRef.channelName())) : null;
+                    ChannelExtents extents = getExtents(hRef.objectName(), hRef.channelName());
                     double displayY = rawToDisplay(pos.y, extents);
 
                     Vector2d offset = new Vector2d(pos.x - mouseXMs, displayY - mouseYValue);
@@ -727,11 +727,7 @@ public class CurveEditor extends KeyframePanel {
 
                         for (var chEntry : obj.getChannels().entrySet()) {
                             int keyIdx = 0;
-
-                            // MODIFICATION: Fetch extents for the target curve we are testing snap points against
-//                            ChannelExtents snapExtents = normalizationCache.get(new ChannelId(objName, chEntry.getKey()));
-                            ChannelExtents snapExtents = isNormalized() ?
-                                    normalizationCache.get(new ChannelReference(objName, chEntry.getKey())) : null;
+                            ChannelExtents snapExtents = getExtents(objName, chEntry.getKey());
 
                             for (Keyframe key : chEntry.getValue().getKeyframes()) {
                                 for (int i = 0; i < 3; i++) {
@@ -742,7 +738,6 @@ public class CurveEditor extends KeyframePanel {
 
                                     double handleX = key.getHandleX(i);
 
-                                    // MODIFICATION: Normalize the static snap target value to match our Display Space
                                     double handleY = rawToDisplay(key.getHandleY(i), snapExtents);
 
                                     double distX = Math.abs(closestKeyX - handleX);
@@ -784,8 +779,7 @@ public class CurveEditor extends KeyframePanel {
                     Keyframe key = hRef.keyRef().get(scene.getObjects());
                     if (key == null) continue;
 
-                    ChannelExtents extents = isNormalized() ?
-                            normalizationCache.get(new ChannelReference(hRef.objectName(), hRef.channelName())) : null;
+                    ChannelExtents extents = getExtents(hRef.objectName(), hRef.channelName());
 
                     double newGlobalTime = mouseXMs + offset.x();
                     double newGlobalDisplayY = mouseYValue + offset.y();
@@ -810,6 +804,8 @@ public class CurveEditor extends KeyframePanel {
 
                 updatedHandles.addAll(keyDragOffsets.keySet());
             }
+
+            mouseWasDragging = ImGui.isMouseDragging(0);
 
             /// === PANNING ===
             if (ImGui.isMouseDragging(2)) {
@@ -848,6 +844,14 @@ public class CurveEditor extends KeyframePanel {
                         new ChannelExtents(chEntry.getValue().getMinHandle(), chEntry.getValue().getMaxHandle()));
             }
         }
+    }
+
+    private @Nullable ChannelExtents getExtents(String objectName, String channelName) {
+        return getExtents(new ChannelReference(objectName, channelName));
+    }
+
+    private @Nullable ChannelExtents getExtents(ChannelReference channelRef) {
+        return isNormalized() ? normalizationCache.get(channelRef) : null;
     }
 
     private float msToPixelX(double ms) {
@@ -890,7 +894,7 @@ public class CurveEditor extends KeyframePanel {
         Vector2d vec = new Vector2d();
 
         for (var handle : selected) {
-            var extents = isNormalized() ? normalizationCache.get(handle.keyRef().channelRef()) : null;
+            var extents = getExtents(handle.keyRef().channelRef());
             if (!handle.get(objs, vec)) continue;
 
             vec.y = rawToDisplay(vec.y, extents);
@@ -904,10 +908,6 @@ public class CurveEditor extends KeyframePanel {
                 foundAny = true;
             }
         }
-    }
-
-    private static boolean hasFlag(int flag, int flags) {
-        return (flags & flag) == flag;
     }
 
     private static int replaceAlpha(int colorArgb, int newAlpha) {
@@ -940,62 +940,4 @@ public class CurveEditor extends KeyframePanel {
         };
     }
 
-    /**
-     * Compute a bounding box of all the curves in a set of replay objects.
-     *
-     * @param objects Objects to compute curves of.
-     * @param dest1   Min corner of the bbox
-     * @param dest2   Max corner of the bbox
-     * @implNote Doesn't compute the <em>tightest</em> bounding box according to the beziers; only the bounds of all the handles.
-     */
-    private static void computeBoundingBox(Iterable<? extends ReplayObject> objects, Vector2d dest1, Vector2d dest2) {
-        boolean hasInit = false;
-
-        Vector2d tmpVec = new Vector2d();
-
-        for (var obj : objects) {
-            for (var ch : obj.getChannels().values()) {
-                for (var key : ch.getKeyframes()) {
-                    Vector2dc center = key.getCenter();
-
-                    if (!hasInit) {
-                        dest1.set(center);
-                        dest2.set(center);
-                        hasInit = true;
-                    } else {
-                        dest1.min(center);
-                        dest2.max(center);
-                    }
-
-                    key.getGlobalA(tmpVec);
-                    dest1.min(tmpVec);
-
-                    key.getGlobalB(tmpVec);
-                    dest2.max(tmpVec);
-                }
-            }
-        }
-    }
-
-    private static void computeBoundingBox(KeySelectionSet selected, ReplayScene scene, Vector2d dest1, Vector2d dest2) {
-        Vector2d tmpVec = new Vector2d(Double.NaN);
-        selected.forSelectedHandles(ref -> {
-            boolean hasInit = tmpVec.isFinite();
-            boolean found = ref.get(scene.getObjects(), tmpVec);
-
-            if (!found) return;
-
-            if (hasInit) {
-                dest1.min(tmpVec);
-                dest2.max(tmpVec);
-            } else {
-                dest1.set(tmpVec);
-                dest2.set(tmpVec);
-            }
-        });
-    }
-
-    private static String t(String key) {
-        return Language.getInstance().get(key) + "###" + key;
-    }
 }

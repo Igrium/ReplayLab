@@ -120,7 +120,7 @@ public class DraggableList {
         state.minYs.add(min);
         state.maxYs.add(max);
 
-        boolean hovering = ImGui.isMouseHoveringRect(state.listMinX, min, state.listMaxX, max);
+        boolean hovering = ImGui.isItemHovered();
 
         // Remember which item the press landed on.
         if (ImGui.isMouseClicked(ImGuiMouseButton.Left) && hovering) {
