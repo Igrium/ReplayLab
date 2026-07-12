@@ -55,6 +55,12 @@
 
   "curve_modifier.replaylab.translate": "Translate",
 
+  "curve_modifier.replaylab.noise": "Simplex Noise",
+  "gui.replaylab.noise.scale": "Scale",
+  "gui.replaylab.noise.intensity": "Intensity",
+  "gui.replaylab.noise.offset": "Offset (x)",
+  "gui.replaylab.noise.phase": "Phase (y)",
+
   "gui.replaymod.restrict_range": "Restrict Range",
   "gui.replaylab.mod_start": "Start Time",
   "gui.replaylab.mod_end": "End Time",

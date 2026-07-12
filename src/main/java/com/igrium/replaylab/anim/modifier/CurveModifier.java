@@ -15,6 +15,7 @@ import net.minecraft.util.Identifier;
 import net.minecraft.util.Language;
 
 import java.lang.reflect.Type;
+import java.util.function.DoubleUnaryOperator;
 
 public abstract class CurveModifier {
     @Getter
@@ -48,7 +49,7 @@ public abstract class CurveModifier {
      * @return The sampled value
      * @implNote <b>May be called on any thread!</b> Implementations must ensure thread-safety
      */
-    public abstract double compute(double timestamp, float intensity, Double2DoubleFunction sampler);
+    public abstract double compute(double timestamp, float intensity, DoubleUnaryOperator sampler);
 
     /**
      * Compute and apply this modifier

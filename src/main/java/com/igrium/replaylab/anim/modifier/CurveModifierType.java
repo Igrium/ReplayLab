@@ -62,6 +62,10 @@ public class CurveModifierType<T extends CurveModifier> {
         return type;
     }
 
+    public static final CurveModifierType<ModifierNoise> NOISE =
+            register(Identifier.of("replaylab:noise"), ModifierNoise::new);
+
     public static final CurveModifierType<ModifierTranslate> TRANSLATE =
             register(Identifier.of("replaylab:translate"), ModifierTranslate::new);
+
 }

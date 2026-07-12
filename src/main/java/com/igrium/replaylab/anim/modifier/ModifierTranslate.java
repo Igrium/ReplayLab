@@ -13,6 +13,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.nio.IntBuffer;
+import java.util.function.DoubleUnaryOperator;
 
 public class ModifierTranslate extends CurveModifier {
     @Getter @Setter
@@ -26,8 +27,8 @@ public class ModifierTranslate extends CurveModifier {
     }
 
     @Override
-    public double compute(double timestamp, float intensity, Double2DoubleFunction sampler) {
-        return sampler.get(timestamp - offsetX * intensity) + offsetY * intensity;
+    public double compute(double timestamp, float intensity, DoubleUnaryOperator sampler) {
+        return sampler.applyAsDouble(timestamp - offsetX * intensity) + offsetY * intensity;
     }
 
     private final ImInt intBuffer = new ImInt();
