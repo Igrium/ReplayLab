@@ -155,8 +155,7 @@ public class ReplayLabControls {
      */
     public static boolean inputTimestamp(String label, ImInt timestamp, Timestamps.Display display, int imGuiInputTextFlags) {
         int id = ImGui.getID(label);
-
-        // Typing mode: an ordinary editable inputText (native label, editing, and undo behaviour).
+        // Typing mode: an ordinary editable inputText (native label, editing, and undo behavior).
         if (timestampInputId == id) {
             if (timestampInputJustStarted) {
                 ImGui.setKeyboardFocusHere();
@@ -176,55 +175,59 @@ public class ReplayLabControls {
             }
             return changed;
         }
-
-        // Readonly makes the buffer live-update
-        timestampInBuffer.set(Timestamps.toTimestamp(timestamp.get(), display));
+        // Readonly: keep the actual inputText buffer blank so click-dragging can't select text,
+        // and draw the live timestamp on top via the draw list instead.
+        String displayText = Timestamps.toTimestamp(timestamp.get(), display);
+        timestampInBuffer.set("");
+        // Frame bounds only (excludes the label, which getItemRect* would otherwise include).
+        float minX = ImGui.getCursorScreenPosX();
+        float minY = ImGui.getCursorScreenPosY();
+        float maxX = minX + ImGui.calcItemWidth();
         ImGui.inputText(label, timestampInBuffer, imGuiInputTextFlags | ImGuiInputTextFlags.ReadOnly);
-
+        float maxY = ImGui.getItemRectMaxY();
+        float textWidth = ImGui.calcTextSizeX(displayText);
+        float textX = minX + ((maxX - minX) - textWidth) * 0.5f;
+        float textY = minY + ((maxY - minY) - ImGui.getTextLineHeight()) * 0.5f;
+        ImGui.getWindowDrawList().addText(textX, textY,
+                ImGui.getColorU32(ImGuiCol.Text), displayText);
         if (ImGui.isItemHovered()) {
             ImGui.setMouseCursor(ImGuiMouseCursor.ResizeEW);
         }
-
         // Switch to typing mode on double-click
         if (ImGui.isItemHovered() && (ImGui.isMouseDoubleClicked(0)
                 || (ImGui.isMouseClicked(0) && ImGui.getIO().getKeyCtrl()))) {
+            // Force the widget to fully deactivate so the editable inputText below reloads
+            // its text from timestampInBuffer instead of continuing the blank readonly state.
+            imgui.internal.ImGui.clearActiveID();
             timestampInputId = id;
             timestampInputJustStarted = true;
             return false;
         }
-
         if (ImGui.isItemActivated()) {
             timestampDragDelta = 0;
         }
-
         boolean changed = false;
         if (ImGui.isItemActive()) {
             ImGuiIO io = ImGui.getIO();
             if (ImGui.isMouseDragging(0)) {
-                float adjustDelta = io.getMouseDeltaX();
-                if (io.getKeyAlt()) adjustDelta *= 0.01f;
-                if (io.getKeyShift()) adjustDelta *= 10f;
-                adjustDelta *= TIMESTAMP_DRAG_SPEED;
-
-                timestampDragDelta += adjustDelta;
-                int orig = timestamp.get();
-                int newVal = orig + (int) timestampDragDelta;
-                timestampDragDelta -= (newVal - orig); // keep the sub-integer remainder
-                if (newVal != orig) {
-                    timestamp.set(newVal);
+                float speed = TIMESTAMP_DRAG_SPEED;
+                if (io.getKeyAlt()) speed *= 0.01f;
+                if (io.getKeyShift()) speed *= 10f;
+                timestampDragDelta += io.getMouseDeltaX() * speed;
+                int intDelta = (int) timestampDragDelta;
+                timestampDragDelta -= intDelta; // keep the sub-integer remainder
+                if (intDelta != 0) {
+                    timestamp.set(timestamp.get() + intDelta);
                     changed = true;
                 }
             }
-
             if (!io.getMouseDown(0)) {
                 imgui.internal.ImGui.clearActiveID();
             }
         }
-
         if (changed) {
             imgui.internal.ImGui.markItemEdited(id);
         }
-
         return changed;
     }
 
