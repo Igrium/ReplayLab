@@ -5,7 +5,9 @@ import com.igrium.replaylab.scene.obj.ReplayObject;
 import com.igrium.replaylab.ui.ReplayLabIcons;
 import com.igrium.replaylab.util.Timestamps;
 import imgui.ImGui;
+import imgui.ImGuiIO;
 import imgui.flag.ImGuiCol;
+import imgui.flag.ImGuiInputTextFlags;
 import imgui.flag.ImGuiMouseCursor;
 import imgui.type.ImBoolean;
 import imgui.type.ImInt;
@@ -142,17 +144,88 @@ public class ReplayLabControls {
 
     private static final ImString timestampInBuffer = new ImString(16);
 
+    private static final float TIMESTAMP_DRAG_SPEED = 4f;
+
+    private static int timestampInputId = 0;
+    private static boolean timestampInputJustStarted = false;
+    private static float timestampDragDelta = 0;
+
+    /**
+     * A timestamp field that can be dragged to change its value like <code>DragScalar</code>
+     */
     public static boolean inputTimestamp(String label, ImInt timestamp, Timestamps.Display display, int imGuiInputTextFlags) {
+        int id = ImGui.getID(label);
+
+        // Typing mode: an ordinary editable inputText (native label, editing, and undo behaviour).
+        if (timestampInputId == id) {
+            if (timestampInputJustStarted) {
+                ImGui.setKeyboardFocusHere();
+                timestampInputJustStarted = false;
+            }
+            timestampInBuffer.set(Timestamps.toTimestamp(timestamp.get(), display));
+            boolean changed = false;
+            if (ImGui.inputText(label, timestampInBuffer, imGuiInputTextFlags)) {
+                try {
+                    timestamp.set(Timestamps.fromTimestamp(timestampInBuffer.get()));
+                    changed = true;
+                } catch (NumberFormatException ignored) {
+                }
+            }
+            if (ImGui.isItemDeactivated()) {
+                timestampInputId = 0;
+            }
+            return changed;
+        }
+
+        // Readonly makes the buffer live-update
         timestampInBuffer.set(Timestamps.toTimestamp(timestamp.get(), display));
-        if (ImGui.inputText(label, timestampInBuffer, imGuiInputTextFlags)) {
-            String out = timestampInBuffer.get();
-            try {
-                timestamp.set(Timestamps.fromTimestamp(out));
-                return true;
-            } catch (NumberFormatException ignored) {
+        ImGui.inputText(label, timestampInBuffer, imGuiInputTextFlags | ImGuiInputTextFlags.ReadOnly);
+
+        if (ImGui.isItemHovered()) {
+            ImGui.setMouseCursor(ImGuiMouseCursor.ResizeEW);
+        }
+
+        // Switch to typing mode on double-click
+        if (ImGui.isItemHovered() && (ImGui.isMouseDoubleClicked(0)
+                || (ImGui.isMouseClicked(0) && ImGui.getIO().getKeyCtrl()))) {
+            timestampInputId = id;
+            timestampInputJustStarted = true;
+            return false;
+        }
+
+        if (ImGui.isItemActivated()) {
+            timestampDragDelta = 0;
+        }
+
+        boolean changed = false;
+        if (ImGui.isItemActive()) {
+            ImGuiIO io = ImGui.getIO();
+            if (ImGui.isMouseDragging(0)) {
+                float adjustDelta = io.getMouseDeltaX();
+                if (io.getKeyAlt()) adjustDelta *= 0.01f;
+                if (io.getKeyShift()) adjustDelta *= 10f;
+                adjustDelta *= TIMESTAMP_DRAG_SPEED;
+
+                timestampDragDelta += adjustDelta;
+                int orig = timestamp.get();
+                int newVal = orig + (int) timestampDragDelta;
+                timestampDragDelta -= (newVal - orig); // keep the sub-integer remainder
+                if (newVal != orig) {
+                    timestamp.set(newVal);
+                    changed = true;
+                }
+            }
+
+            if (!io.getMouseDown(0)) {
+                imgui.internal.ImGui.clearActiveID();
             }
         }
-        return false;
+
+        if (changed) {
+            imgui.internal.ImGui.markItemEdited(id);
+        }
+
+        return changed;
     }
 
     public static boolean inputTimestamp(String label, ImInt timestamp, Timestamps.Display display) {
