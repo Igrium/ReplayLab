@@ -62,7 +62,7 @@ public class ModifierNoise extends CurveModifier {
     public double compute(double timestamp, float intensity, DoubleUnaryOperator sampler) {
         double base = sampler.applyAsDouble(timestamp);
         double i = getIntensity() * intensity;
-        double noise = (SimplexNoise.noise((timestamp / 1000) * getScale(), getPhase()) - getOffset()) * i;
+        double noise = (SimplexNoise.noise((timestamp / 1000) * getScale() - getOffset(), getPhase())) * i;
         return base + noise;
     }
 

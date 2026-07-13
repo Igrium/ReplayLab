@@ -34,17 +34,35 @@ public final class KeyChannel {
     /**
      * Prevent this channel from being modified. Not serialized or included in the undo/redo stack
      */
-    @Getter @Setter
+    @Getter
+    @Setter
     private transient boolean locked;
 
     /**
      * Hide this channel in the dope sheet and curve editor. Not serialized or included in the undo/redo stack.
      */
-    @Getter @Setter
+    @Getter
+    @Setter
     private transient boolean hidden;
 
     @Getter
     private final List<CurveModifier> modifiers;
+
+    /**
+     * A pre-sampled cache for drawing a curve with modifiers.
+     *
+     * @param startTime The ms value the cache starts at.
+     * @param endTime   The ms value the cache ends at.
+     * @param data      The actual sampled data.
+     */
+    public record SampledCurve(int startTime, int endTime, double[] data) {
+        /**
+         * Get the number of milliseconds between each sample point
+         */
+        public int getDelta() {
+            return (endTime - startTime) / data.length;
+        }
+    }
 
     public KeyChannel() {
         this(new ArrayList<>(), new ArrayList<>());
@@ -58,8 +76,9 @@ public final class KeyChannel {
     /**
      * Add a keyframe to this channel.
      * If there is already a keyframe at that timestamp, replace its value with the new value.
+     *
      * @param timestamp Timestamp to add at.
-     * @param value Value to give the new keyframe. <code>NaN</code> to automatically generate.
+     * @param value     Value to give the new keyframe. <code>NaN</code> to automatically generate.
      * @return The index of the new keyframe (likely at the end)
      */
     public int addKeyframe(int timestamp, double value) {
@@ -75,7 +94,7 @@ public final class KeyChannel {
         Keyframe keyframe = new Keyframe(timestamp, value);
         keyframe.setHandleType(ReplayLabConfig.getInstance().getDefaultHandleType());
         this.keyframes.add(keyframe);
-        
+
         ChannelUtils.computeHandles(this, null);
         return keyframes.size() - 1;
     }
@@ -83,6 +102,7 @@ public final class KeyChannel {
     /**
      * Remove all keyframes with duplicate timestamps.
      * All keyframe references should be considered invalid if this method returns true.
+     *
      * @return If any duplicates were found.
      */
     public boolean removeDuplicates() {
@@ -126,7 +146,8 @@ public final class KeyChannel {
      * Sort all the keyframes in this channel by their time. Causes subsequent samples to run in linear time.
      *
      * @param selection Modify the selection to reference new mappings
-     * @param objName   The name of the object this channel is in. Should be non-null of <code>selection</code> is non-null.
+     * @param objName   The name of the object this chrenderingannel is in. Should be non-null of
+     *                  <code>selection</code> is non-null.
      * @param chName    The name of this channel. Should be non-null if <code>selection</code> is non-null.
      */
     public void sortKeys(@Nullable KeySelectionSet selection, @Nullable String objName, @Nullable String chName) {
@@ -165,9 +186,59 @@ public final class KeyChannel {
         } else {
             return sample(keys, timestamp);
         }
-
     }
 
+    /**
+     * Sample the entire curve
+     *
+     * @param startTime        Timestamp to start sampling at, inclusive
+     * @param endTime          Timestamp to end sampling at, exclusive
+     * @param resolution       Resolution to sample at. Returned array will be this length.
+     * @param includeModifiers Whether to include modifiers while sampling.
+     * @return The sampled data.
+     */
+    public SampledCurve sampleRange(int startTime, int endTime, int resolution, boolean includeModifiers) {
+        Keyframe[] keys = this.keyframes.toArray(Keyframe[]::new);
+        Arrays.sort(keys);
+        return sampleRange(keys, startTime, endTime, resolution, includeModifiers ? modifiers : null);
+    }
+
+    public SampledCurve sampleCurve(int resolution, boolean includeModifiers) {
+        Keyframe[] keys = this.keyframes.toArray(Keyframe[]::new);
+        Arrays.sort(keys);
+        if (keys.length == 0) {
+            return new SampledCurve(0, 0, new double[0]);
+        }
+
+        return sampleRange(keys, keys[0].getTimeInt(), keys[keys.length - 1].getTimeInt(), resolution,
+                includeModifiers ? modifiers : null);
+    }
+
+    public static SampledCurve sampleRange(Keyframe[] sortedKeys, int startTime, int endTime, int resolution,
+                                           @Nullable List<? extends CurveModifier> modifiers) {
+        if (resolution <= 0) {
+            throw new IllegalArgumentException("resolution must be greater than zero");
+        }
+        if (endTime <= startTime) {
+            throw new IllegalArgumentException("endTime must be greater than startTime");
+        }
+
+
+        int delta = (endTime - startTime) / resolution;
+        double[] data = new double[resolution];
+
+        if (modifiers != null && !modifiers.isEmpty()) {
+            CurveModifierSampler sampler = new CurveModifierSampler(modifiers, ts -> sample(sortedKeys, (int) ts));
+            for (int i = 0; i < resolution; i++) {
+                data[i] = sampler.sample(startTime + i * delta);
+            }
+        } else {
+            for (int i = 0; i < resolution; i++) {
+                data[i] = sample(sortedKeys, startTime + i * delta);
+            }
+        }
+        return new SampledCurve(startTime, endTime, data);
+    }
 
     /**
      * Sample a channel curve at a given point
@@ -185,8 +256,8 @@ public final class KeyChannel {
         // If out of bounds
         if (timestamp <= keys[0].getTime()) {
             return keys[0].getValue();
-        } else if (timestamp >= keys[keys.length-1].getTime()) {
-            return keys[keys.length-1].getValue();
+        } else if (timestamp >= keys[keys.length - 1].getTime()) {
+            return keys[keys.length - 1].getValue();
         }
 
         int keyIndex = findKeyIndex(keys, timestamp);
@@ -213,6 +284,7 @@ public final class KeyChannel {
 
     /**
      * Compute the maximum handle value.
+     *
      * @return The maximum handle value. <code>0</code> if there are no keyframes.
      */
     public double getMaxHandle() {
@@ -233,6 +305,7 @@ public final class KeyChannel {
 
     /**
      * Compute the minimum handle value.
+     *
      * @return The minimum handle value. <code>0</code> if there are no keyframes.
      */
     public double getMinHandle() {
@@ -306,8 +379,9 @@ public final class KeyChannel {
 
     /**
      * Copy a selection of keyframes to the clipboard
+     *
      * @param playhead The current playhead position
-     * @param indices Indices of the keyframes to copy. <code>null</code> to copy all of them.
+     * @param indices  Indices of the keyframes to copy. <code>null</code> to copy all of them.
      * @return A json array ready to be serialized to the clipboard
      */
     public JsonArray copyToClipboard(int playhead, @Nullable IntCollection indices) {
@@ -333,8 +407,9 @@ public final class KeyChannel {
 
     /**
      * Paste keyframes from the clipboard
+     *
      * @param playhead The current playhead position
-     * @param array Serialized list of keyframes
+     * @param array    Serialized list of keyframes
      * @return The indices of the newly-pasted keyframes in the keyframe list
      */
     public IntList pasteFromClipboard(int playhead, JsonArray array) {
@@ -439,7 +514,7 @@ class KeyChannelSerializer implements JsonSerializer<KeyChannel>, JsonDeserializ
         } else {
             JsonObject obj = json.getAsJsonObject();
             arr = obj.has("keys") ? obj.getAsJsonArray("keys") : new JsonArray();
-            mods = obj.has("mods") ?  obj.getAsJsonArray("mods") : new JsonArray();
+            mods = obj.has("mods") ? obj.getAsJsonArray("mods") : new JsonArray();
         }
 
         List<Keyframe> keys = new ArrayList<>(arr.size());

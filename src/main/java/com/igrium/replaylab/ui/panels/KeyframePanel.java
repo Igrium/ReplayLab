@@ -57,6 +57,7 @@ public abstract class KeyframePanel extends UIPanel {
     @Getter @Setter
     private double offsetX;
 
+
     @Getter @Setter
     private double offsetY;
 
@@ -84,21 +85,21 @@ public abstract class KeyframePanel extends UIPanel {
         this.zoomFactorX = Math.clamp(zoomFactorX, 0 , MAX_ZOOM_X);
     }
 
-    public void setZoomFactorX(float zoomFactorX, double center) {
+    public final void setZoomFactorX(float zoomFactorX, double center) {
         zoomFactorX = Math.clamp(zoomFactorX, 0, MAX_ZOOM_X);
         if (zoomFactorX == this.zoomFactorX) return;
 
         double newOffset = center - (center - offsetX) * (this.zoomFactorX / zoomFactorX);
-        this.zoomFactorX = zoomFactorX;
-        this.offsetX = newOffset;
+        setZoomFactorX(zoomFactorX);
+        setOffsetX(newOffset);
     }
 
     @Getter @Setter
     private float zoomFactorY = 0.1f;
-    public void setZoomFactorY(float zoomFactorY, double center) {
+    public final void setZoomFactorY(float zoomFactorY, double center) {
         double newOffset = center - (center - offsetY) * (this.zoomFactorY / zoomFactorY);
-        this.zoomFactorY = zoomFactorY;
-        this.offsetY = newOffset;
+        setZoomFactorY(zoomFactorY);
+        setOffsetY(newOffset);
     }
 
     protected int channelListFlags = ChannelListFlags.ALLOW_SELECTION | ChannelListFlags.SHOW_HIDE;
@@ -123,18 +124,22 @@ public abstract class KeyframePanel extends UIPanel {
         return 0;
     }
 
-    public boolean isScrubbing() {
+    public final boolean isScrubbing() {
         return header.isScrubbing();
     }
 
-    public boolean stoppedScrubbing() {
+    public final boolean stoppedScrubbing() {
         return header.stoppedScrubbing();
     }
 
+    /**
+     * Called when a modifier has been updated with <code>RESAMPLE</code>
+     */
+    protected void onUpdateMods() {};
+
     @Override
     protected void drawContents(EditorState editorState) {
-
-
+        int maxEditState = ObjectEditState.NONE;
         ReplayScene scene = editorState.getScene();
 
         Map<String, ReplayObject> objs;
@@ -193,7 +198,8 @@ public abstract class KeyframePanel extends UIPanel {
             ChannelReference selChanRef = channels.size() == 1 ? channels.getFirst() : null;
             KeyChannel selChannel = selChanRef != null ? selChanRef.get(objs) : null;
 
-            int chanEditState = CurveModifierEditor.drawHeader(editorState, selChanRef, selChannel);
+            int modEditState = CurveModifierEditor.drawHeader(editorState, selChanRef, selChannel);
+            int chanEditState = modEditState;
 
             // Channel list
             ImGui.tableNextRow();
@@ -218,12 +224,18 @@ public abstract class KeyframePanel extends UIPanel {
             ImGui.tableNextColumn();
 
             if (ImGui.beginChild("modifiers", ImGui.getContentRegionAvailX(), ImGui.getContentRegionAvailY())) {
-                chanEditState |= CurveModifierEditor.drawEditor(editorState, selChanRef, selChannel);
+
+                modEditState = CurveModifierEditor.drawEditor(editorState, selChanRef, selChannel);
+                chanEditState |= modEditState;
                 ImGui.endChild();
             }
 
             if (selChanRef != null && chanEditState != ObjectEditState.NONE) {
                 ObjectEditState.handleUpdate(editorState, objs.get(selChanRef.objectName()), chanEditState);
+            }
+
+            if (hasFlag(modEditState, ObjectEditState.RESAMPLE)) {
+                onUpdateMods();
             }
 
             ImGui.endTable();
@@ -253,7 +265,6 @@ public abstract class KeyframePanel extends UIPanel {
         if (ImGui.shortcut(Keybinds.paste())) {
             editorState.pasteKeyframes(ImGui.getClipboardText());
         }
-
 
         testAddKeyShortcut(editorState);
     }

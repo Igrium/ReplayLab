@@ -12,6 +12,7 @@ import org.joml.Vector2d;
 import org.joml.Vector2dc;
 
 import java.io.IOException;
+import java.util.Objects;
 
 /**
  * A single keyframe in the timeline. Contains a time, scalar value, and any curve attributes.
@@ -22,11 +23,8 @@ import java.io.IOException;
 public final class Keyframe implements Comparable<Keyframe> {
 
     public enum HandleType {
-        FREE("free"),
-        ALIGNED("aligned"),
-        VECTOR("vector"),
-        AUTO("auto"),
-        AUTO_CLAMPED("autoClamped"),;
+        FREE("free"), ALIGNED("aligned"), VECTOR("vector"), AUTO("auto"), AUTO_CLAMPED("autoClamped"),
+        ;
 
         @Getter
         private final String translationKey;
@@ -39,28 +37,34 @@ public final class Keyframe implements Comparable<Keyframe> {
     /**
      * The (mutable) center point of the keyframe. The X axis is time and the Y axis is the value.
      */
-    @Getter @JsonAdapter(Vector2dSerializer.class)
+    @Getter
+    @JsonAdapter(Vector2dSerializer.class)
     private final @NonNull Vector2d center = new Vector2d();
 
     /**
      * The (mutable) left handle of the keyframe, relative to <code>center</code>
      */
-    @Getter @JsonAdapter(Vector2dSerializer.class)
+    @Getter
+    @JsonAdapter(Vector2dSerializer.class)
     private final @NonNull Vector2d handleA = new Vector2d(-20.0, 0.0);
 
     /**
      * The (mutable) right handle of the keyframe, relative to <code>center</code>
      */
-    @Getter @JsonAdapter(Vector2dSerializer.class)
+    @Getter
+    @JsonAdapter(Vector2dSerializer.class)
     private final @NonNull Vector2d handleB = new Vector2d(20.0, 0.0);
 
-    @Getter @Setter
+    @Getter
+    @Setter
     private HandleType handleAType = HandleType.AUTO_CLAMPED;
 
-    @Getter @Setter
+    @Getter
+    @Setter
     private HandleType handleBType = HandleType.AUTO_CLAMPED;
 
-    @Getter @Setter
+    @Getter
+    @Setter
     private InterpolationMode interpolationMode = InterpolationMode.BEZIER;
 
     public Keyframe(int time, double value) {
@@ -68,7 +72,10 @@ public final class Keyframe implements Comparable<Keyframe> {
     }
 
     // no-arg for gson
-    public Keyframe() {};
+    public Keyframe() {
+    }
+
+    ;
 
     public Keyframe(Keyframe other) {
         copyFrom(other);
@@ -158,7 +165,7 @@ public final class Keyframe implements Comparable<Keyframe> {
     }
 
     public double getHandleX(int handle) {
-        return switch(handle) {
+        return switch (handle) {
             case 0 -> center.x;
             case 1 -> getGlobalAX();
             case 2 -> getGlobalBX();
@@ -167,7 +174,7 @@ public final class Keyframe implements Comparable<Keyframe> {
     }
 
     public double getHandleY(int handle) {
-        return switch(handle) {
+        return switch (handle) {
             case 0 -> center.y;
             case 1 -> getGlobalAY();
             case 2 -> getGlobalBY();
@@ -222,6 +229,20 @@ public final class Keyframe implements Comparable<Keyframe> {
             jsonReader.endArray();
             return new Vector2d(x, y);
         }
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (o == null || getClass() != o.getClass()) return false;
+        Keyframe keyframe = (Keyframe) o;
+        return Objects.equals(center, keyframe.center) && Objects.equals(handleA, keyframe.handleA) &&
+                Objects.equals(handleB, keyframe.handleB) && handleAType == keyframe.handleAType &&
+                handleBType == keyframe.handleBType && interpolationMode == keyframe.interpolationMode;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(center, handleA, handleB, handleAType, handleBType, interpolationMode);
     }
 }
 

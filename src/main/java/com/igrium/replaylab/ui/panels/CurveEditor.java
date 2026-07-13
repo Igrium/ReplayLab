@@ -1,5 +1,6 @@
 package com.igrium.replaylab.ui.panels;
 
+import com.igrium.replaylab.anim.KeyChannel.SampledCurve;
 import com.igrium.replaylab.config.Keybinds;
 import com.igrium.replaylab.editor.EditorState;
 import com.igrium.replaylab.editor.KeySelectionSet;
@@ -35,9 +36,16 @@ import java.util.stream.Collectors;
 
 public class CurveEditor extends KeyframePanel {
 
-    private record ChannelExtents(double min, double max) {};
+    private record ChannelExtents(double min, double max) {
+    }
 
-    /** Pixel radius within which a bezier handle is considered "collapsed" onto its keyframe. */
+    private record CachedCurve(int curveHash, SampledCurve curve) {
+
+    }
+
+    /**
+     * Pixel radius within which a bezier handle is considered "collapsed" onto its keyframe.
+     */
     private static final float HANDLE_SNAP_THRESHOLD = 12f;
 
     public CurveEditor(Identifier id) {
@@ -46,7 +54,14 @@ public class CurveEditor extends KeyframePanel {
         setSeparateChannelScrolling(true);
     }
 
+
+    /**
+     * For curves that have modifiers, cache the sampled values.
+     */
+    private final Map<ChannelReference, CachedCurve> sampleCache = new HashMap<>();
+
     private final Map<ChannelReference, ChannelExtents> normalizationCache = new HashMap<>();
+
     private final ImBoolean normalized = new ImBoolean(false);
 
     private boolean wasNormalized;
@@ -59,6 +74,18 @@ public class CurveEditor extends KeyframePanel {
         this.normalized.set(normalized);
     }
 
+    @Override
+    public void setOffsetX(double offsetX) {
+        super.setOffsetX(offsetX);
+        sampleCache.clear();
+    }
+
+    @Override
+    public void setZoomFactorX(float zoomFactorX) {
+        super.setZoomFactorX(zoomFactorX);
+        sampleCache.clear();
+    }
+
     /**
      * All the handles that have had an updated <em>committed</em> this frame.
      * Does not include keyframes being dragged.
@@ -67,7 +94,8 @@ public class CurveEditor extends KeyframePanel {
     private final Set<KeyHandleReference> droppedHandles = new HashSet<>();
 
     /**
-     * All the handles that have been updated this frame. Could be in the middle of dragging or an option has been changed.
+     * All the handles that have been updated this frame. Could be in the middle of dragging or an option has been
+     * changed.
      */
     @Getter
     private final Set<KeyHandleReference> updatedHandles = new HashSet<>();
@@ -78,8 +106,9 @@ public class CurveEditor extends KeyframePanel {
     private final Map<KeyHandleReference, Vector2dc> keyDragOffsets = new HashMap<>();
 
 
+    private record KeyOffsetPair(KeyHandleReference ref, Vector2dc offset) {
+    }
 
-    private record KeyOffsetPair(KeyHandleReference ref, Vector2dc offset) { }
     /**
      * The key drag offset that's closest to the mouse
      */
@@ -99,10 +128,6 @@ public class CurveEditor extends KeyframePanel {
 
     private boolean wantsFit;
 
-    // Tracks whether the mouse was already dragging last frame, so we only
-    // start a new drag on the exact frame dragging begins (matching DopeSheetNew).
-    // Otherwise a drag started outside this panel and moved in while still held
-    // would be picked up here and start moving the selected keyframe.
     private boolean mouseWasDragging;
 
 
@@ -122,6 +147,12 @@ public class CurveEditor extends KeyframePanel {
     @Override
     public void onAppliedOperator(ReplayOperator op, EditorState editorState) {
         updateNormalizationCache(editorState.getScene());
+        sampleCache.clear();
+    }
+
+    @Override
+    protected void onUpdateMods() {
+        sampleCache.clear();
     }
 
     @Override
@@ -145,7 +176,7 @@ public class CurveEditor extends KeyframePanel {
 
     @Override
     protected void drawInternal(EditorState editorState, Map<String, ReplayObject> objects) {
-        drawAndManageHandles(editorState, objects,0);
+        drawAndManageHandles(editorState, objects, 0);
 
         if (isScrubbing() || stoppedScrubbing()) {
             editorState.scrub(stoppedScrubbing());
@@ -199,11 +230,11 @@ public class CurveEditor extends KeyframePanel {
     /**
      * Draw the curve editor.
      *
-     * @param editor          The editor state
-     * @param selectedKeys    All keyframe handles which are currently selected.
-     *                        Updated as the user selects/deselects keyframes.
-     * @param playhead        Current playhead position. Updated as the player scrubs.
-     * @param flags           Render flags.
+     * @param editor       The editor state
+     * @param selectedKeys All keyframe handles which are currently selected.
+     *                     Updated as the user selects/deselects keyframes.
+     * @param playhead     Current playhead position. Updated as the player scrubs.
+     * @param flags        Render flags.
      */
     public void drawCurveEditor(EditorState editor, Map<String, ReplayObject> objs,
                                 KeySelectionSet selectedKeys, @Nullable ImInt playhead, int flags) {
@@ -245,7 +276,6 @@ public class CurveEditor extends KeyframePanel {
 
             float gWidth = ImGui.getContentRegionAvailX();
             float gHeight = ImGui.getContentRegionAvailY();
-
 
 
             /// === FITTING ===
@@ -368,6 +398,7 @@ public class CurveEditor extends KeyframePanel {
 
                     // Should be pre-sorted, but we should check
                     Keyframe[] keyArray = chEntry.getValue().getKeyframes().toArray(new Keyframe[0]);
+                    Arrays.sort(keyArray);
 
                     // Draw keyframes
                     if (!chEntry.getValue().isLocked()) {
@@ -416,10 +447,13 @@ public class CurveEditor extends KeyframePanel {
                                 drawList.addLine(handleBX, handleBY, keyX, keyY, rColor);
                             }
 
-                            boolean isHandleAClose = Math.hypot(handleAX - keyX, handleAY - keyY) <= HANDLE_SNAP_THRESHOLD;
-                            boolean isHandleBClose = Math.hypot(handleBX - keyX, handleBY - keyY) <= HANDLE_SNAP_THRESHOLD;
+                            boolean isHandleAClose =
+                                    Math.hypot(handleAX - keyX, handleAY - keyY) <= HANDLE_SNAP_THRESHOLD;
+                            boolean isHandleBClose =
+                                    Math.hypot(handleBX - keyX, handleBY - keyY) <= HANDLE_SNAP_THRESHOLD;
 
-                            // Prioritize clicking on the selected channel unless the keyframe being clicked is already selected.
+                            // Prioritize clicking on the selected channel unless the keyframe being clicked is
+                            // already selected.
                             if (mouseClicked && (chSelected || clickedOn == null)) {
                                 KeyframeReference keyRef = new KeyframeReference(objName, chEntry.getKey(), keyIdx);
 
@@ -457,56 +491,85 @@ public class CurveEditor extends KeyframePanel {
                         }
                     }
 
-                    // Lines
+                    /// === Lines ===
                     if (keyArray.length <= 1)
                         continue;
 
-                    Arrays.sort(keyArray);
+                    if (!chEntry.getValue().getModifiers().isEmpty()) {
 
-                    for (int i = 0; i < keyArray.length - 1; i++) {
-                        Keyframe key = keyArray[i];
-                        Keyframe next = keyArray[i + 1];
+                        var chRef = new ChannelReference(objName, chEntry.getKey());
+                        CachedCurve cached = sampleCache.get(chRef);
 
-                        float keyX = msToPixelX((float) key.getCenter().x()) + graphX;
-                        double displayKey = rawToDisplay(key.getCenter().y(), extents);
-                        float keyY = valueToPixelY(displayKey) + graphY;
+                        int newHash = Arrays.hashCode(keyArray);
+                        boolean cacheValid = cached != null && newHash == cached.curveHash;
+                        if (!cacheValid) {
+                            cached = new CachedCurve(newHash, chEntry.getValue().sampleRange((int) getOffsetX(),
+                                    (int) (getHeader().getWidthMs() + getOffsetX()), 128, true));
+                            sampleCache.put(chRef, cached);
+                        }
 
-                        float keyHandleX = msToPixelX(key.getGlobalBX()) + graphX;
-                        double displayKeyHandle = rawToDisplay(key.getGlobalBY(), extents);
-                        float keyHandleY = valueToPixelY(displayKeyHandle) + graphY;
+                        SampledCurve sampled = cached.curve;
 
-                        float nextX = msToPixelX(next.getCenter().x()) + graphX;
-                        double displayNext = rawToDisplay(next.getCenter().y(), extents);
-                        float nextY =  valueToPixelY(displayNext) + graphY;
+                        for (int i = 0; i < sampled.data().length - 1; i++) {
+                            float keyX = msToPixelX(sampled.startTime() + i * sampled.getDelta()) + graphX;
+                            float nextX = msToPixelX(sampled.startTime() + (i + 1) * sampled.getDelta()) + graphX;
 
-                        float nextHandleX = msToPixelX(next.getGlobalAX()) + graphX;
-                        double displayNextHandle = rawToDisplay(next.getGlobalAY(), extents);
-                        float nextHandleY = valueToPixelY(displayNextHandle) + graphY;
+                            double displayKeyVal = rawToDisplay(sampled.data()[i], extents);
+                            double displayNextVal = rawToDisplay(sampled.data()[i + 1], extents);
 
-                        float thickness = chSelected ? 2 : 1;
-                        switch(key.getInterpolationMode()) {
-                            case BEZIER -> drawList.addBezierCubic(keyX, keyY, keyHandleX, keyHandleY,
-                                    nextHandleX, nextHandleY, nextX, nextY, chColor, thickness);
-                            case LINEAR -> drawList.addLine(keyX, keyY, nextX, nextY, chColor, thickness);
-                            case CONSTANT -> {
-                                drawList.addLine(keyX, keyY, nextX, keyY, chColor, thickness);
-                                drawList.addLine(nextX, keyY, nextX, nextY, chColor, thickness);
+                            float keyY = valueToPixelY(displayKeyVal) + graphY;
+                            float nextY = valueToPixelY(displayNextVal) + graphY;
+
+                            float thickness = chSelected ? 2 : 1;
+
+                            drawList.addLine(keyX, keyY, nextX, nextY, chColor, thickness);
+                        }
+
+                    } else {
+                        for (int i = 0; i < keyArray.length - 1; i++) {
+                            Keyframe key = keyArray[i];
+                            Keyframe next = keyArray[i + 1];
+
+                            float keyX = msToPixelX((float) key.getCenter().x()) + graphX;
+                            double displayKey = rawToDisplay(key.getCenter().y(), extents);
+                            float keyY = valueToPixelY(displayKey) + graphY;
+
+                            float keyHandleX = msToPixelX(key.getGlobalBX()) + graphX;
+                            double displayKeyHandle = rawToDisplay(key.getGlobalBY(), extents);
+                            float keyHandleY = valueToPixelY(displayKeyHandle) + graphY;
+
+                            float nextX = msToPixelX(next.getCenter().x()) + graphX;
+                            double displayNext = rawToDisplay(next.getCenter().y(), extents);
+                            float nextY = valueToPixelY(displayNext) + graphY;
+
+                            float nextHandleX = msToPixelX(next.getGlobalAX()) + graphX;
+                            double displayNextHandle = rawToDisplay(next.getGlobalAY(), extents);
+                            float nextHandleY = valueToPixelY(displayNextHandle) + graphY;
+
+                            float thickness = chSelected ? 2 : 1;
+                            switch (key.getInterpolationMode()) {
+                                case BEZIER -> drawList.addBezierCubic(keyX, keyY, keyHandleX, keyHandleY,
+                                        nextHandleX, nextHandleY, nextX, nextY, chColor, thickness);
+                                case LINEAR -> drawList.addLine(keyX, keyY, nextX, nextY, chColor, thickness);
+                                case CONSTANT -> {
+                                    drawList.addLine(keyX, keyY, nextX, keyY, chColor, thickness);
+                                    drawList.addLine(nextX, keyY, nextX, nextY, chColor, thickness);
+                                }
                             }
                         }
 
+                        // Continue lines to edge of screen
+                        float startX = msToPixelX(keyArray[0].getCenter().x()) + graphX;
+                        double displayStart = rawToDisplay(keyArray[0].getCenter().y(), extents);
+                        float startY = valueToPixelY(displayStart) + graphY;
+                        drawList.addLine(graphX, startY, startX, startY, chColor, chSelected ? 2 : 1);
+
+                        Keyframe endKey = keyArray[keyArray.length - 1];
+                        float endX = msToPixelX(endKey.getCenter().x()) + graphX;
+                        double displayEnd = rawToDisplay(endKey.getCenter().y(), extents);
+                        float endY = valueToPixelY(displayEnd) + graphY;
+                        drawList.addLine(endX, endY, graphX + gWidth, endY, chColor, chSelected ? 2 : 1);
                     }
-
-                    // Continue lines to edge of screen
-                    float startX = msToPixelX(keyArray[0].getCenter().x()) + graphX;
-                    double displayStart = rawToDisplay(keyArray[0].getCenter().y(), extents);
-                    float startY = valueToPixelY(displayStart) + graphY;
-                    drawList.addLine(graphX, startY, startX, startY, chColor, chSelected ? 2 : 1);
-
-                    Keyframe endKey = keyArray[keyArray.length - 1];
-                    float endX = msToPixelX(endKey.getCenter().x()) + graphX;
-                    double displayEnd = rawToDisplay(endKey.getCenter().y(), extents);
-                    float endY = valueToPixelY(displayEnd) + graphY;
-                    drawList.addLine(endX, endY, graphX + gWidth, endY, chColor, chSelected ? 2 : 1);
                 }
             }
 
@@ -516,13 +579,17 @@ public class CurveEditor extends KeyframePanel {
                 float pixelOut = msToPixelX(scene.getLength()) + graphX;
 
                 if (pixelIn > graphX) {
-                    drawList.addLine(pixelIn, graphY, pixelIn, graphY + graphHeight, ImGui.getColorU32(ImGuiCol.Separator));
-                    drawList.addRectFilled(graphX, graphY, pixelIn, graphY + graphHeight, ImGui.getColorU32(ImGuiCol.ModalWindowDimBg));
+                    drawList.addLine(pixelIn, graphY, pixelIn, graphY + graphHeight,
+                            ImGui.getColorU32(ImGuiCol.Separator));
+                    drawList.addRectFilled(graphX, graphY, pixelIn, graphY + graphHeight,
+                            ImGui.getColorU32(ImGuiCol.ModalWindowDimBg));
                 }
 
                 if (pixelOut < graphX + gWidth) {
-                    drawList.addLine(pixelOut, graphY, pixelOut, graphY + graphHeight, ImGui.getColorU32(ImGuiCol.Separator));
-                    drawList.addRectFilled(pixelOut, graphY, graphX + gWidth, graphY + graphHeight, ImGui.getColorU32(ImGuiCol.ModalWindowDimBg));
+                    drawList.addLine(pixelOut, graphY, pixelOut, graphY + graphHeight,
+                            ImGui.getColorU32(ImGuiCol.Separator));
+                    drawList.addRectFilled(pixelOut, graphY, graphX + gWidth, graphY + graphHeight,
+                            ImGui.getColorU32(ImGuiCol.ModalWindowDimBg));
                 }
 
                 if (isNormalized()) {
@@ -531,7 +598,7 @@ public class CurveEditor extends KeyframePanel {
                     int separatorColor = ImGui.getColorU32(ImGuiCol.Separator);
 
                     int outOfNormalColor = ColorHelper.withAlpha(
-                            (int) (ColorHelper.getAlpha(modalDimColor) *.75f), modalDimColor);
+                            (int) (ColorHelper.getAlpha(modalDimColor) * .75f), modalDimColor);
 
                     // Normalization bounds are -1 and 1
                     float pixelNeg1 = valueToPixelY(-1) + graphY;
@@ -595,7 +662,8 @@ public class CurveEditor extends KeyframePanel {
 
                 int rectColor = replaceAlpha(ImGui.getColorU32(ImGuiCol.HeaderActive), 25);
                 dl.addRectFilled(boxSelectStart.x, boxSelectStart.y, mouseGlobalX, mouseGlobalY, rectColor);
-                dl.addRect(boxSelectStart.x, boxSelectStart.y, mouseGlobalX, mouseGlobalY, ImGui.getColorU32(ImGuiCol.HeaderActive));
+                dl.addRect(boxSelectStart.x, boxSelectStart.y, mouseGlobalX, mouseGlobalY,
+                        ImGui.getColorU32(ImGuiCol.HeaderActive));
 
                 for (var objEntry : objs.entrySet()) {
                     String objName = objEntry.getKey();
@@ -721,7 +789,7 @@ public class CurveEditor extends KeyframePanel {
                     double snapTargetYDist = Double.NaN;
 
                     for (var objEntry : objs.entrySet()) {
-                        String objName =  objEntry.getKey();
+                        String objName = objEntry.getKey();
                         ReplayObject obj = objEntry.getValue();
                         if (obj == null) continue;
 
@@ -733,7 +801,8 @@ public class CurveEditor extends KeyframePanel {
                                 for (int i = 0; i < 3; i++) {
 
                                     // Don't attempt to lock to something we're also dragging
-                                    if (keyDragOffsets.containsKey(new KeyHandleReference(objName, chEntry.getKey(), keyIdx, i)))
+                                    if (keyDragOffsets.containsKey(new KeyHandleReference(objName, chEntry.getKey(),
+                                            keyIdx, i)))
                                         continue;
 
                                     double handleX = key.getHandleX(i);
@@ -832,6 +901,7 @@ public class CurveEditor extends KeyframePanel {
 
     /**
      * Re-calculate the bounds for each channel to use when normalization is enabled.
+     *
      * @param scene The active replay scene
      */
     public void updateNormalizationCache(ReplayScene scene) {
@@ -872,7 +942,8 @@ public class CurveEditor extends KeyframePanel {
 
     /**
      * Convert a raw curve value to a "display" value, mapped from zero to one.
-     * @param raw The original value in the curve
+     *
+     * @param raw     The original value in the curve
      * @param extents The curves computed extents. Null if it does not have any.
      * @return The display-space value
      */
@@ -887,7 +958,8 @@ public class CurveEditor extends KeyframePanel {
         return ((display + 1) / 2) * (extents.max - extents.min) + extents.min;
     }
 
-    private void computeDisplayBoundingBox(Map<String, ReplayObject> objs, Iterable<? extends KeyHandleReference> selected,
+    private void computeDisplayBoundingBox(Map<String, ReplayObject> objs,
+                                           Iterable<? extends KeyHandleReference> selected,
                                            Vector2d dest1, Vector2d dest2) {
         boolean foundAny = false;
 

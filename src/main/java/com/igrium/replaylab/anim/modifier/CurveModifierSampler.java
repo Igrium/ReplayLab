@@ -2,8 +2,11 @@ package com.igrium.replaylab.anim.modifier;
 
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 
+import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
 import java.util.function.DoubleUnaryOperator;
 
 public class CurveModifierSampler {
@@ -18,28 +21,6 @@ public class CurveModifierSampler {
         // Modifiers are supposed to be frozen, but we don't want someone fucking with the list
         this.modifiers = modifiers.toArray(CurveModifier[]::new);
         this.baseSampleFunction = baseSampleFunction;
-    }
-
-    /**
-     * Sample the curve at regular intervals.
-     *
-     * @param startTime  start timestamp
-     * @param endTime    end timestamp
-     * @param resolution number of samples
-     * @return array of sampled values
-     */
-    public double[] sampleCurve(double startTime, double endTime, int resolution) {
-        if (resolution <= 0) {
-            throw new IllegalArgumentException("resolution must be greater than zero");
-        }
-        double delta = (endTime - startTime) / resolution;
-        double[] result = new double[resolution];
-
-        for (int i = 0; i < resolution; i++) {
-            double time = i * delta;
-            result[i] = sample(time);
-        }
-        return result;
     }
 
     public double sample(double timestamp) {

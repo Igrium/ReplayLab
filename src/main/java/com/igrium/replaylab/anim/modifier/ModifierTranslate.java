@@ -47,7 +47,7 @@ public class ModifierTranslate extends CurveModifier {
         }
 
         doubleBuffer[0] = offsetY;
-        if (ImGui.dragScalar("Value Offset", doubleBuffer)) {
+        if (ImGui.dragScalar("Value Offset", doubleBuffer, .25f)) {
             offsetY = doubleBuffer[0];
             flags |= ObjectEditState.RESAMPLE |  ObjectEditState.UPDATE_SCENE;
         }
