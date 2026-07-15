@@ -11,7 +11,7 @@ import com.igrium.replaylab.scene.ReplayScene;
 import com.igrium.replaylab.scene.obj.EntityObject;
 import com.igrium.replaylab.scene.obj.ObjectEditState;
 import com.igrium.replaylab.scene.obj.ReplayObjectType;
-import com.igrium.replaylab.ui.util.PropertyWidgets;
+import com.igrium.replaylab.ui.widgets.PropertyWidgets;
 import imgui.ImGui;
 import lombok.Getter;
 import net.minecraft.client.world.ClientWorld;

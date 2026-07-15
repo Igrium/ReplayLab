@@ -1,8 +1,8 @@
-package com.igrium.replaylab.ui.util;
+package com.igrium.replaylab.ui.widgets;
 
 import com.igrium.replaylab.scene.obj.ReplayObject;
 import lombok.experimental.UtilityClass;
-import com.igrium.replaylab.ui.util.KeyWidgets.*;
+import com.igrium.replaylab.ui.widgets.KeyWidgets.*;
 import org.joml.Math;
 
 /**

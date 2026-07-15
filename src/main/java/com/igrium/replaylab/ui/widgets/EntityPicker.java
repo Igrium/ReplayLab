@@ -1,11 +1,7 @@
-package com.igrium.replaylab.ui;
+package com.igrium.replaylab.ui.widgets;
 
-import com.igrium.craftui.MaterialIcons;
 import com.igrium.craftui.util.RaycastUtils;
-import imgui.ImColor;
 import imgui.ImGui;
-import imgui.ImGuiStorage;
-import imgui.flag.ImGuiCol;
 import imgui.flag.ImGuiKey;
 import imgui.flag.ImGuiMouseButton;
 import imgui.flag.ImGuiMouseCursor;
@@ -13,7 +9,6 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.Mouse;
 import net.minecraft.client.world.ClientWorld;
 import net.minecraft.entity.Entity;
-import net.minecraft.util.Colors;
 import net.minecraft.util.hit.EntityHitResult;
 import net.minecraft.util.hit.HitResult;
 import org.jetbrains.annotations.ApiStatus;
@@ -27,13 +22,13 @@ import java.util.List;
  * A tool that lets the user pick entities from the viewport by clicking on them, similar to a color eyedropper.
  * Only one picker may be active at a time, identified by a string name.
  */
-public final class EntPicker {
+public final class EntityPicker {
 
     private final List<Entity> pickedEntities = new ArrayList<>();
     private final List<Entity> pickedEntitiesUnmod = Collections.unmodifiableList(pickedEntities);
     private final int id;
 
-    private EntPicker(int id) {
+    private EntityPicker(int id) {
         this.id = id;
     }
 
@@ -102,7 +97,7 @@ public final class EntPicker {
         }
     }
 
-    private static @Nullable EntPicker instance;
+    private static @Nullable EntityPicker instance;
 
     /**
      * Opens a picker with the given name, activating it. If a picker with this name is already active, does nothing.
@@ -113,7 +108,7 @@ public final class EntPicker {
     public static boolean open(String name) {
         int id = ImGui.getID(name);
         if (instance == null || instance.id != id) {
-            instance = new EntPicker(id);
+            instance = new EntityPicker(id);
             return true;
         }
         return false;
@@ -125,7 +120,7 @@ public final class EntPicker {
      * @param name Name identifying the picker, matched via {@link ImGui#getID(String)}.
      * @return The active picker, or <code>null</code> if no picker is active under this name.
      */
-    public static @Nullable EntPicker get(String name) {
+    public static @Nullable EntityPicker get(String name) {
         int id = ImGui.getID(name);
         if (instance != null && instance.id == id) {
             return instance;

@@ -7,9 +7,11 @@ import com.igrium.replaylab.editor.EditorState;
 import com.igrium.replaylab.math.Transform3;
 import com.igrium.replaylab.scene.ReplayScene;
 import com.igrium.replaylab.scene.obj.*;
-import com.igrium.replaylab.ui.EntPicker;
+import com.igrium.replaylab.ui.widgets.EntityPicker;
+import com.igrium.replaylab.ui.widgets.EntitySelector;
 import imgui.ImGui;
 import imgui.flag.ImGuiMouseButton;
+import imgui.type.ImInt;
 import lombok.Getter;
 import lombok.Setter;
 import net.minecraft.client.MinecraftClient;
@@ -27,26 +29,31 @@ public class EntityProxyObject extends ReplayObject implements EntityProvider<En
         super(type, scene);
     }
 
-    /**
-     * The UUID of the entity to target
-     */
-    @Getter @Setter
-    private int entId;
+
+    private final ImInt entId = new ImInt();
+
+    public int getEntId() {
+        return entId.get();
+    }
+
+    public void setEntId(int entId) {
+        this.entId.set(entId);
+    }
 
     @Override
     public @Nullable Entity getEntity(ClientWorld world) {
-        return world.getEntityById(entId);
+        return world.getEntityById(getEntId());
     }
 
     @Override
     protected void writeJson(JsonObject json, JsonSerializationContext context) {
-        json.addProperty("entId", entId);
+        json.addProperty("entId", getEntId());
     }
 
     @Override
     protected void readJson(JsonObject json, JsonDeserializationContext context) {
         if (json.has("entId")) {
-            entId = json.get("entId").getAsInt();
+            setEntId(json.get("entId").getAsInt());
         }
     }
 
@@ -73,7 +80,7 @@ public class EntityProxyObject extends ReplayObject implements EntityProvider<En
 
         dest.scale().set(1);
 
-        return null;
+        return dest;
     }
 
     @Override
@@ -82,7 +89,7 @@ public class EntityProxyObject extends ReplayObject implements EntityProvider<En
         String msg = ent != null ? ent.getName().getString() : "[None]";
 
         if (ImGui.button(msg + "###select")) {
-            EntPicker.open("entity");
+            EntityPicker.open("entity");
         }
 
         if (ImGui.isItemClicked(ImGuiMouseButton.Right)) {
@@ -90,7 +97,7 @@ public class EntityProxyObject extends ReplayObject implements EntityProvider<En
         }
 
         int flags = ObjectEditState.NONE;
-        EntPicker picker = EntPicker.get("entity");
+        EntityPicker picker = EntityPicker.get("entity");
         if (picker != null) {
             Entity picked = picker.getPickedEntity();
             if (picked != null) {
@@ -100,11 +107,10 @@ public class EntityProxyObject extends ReplayObject implements EntityProvider<En
             }
         }
 
-        if (ImGui.beginPopup("entityContext")) {
-            if (ImGui.selectable("Select None")) {
-                setEntId(0);
-            }
+        ClientWorld world = MinecraftClient.getInstance().world;
 
+        if (ImGui.beginPopup("entityContext")) {
+            EntitySelector.selectEntity("ent", entId, world.getEntities());
             ImGui.endPopup();
         }
 

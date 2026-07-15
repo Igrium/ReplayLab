@@ -1,4 +1,4 @@
-package com.igrium.replaylab.ui.util;
+package com.igrium.replaylab.ui.widgets;
 
 import imgui.ImDrawList;
 import imgui.ImGui;

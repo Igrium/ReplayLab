@@ -1,6 +1,5 @@
 package com.igrium.replaylab.ui.subpanels;
 
-import com.igrium.craftui.CraftUI;
 import com.igrium.craftui.MaterialIcons;
 import com.igrium.replaylab.anim.KeyChannel;
 import com.igrium.replaylab.anim.modifier.CurveModifier;
@@ -10,7 +9,7 @@ import com.igrium.replaylab.editor.KeySelectionSet.ChannelReference;
 import com.igrium.replaylab.operator.keyframe.AddModifierOperator;
 import com.igrium.replaylab.operator.keyframe.RemoveModifierOperator;
 import com.igrium.replaylab.scene.obj.ObjectEditState;
-import com.igrium.replaylab.ui.util.DraggableList;
+import com.igrium.replaylab.ui.widgets.DraggableList;
 import imgui.ImGui;
 import imgui.flag.ImGuiTreeNodeFlags;
 import lombok.experimental.UtilityClass;

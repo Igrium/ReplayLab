@@ -1,4 +1,4 @@
-package com.igrium.replaylab.ui.util;
+package com.igrium.replaylab.ui.widgets;
 
 import com.igrium.replaylab.config.Keybinds;
 import imgui.ImGui;
