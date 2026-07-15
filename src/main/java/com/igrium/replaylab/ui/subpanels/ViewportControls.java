@@ -6,6 +6,7 @@ import com.igrium.replaylab.editor.EditorState;
 import com.igrium.replaylab.operator.object.RemoveObjectsOperator;
 import com.igrium.replaylab.operator.object.RenameObjectOperator;
 import com.igrium.replaylab.scene.obj.ReplayObject;
+import com.igrium.replaylab.ui.EntPicker;
 import com.igrium.replaylab.ui.panels.UIPanel;
 import com.igrium.replaylab.config.ShortcutUtils;
 import imgui.ImGui;
@@ -27,6 +28,8 @@ public class ViewportControls {
 
 
     public void drawViewport(EditorState editorState) {
+        EntPicker.drawPicker();
+
         if (ImGui.isWindowHovered() && (ImGui.isMouseClicked(0))) {
             raycastSelect(editorState);
         }

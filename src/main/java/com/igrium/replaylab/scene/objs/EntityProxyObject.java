@@ -3,14 +3,16 @@ package com.igrium.replaylab.scene.objs;
 import com.google.gson.JsonDeserializationContext;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonSerializationContext;
+import com.igrium.replaylab.editor.EditorState;
 import com.igrium.replaylab.math.Transform3;
 import com.igrium.replaylab.scene.ReplayScene;
-import com.igrium.replaylab.scene.obj.EntityProvider;
-import com.igrium.replaylab.scene.obj.ReplayObject;
-import com.igrium.replaylab.scene.obj.ReplayObjectType;
-import com.igrium.replaylab.scene.obj.TransformProvider;
+import com.igrium.replaylab.scene.obj.*;
+import com.igrium.replaylab.ui.EntPicker;
+import imgui.ImGui;
+import imgui.flag.ImGuiMouseButton;
 import lombok.Getter;
 import lombok.Setter;
+import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.world.ClientWorld;
 import net.minecraft.entity.Entity;
 import net.minecraft.util.math.Vec3d;
@@ -73,4 +75,41 @@ public class EntityProxyObject extends ReplayObject implements EntityProvider<En
 
         return null;
     }
+
+    @Override
+    public int drawPropertiesPanel(EditorState editor) {
+        Entity ent = getEntity();
+        String msg = ent != null ? ent.getName().getString() : "[None]";
+
+        if (ImGui.button(msg + "###select")) {
+            EntPicker.open("entity");
+        }
+
+        if (ImGui.isItemClicked(ImGuiMouseButton.Right)) {
+            ImGui.openPopup("entityContext");
+        }
+
+        int flags = ObjectEditState.NONE;
+        EntPicker picker = EntPicker.get("entity");
+        if (picker != null) {
+            Entity picked = picker.getPickedEntity();
+            if (picked != null) {
+                setEntId(picked.getId());
+                picker.close();
+                flags |= ObjectEditState.COMMIT;
+            }
+        }
+
+        if (ImGui.beginPopup("entityContext")) {
+            if (ImGui.selectable("Select None")) {
+                setEntId(0);
+            }
+
+            ImGui.endPopup();
+        }
+
+
+        return flags;
+    }
+
 }

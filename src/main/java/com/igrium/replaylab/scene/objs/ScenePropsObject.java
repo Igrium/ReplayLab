@@ -5,10 +5,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonSerializationContext;
 import com.igrium.replaylab.editor.EditorState;
 import com.igrium.replaylab.scene.ReplayScene;
-import com.igrium.replaylab.scene.obj.EntityObject;
-import com.igrium.replaylab.scene.obj.ObjectEditState;
-import com.igrium.replaylab.scene.obj.ReplayObject;
-import com.igrium.replaylab.scene.obj.ReplayObjectType;
+import com.igrium.replaylab.scene.obj.*;
 import com.igrium.replaylab.ui.util.KeyWidgets.WidgetState;
 import com.igrium.replaylab.ui.util.PropertyWidgets;
 import com.igrium.replaylab.ui.util.ReplayLabControls;
@@ -182,7 +179,7 @@ public final class ScenePropsObject extends ReplayObject {
 
         cameraObjectInput.setValue(cameraObject);
         if (ReplayLabControls.objectSelector("Camera Object", cameraObjectInput,
-                obj -> obj instanceof EntityObject<?>, getScene().getObjects())) {
+                obj -> obj instanceof EntityProvider<?>, getScene().getObjects())) {
             rFlags |= ObjectEditState.COMMIT;
             setCameraObject(cameraObjectInput.getValue());
         }
