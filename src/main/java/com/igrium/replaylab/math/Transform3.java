@@ -6,11 +6,12 @@ import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonWriter;
 import lombok.NonNull;
 import org.joml.*;
-import org.joml.Math;
 
 import java.io.IOException;
 
 class Transform3Serializer extends TypeAdapter<Transform3> {
+
+    private static final DynamicRotationSerializer ROT_SERIALIZER = new DynamicRotationSerializer();
 
     @Override
     public void write(JsonWriter jsonWriter, Transform3 transform3) throws IOException {
@@ -23,13 +24,14 @@ class Transform3Serializer extends TypeAdapter<Transform3> {
         jsonWriter.value(transform3.pos().z);
         jsonWriter.endArray();
 
-        jsonWriter.name("rotScale");
+        jsonWriter.name("rot");
+        ROT_SERIALIZER.write(jsonWriter, transform3.rot());
 
-        float[] arr = transform3.rotScale().get(new float[9]);
+        jsonWriter.name("scale");
         jsonWriter.beginArray();
-        for (float v : arr) {
-            jsonWriter.value(v);
-        }
+        jsonWriter.value(transform3.scale().x);
+        jsonWriter.value(transform3.scale().y);
+        jsonWriter.value(transform3.scale().z);
         jsonWriter.endArray();
 
         jsonWriter.endObject();
@@ -53,14 +55,17 @@ class Transform3Serializer extends TypeAdapter<Transform3> {
                     transform3.pos().set(x, y, z);
                     break;
                 }
-                case "rotScale": {
+                case "rot": {
+                    ROT_SERIALIZER.read(jsonReader, transform3.rot());
+                    break;
+                }
+                case "scale": {
                     jsonReader.beginArray();
-                    float[] arr = new float[9];
-                    for (int i = 0; i < 9; i++) {
-                        arr[i] = (float) jsonReader.nextDouble();
-                    }
+                    float x = (float) jsonReader.nextDouble();
+                    float y = (float) jsonReader.nextDouble();
+                    float z = (float) jsonReader.nextDouble();
                     jsonReader.endArray();
-                    transform3.rotScale().set(arr);
+                    transform3.scale().set(x, y, z);
                     break;
                 }
                 default:
@@ -76,27 +81,38 @@ class Transform3Serializer extends TypeAdapter<Transform3> {
 }
 
 /**
- * A mutable, three-dimensional, matrix-based transform that keeps a double-precision global offset.
+ * A mutable, three-dimensional, translate/rotate/scale transform that keeps a double-precision global offset.
+ * <p>
+ * Rotation is kept in whatever form it was authored in rather than baked into a matrix, so euler angles
+ * survive round-trips through this class intact. The cost is that shear is not representable: composing
+ * two transforms with non-uniform scale falls back to multiplying the rotations and the scales separately.
  *
- * @param pos      Global positional root.
- * @param rotScale Rotation/Scale matrix
+ * @param pos   Global positional root.
+ * @param rot   Rotation.
+ * @param scale XYZ scale, applied before the rotation.
  */
 @JsonAdapter(Transform3Serializer.class)
-public record Transform3(@NonNull Vector3d pos, @NonNull Matrix3f rotScale) {
+public record Transform3(@NonNull Vector3d pos, @NonNull DynamicRotation rot, @NonNull Vector3f scale) {
     public Transform3(Vector3dc position, Matrix3fc matrix) {
-        this(new Vector3d(position), new Matrix3f(matrix));
+        this(new Vector3d(position), new DynamicRotation(), new Vector3f());
+        setFromMatrix(matrix, rot, scale);
+    }
+
+    public Transform3(Vector3dc position, Quaternionfc rotation, Vector3fc scale) {
+        this(new Vector3d(position), new DynamicRotation(), new Vector3f(scale));
+        rot.setQuaternion(rotation);
     }
 
     public Transform3(Vector3dc position) {
-        this(position, new Matrix3f());
+        this(new Vector3d(position), new DynamicRotation(), new Vector3f(1));
     }
 
     public Transform3(double x, double y, double z) {
-        this(new Vector3d(x, y, z), new Matrix3f());
+        this(new Vector3d(x, y, z), new DynamicRotation(), new Vector3f(1));
     }
 
     public Transform3() {
-        this(new Vector3d(), new Matrix3f());
+        this(new Vector3d(), new DynamicRotation(), new Vector3f(1));
     }
 
     public Vector3d getPos(Vector3d dest) {
@@ -104,29 +120,40 @@ public record Transform3(@NonNull Vector3d pos, @NonNull Matrix3f rotScale) {
     }
 
     public Quaternionf getRot(Quaternionf dest) {
-        return rotScale.getNormalizedRotation(dest);
+        return rot.getQuaternion(dest);
     }
 
     public Vector3f getScale(Vector3f dest) {
-        return rotScale.getScale(dest);
+        return dest.set(scale);
+    }
+
+    /**
+     * Get the combined rotation/scale of this transform as a matrix.
+     *
+     * @param dest Will hold the result.
+     * @return dest
+     */
+    public Matrix3f getRotScale(Matrix3f dest) {
+        return rot.getMatrix(dest).scale(scale);
     }
 
     public Transform3 set(Transform3 src) {
         pos.set(src.pos);
-        rotScale.set(src.rotScale);
+        rot.set(src.rot);
+        scale.set(src.scale);
         return this;
     }
 
     public Transform3 set(Vector3dc pos, Matrix3fc srcRotScale) {
         this.pos.set(pos);
-        rotScale.set(srcRotScale);
+        setFromMatrix(srcRotScale, rot, scale);
         return this;
     }
 
     public Transform3 set(Vector3dc pos, Quaternionfc rot) {
         identity();
         this.pos.set(pos);
-        rotScale.set(rot);
+        this.rot.setQuaternion(rot);
         return this;
     }
 
@@ -136,14 +163,23 @@ public record Transform3(@NonNull Vector3d pos, @NonNull Matrix3f rotScale) {
 
     public Transform3 identity() {
         pos.zero();
-        rotScale.identity();
+        rot.identity();
+        scale.set(1);
         return this;
     }
 
     public Transform3 invert(Transform3 dest) {
-        rotScale.invert(dest.rotScale);
+        rot.invert(dest.rot);
+        dest.scale.set(1f / scale.x, 1f / scale.y, 1f / scale.z);
 
-        transformDouble(dest.rotScale, -pos.x, -pos.y, -pos.z, dest.pos);
+        // Apply the inverted transform to -pos.
+        dest.pos.set(
+                -pos.x * dest.scale.x,
+                -pos.y * dest.scale.y,
+                -pos.z * dest.scale.z
+        );
+        dest.rot.transform(dest.pos);
+
         return dest;
     }
 
@@ -166,9 +202,20 @@ public record Transform3(@NonNull Vector3d pos, @NonNull Matrix3f rotScale) {
         // Cache to handle dest == this
         double px = pos.x, py = pos.y, pz = pos.z;
 
-        transformDouble(rotScale, right.pos.x, right.pos.y, right.pos.z, dest.pos);
+        dest.pos.set(
+                right.pos.x * scale.x,
+                right.pos.y * scale.y,
+                right.pos.z * scale.z
+        );
+        rot.transform(dest.pos);
         dest.pos.add(px, py, pz);
-        rotScale.mul(right.rotScale, dest.rotScale);
+
+        dest.scale.set(
+                scale.x * right.scale.x,
+                scale.y * right.scale.y,
+                scale.z * right.scale.z
+        );
+        rot.mul(right.rot, dest.rot);
 
         return dest;
     }
@@ -227,7 +274,8 @@ public record Transform3(@NonNull Vector3d pos, @NonNull Matrix3f rotScale) {
      * @return dest
      */
     public Transform3 translate(double x, double y, double z, Transform3 dest) {
-        dest.rotScale.set(rotScale);
+        dest.rot.set(rot);
+        dest.scale.set(scale);
         pos.add(x, y, z, dest.pos);
         return dest;
     }
@@ -253,7 +301,8 @@ public record Transform3(@NonNull Vector3d pos, @NonNull Matrix3f rotScale) {
      * @return dest
      */
     public Transform3 translate(Vector3dc offset, Transform3 dest) {
-        dest.rotScale.set(rotScale);
+        dest.rot.set(rot);
+        dest.scale.set(scale);
         pos.add(offset, dest.pos);
         return dest;
     }
@@ -278,7 +327,8 @@ public record Transform3(@NonNull Vector3d pos, @NonNull Matrix3f rotScale) {
      */
     public Transform3 rotate(Quaternionfc q, Transform3 dest) {
         dest.pos.set(pos);
-        rotScale.rotate(q, dest.rotScale);
+        dest.scale.set(scale);
+        rot.rotate(q, dest.rot);
         return dest;
     }
 
@@ -301,7 +351,8 @@ public record Transform3(@NonNull Vector3d pos, @NonNull Matrix3f rotScale) {
      */
     public Transform3 rotateLocal(Quaternionfc q, Transform3 dest) {
         dest.pos.set(pos);
-        rotScale.rotateLocal(q, dest.rotScale);
+        dest.scale.set(scale);
+        rot.rotateLocal(q, dest.rot);
         return dest;
     }
 
@@ -322,7 +373,8 @@ public record Transform3(@NonNull Vector3d pos, @NonNull Matrix3f rotScale) {
 
         q.transform(localX, localY, localZ, dest.pos);
         dest.pos.add(pivotX, pivotY, pivotZ);
-        rotScale.rotate(q, dest.rotScale);
+        dest.scale.set(scale);
+        rot.rotate(q, dest.rot);
 
         return dest;
     }
@@ -344,7 +396,8 @@ public record Transform3(@NonNull Vector3d pos, @NonNull Matrix3f rotScale) {
         dest.pos.y = (pos.y - pivotY) * y + pivotY;
         dest.pos.z = (pos.z - pivotZ) * z + pivotZ;
 
-        rotScale.scale(x, y, z, dest.rotScale);
+        dest.rot.set(rot);
+        dest.scale.set(scale.x * x, scale.y * y, scale.z * z);
         return dest;
     }
 
@@ -378,7 +431,8 @@ public record Transform3(@NonNull Vector3d pos, @NonNull Matrix3f rotScale) {
 
     public Transform3 scale(float x, float y, float z, Transform3 dest) {
         dest.pos.set(pos);
-        rotScale.scale(x, y, z, dest.rotScale);
+        dest.rot.set(rot);
+        dest.scale.set(scale.x * x, scale.y * y, scale.z * z);
         return dest;
     }
 
@@ -413,7 +467,7 @@ public record Transform3(@NonNull Vector3d pos, @NonNull Matrix3f rotScale) {
      * @return dest
      */
     public Matrix4f getMatrix(double rootX, double rootY, double rootZ, Matrix4f dest) {
-        dest.identity().set3x3(rotScale).setTranslation(
+        dest.identity().set3x3(getRotScale(new Matrix3f())).setTranslation(
                 (float) (pos.x - rootX),
                 (float) (pos.y - rootY),
                 (float) (pos.z - rootZ)
@@ -444,12 +498,11 @@ public record Transform3(@NonNull Vector3d pos, @NonNull Matrix3f rotScale) {
     }
 
     /**
-     * Re-implementation of Matrix3f's transform that uses double-precision
+     * Decompose a rotation/scale matrix. Any shear in the matrix is discarded, and a mirrored matrix
+     * comes back as a rotation with positive scale.
      */
-    private static Vector3d transformDouble(Matrix3fc m, double x, double y, double z, Vector3d dest) {
-        return dest.set(
-                Math.fma(m.m00(), x, Math.fma(m.m10(), y, m.m20() * z)),
-                Math.fma(m.m01(), x, Math.fma(m.m11(), y, m.m21() * z)),
-                Math.fma(m.m02(), x, Math.fma(m.m12(), y, m.m22() * z)));
+    private static void setFromMatrix(Matrix3fc mat, DynamicRotation rot, Vector3f scale) {
+        mat.getScale(scale);
+        rot.setMatrix(mat);
     }
 }

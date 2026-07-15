@@ -63,7 +63,7 @@ class Transform3Test {
         Transform3 t = new Transform3();
 
         assertVec3(t.pos(), 0.0, 0.0, 0.0);
-        assertMatrix3(t.rotScale(),
+        assertMatrix3(t.getRotScale(new Matrix3f()),
                 1f, 0f, 0f,
                 0f, 1f, 0f,
                 0f, 0f, 1f);
@@ -77,7 +77,7 @@ class Transform3Test {
         Transform3 t = new Transform3((Vector3dc) pos, (Matrix3fc) mat);
 
         assertVec3(t.pos(), 1.0, 2.0, 3.0);
-        assertMatrix3(t.rotScale(),
+        assertMatrix3(t.getRotScale(new Matrix3f()),
                 0f,  1f, 0f,
                 -1f,  0f, 0f,
                 0f,  0f, 1f);
@@ -104,7 +104,7 @@ class Transform3Test {
 
         mat.identity();
 
-        assertMatrix3(t.rotScale(),
+        assertMatrix3(t.getRotScale(new Matrix3f()),
                 0f,  1f, 0f,
                 -1f,  0f, 0f,
                 0f,  0f, 1f);
@@ -121,7 +121,7 @@ class Transform3Test {
         dst.set(src);
 
         assertVec3(dst.pos(), 10.0, 20.0, 30.0);
-        assertMatrix3(dst.rotScale(),
+        assertMatrix3(dst.getRotScale(new Matrix3f()),
                 2f, 0f, 0f,
                 0f, 3f, 0f,
                 0f, 0f, 4f);
@@ -137,7 +137,7 @@ class Transform3Test {
         dst.identity();
 
         assertVec3(dst.pos(), 0.0, 0.0, 0.0);
-        assertMatrix3(dst.rotScale(),
+        assertMatrix3(dst.getRotScale(new Matrix3f()),
                 1f, 0f, 0f,
                 0f, 1f, 0f,
                 0f, 0f, 1f);
@@ -165,7 +165,7 @@ class Transform3Test {
         t.scaleAround(2.0f, 3.0f, 4.0f, 1.0, 1.0, 1.0);
 
         assertVec3(t.pos(), 5.0, 13.0, 25.0);
-        assertMatrix3(t.rotScale(),
+        assertMatrix3(t.getRotScale(new Matrix3f()),
                 2f, 0f, 0f,
                 0f, 6f, 0f,
                 0f, 0f, 12f);
@@ -185,7 +185,7 @@ class Transform3Test {
         a.mul(b);
 
         assertVec3(a.pos(), 9.0, 17.0, 27.0);
-        assertMatrix3(a.rotScale(),
+        assertMatrix3(a.getRotScale(new Matrix3f()),
                 10f, 0f, 0f,
                 0f, 18f, 0f,
                 0f, 0f, 28f);
@@ -206,7 +206,7 @@ class Transform3Test {
         c.preMul(b);
 
         assertVec3(c.pos(), 9.0, 17.0, 27.0);
-        assertMatrix3(c.rotScale(),
+        assertMatrix3(c.getRotScale(new Matrix3f()),
                 10f, 0f, 0f,
                 0f, 18f, 0f,
                 0f, 0f, 28f);
@@ -223,7 +223,7 @@ class Transform3Test {
 
         // Target position is M_inv * (-p)
         assertVec3(d.pos(), -0.5, -2.0 / 3.0, -0.75);
-        assertMatrix3(d.rotScale(),
+        assertMatrix3(d.getRotScale(new Matrix3f()),
                 0.5f, 0f,   0f,
                 0f,   1f/3f, 0f,
                 0f,   0f,   0.25f);
@@ -240,7 +240,7 @@ class Transform3Test {
         t.rotate(q);
 
         assertVec3(t.pos(), 10.0, 0.0, 0.0);
-        assertMatrix3(t.rotScale(),
+        assertMatrix3(t.getRotScale(new Matrix3f()),
                 0f,  1f, 0f,
                 -1f,  0f, 0f,
                 0f,  0f, 1f);
@@ -257,7 +257,7 @@ class Transform3Test {
         p.rotateAround(q, 1.0, 1.0, 0.0);
 
         assertVec3(p.pos(), 1.0, 2.0, 0.0);
-        assertMatrix3(p.rotScale(),
+        assertMatrix3(p.getRotScale(new Matrix3f()),
                 0f,  1f, 0f,
                 -1f,  0f, 0f,
                 0f,  0f, 1f);
