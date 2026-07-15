@@ -145,18 +145,16 @@ public abstract class ReplayObject3D extends ReplayObject implements TransformPr
     }
 
     public final Transform3 getBaseTransform(Transform3 dest) {
-        dest.identity();
-
         dest.pos().set(position);
-        dest.rotate(rotation.getQuaternion(new Quaternionf()));
-        dest.scale(scale);
+        dest.rot().set(rotation);
+        dest.scale().set(scale);
 
         return dest;
     }
 
     public final void setBaseTransform(Transform3 transform) {
         transform.getPos(position);
-        rotation.setQuaternion(transform.getRot(new Quaternionf()));
+        rotation.set(transform.rot());
         transform.getScale(scale);
     }
 
