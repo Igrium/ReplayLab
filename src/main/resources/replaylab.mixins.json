@@ -1,28 +1,29 @@
 {
-    "required": true,
-    "package": "com.igrium.replaylab.mixin",
-    "compatibilityLevel": "JAVA_21",
-    "mixins": [
-        "AccessorGuiReplayEntry",
-        "AccessorRenderSettings",
-        "AccessorReplayHandler",
-        "MixinAppManager",
-        "MixinEntity",
-        "MixinGuiReplayViewer",
-        "MixinKeyBindingRegistry",
-        "MixinPathPreviewRenderer"
-    ],
-    "injectors": {
-        "defaultRequire": 1
-    },
-    "client": [
-        "AccessorCamera",
-        "AccessorNativeImage",
-        "MixinCamera",
-        "MixinClientPlayerEntity",
-        "MixinGameRenderer",
-        "MixinLanguageManager",
-        "MixinMinecraftClient",
-        "MixinWorldRenderer"
-    ]
+  "required": true,
+  "package": "com.igrium.replaylab.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [
+    "AccessorGuiReplayEntry",
+    "AccessorRenderSettings",
+    "AccessorReplayHandler",
+    "MixinAppManager",
+    "MixinEntity",
+    "MixinGuiReplayViewer",
+    "MixinKeyBindingRegistry",
+    "MixinPathPreviewRenderer"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  },
+  "client": [
+    "AccessorCamera",
+    "AccessorNativeImage",
+    "MixinCamera",
+    "MixinCameraEntity",
+    "MixinClientPlayerEntity",
+    "MixinGameRenderer",
+    "MixinLanguageManager",
+    "MixinMinecraftClient",
+    "MixinWorldRenderer"
+  ]
 }
