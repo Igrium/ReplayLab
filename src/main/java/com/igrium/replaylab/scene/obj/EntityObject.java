@@ -85,7 +85,7 @@ public abstract class EntityObject<T extends Entity> extends ReplayObject3D impl
         entity.prevZ = pos.z;
 
         // TODO: double-check that this transform setup is compatible with entities
-        var rot = MathUtils.entityRot(transform.getRot(new Quaternionf()));
+        var rot = MathUtils.toEntityRot(transform.getRot(new Quaternionf()));
 
         float pitch = rot.x;
         float yaw = rot.y;

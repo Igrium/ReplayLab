@@ -1,6 +1,5 @@
 package com.igrium.replaylab.camera;
 
-import com.igrium.replaylab.ReplayLab;
 import com.igrium.replaylab.math.MathUtils;
 import lombok.Getter;
 import lombok.Setter;
@@ -106,7 +105,7 @@ public class AnimatedCameraEntity extends Entity implements FovProvider, Rotatio
     }
 
     public void setCameraRotation(Quaternionfc rot) {
-        Vector3f euler = MathUtils.entityRot(rot);
+        Vector3f euler = MathUtils.toEntityRot(rot);
 
         setCameraRotation(euler.x, euler.y, euler.z);
         rotationQuat.set(rot).normalize();

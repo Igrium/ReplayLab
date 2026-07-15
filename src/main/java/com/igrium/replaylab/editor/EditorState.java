@@ -38,6 +38,7 @@ import lombok.Setter;
 import lombok.experimental.Accessors;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.ClientPlayerEntity;
+import net.minecraft.client.option.Perspective;
 import net.minecraft.entity.Entity;
 import net.minecraft.util.Util;
 import net.minecraft.util.math.Vec3d;
@@ -469,6 +470,8 @@ public final class EditorState {
         if (scene.getSceneCameraObject() == null) {
             setCameraView(false);
         }
+        // No F5
+        mc.options.setPerspective(Perspective.FIRST_PERSON);
         if (isCameraView()) {
 
             scene.spectateCamera();

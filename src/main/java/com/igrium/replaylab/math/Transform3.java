@@ -93,36 +93,82 @@ class Transform3Serializer extends TypeAdapter<Transform3> {
  */
 @JsonAdapter(Transform3Serializer.class)
 public record Transform3(@NonNull Vector3d pos, @NonNull DynamicRotation rot, @NonNull Vector3f scale) {
+    /**
+     * Create a transform with a position and a rotation/scale matrix.
+     *
+     * @param position Global positional root.
+     * @param matrix   Rotation/scale matrix. Any shear is discarded.
+     */
     public Transform3(Vector3dc position, Matrix3fc matrix) {
         this(new Vector3d(position), new DynamicRotation(), new Vector3f());
         setFromMatrix(matrix, rot, scale);
     }
 
+    /**
+     * Create a transform with a position, rotation and scale.
+     *
+     * @param position Global positional root.
+     * @param rotation Rotation.
+     * @param scale    XYZ scale, applied before the rotation.
+     */
     public Transform3(Vector3dc position, Quaternionfc rotation, Vector3fc scale) {
         this(new Vector3d(position), new DynamicRotation(), new Vector3f(scale));
         rot.setQuaternion(rotation);
     }
 
+    /**
+     * Create a transform at a position with no rotation and a scale of one.
+     *
+     * @param position Global positional root.
+     */
     public Transform3(Vector3dc position) {
         this(new Vector3d(position), new DynamicRotation(), new Vector3f(1));
     }
 
+    /**
+     * Create a transform at a position with no rotation and a scale of one.
+     *
+     * @param x Global root X
+     * @param y Global root Y
+     * @param z Global root Z
+     */
     public Transform3(double x, double y, double z) {
         this(new Vector3d(x, y, z), new DynamicRotation(), new Vector3f(1));
     }
 
+    /**
+     * Create an identity transform.
+     */
     public Transform3() {
         this(new Vector3d(), new DynamicRotation(), new Vector3f(1));
     }
 
+    /**
+     * Get the position of this transform.
+     *
+     * @param dest Will hold the result.
+     * @return dest
+     */
     public Vector3d getPos(Vector3d dest) {
         return dest.set(pos);
     }
 
+    /**
+     * Get the rotation of this transform as a quaternion.
+     *
+     * @param dest Will hold the result.
+     * @return dest
+     */
     public Quaternionf getRot(Quaternionf dest) {
         return rot.getQuaternion(dest);
     }
 
+    /**
+     * Get the scale of this transform.
+     *
+     * @param dest Will hold the result.
+     * @return dest
+     */
     public Vector3f getScale(Vector3f dest) {
         return dest.set(scale);
     }
@@ -137,6 +183,12 @@ public record Transform3(@NonNull Vector3d pos, @NonNull DynamicRotation rot, @N
         return rot.getMatrix(dest).scale(scale);
     }
 
+    /**
+     * Set this transform to a copy of another transform.
+     *
+     * @param src Transform to copy from.
+     * @return this
+     */
     public Transform3 set(Transform3 src) {
         pos.set(src.pos);
         rot.set(src.rot);
@@ -144,12 +196,26 @@ public record Transform3(@NonNull Vector3d pos, @NonNull DynamicRotation rot, @N
         return this;
     }
 
+    /**
+     * Set this transform to a position and a rotation/scale matrix.
+     *
+     * @param pos         Global positional root.
+     * @param srcRotScale Rotation/scale matrix. Any shear is discarded.
+     * @return this
+     */
     public Transform3 set(Vector3dc pos, Matrix3fc srcRotScale) {
         this.pos.set(pos);
         setFromMatrix(srcRotScale, rot, scale);
         return this;
     }
 
+    /**
+     * Set this transform to a position and rotation, resetting the scale to one.
+     *
+     * @param pos Global positional root.
+     * @param rot Rotation.
+     * @return this
+     */
     public Transform3 set(Vector3dc pos, Quaternionfc rot) {
         identity();
         this.pos.set(pos);
@@ -157,10 +223,23 @@ public record Transform3(@NonNull Vector3d pos, @NonNull DynamicRotation rot, @N
         return this;
     }
 
+    /**
+     * Set this transform to a position, rotation and scale.
+     *
+     * @param pos   Global positional root.
+     * @param rot   Rotation.
+     * @param scale XYZ scale, applied before the rotation.
+     * @return this
+     */
     public Transform3 set(Vector3dc pos, Quaternionfc rot, Vector3fc scale) {
         return set(pos, rot).scale(scale);
     }
 
+    /**
+     * Reset this transform to the identity: zero position, no rotation and a scale of one.
+     *
+     * @return this
+     */
     public Transform3 identity() {
         pos.zero();
         rot.identity();
@@ -168,6 +247,12 @@ public record Transform3(@NonNull Vector3d pos, @NonNull DynamicRotation rot, @N
         return this;
     }
 
+    /**
+     * Invert this transform and store the result in {@code dest}.
+     *
+     * @param dest Will hold the result.
+     * @return dest
+     */
     public Transform3 invert(Transform3 dest) {
         rot.invert(dest.rot);
         dest.scale.set(1f / scale.x, 1f / scale.y, 1f / scale.z);
@@ -183,6 +268,11 @@ public record Transform3(@NonNull Vector3d pos, @NonNull DynamicRotation rot, @N
         return dest;
     }
 
+    /**
+     * Invert this transform and store the result in {@code this}.
+     *
+     * @return this
+     */
     public Transform3 invert() {
         return invert(this);
     }
@@ -366,6 +456,16 @@ public record Transform3(@NonNull Vector3d pos, @NonNull DynamicRotation rot, @N
         return rotateLocal(q, this);
     }
 
+    /**
+     * Rotate this transform about a pivot point, moving the position with it. Store the result in {@code dest}.
+     *
+     * @param q      Quaternion to rotate by.
+     * @param pivotX Pivot X
+     * @param pivotY Pivot Y
+     * @param pivotZ Pivot Z
+     * @param dest   Will hold the result.
+     * @return dest
+     */
     public Transform3 rotateAround(Quaternionfc q, double pivotX, double pivotY, double pivotZ, Transform3 dest) {
         double localX = pos.x - pivotX;
         double localY = pos.y - pivotY;
@@ -379,18 +479,54 @@ public record Transform3(@NonNull Vector3d pos, @NonNull DynamicRotation rot, @N
         return dest;
     }
 
+    /**
+     * Rotate this transform about a pivot point, moving the position with it. Store the result in {@code this}.
+     *
+     * @param q      Quaternion to rotate by.
+     * @param pivotX Pivot X
+     * @param pivotY Pivot Y
+     * @param pivotZ Pivot Z
+     * @return this
+     */
     public Transform3 rotateAround(Quaternionfc q, double pivotX, double pivotY, double pivotZ) {
         return rotateAround(q, pivotX, pivotY, pivotZ, this);
     }
 
+    /**
+     * Rotate this transform about a pivot point, moving the position with it. Store the result in {@code dest}.
+     *
+     * @param q     Quaternion to rotate by.
+     * @param pivot Point to rotate around.
+     * @param dest  Will hold the result.
+     * @return dest
+     */
     public Transform3 rotateAround(Quaternionfc q, Vector3dc pivot, Transform3 dest) {
         return rotateAround(q, pivot.x(), pivot.y(), pivot.z(), dest);
     }
 
+    /**
+     * Rotate this transform about a pivot point, moving the position with it. Store the result in {@code this}.
+     *
+     * @param q     Quaternion to rotate by.
+     * @param pivot Point to rotate around.
+     * @return this
+     */
     public Transform3 rotateAround(Quaternionfc q, Vector3dc pivot) {
         return rotateAround(q, pivot, this);
     }
 
+    /**
+     * Scale this transform about a pivot point, moving the position with it. Store the result in {@code dest}.
+     *
+     * @param x      X scale factor
+     * @param y      Y scale factor
+     * @param z      Z scale factor
+     * @param pivotX Pivot X
+     * @param pivotY Pivot Y
+     * @param pivotZ Pivot Z
+     * @param dest   Will hold the result.
+     * @return dest
+     */
     public Transform3 scaleAround(float x, float y, float z, double pivotX, double pivotY, double pivotZ, Transform3 dest) {
         dest.pos.x = (pos.x - pivotX) * x + pivotX;
         dest.pos.y = (pos.y - pivotY) * y + pivotY;
@@ -401,34 +537,107 @@ public record Transform3(@NonNull Vector3d pos, @NonNull DynamicRotation rot, @N
         return dest;
     }
 
+    /**
+     * Scale this transform about a pivot point, moving the position with it. Store the result in {@code this}.
+     *
+     * @param x      X scale factor
+     * @param y      Y scale factor
+     * @param z      Z scale factor
+     * @param pivotX Pivot X
+     * @param pivotY Pivot Y
+     * @param pivotZ Pivot Z
+     * @return this
+     */
     public Transform3 scaleAround(float x, float y, float z, double pivotX, double pivotY, double pivotZ) {
         return scaleAround(x, y, z, pivotX, pivotY, pivotZ, this);
     }
 
+    /**
+     * Scale this transform about a pivot point, moving the position with it. Store the result in {@code dest}.
+     *
+     * @param xyz   XYZ scale factor.
+     * @param pivot Point to scale around.
+     * @param dest  Will hold the result.
+     * @return dest
+     */
     public Transform3 scaleAround(Vector3fc xyz, Vector3dc pivot, Transform3 dest) {
         return scaleAround(xyz.x(), xyz.y(), xyz.z(), pivot.x(), pivot.y(), pivot.z(), dest);
     }
 
+    /**
+     * Scale this transform about a pivot point, moving the position with it. Store the result in {@code this}.
+     *
+     * @param xyz   XYZ scale factor.
+     * @param pivot Point to scale around.
+     * @return this
+     */
     public Transform3 scaleAround(Vector3fc xyz, Vector3dc pivot) {
         return scaleAround(xyz, pivot, this);
     }
 
+    /**
+     * Uniformly scale this transform about a pivot point, moving the position with it.
+     * Store the result in {@code dest}.
+     *
+     * @param xyz    Uniform scale factor.
+     * @param pivotX Pivot X
+     * @param pivotY Pivot Y
+     * @param pivotZ Pivot Z
+     * @param dest   Will hold the result.
+     * @return dest
+     */
     public Transform3 scaleAround(float xyz, double pivotX, double pivotY, double pivotZ, Transform3 dest) {
         return scaleAround(xyz, xyz, xyz, pivotX, pivotY, pivotZ, dest);
     }
 
+    /**
+     * Uniformly scale this transform about a pivot point, moving the position with it.
+     * Store the result in {@code this}.
+     *
+     * @param xyz    Uniform scale factor.
+     * @param pivotX Pivot X
+     * @param pivotY Pivot Y
+     * @param pivotZ Pivot Z
+     * @return this
+     */
     public Transform3 scaleAround(float xyz, double pivotX, double pivotY, double pivotZ) {
         return scaleAround(xyz, pivotX, pivotY, pivotZ, this);
     }
 
+    /**
+     * Uniformly scale this transform about a pivot point, moving the position with it.
+     * Store the result in {@code dest}.
+     *
+     * @param xyz   Uniform scale factor.
+     * @param pivot Point to scale around.
+     * @param dest  Will hold the result.
+     * @return dest
+     */
     public Transform3 scaleAround(float xyz, Vector3dc pivot, Transform3 dest) {
         return scaleAround(xyz, pivot.x(), pivot.y(), pivot.z(), dest);
     }
 
+    /**
+     * Uniformly scale this transform about a pivot point, moving the position with it.
+     * Store the result in {@code this}.
+     *
+     * @param xyz   Uniform scale factor.
+     * @param pivot Point to scale around.
+     * @return this
+     */
     public Transform3 scaleAround(float xyz, Vector3dc pivot) {
         return scaleAround(xyz, pivot, this);
     }
 
+    /**
+     * Scale this transform in place (position unchanged) and store the result in {@code dest}.
+     *
+     * @param x    X scale factor
+     * @param y    Y scale factor
+     * @param z    Z scale factor
+     * @param dest Will hold the result.
+     * @return dest
+     */
     public Transform3 scale(float x, float y, float z, Transform3 dest) {
         dest.pos.set(pos);
         dest.rot.set(rot);
@@ -436,22 +645,56 @@ public record Transform3(@NonNull Vector3d pos, @NonNull DynamicRotation rot, @N
         return dest;
     }
 
+    /**
+     * Scale this transform in place (position unchanged) and store the result in {@code this}.
+     *
+     * @param x X scale factor
+     * @param y Y scale factor
+     * @param z Z scale factor
+     * @return this
+     */
     public Transform3 scale(float x, float y, float z) {
         return scale(x, y, z, this);
     }
 
+    /**
+     * Scale this transform in place (position unchanged) and store the result in {@code dest}.
+     *
+     * @param factor XYZ scale factor.
+     * @param dest   Will hold the result.
+     * @return dest
+     */
     public Transform3 scale(Vector3fc factor, Transform3 dest) {
         return scale(factor.x(), factor.y(), factor.z(), dest);
     }
 
+    /**
+     * Scale this transform in place (position unchanged) and store the result in {@code this}.
+     *
+     * @param factor XYZ scale factor.
+     * @return this
+     */
     public Transform3 scale(Vector3fc factor) {
         return scale(factor, this);
     }
 
+    /**
+     * Uniformly scale this transform in place (position unchanged) and store the result in {@code dest}.
+     *
+     * @param xyz  Uniform scale factor.
+     * @param dest Will hold the result.
+     * @return dest
+     */
     public Transform3 scale(float xyz, Transform3 dest) {
         return scale(xyz, xyz, xyz, dest);
     }
 
+    /**
+     * Uniformly scale this transform in place (position unchanged) and store the result in {@code this}.
+     *
+     * @param xyz Uniform scale factor.
+     * @return this
+     */
     public Transform3 scale(float xyz) {
         return scale(xyz, this);
     }
