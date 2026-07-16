@@ -1,7 +1,9 @@
 package com.igrium.replaylab.scene.obj;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.gson.*;
+import com.igrium.replaylab.anim.constraint.ConstraintContainer;
 import com.igrium.replaylab.anim.modifier.CurveModifier;
 import com.igrium.replaylab.editor.EditorState;
 import com.igrium.replaylab.editor.KeySelectionSet;
@@ -81,6 +83,9 @@ public abstract class ReplayObject {
      */
     @Getter
     private final Object2DoubleMap<String> sampledValues = new Object2DoubleArrayMap<>();
+
+    @Getter
+    private final ConstraintContainer constraints = new ConstraintContainer(this);
 
     public ReplayObject(ReplayObjectType<?> type, ReplayScene scene) {
         this.type = type;
@@ -280,7 +285,8 @@ public abstract class ReplayObject {
             channels.put(entry.getKey(), entry.getValue().copy());
         }
 
-        return new SerializedReplayObject(type.getId(), ImmutableMap.copyOf(channels), attributes);
+        return new SerializedReplayObject(type.getId(), ImmutableMap.copyOf(channels),
+                attributes, ImmutableList.copyOf(constraints.save(gsonContext)));
     }
 
     /**
@@ -296,6 +302,7 @@ public abstract class ReplayObject {
             channels.put(entry.getKey(), entry.getValue().copy());
         }
 
+        constraints.parse(serialized.getConstraints(), gsonContext);
     }
 
     private static <K, T, R> Map<K, List<R>> transformMapValues(Map<K, List<T>> sourceMap,
