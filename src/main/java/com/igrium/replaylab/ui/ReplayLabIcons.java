@@ -38,4 +38,6 @@ public class ReplayLabIcons {
     public static final char ICON_ARROWS_V = 0xF07D;
 
     public static final char ICON_ARROW_POINTER = 0xF245;
+
+    public static final char ICON_EYE_DROPPER = 0xF1FB;
 }

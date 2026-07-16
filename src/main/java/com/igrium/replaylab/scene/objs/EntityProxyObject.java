@@ -9,14 +9,15 @@ import com.igrium.replaylab.scene.ReplayScene;
 import com.igrium.replaylab.scene.obj.*;
 import com.igrium.replaylab.ui.widgets.EntityPicker;
 import com.igrium.replaylab.ui.widgets.EntitySelector;
+import com.igrium.replaylab.ui.widgets.EntitySelectorWindow;
+import com.replaymod.replay.camera.CameraEntity;
 import imgui.ImGui;
 import imgui.flag.ImGuiMouseButton;
 import imgui.type.ImInt;
-import lombok.Getter;
-import lombok.Setter;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.world.ClientWorld;
 import net.minecraft.entity.Entity;
+import net.minecraft.entity.passive.CowEntity;
 import net.minecraft.util.math.Vec3d;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Math;
@@ -85,35 +86,11 @@ public class EntityProxyObject extends ReplayObject implements EntityProvider<En
 
     @Override
     public int drawPropertiesPanel(EditorState editor) {
-        Entity ent = getEntity();
-        String msg = ent != null ? ent.getName().getString() : "[None]";
-
-        if (ImGui.button(msg + "###select")) {
-            EntityPicker.open("entity");
-        }
-
-        if (ImGui.isItemClicked(ImGuiMouseButton.Right)) {
-            ImGui.openPopup("entityContext");
-        }
-
         int flags = ObjectEditState.NONE;
-        EntityPicker picker = EntityPicker.get("entity");
-        if (picker != null) {
-            Entity picked = picker.getPickedEntity();
-            if (picked != null) {
-                setEntId(picked.getId());
-                picker.close();
-                flags |= ObjectEditState.COMMIT;
-            }
+
+        if (EntitySelector.selector("Entity", entId, e -> !(e instanceof CameraEntity))) {
+            flags |= ObjectEditState.COMMIT;
         }
-
-        ClientWorld world = MinecraftClient.getInstance().world;
-
-        if (ImGui.beginPopup("entityContext")) {
-            EntitySelector.selectEntity("ent", entId, world.getEntities());
-            ImGui.endPopup();
-        }
-
 
         return flags;
     }

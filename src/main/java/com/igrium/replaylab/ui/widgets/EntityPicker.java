@@ -17,6 +17,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.function.Predicate;
 
 /**
  * A tool that lets the user pick entities from the viewport by clicking on them, similar to a color eyedropper.
@@ -27,6 +28,7 @@ public final class EntityPicker {
     private final List<Entity> pickedEntities = new ArrayList<>();
     private final List<Entity> pickedEntitiesUnmod = Collections.unmodifiableList(pickedEntities);
     private final int id;
+    private Predicate<? super Entity> filter = ent -> true;
 
     private EntityPicker(int id) {
         this.id = id;
@@ -87,10 +89,14 @@ public final class EntityPicker {
                 e -> e != mc.getCameraEntity(), false);
 
         if (raycast instanceof EntityHitResult entHit) {
-            if (ImGui.isMouseClicked(ImGuiMouseButton.Left)) {
-                pickedEntities.add(entHit.getEntity());
+            if (filter.test(entHit.getEntity())) {
+                ImGui.setTooltip(entHit.getEntity().getName().getString());
+                if (ImGui.isMouseClicked(ImGuiMouseButton.Left)) {
+                    pickedEntities.add(entHit.getEntity());
+                }
+            } else {
+                ImGui.setMouseCursor(ImGuiMouseCursor.NotAllowed);
             }
-            ImGui.setTooltip(entHit.getEntity().getName().getString());
         }
         if (ImGui.isKeyPressed(ImGuiKey.Escape)) {
             close();
@@ -105,13 +111,18 @@ public final class EntityPicker {
      * @param name Name identifying the picker, matched via {@link ImGui#getID(String)}.
      * @return Whether a new picker was opened (<code>false</code> if one was already active under this name).
      */
-    public static boolean open(String name) {
+    public static boolean open(String name, Predicate<? super Entity> filter) {
         int id = ImGui.getID(name);
         if (instance == null || instance.id != id) {
             instance = new EntityPicker(id);
+            instance.filter = filter;
             return true;
         }
         return false;
+    }
+
+    public static boolean open(String name) {
+        return open(name, ent -> true);
     }
 
     /**
