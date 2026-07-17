@@ -6,6 +6,7 @@ import com.google.gson.JsonSerializationContext;
 import com.igrium.replaylab.editor.EditorState;
 import com.igrium.replaylab.scene.ReplayScene;
 import com.igrium.replaylab.scene.obj.*;
+import com.igrium.replaylab.scene.obj.PropertyHolder.Property;
 import com.igrium.replaylab.ui.widgets.KeyWidgets.WidgetState;
 import com.igrium.replaylab.ui.widgets.PropertyWidgets;
 import com.igrium.replaylab.ui.util.ReplayLabControls;

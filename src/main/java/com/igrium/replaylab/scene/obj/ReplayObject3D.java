@@ -4,6 +4,7 @@ import com.google.gson.JsonDeserializationContext;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonSerializationContext;
 import com.igrium.replaylab.ReplayLab;
+import com.igrium.replaylab.anim.constraint.ObjectAccessor;
 import com.igrium.replaylab.config.ReplayLabConfig;
 import com.igrium.replaylab.editor.EditorState;
 import com.igrium.replaylab.editor.KeySelectionSet.KeyframeReference;
@@ -105,6 +106,12 @@ public abstract class ReplayObject3D extends ReplayObject implements TransformPr
     @Getter
     private final Vector3f scale = new Vector3f(1);
 
+    /**
+     * The transform of the object after modifiers have been applied (mutable)
+     */
+    @Getter
+    private final Transform3 computedTransform = new Transform3();
+
     public ReplayObject3D(ReplayObjectType<?> type, ReplayScene scene) {
         super(type, scene);
 
@@ -140,7 +147,7 @@ public abstract class ReplayObject3D extends ReplayObject implements TransformPr
 
     @Override
     public Transform3 getTransform(Transform3 dest) {
-        return getBaseTransform(dest);
+        return computedTransform;
     }
 
     public final Transform3 getBaseTransform(Transform3 dest) {
@@ -179,6 +186,12 @@ public abstract class ReplayObject3D extends ReplayObject implements TransformPr
 
     public final void setBaseTransformMatrix(Vector3dc center, Matrix4f matrix) {
         setBaseTransformMatrix(center.x(), center.y(), center.z(), matrix);
+    }
+
+    @Override
+    public void evaluateConstraints(int timestamp, ObjectAccessor accessor) {
+        getBaseTransform(computedTransform);
+        super.evaluateConstraints(timestamp, accessor);
     }
 
     private boolean wasDragging;

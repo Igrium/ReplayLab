@@ -88,13 +88,6 @@ public class DummyReplayObject extends ReplayObject {
     }
 
     @Override
-    public boolean insertKey(int timestamp) {
-        super.insertKey(timestamp);
-        getOrCreateChannel("dummyValue").addKeyframe(timestamp, dummyValue);
-        return true;
-    }
-
-    @Override
     public void apply(int timestamp) {
 
     }

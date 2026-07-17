@@ -3,8 +3,9 @@ package com.igrium.replaylab.scene.obj;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.gson.*;
+import com.igrium.replaylab.anim.constraint.Constraint;
 import com.igrium.replaylab.anim.constraint.ConstraintContainer;
-import com.igrium.replaylab.anim.modifier.CurveModifier;
+import com.igrium.replaylab.anim.constraint.ObjectAccessor;
 import com.igrium.replaylab.editor.EditorState;
 import com.igrium.replaylab.editor.KeySelectionSet;
 import com.igrium.replaylab.scene.ReplayScene;
@@ -19,6 +20,7 @@ import org.jetbrains.annotations.Nullable;
 import org.joml.Matrix4fc;
 import org.joml.Vector3dc;
 
+import java.io.Serializable;
 import java.util.*;
 import java.util.function.DoubleConsumer;
 import java.util.function.DoubleSupplier;
@@ -27,35 +29,11 @@ import java.util.function.Function;
 /**
  * An object that can be animated within a replay
  */
-public abstract class ReplayObject {
+public abstract class ReplayObject implements PropertyHolder {
 
-    /**
-     * Thrown when a non-existent property is attempted to be accessed.
-     */
-    public static class UnknownPropertyException extends IllegalArgumentException {
-        @Getter
-        private final String propName;
+    /// === NESTED TYPES ===
 
-        public UnknownPropertyException(String propName) {
-            super("Unknown property name: " + propName);
-            this.propName = propName;
-        }
-    }
-
-    public record Property(DoubleSupplier getter, DoubleConsumer setter,
-                           double minVal, double maxVal, boolean noMods) {
-        public Property(DoubleSupplier getter, DoubleConsumer setter) {
-            this(getter, setter, Double.MIN_VALUE, Double.MAX_VALUE, false);
-        }
-
-        public double getValue() {
-            return getter.getAsDouble();
-        }
-
-        public void setValue(double value) {
-            setter.accept(value);
-        }
-    }
+    /// === FIELDS ===
 
     @Getter
     private final ReplayObjectType<?> type;
@@ -70,7 +48,7 @@ public abstract class ReplayObject {
      * <code>writeJson</code>
      */
     @Getter
-    private final Map<String, Property> properties = new HashMap<>();
+    private final Map<String, PropertyHolder.Property> properties = new HashMap<>();
 
     /**
      * All animation channels in the object. Not all properties have a channel.
@@ -87,10 +65,16 @@ public abstract class ReplayObject {
     @Getter
     private final ConstraintContainer constraints = new ConstraintContainer(this);
 
+    private final GsonSerializationContext gsonContext = new GsonSerializationContext(new Gson());
+
+    /// === CONSTRUCTOR ===
+
     public ReplayObject(ReplayObjectType<?> type, ReplayScene scene) {
         this.type = type;
         this.scene = scene;
     }
+
+    /// === LIFECYCLE ===
 
     /**
      * Called when the object is added to the scene
@@ -111,31 +95,33 @@ public abstract class ReplayObject {
     public void onCreated() {
     }
 
-    public final boolean isSceneCamera() {
-        String id = getId();
-        return id != null && id.equals(scene.getSceneProps().getCameraObject());
+    /// === PROPERTIES ===
+
+    protected final void addProperty(String name, DoubleSupplier getter, DoubleConsumer setter) {
+        addProperty(name, new PropertyHolder.Property(getter, setter));
     }
 
-    /**
-     * Remap any property that references an object.
-     *
-     * @param oldName Old name of the object.
-     * @param newName New name of the object.
-     */
-    public void remapReferences(String oldName, String newName) {
+    protected final void addProperty(String name, PropertyHolder.Property property) {
+        if (name.contains(".")) {
+            throw new IllegalArgumentException("Property names may not contain '.'");
+        }
+        getProperties().put(name, property);
     }
 
-    /**
-     * Called when the user has pressed the "insert keyframe" keybind with this object selected.
-     *
-     * @param timestamp The current playback timestamp.
-     * @return If the keyframe was created and an undo step should be created.
-     */
-    @Deprecated
-    public boolean insertKey(int timestamp) {
-        return false;
+    public @Nullable PropertyHolder.Property getPropertyRef(String propName) {
+        String[] split = propName.split("\\.", 2);
+
+        if (split.length > 1) {
+            Constraint<?> c = getConstraints().get(split[0]);
+            if (c == null) return null;
+            return c.getPropertyRef(split[1]);
+        } else {
+            return properties.get(propName);
+        }
     }
 
+
+    /// === CHANNELS ===
 
     public final @Nullable KeyChannel getChannel(String name) {
         return channels.get(name);
@@ -149,72 +135,38 @@ public abstract class ReplayObject {
         channels.values().removeIf(ch -> ch.getKeyframes().isEmpty());
     }
 
-    protected final void addProperty(String name, DoubleSupplier getter, DoubleConsumer setter) {
-        getProperties().put(name, new Property(getter, setter));
+    /**
+     * Return the color that the curve editor should use for a channel in this object.
+     *
+     * @param chName Name of the channel.
+     * @return ARGB packed int color.
+     */
+    public int getChannelColor(String chName) {
+        // Get random hue from name hash
+        int h = chName.hashCode();
+
+        long z = (h & 0xFFFFFFFFL)
+                + 0x9E3779B97F4A7C15L;
+        z = (z ^ (z >>> 30)) * 0xBF58476D1CE4E5B9L;
+        z = (z ^ (z >>> 27)) * 0x94D049BB133111EBL;
+        z = z ^ (z >>> 31);
+
+        long top53 = z >>> 11; // keep the top 53 bits
+        float hue = (float) (top53 / (double) (1L << 53));
+
+        return ImColor.hsl(hue, .8f, .5f);
     }
 
-    protected final void addProperty(String name, Property property) {
-        getProperties().put(name, property);
-    }
-
-    public final boolean hasProperty(String name) {
-        return properties.containsKey(name);
-    }
-
-    public final double getPropertyOrThrow(String propName) throws UnknownPropertyException {
-        Property prop = properties.get(propName);
-        if (prop == null) throw new UnknownPropertyException(propName);
-        return prop.getValue();
-    }
-
-    public @Nullable Double getProperty(String propName) {
-        Property prop = properties.get(propName);
-        return prop != null ? prop.getValue() : null;
-    }
-
-    public @Nullable Property getPropertyDef(String propName) {
-        return properties.get(propName);
-    }
-
-    public final void setPropertyOrThrow(String propName, double value) throws UnknownPropertyException {
-        if (!setProperty(propName, value)) {
-            throw new UnknownPropertyException(propName);
-        }
-    }
-
-    public boolean setProperty(String propName, double value) {
-        Property prop = properties.get(propName);
-        if (prop != null) {
-            prop.setValue(value);
-            return true;
-        } else {
-            return false;
-        }
-    }
-
+    /// === SAMPLING ===
 
     /**
-     * Save this object's attributes into a Json object.
-     *
-     * @param json    Json object to write to.
-     * @param context Current json context.
+     * Evaluate and apply all the constraints in this object
+     * @param timestamp Timestamp to evaluate at
+     * @param accessor Object accessor to use for evaluation
      */
-    protected abstract void writeJson(JsonObject json, JsonSerializationContext context);
-
-    /**
-     * Overwrite this object's attributes from values in a json object.
-     *
-     * @param json    Json to read from.
-     * @param context Current json context
-     */
-    protected abstract void readJson(JsonObject json, JsonDeserializationContext context);
-
-    /**
-     * Apply all current properties to the game.
-     *
-     * @param timestamp Timestamp to apply. Rarely used as properties will already have been updated.
-     */
-    public abstract void apply(int timestamp);
+    public void evaluateConstraints(int timestamp, ObjectAccessor accessor) {
+        getConstraints().evaluate(timestamp, accessor);
+    }
 
     /**
      * Sample all keyframed properties in this object, writing them into the object's internal memory.
@@ -232,6 +184,8 @@ public abstract class ReplayObject {
         }
     }
 
+
+
     /**
      * Sample all channels and apply properties to the game.
      *
@@ -243,33 +197,29 @@ public abstract class ReplayObject {
     }
 
     /**
-     * Called every frame in the editor to draw this object's gizmos.
+     * Apply all current properties to the game.
      *
-     * @param editor           The current editor state.
-     * @param cameraPos        World-space position of the camera.
-     * @param viewMatrix       View matrix (rotation, etc.) of the camera. Does not include position.
-     * @param projectionMatrix Projection matrix of the camera.
-     * @param hideUI           Don't draw any visual gizmos (some objects may still need to update things while UI
-     *                         disabled)
-     * @return {@link ObjectEditState}
+     * @param timestamp Timestamp to apply. Rarely used as properties will already have been updated.
      */
-    public int drawGizmos(EditorState editor, Vector3dc cameraPos,
-                          Matrix4fc viewMatrix, Matrix4fc projectionMatrix, boolean hideUI) {
-        // Default no-op
-        return ObjectEditState.NONE;
-    }
+    public abstract void apply(int timestamp);
+
+    /// === SERIALIZATION ===
 
     /**
-     * Called during the ImGui render process to draw the object's configurable properties.
+     * Save this object's attributes into a Json object.
      *
-     * @return {@link ObjectEditState}
+     * @param json    Json object to write to.
+     * @param context Current json context.
      */
-    public int drawPropertiesPanel(EditorState editor) {
-        ImGui.text("This object has no editable properties.");
-        return ObjectEditState.NONE;
-    }
+    protected abstract void writeJson(JsonObject json, JsonSerializationContext context);
 
-    private final GsonSerializationContext gsonContext = new GsonSerializationContext(new Gson());
+    /**
+     * Overwrite this object's attributes from values in a json object.
+     *
+     * @param json    Json to read from.
+     * @param context Current json context
+     */
+    protected abstract void readJson(JsonObject json, JsonDeserializationContext context);
 
     /**
      * Serialize this replay object for use in the undo stack (or disk).
@@ -305,6 +255,90 @@ public abstract class ReplayObject {
         constraints.parse(serialized.getConstraints(), gsonContext);
     }
 
+    public ReplayObject copy() {
+        ReplayObject other = type.create(getScene());
+        other.parse(this.save());
+        return other;
+    }
+
+    /// === EDITOR / UI ===
+
+    /**
+     * Called every frame in the editor to draw this object's gizmos.
+     *
+     * @param editor           The current editor state.
+     * @param cameraPos        World-space position of the camera.
+     * @param viewMatrix       View matrix (rotation, etc.) of the camera. Does not include position.
+     * @param projectionMatrix Projection matrix of the camera.
+     * @param hideUI           Don't draw any visual gizmos (some objects may still need to update things while UI
+     *                         disabled)
+     * @return {@link ObjectEditState}
+     */
+    public int drawGizmos(EditorState editor, Vector3dc cameraPos,
+                          Matrix4fc viewMatrix, Matrix4fc projectionMatrix, boolean hideUI) {
+        // Default no-op
+        return ObjectEditState.NONE;
+    }
+
+    /**
+     * Called during the ImGui render process to draw the object's configurable properties.
+     *
+     * @return {@link ObjectEditState}
+     */
+    public int drawPropertiesPanel(EditorState editor) {
+        ImGui.text("This object has no editable properties.");
+        return ObjectEditState.NONE;
+    }
+
+    /**
+     * Called when the "insert keyframe" keybinding is pressed
+     *
+     * @param editor    Current editor state.
+     * @param timestamp The scene timestamp to add the keyframe at
+     * @param pos       If a position keyframe is requested
+     * @param rot       If a rotation keyframe is requested
+     * @param scale     If a scale keyframe is requested
+     * @return The new keyframes.
+     */
+    public Collection<? extends KeySelectionSet.KeyframeReference> insertKeyframe(EditorState editor, int timestamp,
+                                                                                  boolean pos, boolean rot,
+                                                                                  boolean scale) {
+        // Default NOOP
+        return Collections.emptyList();
+    }
+
+    /// === SCENE / IDENTITY ===
+
+    public final boolean isSceneCamera() {
+        String id = getId();
+        return id != null && id.equals(scene.getSceneProps().getCameraObject());
+    }
+
+    /**
+     * Remap any property that references an object.
+     *
+     * @param oldName Old name of the object.
+     * @param newName New name of the object.
+     */
+    public void remapReferences(String oldName, String newName) {
+    }
+
+    /**
+     * Get this object's ID in the scene.
+     *
+     * @return Object ID, or <code>null</code> if it's not currently in the scene.
+     */
+    public @Nullable String getId() {
+        return getScene().getObjects().inverse().get(this);
+    }
+
+    public String getDisplayName() {
+        String id = getId();
+        return id != null ? id : "";
+    }
+
+    /// === UTILITY ===
+
     private static <K, T, R> Map<K, List<R>> transformMapValues(Map<K, List<T>> sourceMap,
                                                                 Function<T, R> valueTransformer) {
 
@@ -323,65 +357,5 @@ public abstract class ReplayObject {
         }
 
         return transformedMap;
-    }
-
-    /**
-     * Get this object's ID in the scene.
-     *
-     * @return Object ID, or <code>null</code> if it's not currently in the scene.
-     */
-    public @Nullable String getId() {
-        return getScene().getObjects().inverse().get(this);
-    }
-
-    public String getDisplayName() {
-        String id = getId();
-        return id != null ? id : "";
-    }
-
-    public ReplayObject copy() {
-        ReplayObject other = type.create(getScene());
-        other.parse(this.save());
-        return other;
-    }
-
-    /**
-     * Return the color that the curve editor should use for a channel in this object.
-     *
-     * @param chName Name of the channel.
-     * @return ARGB packed int color.
-     */
-    public int getChannelColor(String chName) {
-        // Get random hue from name hash
-        int h = chName.hashCode();
-
-        long z = (h & 0xFFFFFFFFL)
-                + 0x9E3779B97F4A7C15L;
-        z = (z ^ (z >>> 30)) * 0xBF58476D1CE4E5B9L;
-        z = (z ^ (z >>> 27)) * 0x94D049BB133111EBL;
-        z = z ^ (z >>> 31);
-
-        long top53 = z >>> 11; // keep the top 53 bits
-        float hue = (float) (top53 / (double) (1L << 53));
-
-        return ImColor.hsl(hue, .8f, .5f);
-    }
-
-
-    /**
-     * Insert a keyframe at the playhead.
-     *
-     * @param editor    Current editor state.
-     * @param timestamp The scene timestamp to add the keyframe at
-     * @param pos       If a position keyframe is requested
-     * @param rot       If a rotation keyframe is requested
-     * @param scale     If a scale keyframe is requested
-     * @return The new keyframes.
-     */
-    public Collection<? extends KeySelectionSet.KeyframeReference> insertKeyframe(EditorState editor, int timestamp,
-                                                                                  boolean pos, boolean rot,
-                                                                                  boolean scale) {
-        // Default NOOP
-        return Collections.emptyList();
     }
 }

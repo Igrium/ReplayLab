@@ -5,13 +5,19 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonSerializationContext;
 import com.igrium.replaylab.editor.EditorState;
 import com.igrium.replaylab.scene.obj.ObjectEditState;
+import com.igrium.replaylab.scene.obj.PropertyHolder;
 import com.igrium.replaylab.scene.obj.ReplayObject;
 import imgui.ImGui;
 import lombok.Getter;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-public abstract class Constraint<R> {
+import java.util.HashMap;
+import java.util.Map;
+import java.util.function.DoubleConsumer;
+import java.util.function.DoubleSupplier;
+
+public abstract class Constraint<R> implements PropertyHolder {
 
     @Getter
     private final ConstraintType<R, ?> type;
@@ -19,13 +25,50 @@ public abstract class Constraint<R> {
     @Getter
     private final R object;
 
+    @Getter
+    private final Map<String, Property> properties = new HashMap<>();
+
     public Constraint(ConstraintType<R, ?> type, R object) {
         this.type = type;
         this.object = object;
     }
 
+    /// === PROPERTIES ===
+
+    protected final void addProperty(String name, DoubleSupplier getter, DoubleConsumer setter) {
+        addProperty(name, new Property(getter, setter));
+    }
+
+    protected final void addProperty(String name, Property property) {
+        if (name.contains(".")) {
+            throw new IllegalArgumentException("Property names may not contain '.'");
+        }
+        getProperties().put(name, property);
+    }
+
+    @Override
+    public @Nullable Property getPropertyRef(String name) {
+        return properties.get(name);
+    }
+
+    /// === SERIALIZATION ===
+
     protected abstract void writeJson(JsonObject jsonObject, JsonSerializationContext context);
     protected abstract void readJson(JsonObject jsonObject, JsonDeserializationContext context);
+
+
+    public JsonObject save(JsonSerializationContext context) {
+        JsonObject jsonObject = new JsonObject();
+        writeJson(jsonObject, context);
+        jsonObject.addProperty("type", type.getId());
+        return jsonObject;
+    }
+
+    public void parse(JsonObject jsonObject, JsonDeserializationContext context) {
+        readJson(jsonObject, context);
+    }
+
+    /// === INTEGRATION ===
 
     public abstract void evaluate(int time, ObjectAccessor objAccessor);
 
@@ -39,16 +82,6 @@ public abstract class Constraint<R> {
         return id;
     }
 
-    public JsonObject save(JsonSerializationContext context) {
-        JsonObject jsonObject = new JsonObject();
-        writeJson(jsonObject, context);
-        jsonObject.addProperty("type", type.getId());
-        return jsonObject;
-    }
-
-    public void parse(JsonObject jsonObject, JsonDeserializationContext context) {
-        readJson(jsonObject, context);
-    }
 
     /**
      * Called during the ImGui render process to draw the constraint's configurable properties.

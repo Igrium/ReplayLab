@@ -5,6 +5,7 @@ import com.igrium.replaylab.editor.EditorState;
 import com.igrium.replaylab.scene.obj.ReplayObject;
 import com.igrium.replaylab.util.BiListMap;
 import lombok.Getter;
+import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -41,7 +42,7 @@ public final class ConstraintContainer {
      * @return The previous constraint using that name, if any
      * @throws IllegalArgumentException If the supplied constraint belongs to the wrong object
      */
-    public @Nullable Constraint<?> addConstraint(String name, Constraint<?> constraint) throws IllegalArgumentException  {
+    public @Nullable Constraint<?> add(String name, Constraint<?> constraint) throws IllegalArgumentException  {
         if (constraint.getObject() != object) {
             throw new IllegalArgumentException("Constraint belongs to the wrong object!");
         }
@@ -56,10 +57,18 @@ public final class ConstraintContainer {
      * @return The previous constraint using that name, if any
      * @throws ClassCastException If the supplied constraint is not applicable to this object
      */
-    public @Nullable Constraint<?> addConstraint(String name, ConstraintType<?, ?> type) throws ClassCastException {
+    public @Nullable Constraint<?> add(String name, ConstraintType<?, ?> type) throws ClassCastException {
         return values.put(name, ConstraintType.create(type, object));
     }
 
+    public @Nullable Constraint<?> get(String name) {
+        return values.get(name);
+    }
+
+    /**
+     * Call {@link ReplayObject#evaluateConstraints} instead so subclasses can overload
+     */
+    @ApiStatus.Internal
     public void evaluate(int time, ObjectAccessor objAccessor) {
         for (var entry : values.entryList()) {
             entry.getValue().evaluate(time, objAccessor);

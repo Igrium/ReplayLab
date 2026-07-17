@@ -55,7 +55,7 @@ public class ConstraintEvaluator implements ObjectAccessor {
             inProgress.add(id);
 
             try {
-                obj.getConstraints().evaluate(time, this);
+                obj.evaluateConstraints(time, this);
             } catch (Exception e) {
                 LOGGER.error("Error evaluating constraint {}", id, e);
                 if (editorState != null) editorState.onException(e);
