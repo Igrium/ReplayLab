@@ -68,6 +68,14 @@
   "gui.replaylab.mod_in": "Blend In",
   "gui.replaylab.mod_out": "Blend Out",
 
+  "gui.replaylab.noise3d.usePos": "Affect Translation",
+  "gui.replaylab.noise3d.useRot": "Affect Rotation",
+  "gui.replaylab.noise3d.scale": "Scale",
+  "gui.replaylab.noise3d.intensity": "Intensity",
+  "gui.replaylab.noise3d.phase": "Phase",
+  "gui.replaylab.noise3d.phaseDelta": "Phase Delta",
+  "gui.replaylab.noise3d.phaseDelta.tooltip": "The offset in phase between each scalar component",
+
   "gui.replaylab.copy_ts": "Copy Timestamp",
   "gui.replaylab.set_scene_start": "Set scene start here",
   "gui.replaylab.set_scene_end": "Set scene end here",

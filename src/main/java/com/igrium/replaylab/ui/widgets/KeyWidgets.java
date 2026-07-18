@@ -1,6 +1,7 @@
 package com.igrium.replaylab.ui.widgets;
 
 import com.igrium.replaylab.config.Keybinds;
+import com.igrium.replaylab.scene.obj.ObjectEditState;
 import imgui.ImGui;
 import imgui.flag.ImGuiCol;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
@@ -76,6 +77,17 @@ public final class KeyWidgets {
 
         public boolean hasNewKey() {
             return newKeys.length > 0;
+        }
+
+        public int getEditFlags() {
+            int flags = ObjectEditState.NONE;
+            if (isUpdated()) {
+                flags |= ObjectEditState.UPDATE_SCENE;
+            }
+            if (isDropped() || hasNewKey()) {
+                flags |= ObjectEditState.COMMIT;
+            }
+            return flags;
         }
 
         public static WidgetState of(boolean updated, boolean newKey) {

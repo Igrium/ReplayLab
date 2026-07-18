@@ -3,7 +3,7 @@ package com.igrium.replaylab.anim.modifier;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.gson.*;
-import json.GsonSerializationContext;
+import com.igrium.replaylab.json.GsonSerializationContext;
 import net.minecraft.util.Identifier;
 
 import java.util.function.Function;

@@ -10,7 +10,7 @@ import com.igrium.replaylab.editor.EditorState;
 import com.igrium.replaylab.editor.KeySelectionSet;
 import com.igrium.replaylab.scene.ReplayScene;
 import com.igrium.replaylab.anim.KeyChannel;
-import json.GsonSerializationContext;
+import com.igrium.replaylab.json.GsonSerializationContext;
 import imgui.ImColor;
 import imgui.ImGui;
 import it.unimi.dsi.fastutil.objects.Object2DoubleArrayMap;
@@ -20,7 +20,6 @@ import org.jetbrains.annotations.Nullable;
 import org.joml.Matrix4fc;
 import org.joml.Vector3dc;
 
-import java.io.Serializable;
 import java.util.*;
 import java.util.function.DoubleConsumer;
 import java.util.function.DoubleSupplier;

@@ -51,6 +51,15 @@ public abstract class Constraint<R> implements PropertyHolder {
         return properties.get(name);
     }
 
+    /**
+     * Get the name a property will use once it's in an object
+     * @param name The local property name
+     * @return The global property name
+     */
+    public final String propName(String name) {
+        return getId() + "." + name;
+    }
+
     /// === SERIALIZATION ===
 
     protected abstract void writeJson(JsonObject jsonObject, JsonSerializationContext context);

@@ -340,6 +340,7 @@ public final class DynamicRotation {
         return rotate(new Quaternionf().rotateZ(angle));
     }
 
+
     /**
      * Pre-multiply this rotation by a rotation about the X axis.
      * Exact when X is the first axis applied by the current euler mode.
@@ -383,6 +384,98 @@ public final class DynamicRotation {
             return this;
         }
         return rotateLocal(new Quaternionf().rotateZ(angle));
+    }
+
+    /**
+     * Post-multiply this rotation by XYZ euler angles (X, then Y, then Z), respecting rotation mode.
+     *
+     * @param x Euler X angle in radians
+     * @param y Euler Y angle in radians
+     * @param z Euler Z angle in radians
+     * @return <code>this</code>
+     */
+    public DynamicRotation rotateEulerXYZ(float x, float y, float z) {
+        rotateX(x);
+        rotateY(y);
+        rotateZ(z);
+        return this;
+    }
+
+    /**
+     * Post-multiply this rotation by XYZ euler angles (X, then Y, then Z), respecting rotation mode.
+     *
+     * @param angles Euler angles in radians
+     * @return <code>this</code>
+     */
+    public DynamicRotation rotateEulerXYZ(Vector3fc angles) {
+        return rotateEulerXYZ(angles.x(), angles.y(), angles.z());
+    }
+
+    /**
+     * Post-multiply this rotation by ZYX euler angles (Z, then Y, then X), respecting rotation mode.
+     *
+     * @param z Euler Z angle in radians
+     * @param y Euler Y angle in radians
+     * @param x Euler X angle in radians
+     * @return <code>this</code>
+     */
+    public DynamicRotation rotateEulerZYX(float z, float y, float x) {
+        rotateZ(z);
+        rotateY(y);
+        rotateX(x);
+        return this;
+    }
+
+    /**
+     * Post-multiply this rotation by ZYX euler angles (Z, then Y, then X), respecting rotation mode.
+     *
+     * @param angles Euler angles in radians
+     * @return <code>this</code>
+     */
+    public DynamicRotation rotateEulerZYX(Vector3fc angles) {
+        return rotateEulerZYX(angles.z(), angles.y(), angles.x());
+    }
+
+    /**
+     * Post-multiply this rotation by YXZ euler angles (Y, then X, then Z), respecting rotation mode.
+     *
+     * @param y Euler Y angle in radians
+     * @param x Euler X angle in radians
+     * @param z Euler Z angle in radians
+     * @return <code>this</code>
+     */
+    public DynamicRotation rotateEulerYXZ(float y, float x, float z) {
+        rotateY(y);
+        rotateX(x);
+        rotateZ(z);
+        return this;
+    }
+
+    /**
+     * Post-multiply this rotation by YXZ euler angles (Y, then X, then Z), respecting rotation mode.
+     *
+     * @param angles Euler angles in radians
+     * @return <code>this</code>
+     */
+    public DynamicRotation rotateEulerYXZ(Vector3fc angles) {
+        return rotateEulerYXZ(angles.y(), angles.x(), angles.z());
+    }
+
+    /**
+     * Post-multiply this rotation in whatever rotation mode it's already using.
+     * If it's using quaternion, use YXZ order.
+     * @param x Euler X angle in radians
+     * @param y Euler Y angle in radians
+     * @param z Euler Z angle in radians
+     * @return <code>this</code>
+     */
+    public DynamicRotation rotateEulerAuto(float x, float y, float z) {
+        if (mode == RotationMode.QUATERNION) {
+            quaternion.rotateYXZ(y, x, z);
+        } else {
+            euler.add(x, y, z);
+        }
+        return this;
     }
 
     /**

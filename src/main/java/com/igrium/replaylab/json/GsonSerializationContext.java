@@ -1,4 +1,4 @@
-package json;
+package com.igrium.replaylab.json;
 
 import com.google.gson.*;
 

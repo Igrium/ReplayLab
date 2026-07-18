@@ -15,7 +15,7 @@ import com.igrium.replaylab.scene.ReplayScene;
 import com.igrium.replaylab.anim.KeyChannel;
 import com.igrium.replaylab.ui.gizmos.GizmoRenderer;
 import com.igrium.replaylab.ui.widgets.PropertyWidgets;
-import json.JsonUtils;
+import com.igrium.replaylab.json.JsonUtils;
 import imgui.ImColor;
 import imgui.ImGui;
 import imgui.extension.imguizmo.ImGuizmo;
