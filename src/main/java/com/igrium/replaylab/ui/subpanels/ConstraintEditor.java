@@ -5,6 +5,7 @@ import com.igrium.replaylab.anim.constraint.Constraint;
 import com.igrium.replaylab.anim.constraint.ConstraintType;
 import com.igrium.replaylab.editor.EditorState;
 import com.igrium.replaylab.operator.object.NewConstraintOperator;
+import com.igrium.replaylab.operator.object.RemoveConstraintOperator;
 import com.igrium.replaylab.scene.obj.ObjectEditState;
 import com.igrium.replaylab.scene.obj.ReplayObject;
 import com.igrium.replaylab.ui.widgets.DraggableList;
@@ -13,6 +14,7 @@ import imgui.flag.ImGuiTreeNodeFlags;
 import imgui.type.ImString;
 import net.minecraft.util.Language;
 
+import java.util.AbstractMap;
 import java.util.Map;
 
 public class ConstraintEditor {
@@ -67,6 +69,10 @@ public class ConstraintEditor {
             ImGui.sameLine();
             strBuffer.set(key);
             ImGui.inputText("##label" + key, strBuffer);
+            if (ImGui.isItemDeactivatedAfterEdit()) {
+                constraints.rename(key, strBuffer.get());
+                flags |= ObjectEditState.COMMIT;
+            }
 
             ImGui.sameLine();
             ImGui.text("[" + tt(value.getType().translationKey()) + "]");
@@ -82,10 +88,20 @@ public class ConstraintEditor {
                 ImGui.unindent();
             }
 
-            DraggableList.endItem();
+            int targetPos = DraggableList.endItem();
+            if (targetPos >= 0) {
+                var list = constraints.getValues().entryList();
+                var entry = list.remove(i);
+                list.add(targetPos, entry);
+                flags |= ObjectEditState.COMMIT;
+            }
         }
 
         DraggableList.end();
+
+        if (toDelete >= 0) {
+            editor.applyOperator(new RemoveConstraintOperator(obj.getId(), entries[toDelete].key));
+        }
 
         return flags;
     }
