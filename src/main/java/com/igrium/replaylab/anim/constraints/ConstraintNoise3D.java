@@ -18,7 +18,7 @@ import lombok.Getter;
 import lombok.Setter;
 import net.minecraft.util.Language;
 
-public class Constraint3DNoise extends Constraint<ReplayObject3D> {
+public class ConstraintNoise3D extends Constraint<ReplayObject3D> {
 
     private static final String SCALE = "scale";
     private static final String INTENSITY = "intensity";
@@ -68,7 +68,7 @@ public class Constraint3DNoise extends Constraint<ReplayObject3D> {
         this.phaseDelta[0] = phaseDelta;
     }
 
-    public Constraint3DNoise(ConstraintType<ReplayObject3D, ?> type, ReplayObject3D object) {
+    public ConstraintNoise3D(ConstraintType<ReplayObject3D, ?> type, ReplayObject3D object) {
         super(type, object);
 
         addProperty(SCALE, this::getScale, this::setScale);

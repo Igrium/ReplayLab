@@ -4,6 +4,7 @@ import com.google.gson.*;
 import com.igrium.replaylab.editor.EditorState;
 import com.igrium.replaylab.scene.obj.ReplayObject;
 import com.igrium.replaylab.util.BiListMap;
+import com.igrium.replaylab.util.NameUtils;
 import lombok.Getter;
 import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.Nullable;
@@ -39,12 +40,16 @@ public final class ConstraintContainer {
      *
      * @param name       Name to assign.
      * @param constraint Constraint to add.
+     * @param force      If <code>false</code>, make <code>name</code> unique instead of overwriting.
      * @return The previous constraint using that name, if any
      * @throws IllegalArgumentException If the supplied constraint belongs to the wrong object
      */
-    public @Nullable Constraint<?> add(String name, Constraint<?> constraint) throws IllegalArgumentException  {
+    public @Nullable Constraint<?> add(String name, Constraint<?> constraint, boolean force) throws IllegalArgumentException  {
         if (constraint.getObject() != object) {
             throw new IllegalArgumentException("Constraint belongs to the wrong object!");
+        }
+        if (!force) {
+            name = NameUtils.makeNameUnique(name, values::containsKey);
         }
         return values.put(name, constraint);
     }
@@ -52,17 +57,38 @@ public final class ConstraintContainer {
     /**
      * Spawn a constraint and add it to this container.
      *
-     * @param name The name to assign.
-     * @param type The type to spawn.
+     * @param name  The name to assign.
+     * @param type  The type to spawn.
+     * @param force If <code>false</code>, make <code>name</code> unique instead of overwriting.
      * @return The previous constraint using that name, if any
      * @throws ClassCastException If the supplied constraint is not applicable to this object
      */
-    public @Nullable Constraint<?> add(String name, ConstraintType<?, ?> type) throws ClassCastException {
+    public @Nullable Constraint<?> add(String name, ConstraintType<?, ?> type, boolean force) throws ClassCastException {
+        if (!force) {
+            name = NameUtils.makeNameUnique(name, values::containsKey);
+        }
         return values.put(name, ConstraintType.create(type, object));
     }
 
     public @Nullable Constraint<?> get(String name) {
         return values.get(name);
+    }
+
+    /**
+     * Rename a constraint
+     * @param oldName The old name of the constraint
+     * @param newName The new name of the constraint
+     * @return The new name after conflict resolution
+     */
+    public String rename(String oldName, String newName) {
+        var constraint = get(oldName);
+        if (constraint == null) {
+            return "";
+        }
+
+        newName = NameUtils.makeNameUnique(newName, values::containsKey);
+        values.inverse().put(constraint, newName);
+        return newName;
     }
 
     /**
@@ -93,6 +119,7 @@ public final class ConstraintContainer {
         values.clear();
         EditorState state = EditorState.getInstance();
         for (var entry : entries) {
+            // TODO: Find a cleaner way to show parse errors to the user
             try {
                 values.put(entry.key(), ConstraintType.fromJson(object, entry.value(), ctx));
             } catch (Exception e) {

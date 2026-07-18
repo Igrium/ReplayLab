@@ -44,11 +44,11 @@ public class CurveModifierEditor {
         CurveModifier[] mods = channel.getModifiers().toArray(CurveModifier[]::new);
 
         int toDelete = -1;
+        float buttonSize = ImGui.getFrameHeight();
         for (int i = 0; i < mods.length; i++) {
             String key = tt(mods[i].getType().getTranslationKey()) + "###" + i;
 
             DraggableList.beginItem(key);
-            float buttonSize = ImGui.getFrameHeight();
             ImGui.setNextItemAllowOverlap();
             boolean open = ImGui.collapsingHeader(key, ImGuiTreeNodeFlags.DefaultOpen);
             ImGui.sameLine(ImGui.getContentRegionAvailX() - buttonSize);

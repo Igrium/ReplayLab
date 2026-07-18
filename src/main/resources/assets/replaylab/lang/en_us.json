@@ -76,6 +76,8 @@
   "gui.replaylab.noise3d.phaseDelta": "Phase Delta",
   "gui.replaylab.noise3d.phaseDelta.tooltip": "The offset in phase between each scalar component",
 
+  "gui.replaylab.noconstraints": "Press '+' to add a constraint",
+
   "gui.replaylab.copy_ts": "Copy Timestamp",
   "gui.replaylab.set_scene_start": "Set scene start here",
   "gui.replaylab.set_scene_end": "Set scene end here",

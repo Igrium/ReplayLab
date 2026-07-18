@@ -4,8 +4,11 @@ import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.gson.JsonDeserializationContext;
 import com.google.gson.JsonObject;
+import com.igrium.replaylab.anim.constraints.ConstraintNoise3D;
 import com.igrium.replaylab.scene.obj.ReplayObject;
+import com.igrium.replaylab.scene.obj.ReplayObject3D;
 import lombok.Getter;
+import net.minecraft.util.Identifier;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.function.BiFunction;
@@ -36,10 +39,21 @@ public final class ConstraintType<R, T extends Constraint<R>> {
         return REGISTRY.inverse().get(this);
     }
 
+    public String translationKey() {
+        return "constraint." + tryGetId();
+    }
+
     public static final BiMap<String, ConstraintType<?, ?>> REGISTRY = HashBiMap.create();
 
+    public static final ConstraintType<ReplayObject3D, ConstraintNoise3D> NOISE_3D =
+           register("noise3d", new ConstraintType<>(ConstraintNoise3D::new, ReplayObject3D.class));
+
+    public static <T extends ConstraintType<?, ?>> T register(String id, T type) {
+        REGISTRY.put(id, type);
+        return type;
+    }
+
     public static Constraint<?> fromJson(ReplayObject obj, JsonObject json, JsonDeserializationContext ctx) {
-        // TODO: Find a better way to show parse errors to the user
         String id = json.has("type") ? json.get("type").getAsString() : null;
         ConstraintType<?, ?> type = REGISTRY.get(id);
 
@@ -54,8 +68,9 @@ public final class ConstraintType<R, T extends Constraint<R>> {
 
     /**
      * Create a constraint from a non-typed replay object
+     *
      * @param type Constraint type to spawn
-     * @param obj Replay object to use
+     * @param obj  Replay object to use
      * @return The spawned constraint
      * @throws ClassCastException If the constraint isn't applicable to the supplied object.
      */
