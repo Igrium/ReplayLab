@@ -7,6 +7,7 @@ import com.igrium.replaylab.util.BiListMap;
 import com.igrium.replaylab.util.NameUtils;
 import lombok.Getter;
 import org.jetbrains.annotations.ApiStatus;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,6 +46,9 @@ public final class ConstraintContainer {
      * @throws IllegalArgumentException If the supplied constraint belongs to the wrong object
      */
     public @Nullable Constraint<?> add(String name, Constraint<?> constraint, boolean force) throws IllegalArgumentException  {
+        if (name.contains(":")) {
+            throw new IllegalArgumentException("Constraint name cannot contain ':'");
+        }
         if (constraint.getObject() != object) {
             throw new IllegalArgumentException("Constraint belongs to the wrong object!");
         }
@@ -60,14 +64,19 @@ public final class ConstraintContainer {
      * @param name  The name to assign.
      * @param type  The type to spawn.
      * @param force If <code>false</code>, make <code>name</code> unique instead of overwriting.
-     * @return The previous constraint using that name, if any
+     * @return The new constraint
      * @throws ClassCastException If the supplied constraint is not applicable to this object
      */
-    public @Nullable Constraint<?> add(String name, ConstraintType<?, ?> type, boolean force) throws ClassCastException {
+    public @NotNull Constraint<?> create(String name, ConstraintType<?, ?> type, boolean force) throws ClassCastException {
+        if (name.contains(":")) {
+            throw new IllegalArgumentException("Constraint name cannot contain ':'");
+        }
         if (!force) {
             name = NameUtils.makeNameUnique(name, values::containsKey);
         }
-        return values.put(name, ConstraintType.create(type, object));
+        var constraint = ConstraintType.create(type, object);
+        values.put(name, constraint);
+        return constraint;
     }
 
     public @Nullable Constraint<?> get(String name) {
@@ -81,6 +90,9 @@ public final class ConstraintContainer {
      * @return The new name after conflict resolution
      */
     public String rename(String oldName, String newName) {
+        if (newName.contains(":")) {
+            throw new IllegalArgumentException("Constraint name cannot contain ':'");
+        }
         var constraint = get(oldName);
         if (constraint == null) {
             return "";

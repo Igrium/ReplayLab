@@ -307,6 +307,7 @@ public final class DynamicRotation {
      * @return <code>this</code>
      */
     public DynamicRotation rotateX(float angle) {
+        if (angle == 0) return this;
         if (mode == RotationMode.EULER_ZYX) {
             euler.x += angle;
             return this;
@@ -322,6 +323,7 @@ public final class DynamicRotation {
      * @return <code>this</code>
      */
     public DynamicRotation rotateY(float angle) {
+        if (angle == 0) return this;
         return rotate(new Quaternionf().rotateY(angle));
     }
 
@@ -333,6 +335,7 @@ public final class DynamicRotation {
      * @return <code>this</code>
      */
     public DynamicRotation rotateZ(float angle) {
+        if (angle == 0) return this;
         if (mode == RotationMode.EULER_XYZ || mode == RotationMode.EULER_YXZ) {
             euler.z += angle;
             return this;
@@ -349,6 +352,7 @@ public final class DynamicRotation {
      * @return <code>this</code>
      */
     public DynamicRotation rotateLocalX(float angle) {
+        if (angle == 0) return this;
         if (mode == RotationMode.EULER_XYZ) {
             euler.x += angle;
             return this;
@@ -364,6 +368,7 @@ public final class DynamicRotation {
      * @return <code>this</code>
      */
     public DynamicRotation rotateLocalY(float angle) {
+        if (angle == 0) return this;
         if (mode == RotationMode.EULER_YXZ) {
             euler.y += angle;
             return this;
@@ -379,6 +384,7 @@ public final class DynamicRotation {
      * @return <code>this</code>
      */
     public DynamicRotation rotateLocalZ(float angle) {
+        if (angle == 0) return this;
         if (mode == RotationMode.EULER_ZYX) {
             euler.z += angle;
             return this;

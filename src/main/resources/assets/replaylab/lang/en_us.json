@@ -68,13 +68,25 @@
   "gui.replaylab.mod_in": "Blend In",
   "gui.replaylab.mod_out": "Blend Out",
 
-  "gui.replaylab.noise3d.usePos": "Affect Translation",
-  "gui.replaylab.noise3d.useRot": "Affect Rotation",
-  "gui.replaylab.noise3d.scale": "Scale",
+  "gui.replaylab.noprops": "This object has no editable properties.",
+  "gui.replaylab.constraints": "Constraints",
+
+  "gui.replaylab.affect": "Affect:",
+  "gui.replaylab.posX": "X Translation",
+  "gui.replaylab.posY": "Y Translation",
+  "gui.replaylab.posZ": "Z Translation",
+
+  "gui.replaylab.rotX": "X Euler Rotation",
+  "gui.replaylab.rotY": "Y Euler Rotation",
+  "gui.replaylab.rotZ": "Z Euler Rotation",
+
+  "gui.replaylab.noise3d.speed": "Speed",
   "gui.replaylab.noise3d.intensity": "Intensity",
   "gui.replaylab.noise3d.phase": "Phase",
-  "gui.replaylab.noise3d.phaseDelta": "Phase Delta",
-  "gui.replaylab.noise3d.phaseDelta.tooltip": "The offset in phase between each scalar component",
+  "gui.replaylab.noise3d.phase_delta": "Phase Delta",
+  "gui.replaylab.noise3d.phase_delta.tooltip": "Offset the phase by this amount for each component",
+
+  "constraint.noise3d": "3D Noise",
 
   "gui.replaylab.noconstraints": "Press '+' to add a constraint",
 

@@ -11,11 +11,13 @@ import com.igrium.replaylab.editor.KeySelectionSet;
 import com.igrium.replaylab.scene.ReplayScene;
 import com.igrium.replaylab.anim.KeyChannel;
 import com.igrium.replaylab.json.GsonSerializationContext;
+import com.igrium.replaylab.ui.subpanels.ConstraintEditor;
 import imgui.ImColor;
 import imgui.ImGui;
 import it.unimi.dsi.fastutil.objects.Object2DoubleArrayMap;
 import it.unimi.dsi.fastutil.objects.Object2DoubleMap;
 import lombok.Getter;
+import net.minecraft.util.Language;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Matrix4fc;
 import org.joml.Vector3dc;
@@ -101,14 +103,14 @@ public abstract class ReplayObject implements PropertyHolder {
     }
 
     protected final void addProperty(String name, PropertyHolder.Property property) {
-        if (name.contains(".")) {
+        if (name.contains(":")) {
             throw new IllegalArgumentException("Property names may not contain '.'");
         }
         getProperties().put(name, property);
     }
 
     public @Nullable PropertyHolder.Property getPropertyRef(String propName) {
-        String[] split = propName.split("\\.", 2);
+        String[] split = propName.split(":", 2);
 
         if (split.length > 1) {
             Constraint<?> c = getConstraints().get(split[0]);
@@ -184,14 +186,15 @@ public abstract class ReplayObject implements PropertyHolder {
     }
 
 
-
     /**
      * Sample all channels and apply properties to the game.
      *
-     * @param timestamp Timestamp to sample.
+     * @param timestamp   Timestamp to sample.
+     * @param objAccessor For constraints
      */
-    public final void sampleAndApply(int timestamp) {
+    public final void sampleAndApply(int timestamp, ObjectAccessor objAccessor) {
         sample(timestamp);
+        evaluateConstraints(timestamp, objAccessor);
         apply(timestamp);
     }
 
@@ -285,8 +288,20 @@ public abstract class ReplayObject implements PropertyHolder {
      * @return {@link ObjectEditState}
      */
     public int drawPropertiesPanel(EditorState editor) {
-        ImGui.text("This object has no editable properties.");
+        ImGui.text(Language.getInstance().get("gui.replaylab.noprops"));
         return ObjectEditState.NONE;
+    }
+
+    public int drawConstraints(EditorState editor) {
+        ImGui.separatorText(Language.getInstance().get("gui.replaylab.constraints"));
+        return ConstraintEditor.draw(this, editor);
+    }
+
+    /**
+     * Return <code>true</code> if this object is able to have constraints
+     */
+    public boolean hasConstraints() {
+        return false;
     }
 
     /**
@@ -334,27 +349,5 @@ public abstract class ReplayObject implements PropertyHolder {
     public String getDisplayName() {
         String id = getId();
         return id != null ? id : "";
-    }
-
-    /// === UTILITY ===
-
-    private static <K, T, R> Map<K, List<R>> transformMapValues(Map<K, List<T>> sourceMap,
-                                                                Function<T, R> valueTransformer) {
-
-        Map<K, List<R>> transformedMap = new HashMap<>();
-
-        for (var entry : sourceMap.entrySet()) {
-            K key = entry.getKey();
-            List<T> originalList = entry.getValue();
-
-            List<R> transformedList = new ArrayList<>(originalList.size());
-            for (T originalItem : originalList) {
-                transformedList.add(valueTransformer.apply(originalItem));
-            }
-
-            transformedMap.put(key, transformedList);
-        }
-
-        return transformedMap;
     }
 }

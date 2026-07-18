@@ -17,115 +17,74 @@ import imgui.type.ImBoolean;
 import lombok.Getter;
 import lombok.Setter;
 import net.minecraft.util.Language;
+import org.apache.commons.lang3.function.BooleanConsumer;
 
 public class ConstraintNoise3D extends Constraint<ReplayObject3D> {
 
-    private static final String SCALE = "scale";
+    private static final String SPEED = "speed";
     private static final String INTENSITY = "intensity";
     private static final String PHASE = "phase";
     private static final String PHASE_DELTA = "phaseDelta";
 
-    private final double[] scale = new double[]{1};
-    private final double[] intensity = new double[]{1};
-    private final double[] phase = new double[1];
-    private final double[] phaseDelta = new double[]{12f};
+    private Config config = new Config();
 
+    // Cut down on bloat so we can use gson
     @Getter @Setter
-    private boolean usePos = true;
+    private static final class Config {
+        private double speed = 1;
+        private double intensity = 1;
+        private double phase = 1;
+        private double phaseDelta = 1;
 
-    @Getter @Setter
-    private boolean useRot = true;
+        private boolean posX = true;
+        private boolean posY = true;
+        private boolean posZ = true;
 
-    public double getScale() {
-        return scale[0];
-    }
-
-    public void setScale(double scale) {
-        this.scale[0] = scale;
-    }
-
-    public double getIntensity() {
-        return intensity[0];
-    }
-
-    public void setIntensity(double intensity) {
-        this.intensity[0] = intensity;
-    }
-
-    public double getPhase() {
-        return phase[0];
-    }
-
-    public void setPhase(double phase) {
-        this.phase[0] = phase;
-    }
-
-    public double getPhaseDelta() {
-        return phaseDelta[0];
-    }
-
-    public void setPhaseDelta(double phaseDelta) {
-        this.phaseDelta[0] = phaseDelta;
+        private boolean rotX = true;
+        private boolean rotY = true;
+        private boolean rotZ = true;
     }
 
     public ConstraintNoise3D(ConstraintType<ReplayObject3D, ?> type, ReplayObject3D object) {
         super(type, object);
 
-        addProperty(SCALE, this::getScale, this::setScale);
-        addProperty(INTENSITY, this::getIntensity, this::setIntensity);
-        addProperty(PHASE, this::getPhase, this::setPhase);
-        addProperty(PHASE_DELTA, this::getPhaseDelta, this::setPhaseDelta);
+        addProperty(SPEED, config::getSpeed, config::setSpeed);
+        addProperty(INTENSITY, config::getIntensity, config::setIntensity);
+        addProperty(PHASE, config::getPhase, config::setPhase);
+        addProperty(PHASE_DELTA, config::getPhaseDelta, config::setPhaseDelta);
     }
 
     @Override
-    protected void writeJson(JsonObject json, JsonSerializationContext context) {
-        json.addProperty("scale", getScale());
-        json.addProperty("intensity", getIntensity());
-        json.addProperty("phase", getPhase());
-        json.addProperty("phaseDelta", getPhaseDelta());
-        json.addProperty("usePos", isUsePos());
-        json.addProperty("useRot", isUseRot());
+    protected JsonObject writeJson(JsonSerializationContext context) {
+        return context.serialize(config).getAsJsonObject();
     }
 
     @Override
     protected void readJson(JsonObject json, JsonDeserializationContext context) {
-        if (json.has("scale")) {
-            setScale(json.get("scale").getAsDouble());
-        }
-        if (json.has("intensity")) {
-            setIntensity(json.get("intensity").getAsDouble());
-        }
+        this.config = context.deserialize(json, Config.class);
 
-        if (json.has("phase")) {
-            setPhase(json.get("phase").getAsDouble());
-        }
-        if (json.has("phaseDelta")) {
-            setPhaseDelta(json.get("phaseDelta").getAsDouble());
-        }
-        if (json.has("usePos")) {
-            setUsePos(json.get("usePos").getAsBoolean());
-        }
-        if (json.has("useRot")) {
-            setUseRot(json.get("useRot").getAsBoolean());
-        }
     }
 
     @Override
     public void evaluate(int time, ObjectAccessor objAccessor) {
         Transform3 transform = getObject().computedTransform();
-        double i = getIntensity();
-        double p = getPhase();
-        double pd = getPhaseDelta();
-        if (usePos) {
-            double dx = applyNoise(time, getScale(), p) * i;
-            double dy = applyNoise(time, getScale(), p + pd) * i;
-            double dz = applyNoise(time, getScale(), p + pd * 2) * i;
+        double i = config.getIntensity();
+        double p = config.getPhase();
+        double pd = config.getPhaseDelta();
+
+        double scale = config.getSpeed();
+
+        {
+            double dx = config.posX ? applyNoise(time, scale, p) * i : 0;
+            double dy = config.posY ? applyNoise(time, scale, p + pd) * i : 0;
+            double dz = config.posZ ? applyNoise(time, scale, pd * 2) * i : 0;
             transform.translate(dx, dy, dz);
         }
-        if (useRot) {
-            double dx = applyNoise(time, getIntensity(), p + pd * 3) * i;
-            double dy = applyNoise(time, getIntensity(), p + pd * 4) * i;
-            double dz = applyNoise(time, getIntensity(), p + pd * 5) * i;
+
+        {
+            double dx = config.rotX ? applyNoise(time, scale, p * 3) * i * .5 : 0;
+            double dy = config.rotY ? applyNoise(time, scale, pd * 4) * i * .5 : 0;
+            double dz = config.rotZ ? applyNoise(time, scale, pd * 5) * i * .5 : 0;
             transform.rot().rotateEulerAuto((float) dx, (float) dy, (float) dz);
         }
     }
@@ -137,23 +96,24 @@ public class ConstraintNoise3D extends Constraint<ReplayObject3D> {
         int flags = ObjectEditState.NONE;
         int ph = editor.getPlayhead();
 
-        flags |= dragFloat(t("gui.replaylab.noise3d.scale"), ph, SCALE);
-        flags |= dragFloat(t("gui.replaylab.noise3d.intensity"), ph, INTENSITY);
-        flags |= dragFloat(t("gui.replaylab.noise3d.phase"), ph, PHASE);
-        flags |= dragFloat(t("gui.replaylab.noise3d.phaseDelta"), ph, PHASE_DELTA);
-        ImGui.setItemTooltip(tt("gui.replaylab.noise3d.phaseDelta.tooltip"));
+        flags |= dragFloat(t("gui.replaylab.noise3d.speed"), ph, .1f, SPEED);
+        flags |= dragFloat(t("gui.replaylab.noise3d.intensity"), ph, .05f, INTENSITY);
+        flags |= dragFloat(t("gui.replaylab.noise3d.phase"), ph, .001f, PHASE);
+        flags |= dragFloat(t("gui.replaylab.noise3d.phase_delta"), ph, .01f, PHASE_DELTA);
+        ImGui.setItemTooltip(tt("gui.replaylab.noise3d.phase_delta.tooltip"));
 
-        ImGui.separator();
-        tmpBool.set(usePos);
-        if (ImGui.checkbox("gui.replaylab.noise3d.usePos", tmpBool)) {
-            usePos = tmpBool.get();
-            flags |= ObjectEditState.COMMIT;
-        }
-        tmpBool.set(useRot);
-        if (ImGui.checkbox("gui.replaylab.noise3d.useRot", tmpBool)) {
-            useRot = tmpBool.get();
-            flags |= ObjectEditState.COMMIT;
-        }
+        ImGui.spacing();
+        ImGui.text(tt("gui.replaylab.affect"));
+
+        flags |= check(t("gui.replaylab.posX"), config.posX, config::setPosX);
+        flags |= check(t("gui.replaylab.posY"), config.posY, config::setPosY);
+        flags |= check(t("gui.replaylab.posZ"), config.posZ, config::setPosZ);
+
+        ImGui.spacing();
+
+        flags |= check(t("gui.replaylab.rotX"), config.rotX, config::setRotX);
+        flags |= check(t("gui.replaylab.rotY"), config.rotY, config::setRotY);
+        flags |= check(t("gui.replaylab.rotZ"), config.rotZ, config::setRotZ);
 
         return flags;
     }
@@ -161,10 +121,19 @@ public class ConstraintNoise3D extends Constraint<ReplayObject3D> {
     // Avoid realloc
     private final String[] propCache = new String[1];
 
-    private int dragFloat(String label, int ph, String prop) {
+    private int dragFloat(String label, int ph, float speed, String prop) {
         propCache[0] = propName(prop);
-        var state = PropertyWidgets.dragFloatN(getObject(), label, (float) 0.25, ph, propCache);
+        var state = PropertyWidgets.dragFloatN(getObject(), label, speed, ph, propCache);
         return state.getEditFlags();
+    }
+
+    private int check(String label, boolean value, BooleanConsumer setter) {
+        tmpBool.set(value);
+        if (ImGui.checkbox(label, tmpBool)) {
+            setter.accept(tmpBool.get());
+            return ObjectEditState.COMMIT;
+        }
+        return 0;
     }
 
     private static double applyNoise(double xIn, double scale, double phase) {

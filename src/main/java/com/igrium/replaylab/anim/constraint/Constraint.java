@@ -57,18 +57,17 @@ public abstract class Constraint<R> implements PropertyHolder {
      * @return The global property name
      */
     public final String propName(String name) {
-        return getId() + "." + name;
+        return getId() + ":" + name;
     }
 
     /// === SERIALIZATION ===
 
-    protected abstract void writeJson(JsonObject jsonObject, JsonSerializationContext context);
+    protected abstract JsonObject writeJson(JsonSerializationContext context);
     protected abstract void readJson(JsonObject jsonObject, JsonDeserializationContext context);
 
 
     public JsonObject save(JsonSerializationContext context) {
-        JsonObject jsonObject = new JsonObject();
-        writeJson(jsonObject, context);
+        var jsonObject = writeJson(context);
         jsonObject.addProperty("type", type.getId());
         return jsonObject;
     }

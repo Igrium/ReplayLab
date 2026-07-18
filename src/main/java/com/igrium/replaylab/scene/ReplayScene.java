@@ -4,6 +4,7 @@ import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
+import com.igrium.replaylab.anim.constraint.ConstraintEvaluator;
 import com.igrium.replaylab.editor.EditorState;
 import com.igrium.replaylab.operator.ReplayOperator;
 import com.igrium.replaylab.render.RenderSettingsObj;
@@ -431,10 +432,12 @@ public class ReplayScene {
      * @apiNote Does not apply game packets, only directly animated values like camera moves.
      */
     public void applyToGame(Predicate<? super ReplayObject> shouldSample, int timestamp) {
+        ConstraintEvaluator eval = new ConstraintEvaluator(getObjects(), timestamp);
         for (var obj : getObjects().values()) {
             if (shouldSample.test(obj)) {
-                obj.sampleAndApply(timestamp);
+                obj.sampleAndApply(timestamp, eval);
             } else {
+                obj.getConstraints().evaluate(timestamp, eval);
                 obj.apply(timestamp);
             }
         }

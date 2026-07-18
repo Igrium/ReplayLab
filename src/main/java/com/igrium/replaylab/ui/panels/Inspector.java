@@ -30,6 +30,10 @@ public class Inspector extends UIPanel {
 
     protected void drawObjectProperties(ReplayObject object, EditorState editorState) {
         int state = object.drawPropertiesPanel(editorState);
+        // Call out here so it goes below recursive overrides of drawPropertiesPanel
+        if (object.hasConstraints()) {
+            state |= object.drawConstraints(editorState);
+        }
         ObjectEditState.handleUpdate(editorState, object, state);
     }
 

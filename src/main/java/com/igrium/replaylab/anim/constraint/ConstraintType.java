@@ -9,6 +9,7 @@ import com.igrium.replaylab.scene.obj.ReplayObject;
 import com.igrium.replaylab.scene.obj.ReplayObject3D;
 import lombok.Getter;
 import net.minecraft.util.Identifier;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.function.BiFunction;
@@ -74,7 +75,7 @@ public final class ConstraintType<R, T extends Constraint<R>> {
      * @return The spawned constraint
      * @throws ClassCastException If the constraint isn't applicable to the supplied object.
      */
-    public static <R, T extends Constraint<R>> T create(ConstraintType<R, T> type, ReplayObject obj) throws ClassCastException {
+    public static @NotNull <R, T extends Constraint<R>> T create(ConstraintType<R, T> type, ReplayObject obj) throws ClassCastException {
         R cast = type.getObjectClass().cast(obj);
         return type.create(cast);
     }

@@ -255,17 +255,25 @@ public abstract class ReplayObject3D extends ReplayObject implements TransformPr
             ImGui.endCombo();
         }
 
+        int flags;
+
         boolean mouseDown = ImGui.isMouseDown(0);
         if (modified || (dragging && mouseDown)) {
             dragging = true;
-            return ObjectEditState.UPDATE_SCENE;
+            flags = ObjectEditState.UPDATE_SCENE;
         } else if (dragging) {
             dragging = false;
-            return ObjectEditState.COMMIT;
+            flags = ObjectEditState.COMMIT;
         } else {
-            return ObjectEditState.NONE;
+            flags = ObjectEditState.NONE;
         }
 
+        return flags;
+    }
+
+    @Override
+    public boolean hasConstraints() {
+        return true;
     }
 
     @Override
