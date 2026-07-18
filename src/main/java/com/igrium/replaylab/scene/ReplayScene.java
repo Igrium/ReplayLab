@@ -432,14 +432,21 @@ public class ReplayScene {
      * @apiNote Does not apply game packets, only directly animated values like camera moves.
      */
     public void applyToGame(Predicate<? super ReplayObject> shouldSample, int timestamp) {
-        ConstraintEvaluator eval = new ConstraintEvaluator(getObjects(), timestamp);
+        // Sample base values (pre-constraints)
         for (var obj : getObjects().values()) {
             if (shouldSample.test(obj)) {
-                obj.sampleAndApply(timestamp, eval);
-            } else {
-                obj.getConstraints().evaluate(timestamp, eval);
-                obj.apply(timestamp);
+                obj.sample(timestamp);
             }
+        }
+
+        // Evaluate constraints
+        ConstraintEvaluator eval = new ConstraintEvaluator(getObjects(), timestamp);
+        for (var id : getObjects().keySet()) {
+            eval.evaluate(id);
+        }
+
+        for (var obj : getObjects().values()) {
+            obj.apply(timestamp);
         }
     }
 

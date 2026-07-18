@@ -4,7 +4,6 @@ import com.google.gson.JsonDeserializationContext;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonSerializationContext;
 import com.igrium.replaylab.ReplayLab;
-import com.igrium.replaylab.anim.constraint.ObjectAccessor;
 import com.igrium.replaylab.config.ReplayLabConfig;
 import com.igrium.replaylab.editor.EditorState;
 import com.igrium.replaylab.editor.KeySelectionSet.KeyframeReference;
@@ -189,9 +188,8 @@ public abstract class ReplayObject3D extends ReplayObject implements TransformPr
     }
 
     @Override
-    public void evaluateConstraints(int timestamp, ObjectAccessor accessor) {
+    public void resetConstraintState() {
         getBaseTransform(computedTransform);
-        super.evaluateConstraints(timestamp, accessor);
     }
 
     private boolean wasDragging;

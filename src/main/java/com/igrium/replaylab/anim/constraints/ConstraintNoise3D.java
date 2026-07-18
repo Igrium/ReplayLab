@@ -26,23 +26,35 @@ public class ConstraintNoise3D extends Constraint<ReplayObject3D> {
     private static final String PHASE = "phase";
     private static final String PHASE_DELTA = "phaseDelta";
 
-    private Config config = new Config();
+    private final Config config = new Config();
 
     // Cut down on bloat so we can use gson
     @Getter @Setter
     private static final class Config {
-        private double speed = 1;
-        private double intensity = 1;
-        private double phase = 1;
-        private double phaseDelta = 1;
+        double speed = 1;
+        double intensity = 1;
+        double phase = 1;
+        double phaseDelta = 1;
 
-        private boolean posX = true;
-        private boolean posY = true;
-        private boolean posZ = true;
+        boolean posX = true;
+        boolean posY = true;
+        boolean posZ = true;
 
-        private boolean rotX = true;
-        private boolean rotY = true;
-        private boolean rotZ = true;
+        boolean rotX = true;
+        boolean rotY = true;
+        boolean rotZ = true;
+
+        void copyFrom(Config config) {
+            this.speed = config.speed;
+            this.intensity = config.intensity;
+            this.phase = config.phase;
+            this.phaseDelta = config.phaseDelta;
+            this.posX = config.posX;
+            this.posY = config.posY;
+            this.posZ = config.posZ;
+            this.rotX = config.rotX;
+            this.rotY = config.rotY;
+        }
     }
 
     public ConstraintNoise3D(ConstraintType<ReplayObject3D, ?> type, ReplayObject3D object) {
@@ -61,7 +73,7 @@ public class ConstraintNoise3D extends Constraint<ReplayObject3D> {
 
     @Override
     protected void readJson(JsonObject json, JsonDeserializationContext context) {
-        this.config = context.deserialize(json, Config.class);
+        this.config.copyFrom(context.deserialize(json, Config.class));
 
     }
 

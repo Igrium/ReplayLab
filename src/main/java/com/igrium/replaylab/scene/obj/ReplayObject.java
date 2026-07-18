@@ -160,13 +160,12 @@ public abstract class ReplayObject implements PropertyHolder {
 
     /// === SAMPLING ===
 
+
     /**
-     * Evaluate and apply all the constraints in this object
-     * @param timestamp Timestamp to evaluate at
-     * @param accessor Object accessor to use for evaluation
+     * Reset state that constraints build on top of (e.g. the computed transform) back to its
+     * un-constrained base. Called automatically before constraints are evaluated.
      */
-    public void evaluateConstraints(int timestamp, ObjectAccessor accessor) {
-        getConstraints().evaluate(timestamp, accessor);
+    public void resetConstraintState() {
     }
 
     /**
@@ -194,7 +193,7 @@ public abstract class ReplayObject implements PropertyHolder {
      */
     public final void sampleAndApply(int timestamp, ObjectAccessor objAccessor) {
         sample(timestamp);
-        evaluateConstraints(timestamp, objAccessor);
+        constraints.evaluate(timestamp, objAccessor);
         apply(timestamp);
     }
 

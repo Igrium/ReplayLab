@@ -103,11 +103,8 @@ public final class ConstraintContainer {
         return newName;
     }
 
-    /**
-     * Call {@link ReplayObject#evaluateConstraints} instead so subclasses can overload
-     */
-    @ApiStatus.Internal
     public void evaluate(int time, ObjectAccessor objAccessor) {
+        object.resetConstraintState();
         for (var entry : values.entryList()) {
             entry.getValue().evaluate(time, objAccessor);
         }
