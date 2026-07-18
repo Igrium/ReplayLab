@@ -162,8 +162,7 @@ public abstract class ReplayObject implements PropertyHolder {
 
 
     /**
-     * Reset state that constraints build on top of (e.g. the computed transform) back to its
-     * un-constrained base. Called automatically before constraints are evaluated.
+     * Reset state that constraints build on top of. Called automatically before constraints are evaluated.
      */
     public void resetConstraintState() {
     }
