@@ -13,13 +13,14 @@ import com.igrium.replaylab.operator.scene.SetSceneCameraOperator;
 import com.igrium.replaylab.scene.obj.EntityProvider;
 import com.igrium.replaylab.scene.obj.ReplayObject;
 import com.igrium.replaylab.scene.obj.ReplayObject3D;
-import com.igrium.replaylab.scene.objs.ScenePropsObject;
+import com.igrium.replaylab.scene.obj.ScenePropsObject;
 import com.igrium.replaylab.ui.gizmos.GizmoRenderer;
 import com.igrium.replaylab.ui.panels.*;
 import com.igrium.replaylab.ui.subpanels.ExceptionPopup;
 import com.igrium.replaylab.ui.subpanels.ViewportControls;
 import com.igrium.replaylab.ui.subpanels.ViewportFooter;
 import com.igrium.replaylab.ui.util.ReplayLabControls;
+import com.igrium.replaylab.ui.windows.*;
 import com.replaymod.replay.ReplayHandler;
 import com.replaymod.replay.ReplayModReplay;
 import imgui.ImGui;
@@ -72,7 +73,7 @@ public class ReplayLabUI extends DockSpaceApp {
     private static final Inspector inspector = new Inspector(Identifier.of("replaylab:inspector"));
 
     private final List<UIPanel> panels = List.of(
-            new DopeSheetNew(Identifier.of("replaylab:dopesheet")),
+            new DopeSheet(Identifier.of("replaylab:dopesheet")),
             new CurveEditor(Identifier.of("replaylab:curveeditor")),
             new Outliner(Identifier.of("replaylab:outliner")),
             inspector,

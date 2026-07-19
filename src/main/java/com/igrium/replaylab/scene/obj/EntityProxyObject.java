@@ -1,4 +1,4 @@
-package com.igrium.replaylab.scene.objs;
+package com.igrium.replaylab.scene.obj;
 
 import com.google.gson.JsonDeserializationContext;
 import com.google.gson.JsonObject;
@@ -6,18 +6,11 @@ import com.google.gson.JsonSerializationContext;
 import com.igrium.replaylab.editor.EditorState;
 import com.igrium.replaylab.math.Transform3;
 import com.igrium.replaylab.scene.ReplayScene;
-import com.igrium.replaylab.scene.obj.*;
-import com.igrium.replaylab.ui.widgets.EntityPicker;
 import com.igrium.replaylab.ui.widgets.EntitySelector;
-import com.igrium.replaylab.ui.widgets.EntitySelectorWindow;
 import com.replaymod.replay.camera.CameraEntity;
-import imgui.ImGui;
-import imgui.flag.ImGuiMouseButton;
 import imgui.type.ImInt;
-import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.world.ClientWorld;
 import net.minecraft.entity.Entity;
-import net.minecraft.entity.passive.CowEntity;
 import net.minecraft.util.math.Vec3d;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Math;

@@ -27,7 +27,6 @@ import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.objects.ObjectObjectImmutablePair;
 import lombok.Getter;
-import lombok.Setter;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.Language;
 import org.jetbrains.annotations.Nullable;
@@ -40,7 +39,7 @@ import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
-public class DopeSheetNew extends KeyframePanel {
+public class DopeSheet extends KeyframePanel {
 
     private static final float SNAP_THRESHOLD_PX = 4f;
     private static final float INTERVAL_DIVISOR = 4f;
@@ -94,7 +93,7 @@ public class DopeSheetNew extends KeyframePanel {
     private boolean mouseDragging;
     private boolean mouseStartedDragging;
 
-    public DopeSheetNew(Identifier id) {
+    public DopeSheet(Identifier id) {
         super(id);
     }
 

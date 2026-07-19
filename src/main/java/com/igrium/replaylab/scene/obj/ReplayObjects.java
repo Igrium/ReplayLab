@@ -2,9 +2,7 @@ package com.igrium.replaylab.scene.obj;
 
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
-import com.igrium.replaylab.render.RenderSettingsObj;
 import com.igrium.replaylab.scene.ReplayScene;
-import com.igrium.replaylab.scene.objs.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -21,8 +19,8 @@ public class ReplayObjects {
                     .noManualSpawn()
     );
 
-    public static final ReplayObjectType<RenderSettingsObj> RENDER_SETTINGS = register("renderSettings",
-            new ReplayObjectType.Builder<>(RenderSettingsObj::new)
+    public static final ReplayObjectType<RenderSettingsObject> RENDER_SETTINGS = register("renderSettings",
+            new ReplayObjectType.Builder<>(RenderSettingsObject::new)
                     .noManualSpawn()
                     .hideInOutliner()
                     .hideInDopeSheet()

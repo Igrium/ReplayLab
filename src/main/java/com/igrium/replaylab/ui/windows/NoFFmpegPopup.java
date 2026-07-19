@@ -1,10 +1,9 @@
-package com.igrium.replaylab.ui;
+package com.igrium.replaylab.ui.windows;
 
 import com.igrium.replaylab.ui.util.ReplayLabControls;
 import imgui.ImGui;
 import lombok.experimental.UtilityClass;
 import net.minecraft.util.Language;
-import net.minecraft.util.Util;
 
 @UtilityClass
 public class NoFFmpegPopup {

@@ -1,4 +1,4 @@
-package com.igrium.replaylab.ui.panels;
+package com.igrium.replaylab.ui.windows;
 
 import com.igrium.replaylab.editor.EditorState;
 import imgui.ImGui;

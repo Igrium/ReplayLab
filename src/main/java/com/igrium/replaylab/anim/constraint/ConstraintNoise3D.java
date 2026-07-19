@@ -1,11 +1,8 @@
-package com.igrium.replaylab.anim.constraints;
+package com.igrium.replaylab.anim.constraint;
 
 import com.google.gson.JsonDeserializationContext;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonSerializationContext;
-import com.igrium.replaylab.anim.constraint.Constraint;
-import com.igrium.replaylab.anim.constraint.ConstraintType;
-import com.igrium.replaylab.anim.constraint.ObjectAccessor;
 import com.igrium.replaylab.editor.EditorState;
 import com.igrium.replaylab.math.SimplexNoise;
 import com.igrium.replaylab.math.Transform3;

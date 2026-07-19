@@ -1,16 +1,11 @@
-package com.igrium.replaylab.ui.panels;
+package com.igrium.replaylab.ui.windows;
 
 import com.igrium.replaylab.editor.EditorState;
 import imgui.ImGui;
-import imgui.ImVec2;
-import imgui.flag.ImGuiCond;
 import imgui.flag.ImGuiWindowFlags;
-import imgui.type.ImBoolean;
 import imgui.type.ImString;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.util.Identifier;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class SceneBrowser extends UIModal {
 

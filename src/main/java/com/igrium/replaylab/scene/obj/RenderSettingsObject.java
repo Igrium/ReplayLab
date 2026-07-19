@@ -1,4 +1,4 @@
-package com.igrium.replaylab.render;
+package com.igrium.replaylab.scene.obj;
 
 import com.google.gson.JsonDeserializationContext;
 import com.google.gson.JsonObject;
@@ -6,14 +6,13 @@ import com.google.gson.JsonSerializationContext;
 import com.igrium.craftui.file.FileDialogs;
 import com.igrium.craftui.file.FileDialogs.FileFilter;
 import com.igrium.replaylab.editor.EditorState;
+import com.igrium.replaylab.render.RenderUtils;
 import com.igrium.replaylab.render.capture.FrameCapture;
 import com.igrium.replaylab.render.capture.FrameCaptureType;
 import com.igrium.replaylab.render.encoder.EncoderConfig;
 import com.igrium.replaylab.render.encoder.EncoderType;
 import com.igrium.replaylab.render.encoder.EncoderTypes;
 import com.igrium.replaylab.scene.ReplayScene;
-import com.igrium.replaylab.scene.obj.ReplayObject;
-import com.igrium.replaylab.scene.obj.ReplayObjectType;
 import imgui.ImGui;
 import imgui.type.ImString;
 import lombok.Getter;
@@ -28,7 +27,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Objects;
 
-public class RenderSettingsObj extends ReplayObject {
+public class RenderSettingsObject extends ReplayObject {
 
     @Getter
     @Setter
@@ -45,7 +44,7 @@ public class RenderSettingsObj extends ReplayObject {
     @NonNull
     private EncoderConfig encoder = EncoderTypes.PNG.create();
 
-    public RenderSettingsObj(ReplayObjectType<?> type, ReplayScene scene) {
+    public RenderSettingsObject(ReplayObjectType<?> type, ReplayScene scene) {
         super(type, scene);
     }
 

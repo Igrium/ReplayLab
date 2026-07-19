@@ -1,10 +1,9 @@
-package com.igrium.replaylab.ui.panels;
+package com.igrium.replaylab.ui.windows;
 
 import com.igrium.replaylab.ReplayLab;
 import com.igrium.replaylab.config.ReplayLabConfig;
 import com.igrium.replaylab.editor.EditorState;
 import com.igrium.replaylab.ui.settings.SettingsEditor;
-import imgui.ImGui;
 import lombok.Getter;
 import net.minecraft.util.Identifier;
 

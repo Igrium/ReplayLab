@@ -7,10 +7,10 @@ import com.google.common.collect.Maps;
 import com.igrium.replaylab.anim.constraint.ConstraintEvaluator;
 import com.igrium.replaylab.editor.EditorState;
 import com.igrium.replaylab.operator.ReplayOperator;
-import com.igrium.replaylab.render.RenderSettingsObj;
+import com.igrium.replaylab.scene.obj.RenderSettingsObject;
 import com.igrium.replaylab.anim.KeyChannel;
 import com.igrium.replaylab.scene.obj.*;
-import com.igrium.replaylab.scene.objs.ScenePropsObject;
+import com.igrium.replaylab.scene.obj.ScenePropsObject;
 import com.igrium.replaylab.util.NameUtils;
 import lombok.Getter;
 import lombok.NonNull;
@@ -27,7 +27,7 @@ import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 
-import static com.igrium.replaylab.scene.objs.ScenePropsObject.PROP_SPEED;
+import static com.igrium.replaylab.scene.obj.ScenePropsObject.PROP_SPEED;
 
 /**
  * Keeps track of all the runtime stuff regarding a scene.
@@ -83,11 +83,11 @@ public class ReplayScene {
     /**
      * Get the render settings object for the scene. Note that render settings are not stored in undo/redo.
      */
-    public RenderSettingsObj getRenderSettings() {
+    public RenderSettingsObject getRenderSettings() {
         ReplayObject obj = getObject(RENDER_SETTINGS);
-        RenderSettingsObj renderSettings;
-        if (obj instanceof RenderSettingsObj) {
-            renderSettings = (RenderSettingsObj) obj;
+        RenderSettingsObject renderSettings;
+        if (obj instanceof RenderSettingsObject) {
+            renderSettings = (RenderSettingsObject) obj;
         } else {
             LOGGER.info("No RenderSettings object found. Creating.");
             renderSettings = ReplayObjects.RENDER_SETTINGS.create(this);
