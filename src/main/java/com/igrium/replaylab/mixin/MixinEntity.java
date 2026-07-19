@@ -1,17 +1,15 @@
 package com.igrium.replaylab.mixin;
 
-import com.igrium.replaylab.camera.RollProvider;
 import com.igrium.replaylab.editor.EditorState;
-import net.minecraft.client.MinecraftClient;
+import com.igrium.replaylab.scene.obj.ReplayObject3D;
 import net.minecraft.entity.Entity;
 import net.minecraft.world.World;
+import org.joml.Vector3f;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-
-import java.beans.Encoder;
 
 @Mixin(Entity.class)
 public class MixinEntity {
@@ -25,10 +23,10 @@ public class MixinEntity {
             return;
         }
         var editor = EditorState.getInstance();
-        var client = MinecraftClient.getInstance();
-        if (editor != null && editor.isRollingCamera() && client.getCameraEntity() instanceof RollProvider cam) {
-            float r = (float) (cursorDeltaX * .15f);
-            cam.setRoll(cam.getRoll() + r);
+        if (editor != null && editor.isRollingCamera() && editor.isCameraView()
+                && editor.getScene().getSceneCameraObject() instanceof ReplayObject3D cam) {
+
+            cam.rotation().rotateZ((float) Math.toRadians(cursorDeltaX * .15f));
             ci.cancel();
         }
     }

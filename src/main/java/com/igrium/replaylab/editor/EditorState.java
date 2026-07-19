@@ -6,6 +6,7 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
 import com.igrium.replaylab.ReplayLab;
+import com.igrium.replaylab.anim.constraint.ConstraintEvaluator;
 import com.igrium.replaylab.camera.RollProvider;
 import com.igrium.replaylab.math.Transform3;
 import com.igrium.replaylab.mixin.AccessorReplayHandler;
@@ -488,10 +489,11 @@ public final class EditorState {
                 double posY = player.getEyeY();
                 double posZ = player.getZ();
 
-                float roll = cameraEnt instanceof RollProvider r ? r.getRoll() : 0;
+                float roll = cam3d.rotation().getEulerYXZ(new Vector3f()).z;
 
                 cam3d.position().set(posX, posY, posZ);
-                cam3d.rotation().setEulerYXZ(Math.toRadians(-player.getYaw()), Math.toRadians(player.getPitch()), Math.toRadians(roll));
+                cam3d.rotation().setEulerYXZ(Math.toRadians(-player.getYaw()), Math.toRadians(player.getPitch()), roll);
+                cam3d.getConstraints().evaluate(getPlayhead(), new ConstraintEvaluator(getScene().getObjects(), getPlayhead()));
                 cam3d.apply(getPlayhead());
 
             }
