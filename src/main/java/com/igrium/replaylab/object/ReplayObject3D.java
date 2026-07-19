@@ -4,7 +4,6 @@ import com.google.gson.JsonDeserializationContext;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonSerializationContext;
 import com.igrium.replaylab.ReplayLab;
-import com.igrium.replaylab.anim.constraint.ConstraintEvaluator;
 import com.igrium.replaylab.config.ReplayLabConfig;
 import com.igrium.replaylab.editor.EditorState;
 import com.igrium.replaylab.editor.KeySelectionSet.KeyframeReference;
@@ -177,6 +176,7 @@ public abstract class ReplayObject3D extends ReplayObject implements TransformPr
     @Override
     public void resetConstraintState() {
         getBaseTransform(computedTransform);
+        computedTransform.rot().setAutoModeSwitch(true);
     }
 
     private boolean wasDragging;

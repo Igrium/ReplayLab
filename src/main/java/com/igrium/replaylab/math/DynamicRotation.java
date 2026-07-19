@@ -5,10 +5,7 @@ import com.google.gson.annotations.JsonAdapter;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonWriter;
 import com.igrium.replaylab.math.DynamicRotation.RotationMode;
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
-import lombok.NonNull;
-import lombok.ToString;
+import lombok.*;
 import lombok.experimental.Accessors;
 import org.joml.Matrix3f;
 import org.joml.Matrix3fc;
@@ -140,6 +137,13 @@ public final class DynamicRotation {
     @Getter
     private RotationMode mode = RotationMode.QUATERNION;
 
+    /**
+     * If set, rotations may automatically change the mode to the most appropriate setting.
+     */
+    @Accessors(fluent = false)
+    @Getter @Setter
+    private boolean autoModeSwitch = false;
+
     public DynamicRotation set(@NonNull DynamicRotation other) {
         this.quaternion.set(other.quaternion);
         this.euler.set(other.euler);
@@ -205,6 +209,9 @@ public final class DynamicRotation {
      * @return <code>this</code>
      */
     public DynamicRotation setQuaternion(Quaternionfc quaternion) {
+        if (autoModeSwitch) {
+            mode = RotationMode.QUATERNION;
+        }
         switch (mode) {
             case QUATERNION -> quaternion.get(this.quaternion).normalize();
             case EULER_XYZ -> quaternion.getEulerAnglesXYZ(this.euler);
@@ -574,7 +581,8 @@ public final class DynamicRotation {
      * @return <code>this</code>
      */
     public DynamicRotation setEulerXYZ(float angleX, float angleY, float angleZ) {
-        if (mode == RotationMode.EULER_XYZ) {
+        if (mode == RotationMode.EULER_XYZ || autoModeSwitch) {
+            mode = RotationMode.EULER_XYZ;
             euler.set(angleX, angleY, angleZ);
         } else {
             setQuaternion(new Quaternionf().rotateXYZ(angleX, angleY, angleZ));
@@ -601,7 +609,8 @@ public final class DynamicRotation {
      * @return <code>this</code>
      */
     public DynamicRotation setEulerZYX(float angleZ, float angleY, float angleX) {
-        if (mode == RotationMode.EULER_ZYX) {
+        if (mode == RotationMode.EULER_ZYX || autoModeSwitch) {
+            mode = RotationMode.EULER_ZYX;
             euler.set(angleX, angleY, angleZ);
         } else {
             setQuaternion(new Quaternionf().rotateZYX(angleZ, angleY, angleX));
@@ -628,7 +637,8 @@ public final class DynamicRotation {
      * @return <code>this</code>
      */
     public DynamicRotation setEulerYXZ(float angleY, float angleX, float angleZ) {
-        if (mode == RotationMode.EULER_YXZ) {
+        if (mode == RotationMode.EULER_YXZ || autoModeSwitch) {
+            mode = RotationMode.EULER_YXZ;
             euler.set(angleX, angleY, angleZ);
         } else {
             setQuaternion(new Quaternionf().rotateYXZ(angleY, angleX, angleZ));

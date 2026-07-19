@@ -44,9 +44,6 @@ public final class ConstraintType<R, T extends Constraint<R>> {
 
     public static final BiMap<String, ConstraintType<?, ?>> REGISTRY = HashBiMap.create();
 
-    public static final ConstraintType<ReplayObject3D, ConstraintNoise3D> NOISE_3D =
-           register("noise3d", new ConstraintType<>(ConstraintNoise3D::new, ReplayObject3D.class));
-
     public static <T extends ConstraintType<?, ?>> T register(String id, T type) {
         REGISTRY.put(id, type);
         return type;
@@ -77,4 +74,11 @@ public final class ConstraintType<R, T extends Constraint<R>> {
         R cast = type.getObjectClass().cast(obj);
         return type.create(cast);
     }
+
+    private static final ConstraintType<ReplayObject3D, ConstraintParent> PARENT =
+            register("parent", new ConstraintType<>(ConstraintParent::new, ReplayObject3D.class));
+
+    public static final ConstraintType<ReplayObject3D, ConstraintNoise3D> NOISE_3D =
+            register("noise3d", new ConstraintType<>(ConstraintNoise3D::new, ReplayObject3D.class));
+
 }
