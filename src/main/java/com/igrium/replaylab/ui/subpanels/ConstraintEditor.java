@@ -10,7 +10,10 @@ import com.igrium.replaylab.scene.obj.ObjectEditState;
 import com.igrium.replaylab.scene.obj.ReplayObject;
 import com.igrium.replaylab.ui.widgets.DraggableList;
 import imgui.ImGui;
+import imgui.flag.ImGuiCol;
+import imgui.flag.ImGuiStyleVar;
 import imgui.flag.ImGuiTreeNodeFlags;
+import imgui.flag.ImGuiWindowFlags;
 import imgui.type.ImString;
 import net.minecraft.util.Language;
 
@@ -28,22 +31,20 @@ public class ConstraintEditor {
 
     public static int draw(ReplayObject obj, EditorState editor) {
         int flags = ObjectEditState.NONE;
+        float buttonSize = ImGui.getFrameHeight();
 
-        if (ImGui.button("+")) {
-            ImGui.openPopup("new");
-        }
-
-        if (ImGui.beginPopup("new")) {
+        if (ImGui.beginCombo("##addConstraint", t("gui.replaylab.add_constraint"))) {
             for (var type : ConstraintType.REGISTRY.values()) {
                 if (type.getObjectClass().isAssignableFrom(obj.getClass())) {
                     if (ImGui.selectable(t(type.translationKey()))) {
                         editor.applyOperator(new NewConstraintOperator(obj.getId(), tt(type.translationKey()), type));
-                        ImGui.closeCurrentPopup();
                     }
                 }
             }
-            ImGui.endPopup();
+            ImGui.endCombo();
         }
+
+        ImGui.spacing();
 
         var constraints = obj.getConstraints();
         if (constraints.getValues().isEmpty()) {
@@ -58,26 +59,50 @@ public class ConstraintEditor {
 
         DraggableList.begin("constraintEditor");
         int toDelete = -1;
-        float buttonSize = ImGui.getFrameHeight();
         for (int i = 0; i < entries.length; i++) {
             String key = entries[i].key();
             Constraint<?> value = entries[i].value();
             DraggableList.beginItem(key);
 
-            ImGui.setNextItemAllowOverlap();
+            // The row's left/right bounds, in the same coordinate space SameLine(x) expects,
+            // so widgets can be right-aligned without accumulating positioning drift.
+            float rowStartX = ImGui.getCursorPosX();
+            float rowRightX = rowStartX + ImGui.getContentRegionAvailX();
+            float spacing = ImGui.getStyle().getItemSpacingX();
+
+            // CollapsingHeader always paints/hovers across the full remaining row width,
+            // regardless of its (empty) label. Confine it to a small child region sized to
+            // just the arrow so hovering the type badge or the gap before the delete button
+            // doesn't light up the whole row.
+            ImGui.pushStyleVar(ImGuiStyleVar.ChildBorderSize, 0);
+            ImGui.beginChild("##headerToggle" + key, buttonSize, buttonSize, false,
+                    ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse);
             boolean open = ImGui.collapsingHeader("##header" + key, ImGuiTreeNodeFlags.DefaultOpen);
+            ImGui.endChild();
+            ImGui.popStyleVar();
+
+            String typeLabel = "[" + tt(value.getType().translationKey()) + "]";
+            float typeLabelWidth = ImGui.calcTextSizeX(typeLabel);
+            float nameWidth = rowRightX - rowStartX - buttonSize - typeLabelWidth - buttonSize - spacing * 3;
+
+            // Make it clear you can edit the field
             ImGui.sameLine();
+            ImGui.pushStyleColor(ImGuiCol.FrameBg, 0, 0, 0, 0);
+            ImGui.pushStyleVar(ImGuiStyleVar.FrameBorderSize, 1);
+            ImGui.setNextItemWidth(Math.max(nameWidth, buttonSize));
             strBuffer.set(key);
             ImGui.inputText("##label" + key, strBuffer);
+            ImGui.popStyleVar();
+            ImGui.popStyleColor();
             if (ImGui.isItemDeactivatedAfterEdit()) {
                 constraints.rename(key, strBuffer.get());
                 flags |= ObjectEditState.COMMIT;
             }
 
             ImGui.sameLine();
-            ImGui.text("[" + tt(value.getType().translationKey()) + "]");
+            ImGui.textDisabled(typeLabel);
 
-            ImGui.sameLine(ImGui.getContentRegionAvailX() - buttonSize);
+            ImGui.sameLine(rowRightX - buttonSize - spacing);
             if (ImGui.button("" + MaterialIcons.ICON_DELETE)) {
                 toDelete = i;
             }

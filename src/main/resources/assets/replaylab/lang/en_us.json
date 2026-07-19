@@ -69,7 +69,11 @@
   "gui.replaylab.mod_out": "Blend Out",
 
   "gui.replaylab.noprops": "This object has no editable properties.",
+
   "gui.replaylab.constraints": "Constraints",
+  "gui.replaylab.add_constraint": "Add Constraint",
+  "gui.replaylab.noconstraints": "This object doesn't have any constraints (yet)",
+
 
   "gui.replaylab.affect": "Affect:",
   "gui.replaylab.posX": "X Translation",
@@ -88,7 +92,6 @@
 
   "constraint.noise3d": "3D Noise",
 
-  "gui.replaylab.noconstraints": "Press '+' to add a constraint",
 
   "gui.replaylab.copy_ts": "Copy Timestamp",
   "gui.replaylab.set_scene_start": "Set scene start here",
