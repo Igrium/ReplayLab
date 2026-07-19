@@ -2,8 +2,8 @@ package com.igrium.replaylab.operator.object;
 
 import com.igrium.replaylab.editor.EditorState;
 import com.igrium.replaylab.operator.ReplayOperator;
-import com.igrium.replaylab.scene.obj.ReplayObject;
-import com.igrium.replaylab.scene.obj.SerializedReplayObject;
+import com.igrium.replaylab.object.ReplayObject;
+import com.igrium.replaylab.object.SerializedReplayObject;
 import com.igrium.replaylab.util.ArrayUtils;
 
 import java.util.*;

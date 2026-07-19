@@ -1,7 +1,7 @@
 package com.igrium.replaylab.ui.widgets;
 
 import com.igrium.replaylab.config.Keybinds;
-import com.igrium.replaylab.scene.obj.EditFlags;
+import com.igrium.replaylab.object.EditFlags;
 import imgui.ImGui;
 import imgui.flag.ImGuiCol;
 import it.unimi.dsi.fastutil.ints.IntArrayList;

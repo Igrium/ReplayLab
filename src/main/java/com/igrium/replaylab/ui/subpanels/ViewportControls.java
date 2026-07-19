@@ -5,7 +5,7 @@ import com.igrium.replaylab.config.Keybinds;
 import com.igrium.replaylab.editor.EditorState;
 import com.igrium.replaylab.operator.object.RemoveObjectsOperator;
 import com.igrium.replaylab.operator.object.RenameObjectOperator;
-import com.igrium.replaylab.scene.obj.ReplayObject;
+import com.igrium.replaylab.object.ReplayObject;
 import com.igrium.replaylab.ui.widgets.EntityPicker;
 import com.igrium.replaylab.ui.panels.UIPanel;
 import com.igrium.replaylab.config.ShortcutUtils;

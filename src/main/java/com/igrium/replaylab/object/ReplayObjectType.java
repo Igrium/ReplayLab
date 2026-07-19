@@ -1,9 +1,8 @@
-package com.igrium.replaylab.scene.obj;
+package com.igrium.replaylab.object;
 
 import com.igrium.replaylab.scene.ReplayScene;
 import lombok.Getter;
 import lombok.experimental.Accessors;
-import net.minecraft.util.Identifier;
 
 @Accessors(fluent = true)
 public class ReplayObjectType<T extends ReplayObject> {

@@ -1,4 +1,4 @@
-package com.igrium.replaylab.scene.obj;
+package com.igrium.replaylab.object;
 
 import com.google.gson.JsonObject;
 import com.igrium.replaylab.anim.KeyChannel;

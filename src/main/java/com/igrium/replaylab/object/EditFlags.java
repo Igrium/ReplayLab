@@ -1,4 +1,4 @@
-package com.igrium.replaylab.scene.obj;
+package com.igrium.replaylab.object;
 
 import com.igrium.replaylab.editor.EditorState;
 import com.igrium.replaylab.operator.object.CommitObjectUpdateOperator;

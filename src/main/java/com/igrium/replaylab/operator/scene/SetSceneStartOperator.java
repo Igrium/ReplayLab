@@ -2,7 +2,7 @@ package com.igrium.replaylab.operator.scene;
 
 import com.igrium.replaylab.editor.EditorState;
 import com.igrium.replaylab.operator.ReplayOperator;
-import com.igrium.replaylab.scene.obj.ObjectSceneProps;
+import com.igrium.replaylab.object.ObjectSceneProps;
 
 public class SetSceneStartOperator implements ReplayOperator {
 

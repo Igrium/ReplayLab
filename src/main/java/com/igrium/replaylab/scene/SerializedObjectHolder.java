@@ -3,7 +3,7 @@ package com.igrium.replaylab.scene;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.ImmutableBiMap;
-import com.igrium.replaylab.scene.obj.SerializedReplayObject;
+import com.igrium.replaylab.object.SerializedReplayObject;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Map;

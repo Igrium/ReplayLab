@@ -1,7 +1,7 @@
 package com.igrium.replaylab.ui.util;
 
 import com.igrium.replaylab.config.ReplayLabConfig;
-import com.igrium.replaylab.scene.obj.ReplayObject;
+import com.igrium.replaylab.object.ReplayObject;
 import com.igrium.replaylab.ui.ReplayLabIcons;
 import com.igrium.replaylab.util.Timestamps;
 import imgui.ImGui;

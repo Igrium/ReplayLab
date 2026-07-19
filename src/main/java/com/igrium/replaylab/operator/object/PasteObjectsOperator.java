@@ -6,9 +6,9 @@ import com.google.gson.reflect.TypeToken;
 import com.igrium.replaylab.editor.EditorState;
 import com.igrium.replaylab.operator.ReplayOperator;
 import com.igrium.replaylab.scene.ReplayScene;
-import com.igrium.replaylab.scene.obj.ReplayObject;
-import com.igrium.replaylab.scene.obj.ReplayObjects;
-import com.igrium.replaylab.scene.obj.SerializedReplayObject;
+import com.igrium.replaylab.object.ReplayObject;
+import com.igrium.replaylab.object.ReplayObjects;
+import com.igrium.replaylab.object.SerializedReplayObject;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.LoggerFactory;
 

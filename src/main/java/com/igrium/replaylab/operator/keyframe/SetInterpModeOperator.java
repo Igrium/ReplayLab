@@ -5,7 +5,7 @@ import com.igrium.replaylab.editor.KeySelectionSet.KeyframeReference;
 import com.igrium.replaylab.operator.object.MultiObjectOperator;
 import com.igrium.replaylab.anim.InterpolationMode;
 import com.igrium.replaylab.anim.Keyframe;
-import com.igrium.replaylab.scene.obj.ReplayObject;
+import com.igrium.replaylab.object.ReplayObject;
 
 import java.util.Collection;
 import java.util.Map;

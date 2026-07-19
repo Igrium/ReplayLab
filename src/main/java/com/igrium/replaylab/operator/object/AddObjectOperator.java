@@ -3,8 +3,8 @@ package com.igrium.replaylab.operator.object;
 import com.igrium.replaylab.config.ReplayLabConfig;
 import com.igrium.replaylab.editor.EditorState;
 import com.igrium.replaylab.operator.ReplayOperator;
-import com.igrium.replaylab.scene.obj.ReplayObject;
-import com.igrium.replaylab.scene.obj.ObjectCamera;
+import com.igrium.replaylab.object.ReplayObject;
+import com.igrium.replaylab.object.ObjectCamera;
 
 /**
  * Add a new object to the scene, calling <code>onCreated</code> in the process.

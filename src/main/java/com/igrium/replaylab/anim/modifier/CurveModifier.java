@@ -2,7 +2,7 @@ package com.igrium.replaylab.anim.modifier;
 
 import com.google.gson.*;
 import com.igrium.replaylab.editor.EditorState;
-import com.igrium.replaylab.scene.obj.EditFlags;
+import com.igrium.replaylab.object.EditFlags;
 import com.igrium.replaylab.ui.util.ReplayLabControls;
 import imgui.ImGui;
 import imgui.flag.ImGuiTreeNodeFlags;

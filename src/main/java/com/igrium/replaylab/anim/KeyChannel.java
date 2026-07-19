@@ -1,6 +1,5 @@
 package com.igrium.replaylab.anim;
 
-import com.google.common.collect.ImmutableMap;
 import com.google.gson.*;
 import com.google.gson.annotations.JsonAdapter;
 import com.igrium.replaylab.ReplayLab;
@@ -9,7 +8,6 @@ import com.igrium.replaylab.anim.modifier.CurveModifierSampler;
 import com.igrium.replaylab.anim.modifier.CurveModifierType;
 import com.igrium.replaylab.config.ReplayLabConfig;
 import com.igrium.replaylab.editor.KeySelectionSet;
-import com.igrium.replaylab.scene.obj.ReplayObject;
 import it.unimi.dsi.fastutil.ints.*;
 import lombok.Getter;
 import lombok.Setter;

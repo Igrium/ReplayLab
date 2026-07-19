@@ -1,9 +1,8 @@
-package com.igrium.replaylab.scene.obj;
+package com.igrium.replaylab.object;
 
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.world.ClientWorld;
 import net.minecraft.entity.Entity;
-import net.minecraft.world.World;
 import org.jetbrains.annotations.Nullable;
 
 /**

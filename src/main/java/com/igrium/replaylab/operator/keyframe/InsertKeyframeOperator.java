@@ -4,7 +4,7 @@ import com.igrium.replaylab.ReplayLab;
 import com.igrium.replaylab.editor.EditorState;
 import com.igrium.replaylab.editor.KeySelectionSet;
 import com.igrium.replaylab.operator.object.MultiObjectOperator;
-import com.igrium.replaylab.scene.obj.ReplayObject;
+import com.igrium.replaylab.object.ReplayObject;
 import org.slf4j.Logger;
 
 import java.util.*;

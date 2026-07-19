@@ -3,7 +3,7 @@ package com.igrium.replaylab.editor;
 import com.google.common.collect.AbstractIterator;
 import com.igrium.replaylab.anim.KeyChannel;
 import com.igrium.replaylab.anim.Keyframe;
-import com.igrium.replaylab.scene.obj.ReplayObject;
+import com.igrium.replaylab.object.ReplayObject;
 import it.unimi.dsi.fastutil.ints.*;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Vector2d;

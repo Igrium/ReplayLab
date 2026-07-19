@@ -8,7 +8,7 @@ import com.igrium.replaylab.editor.EditorState;
 import com.igrium.replaylab.editor.KeySelectionSet.ChannelReference;
 import com.igrium.replaylab.operator.keyframe.AddModifierOperator;
 import com.igrium.replaylab.operator.keyframe.RemoveModifierOperator;
-import com.igrium.replaylab.scene.obj.EditFlags;
+import com.igrium.replaylab.object.EditFlags;
 import com.igrium.replaylab.ui.widgets.DraggableList;
 import imgui.ImGui;
 import imgui.flag.ImGuiTreeNodeFlags;

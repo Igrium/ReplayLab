@@ -1,11 +1,10 @@
 package com.igrium.replaylab.operator.object;
 
-import com.google.gson.JsonObject;
 import com.igrium.replaylab.anim.constraint.Constraint;
 import com.igrium.replaylab.anim.constraint.ConstraintType;
 import com.igrium.replaylab.editor.EditorState;
 import com.igrium.replaylab.operator.ReplayOperator;
-import com.igrium.replaylab.scene.obj.ReplayObject;
+import com.igrium.replaylab.object.ReplayObject;
 
 import java.util.Objects;
 

@@ -1,7 +1,6 @@
-package com.igrium.replaylab.scene.obj;
+package com.igrium.replaylab.object;
 
 import com.igrium.replaylab.math.Transform3;
-import org.joml.Matrix4d;
 
 public interface TransformProvider {
 

@@ -1,6 +1,6 @@
 package com.igrium.replaylab.anim.constraint;
 
-import com.igrium.replaylab.scene.obj.ReplayObject;
+import com.igrium.replaylab.object.ReplayObject;
 import org.jetbrains.annotations.Nullable;
 
 public interface ObjectAccessor {

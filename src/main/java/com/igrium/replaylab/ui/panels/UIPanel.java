@@ -5,7 +5,7 @@ import com.igrium.replaylab.editor.EditorState;
 import com.igrium.replaylab.operator.keyframe.InsertKeyframeOperator;
 import com.igrium.replaylab.operator.ReplayOperator;
 import com.igrium.replaylab.operator.scene.SetSceneCameraOperator;
-import com.igrium.replaylab.scene.obj.ReplayObject;
+import com.igrium.replaylab.object.ReplayObject;
 import imgui.ImGui;
 import imgui.type.ImBoolean;
 import lombok.Getter;

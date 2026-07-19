@@ -1,10 +1,9 @@
 package com.igrium.replaylab.mixin;
 
 import com.igrium.replaylab.editor.EditorState;
-import com.igrium.replaylab.scene.obj.ReplayObject3D;
+import com.igrium.replaylab.object.ReplayObject3D;
 import net.minecraft.entity.Entity;
 import net.minecraft.world.World;
-import org.joml.Vector3f;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;

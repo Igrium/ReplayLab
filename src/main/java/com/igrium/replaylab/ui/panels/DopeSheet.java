@@ -10,7 +10,7 @@ import com.igrium.replaylab.scene.ReplayScene;
 import com.igrium.replaylab.anim.ChannelUtils;
 import com.igrium.replaylab.anim.KeyChannel;
 import com.igrium.replaylab.anim.Keyframe;
-import com.igrium.replaylab.scene.obj.ReplayObject;
+import com.igrium.replaylab.object.ReplayObject;
 import com.igrium.replaylab.ui.ReplayLabIcons;
 import com.igrium.replaylab.ui.subpanels.TimelineHeader;
 import com.igrium.replaylab.ui.util.ReplayLabControls;

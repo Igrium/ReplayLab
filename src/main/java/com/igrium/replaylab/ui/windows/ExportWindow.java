@@ -1,7 +1,7 @@
 package com.igrium.replaylab.ui.windows;
 import com.igrium.craftui.app.AppManager;
 import com.igrium.replaylab.editor.EditorState;
-import com.igrium.replaylab.scene.obj.ObjectRenderSettings;
+import com.igrium.replaylab.object.ObjectRenderSettings;
 import com.igrium.replaylab.scene.ReplayScene;
 import imgui.ImGui;
 import imgui.flag.ImGuiCond;

@@ -1,7 +1,7 @@
 package com.igrium.replaylab.anim.constraint;
 
 import com.igrium.replaylab.editor.EditorState;
-import com.igrium.replaylab.scene.obj.ReplayObject;
+import com.igrium.replaylab.object.ReplayObject;
 import lombok.Getter;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;

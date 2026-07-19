@@ -2,7 +2,7 @@ package com.igrium.replaylab.scene;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
-import com.igrium.replaylab.scene.obj.SerializedReplayObject;
+import com.igrium.replaylab.object.SerializedReplayObject;
 import com.replaymod.replaystudio.replay.ReplayFile;
 import lombok.experimental.UtilityClass;
 import net.minecraft.util.Util;

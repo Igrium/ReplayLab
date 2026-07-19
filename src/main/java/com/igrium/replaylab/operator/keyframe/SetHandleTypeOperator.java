@@ -9,7 +9,7 @@ import com.igrium.replaylab.anim.ChannelUtils;
 import com.igrium.replaylab.anim.KeyChannel;
 import com.igrium.replaylab.anim.Keyframe;
 import com.igrium.replaylab.anim.Keyframe.HandleType;
-import com.igrium.replaylab.scene.obj.ReplayObject;
+import com.igrium.replaylab.object.ReplayObject;
 import it.unimi.dsi.fastutil.ints.IntSet;
 
 import java.util.Collection;

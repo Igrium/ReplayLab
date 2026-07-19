@@ -6,11 +6,9 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
 import com.igrium.replaylab.anim.constraint.ConstraintEvaluator;
 import com.igrium.replaylab.editor.EditorState;
+import com.igrium.replaylab.object.*;
 import com.igrium.replaylab.operator.ReplayOperator;
-import com.igrium.replaylab.scene.obj.ObjectRenderSettings;
 import com.igrium.replaylab.anim.KeyChannel;
-import com.igrium.replaylab.scene.obj.*;
-import com.igrium.replaylab.scene.obj.ObjectSceneProps;
 import com.igrium.replaylab.util.NameUtils;
 import lombok.Getter;
 import lombok.NonNull;
@@ -27,7 +25,7 @@ import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 
-import static com.igrium.replaylab.scene.obj.ObjectSceneProps.PROP_SPEED;
+import static com.igrium.replaylab.object.ObjectSceneProps.PROP_SPEED;
 
 /**
  * Keeps track of all the runtime stuff regarding a scene.

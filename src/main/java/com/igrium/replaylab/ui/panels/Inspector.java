@@ -1,8 +1,8 @@
 package com.igrium.replaylab.ui.panels;
 
 import com.igrium.replaylab.editor.EditorState;
-import com.igrium.replaylab.scene.obj.EditFlags;
-import com.igrium.replaylab.scene.obj.ReplayObject;
+import com.igrium.replaylab.object.EditFlags;
+import com.igrium.replaylab.object.ReplayObject;
 import imgui.ImGui;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.Language;

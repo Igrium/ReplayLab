@@ -2,7 +2,7 @@ package com.igrium.replaylab.anim.constraint;
 
 import com.google.gson.*;
 import com.igrium.replaylab.editor.EditorState;
-import com.igrium.replaylab.scene.obj.ReplayObject;
+import com.igrium.replaylab.object.ReplayObject;
 import com.igrium.replaylab.util.BiListMap;
 import com.igrium.replaylab.util.NameUtils;
 import lombok.Getter;
