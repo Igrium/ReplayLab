@@ -4,10 +4,11 @@ import com.igrium.craftui.MaterialIcons;
 import com.igrium.replaylab.anim.constraint.Constraint;
 import com.igrium.replaylab.anim.constraint.ConstraintType;
 import com.igrium.replaylab.editor.EditorState;
-import com.igrium.replaylab.operator.object.NewConstraintOperator;
-import com.igrium.replaylab.operator.object.RemoveConstraintOperator;
+import com.igrium.replaylab.operator.constraint.NewConstraintOperator;
+import com.igrium.replaylab.operator.constraint.RemoveConstraintOperator;
 import com.igrium.replaylab.object.EditFlags;
 import com.igrium.replaylab.object.ReplayObject;
+import com.igrium.replaylab.operator.constraint.RenameConstraintOperator;
 import com.igrium.replaylab.ui.widgets.DraggableList;
 import imgui.ImGui;
 import imgui.flag.ImGuiCol;
@@ -94,8 +95,9 @@ public class ConstraintEditor {
             ImGui.popStyleVar();
             ImGui.popStyleColor();
             if (ImGui.isItemDeactivatedAfterEdit()) {
-                constraints.rename(key, strBuffer.get());
-                flags |= EditFlags.COMMIT;
+                String newName = strBuffer.get();
+                if (!newName.equals(key))
+                    editor.applyOperator(new RenameConstraintOperator(obj.getId(), key, strBuffer.get()));
             }
 
             ImGui.sameLine();

@@ -1,4 +1,4 @@
-package com.igrium.replaylab.operator.object;
+package com.igrium.replaylab.operator.constraint;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;

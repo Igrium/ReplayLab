@@ -1,4 +1,4 @@
-package com.igrium.replaylab.operator.object;
+package com.igrium.replaylab.operator.constraint;
 
 import com.igrium.replaylab.anim.constraint.Constraint;
 import com.igrium.replaylab.anim.constraint.ConstraintType;

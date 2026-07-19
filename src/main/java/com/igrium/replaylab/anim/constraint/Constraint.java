@@ -100,4 +100,13 @@ public abstract class Constraint<R> implements PropertyHolder {
         ImGui.text("This constraint has no editable properties.");
         return EditFlags.NONE;
     }
+    /**
+     * Remap any property that references an object.
+     *
+     * @param oldName Old name of the object.
+     * @param newName New name of the object.
+     */
+    public void remapReferences(String oldName, String newName) {
+
+    }
 }

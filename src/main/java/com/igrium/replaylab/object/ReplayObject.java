@@ -103,7 +103,7 @@ public abstract class ReplayObject implements PropertyHolder {
 
     protected final void addProperty(String name, PropertyHolder.Property property) {
         if (name.contains(":")) {
-            throw new IllegalArgumentException("Property names may not contain '.'");
+            throw new IllegalArgumentException("Property names may not contain ':'");
         }
         getProperties().put(name, property);
     }
@@ -332,6 +332,9 @@ public abstract class ReplayObject implements PropertyHolder {
      * @param newName New name of the object.
      */
     public void remapReferences(String oldName, String newName) {
+        for (var constraint : constraints.getValues().values()) {
+            constraint.remapReferences(oldName, newName);
+        }
     }
 
     /**

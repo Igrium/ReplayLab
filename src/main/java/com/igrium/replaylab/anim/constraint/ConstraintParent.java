@@ -229,6 +229,14 @@ public class ConstraintParent extends Constraint<ReplayObject3D> {
         return flags;
     }
 
+    @Override
+    public void remapReferences(String oldName, String newName) {
+        super.remapReferences(oldName, newName);
+        if (getParent().equals(oldName)) {
+            setParent(newName);
+        }
+    }
+
     private static String tt(String key) {
         return Language.getInstance().get(key);
     }
