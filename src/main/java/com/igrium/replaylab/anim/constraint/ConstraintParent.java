@@ -10,9 +10,9 @@ import com.igrium.replaylab.object.ReplayObject;
 import com.igrium.replaylab.object.ReplayObject3D;
 import com.igrium.replaylab.object.TransformProvider;
 import com.igrium.replaylab.ui.util.ReplayLabControls;
-import com.igrium.replaylab.util.SimpleMutable;
 import imgui.ImGui;
 import imgui.flag.ImGuiCol;
+import imgui.type.ImBoolean;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.Setter;
@@ -20,6 +20,8 @@ import lombok.Setter;
 import net.minecraft.util.Language;
 import org.apache.commons.lang3.mutable.Mutable;
 import org.jetbrains.annotations.Nullable;
+import org.joml.Quaternionf;
+import org.joml.Vector3d;
 
 import java.util.function.Consumer;
 import java.util.function.Supplier;
@@ -48,6 +50,15 @@ public class ConstraintParent extends Constraint<ReplayObject3D> {
     @Getter @Setter
     private @NonNull String parent = "";
 
+    @Getter @Setter
+    private boolean affectPos = true;
+
+    @Getter @Setter
+    private boolean affectRot = true;
+
+    @Getter @Setter
+    private boolean affectScale = true;
+
     /**
      * The parent's "inverse".
      */
@@ -62,6 +73,9 @@ public class ConstraintParent extends Constraint<ReplayObject3D> {
 
     public ConstraintParent(ConstraintType<ReplayObject3D, ?> type, ReplayObject3D object) {
         super(type, object);
+        affectPos = object.hasPos();
+        affectRot = object.hasRot();
+        affectScale = object.hasScale();
     }
 
     @Override
@@ -69,6 +83,9 @@ public class ConstraintParent extends Constraint<ReplayObject3D> {
         JsonObject obj = new JsonObject();
         obj.addProperty("parent", getParent());
         obj.add("inverse", context.serialize(getInverse()));
+        obj.addProperty("affectPos", isAffectPos());
+        obj.addProperty("affectRot", isAffectRot());
+        obj.addProperty("affectScale", isAffectScale());
         return obj;
     }
 
@@ -80,6 +97,15 @@ public class ConstraintParent extends Constraint<ReplayObject3D> {
         if (json.has("inverse")) {
             setInverse(context.deserialize(json.get("inverse"), Transform3.class));
         }
+        if (json.has("affectPos")) {
+            setAffectPos(json.get("affectPos").getAsBoolean());
+        }
+        if (json.has("affectRot")) {
+            setAffectRot(json.get("affectRot").getAsBoolean());
+        }
+        if (json.has("affectScale")) {
+            setAffectScale(json.get("affectScale").getAsBoolean());
+        }
     }
 
     private final Transform3 evalTransform = new Transform3();
@@ -89,16 +115,23 @@ public class ConstraintParent extends Constraint<ReplayObject3D> {
         TransformProvider parentObj = getParent(objAccessor);
         if (parentObj == null) return;
 
-        // computedTransform currently holds the child's own (base) transform, C.
-        Transform3 child = getObject().computedTransform();
+        if (!affectPos && !affectRot && !affectScale) return;
+
+        Transform3 transform = getObject().computedTransform();
 
         evalTransform.rot().setAutoModeSwitch(true);
         evalTransform.identity();
         parentObj.getTransform(evalTransform);
 
-        // final = P * inverse * C
-        evalTransform.mul(inverse).mul(child);
-        child.set(evalTransform);
+        if (!affectPos || !affectRot || !affectScale) {
+            Transform3 bindParent = inverse.invert(new Transform3());
+            if (!affectPos) evalTransform.pos().set(bindParent.pos());
+            if (!affectRot) evalTransform.rot().set(bindParent.rot());
+            if (!affectScale) evalTransform.scale().set(bindParent.scale());
+        }
+
+        evalTransform.mul(inverse).mul(transform);
+        transform.set(evalTransform);
     }
 
     private @Nullable TransformProvider getParent(ObjectAccessor accessor) {
@@ -115,7 +148,7 @@ public class ConstraintParent extends Constraint<ReplayObject3D> {
         return parentObj;
     }
 
-    Mutable<String> parentRef = new SimpleMutable<>(null);
+    Mutable<String> parentRef = new MutableRef<>(this::getParent, this::setParent);
 
     private void applyInverse(EditorState editor) {
         ReplayObject parent = editor.getScene().getObject(getParent());
@@ -129,6 +162,8 @@ public class ConstraintParent extends Constraint<ReplayObject3D> {
         inverse.identity();
     }
 
+    private final ImBoolean tmpBool = new ImBoolean(false);
+
     @Override
     public int drawPropertiesPanel(EditorState editor) {
         int flags = EditFlags.NONE;
@@ -137,7 +172,7 @@ public class ConstraintParent extends Constraint<ReplayObject3D> {
             ImGui.pushStyleColor(ImGuiCol.FrameBg, 0xFF0000AA);
         }
 
-        if (ReplayLabControls.objectSelector(t("gui.replaylab.parent"), new MutableRef<>(this::getParent, this::setParent), o -> true,
+        if (ReplayLabControls.objectSelector(t("gui.replaylab.parent"), parentRef, o -> true,
                 editor.getScene().getObjects())) {
             applyInverse(editor);
             flags |= EditFlags.COMMIT;
@@ -147,6 +182,33 @@ public class ConstraintParent extends Constraint<ReplayObject3D> {
             ImGui.setItemTooltip(parentFailReason);
             ImGui.popStyleColor();
         }
+
+        // POSITION
+        ImGui.beginDisabled(!getObject().hasPos());
+        tmpBool.set(isAffectPos());
+        if (ImGui.checkbox(t("gui.replaylab.pos"), tmpBool)) {
+            setAffectPos(tmpBool.get());
+            flags |= EditFlags.COMMIT;
+        }
+        ImGui.endDisabled();
+
+        // ROTATION
+        ImGui.beginDisabled(!getObject().hasRot());
+        tmpBool.set(isAffectRot());
+        if (ImGui.checkbox(t("gui.replaylab.rot"), tmpBool)) {
+            setAffectRot(tmpBool.get());
+            flags |= EditFlags.COMMIT;
+        }
+        ImGui.endDisabled();
+
+        // SCALE
+        ImGui.beginDisabled(!getObject().hasScale());
+        tmpBool.set(isAffectScale());
+        if (ImGui.checkbox(t("gui.replaylab.scale"), tmpBool)) {
+            setAffectScale(tmpBool.get());
+            flags |= EditFlags.COMMIT;
+        }
+        ImGui.endDisabled();
 
         float buttonWidth = ImGui.getContentRegionAvailX() / 2 - ImGui.getStyle().getItemSpacingX();
         float buttonHeight = ImGui.getFrameHeight();

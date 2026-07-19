@@ -74,7 +74,6 @@
   "gui.replaylab.add_constraint": "Add Constraint",
   "gui.replaylab.noconstraints": "This object doesn't have any constraints (yet)",
 
-
   "gui.replaylab.affect": "Affect:",
   "gui.replaylab.posX": "X Translation",
   "gui.replaylab.posY": "Y Translation",
@@ -90,8 +89,16 @@
   "gui.replaylab.noise3d.phase_delta": "Phase Delta",
   "gui.replaylab.noise3d.phase_delta.tooltip": "Offset the phase by this amount for each component",
 
-  "constraint.noise3d": "3D Noise",
+  "gui.replaylab.obj_not_found": "Object not found",
+  "gui.replaylab.dependency_loop": "Dependency loop detected: %s",
+  "gui.replaylab.parent_must_be_transform": "The parent object must provide a 3D transform",
 
+  "constraint.noise3d": "3D Noise",
+  "constraint.parent": "Parent" ,
+
+  "gui.replaylab.parent": "Parent Object",
+  "gui.replaylab.set_inverse": "Set Inverse",
+  "gui.replaylab.clear_inverse": "Clear Inverse",
 
   "gui.replaylab.copy_ts": "Copy Timestamp",
   "gui.replaylab.set_scene_start": "Set scene start here",

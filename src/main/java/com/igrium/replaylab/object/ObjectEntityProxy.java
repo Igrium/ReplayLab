@@ -54,7 +54,7 @@ public class ObjectEntityProxy extends ReplayObject implements EntityProvider<En
 
     @Override
     public void apply(int timestamp) {
-
+        
     }
 
     @Override
