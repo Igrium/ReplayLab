@@ -741,6 +741,46 @@ public record Transform3(@NonNull Vector3d pos, @NonNull DynamicRotation rot, @N
     }
 
     /**
+     * Set this transform from a Matrix4f transformation,
+     * relative to a root position to avoid floating-point precision loss.
+     *
+     * @param matrix Matrix to set from. Any shear is discarded.
+     * @param rootX  Global root X
+     * @param rootY  Global root Y
+     * @param rootZ  Global root Z
+     * @return this
+     */
+    public Transform3 setMatrix(Matrix4fc matrix, double rootX, double rootY, double rootZ) {
+        Vector3f translation = matrix.getTranslation(new Vector3f());
+        pos.set(rootX + translation.x, rootY + translation.y, rootZ + translation.z);
+        setFromMatrix(matrix.get3x3(new Matrix3f()), rot, scale);
+        return this;
+    }
+
+    /**
+     * Set this transform from a Matrix4f transformation,
+     * relative to a root position to avoid floating-point precision loss.
+     *
+     * @param matrix Matrix to set from. Any shear is discarded.
+     * @param root   Global root position
+     * @return this
+     */
+    public Transform3 setMatrix(Matrix4fc matrix, Vector3dc root) {
+        return setMatrix(matrix, root.x(), root.y(), root.z());
+    }
+
+    /**
+     * Set this transform from a Matrix4f transformation.
+     *
+     * @param matrix Matrix to set from. Any shear is discarded.
+     * @return this
+     * @implNote Could result in floating-point precision errors. See: {@link #setMatrix(Matrix4fc, Vector3dc)}
+     */
+    public Transform3 setMatrix(Matrix4fc matrix) {
+        return setMatrix(matrix, 0, 0, 0);
+    }
+
+    /**
      * Decompose a rotation/scale matrix. Any shear in the matrix is discarded, and a mirrored matrix
      * comes back as a rotation with positive scale.
      */

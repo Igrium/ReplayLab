@@ -4,6 +4,7 @@ import com.google.gson.JsonDeserializationContext;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonSerializationContext;
 import com.igrium.replaylab.ReplayLab;
+import com.igrium.replaylab.anim.constraint.ConstraintEvaluator;
 import com.igrium.replaylab.config.ReplayLabConfig;
 import com.igrium.replaylab.editor.EditorState;
 import com.igrium.replaylab.editor.KeySelectionSet.KeyframeReference;
@@ -163,20 +164,6 @@ public abstract class ReplayObject3D extends ReplayObject implements TransformPr
         transform.getScale(scale);
     }
 
-    public final Matrix4f getBaseTransformMatrix(double centerX, double centerY, double centerZ, Matrix4f dest) {
-        dest.identity();
-
-        dest.setTranslation((float) (position.x - centerX), (float) (position.y - centerY), (float) (position.z - centerZ));
-        dest.rotate(rotation.getQuaternion(new Quaternionf()));
-        dest.scale(scale);
-
-        return dest;
-    }
-
-    public final Matrix4f getBaseTransformMatrix(Vector3dc center, Matrix4f dest) {
-        return getBaseTransformMatrix(center.x(), center.y(), center.z(), dest);
-    }
-
     public final void setBaseTransformMatrix(double centerX, double centerY, double centerZ, Matrix4f matrix) {
         getMTranslation(matrix, position).add(centerX, centerY, centerZ);
         rotation.setQuaternion(matrix.getNormalizedRotation(new Quaternionf()));
@@ -193,34 +180,57 @@ public abstract class ReplayObject3D extends ReplayObject implements TransformPr
     }
 
     private boolean wasDragging;
+    private final Matrix4f dragMatrix = new Matrix4f();
     private final Matrix4f dragStartMatrix = new Matrix4f();
+    private final Transform3 dragStartComputed = new Transform3();
+    private final Transform3 dragStartBase = new Transform3();
 
     @Override
-    public int drawGizmos(EditorState editor, Vector3dc cameraPos, Matrix4fc viewMatrix, Matrix4fc projectionMatrix, boolean hideUI) {
+    public int drawGizmos(EditorState editor, Vector3dc cameraPos, Matrix4fc viewMatrix,
+                          Matrix4fc projectionMatrix, boolean hideUI) {
         if (hideUI || !editor.isObjectActive(getId())) return EditFlags.NONE;
 
-        Matrix4f modelMatrix = getBaseTransformMatrix(cameraPos, new Matrix4f());
+
         if (!wasDragging) {
-            dragStartMatrix.set(modelMatrix);
+            computedTransform.getMatrix(cameraPos, dragMatrix);
+            dragStartMatrix.set(dragMatrix);
+            dragStartComputed.set(computedTransform);
+            getBaseTransform(dragStartBase);
         }
+
         int operation = 0;
         if (editor.showGizmoPos() && hasPos()) operation |= Operation.TRANSLATE;
         if (editor.showGizmoRot() && hasRot) operation |= Operation.ROTATE;
         if (editor.showGizmoScale() && hasScale()) operation |= Operation.SCALE;
 
         GizmoRenderer.manipulate(viewMatrix, projectionMatrix, operation,
-                editor.isLocalGizmos() ? Mode.LOCAL : Mode.WORLD, modelMatrix);
+                editor.isLocalGizmos() ? Mode.LOCAL : Mode.WORLD, dragMatrix);
 
         if (ImGuizmo.isUsing()) {
             wasDragging = true;
-            setBaseTransformMatrix(cameraPos, modelMatrix);
+
+            Transform3 newComputed = new Transform3().setMatrix(dragMatrix, cameraPos);
+
+            Vector3d posOffset = new Vector3d(dragStartComputed.pos()).sub(dragStartBase.pos());
+            // rotOffsetInv = (base^-1 * computed)^-1 = computed^-1 * base
+            Quaternionf rotOffsetInv = dragStartComputed.getRot(new Quaternionf())
+                    .invert().mul(dragStartBase.getRot(new Quaternionf()));
+
+            Transform3 newBase = new Transform3();
+            newBase.pos().set(newComputed.pos()).sub(posOffset);
+            newBase.rot().setQuaternion(newComputed.getRot(new Quaternionf()).mul(rotOffsetInv));
+            newBase.scale().set(newComputed.scale())
+                    .mul(dragStartBase.scale()).div(dragStartComputed.scale());
+            setBaseTransform(newBase);
+
             return EditFlags.UPDATE_SCENE;
         } else if (wasDragging) {
-            boolean commit = !dragStartMatrix.equals(modelMatrix, .01f);
+            boolean commit = !dragMatrix.equals(dragStartMatrix, .01f);
             wasDragging = false;
             return commit ? EditFlags.COMMIT : EditFlags.NONE;
         }
         return EditFlags.NONE;
+
     }
 
     private boolean dragging = false;
