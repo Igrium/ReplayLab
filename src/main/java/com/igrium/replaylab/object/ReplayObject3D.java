@@ -146,7 +146,7 @@ public abstract class ReplayObject3D extends ReplayObject implements TransformPr
 
     @Override
     public Transform3 getTransform(Transform3 dest) {
-        return computedTransform;
+        return dest.set(computedTransform);
     }
 
     public final Transform3 getBaseTransform(Transform3 dest) {

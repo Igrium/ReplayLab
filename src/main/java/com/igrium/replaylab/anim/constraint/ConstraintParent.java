@@ -29,25 +29,18 @@ import java.util.function.Supplier;
  */
 public class ConstraintParent extends Constraint<ReplayObject3D> {
 
-    private static class MutableRef<T> implements Mutable<T> {
-        private final Supplier<T> getter;
-        private final Consumer<T> setter;
-
-        private MutableRef(Supplier<T> getter, Consumer<T> setter) {
-            this.getter = getter;
-            this.setter = setter;
-        }
+    private record MutableRef<T>(Supplier<T> getter, Consumer<T> setter) implements Mutable<T> {
 
         @Override
-        public T getValue() {
-            return getter.get();
-        }
+            public T getValue() {
+                return getter.get();
+            }
 
-        @Override
-        public void setValue(T value) {
-            setter.accept(value);
+            @Override
+            public void setValue(T value) {
+                setter.accept(value);
+            }
         }
-    }
 
     /**
      * The object we're parented to
