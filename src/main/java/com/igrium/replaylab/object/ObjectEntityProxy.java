@@ -9,6 +9,7 @@ import com.igrium.replaylab.scene.ReplayScene;
 import com.igrium.replaylab.ui.widgets.EntitySelector;
 import com.replaymod.replay.camera.CameraEntity;
 import imgui.type.ImInt;
+import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.world.ClientWorld;
 import net.minecraft.entity.Entity;
 import net.minecraft.util.math.Vec3d;
@@ -62,15 +63,17 @@ public class ObjectEntityProxy extends ReplayObject implements EntityProvider<En
         if (ent == null) {
             return dest.identity();
         }
+        float tickDelta = MinecraftClient.getInstance().getRenderTickCounter().getTickDelta(false);
 
-        Vec3d entPos = ent.getPos();
+        Vec3d entPos = ent.getLerpedPos(tickDelta);
         dest.pos().set(entPos.x, entPos.y, entPos.z);
 
         dest.rot().setEulerYXZ(
-                -Math.toRadians(ent.getYaw()),
-                Math.toRadians(ent.getPitch()),
+                -Math.toRadians(ent.getYaw(tickDelta)),
+                Math.toRadians(ent.getPitch(tickDelta)),
                 0
         );
+
 
         dest.scale().set(1);
 
