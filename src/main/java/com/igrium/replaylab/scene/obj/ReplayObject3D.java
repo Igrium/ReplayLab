@@ -197,7 +197,7 @@ public abstract class ReplayObject3D extends ReplayObject implements TransformPr
 
     @Override
     public int drawGizmos(EditorState editor, Vector3dc cameraPos, Matrix4fc viewMatrix, Matrix4fc projectionMatrix, boolean hideUI) {
-        if (hideUI || !editor.isObjectActive(getId())) return ObjectEditState.NONE;
+        if (hideUI || !editor.isObjectActive(getId())) return EditFlags.NONE;
 
         Matrix4f modelMatrix = getBaseTransformMatrix(cameraPos, new Matrix4f());
         if (!wasDragging) {
@@ -214,13 +214,13 @@ public abstract class ReplayObject3D extends ReplayObject implements TransformPr
         if (ImGuizmo.isUsing()) {
             wasDragging = true;
             setBaseTransformMatrix(cameraPos, modelMatrix);
-            return ObjectEditState.UPDATE_SCENE;
+            return EditFlags.UPDATE_SCENE;
         } else if (wasDragging) {
             boolean commit = !dragStartMatrix.equals(modelMatrix, .01f);
             wasDragging = false;
-            return commit ? ObjectEditState.COMMIT : ObjectEditState.NONE;
+            return commit ? EditFlags.COMMIT : EditFlags.NONE;
         }
-        return ObjectEditState.NONE;
+        return EditFlags.NONE;
     }
 
     private boolean dragging = false;
@@ -258,12 +258,12 @@ public abstract class ReplayObject3D extends ReplayObject implements TransformPr
         boolean mouseDown = ImGui.isMouseDown(0);
         if (modified || (dragging && mouseDown)) {
             dragging = true;
-            flags = ObjectEditState.UPDATE_SCENE;
+            flags = EditFlags.UPDATE_SCENE;
         } else if (dragging) {
             dragging = false;
-            flags = ObjectEditState.COMMIT;
+            flags = EditFlags.COMMIT;
         } else {
-            flags = ObjectEditState.NONE;
+            flags = EditFlags.NONE;
         }
 
         return flags;

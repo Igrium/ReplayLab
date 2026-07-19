@@ -13,7 +13,7 @@ import com.igrium.replaylab.operator.scene.SetSceneCameraOperator;
 import com.igrium.replaylab.scene.obj.EntityProvider;
 import com.igrium.replaylab.scene.obj.ReplayObject;
 import com.igrium.replaylab.scene.obj.ReplayObject3D;
-import com.igrium.replaylab.scene.obj.ScenePropsObject;
+import com.igrium.replaylab.scene.obj.ObjectSceneProps;
 import com.igrium.replaylab.ui.gizmos.GizmoRenderer;
 import com.igrium.replaylab.ui.panels.*;
 import com.igrium.replaylab.ui.subpanels.ExceptionPopup;
@@ -440,7 +440,7 @@ public class ReplayLabUI extends DockSpaceApp {
 
         // Letterbox to the target aspect ratio when in camera view
         if (editorState.isCameraView()) {
-            ScenePropsObject props = editorState.getScene().getSceneProps();
+            ObjectSceneProps props = editorState.getScene().getSceneProps();
             float targetRatio = (float) props.getResolutionX() / props.getResolutionY();
 
             int bx, by;

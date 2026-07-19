@@ -25,7 +25,6 @@ import org.joml.Vector3dc;
 import java.util.*;
 import java.util.function.DoubleConsumer;
 import java.util.function.DoubleSupplier;
-import java.util.function.Function;
 
 /**
  * An object that can be animated within a replay
@@ -272,22 +271,22 @@ public abstract class ReplayObject implements PropertyHolder {
      * @param projectionMatrix Projection matrix of the camera.
      * @param hideUI           Don't draw any visual gizmos (some objects may still need to update things while UI
      *                         disabled)
-     * @return {@link ObjectEditState}
+     * @return {@link EditFlags}
      */
     public int drawGizmos(EditorState editor, Vector3dc cameraPos,
                           Matrix4fc viewMatrix, Matrix4fc projectionMatrix, boolean hideUI) {
         // Default no-op
-        return ObjectEditState.NONE;
+        return EditFlags.NONE;
     }
 
     /**
      * Called during the ImGui render process to draw the object's configurable properties.
      *
-     * @return {@link ObjectEditState}
+     * @return {@link EditFlags}
      */
     public int drawPropertiesPanel(EditorState editor) {
         ImGui.text(Language.getInstance().get("gui.replaylab.noprops"));
-        return ObjectEditState.NONE;
+        return EditFlags.NONE;
     }
 
     public int drawConstraints(EditorState editor) {

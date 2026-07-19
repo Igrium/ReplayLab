@@ -18,7 +18,7 @@ import org.joml.Matrix4fc;
 import org.joml.Quaternionf;
 import org.joml.Vector3dc;
 
-public class CameraObject extends EntityObject<AnimatedCameraEntity> {
+public class ObjectCamera extends EntityObject<AnimatedCameraEntity> {
 
     private static final String FOV = "fov";
 
@@ -29,7 +29,7 @@ public class CameraObject extends EntityObject<AnimatedCameraEntity> {
         this.fov =  Math.clamp(fov, 1, 179);
     }
 
-    public CameraObject(ReplayObjectType<?> type, ReplayScene scene) {
+    public ObjectCamera(ReplayObjectType<?> type, ReplayScene scene) {
         super(type, scene);
 
         addProperty(FOV, this::getFov, this::setFov);
@@ -60,7 +60,7 @@ public class CameraObject extends EntityObject<AnimatedCameraEntity> {
     @Override
     public int drawGizmos(EditorState editor, Vector3dc cameraPos, Matrix4fc viewMatrix, Matrix4fc projectionMatrix, boolean hideUI) {
         AnimatedCameraEntity entity = getInstantiatedEntity();
-        ScenePropsObject scene = editor.getScene().getSceneProps();
+        ObjectSceneProps scene = editor.getScene().getSceneProps();
         if (entity != null) {
             String id = getId();
             entity.setSelected(editor.isObjectSelected(id));
@@ -85,12 +85,12 @@ public class CameraObject extends EntityObject<AnimatedCameraEntity> {
 
         if (modified || (isDragging && ImGui.isMouseDown(0))) {
             isDragging = true;
-            newState = ObjectEditState.UPDATE_SCENE;
+            newState = EditFlags.UPDATE_SCENE;
         } else if (isDragging) {
             isDragging = false;
-            newState = ObjectEditState.COMMIT;
+            newState = EditFlags.COMMIT;
         } else {
-            newState = ObjectEditState.NONE;
+            newState = EditFlags.NONE;
         }
 
         return pState | newState;

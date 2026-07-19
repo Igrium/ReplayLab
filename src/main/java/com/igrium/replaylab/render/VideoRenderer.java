@@ -7,8 +7,8 @@ import com.igrium.replaylab.render.capture.FrameCapture;
 import com.igrium.replaylab.render.encoder.EncoderConfig;
 import com.igrium.replaylab.render.encoder.EncoderProcess;
 import com.igrium.replaylab.scene.ReplayScene;
-import com.igrium.replaylab.scene.obj.RenderSettingsObject;
-import com.igrium.replaylab.scene.obj.ScenePropsObject;
+import com.igrium.replaylab.scene.obj.ObjectRenderSettings;
+import com.igrium.replaylab.scene.obj.ObjectSceneProps;
 import com.mojang.blaze3d.platform.GlConst;
 import com.mojang.blaze3d.platform.GlStateManager;
 import com.mojang.blaze3d.systems.RenderSystem;
@@ -110,8 +110,8 @@ public class VideoRenderer {
 
     public static VideoRenderer create(ReplayScene scene) {
         ReplayHandler replayHandler = EditorState.getReplayHandlerOrThrow();
-        ScenePropsObject sceneProps = scene.getSceneProps();
-        RenderSettingsObject renderSettings = scene.getRenderSettings();
+        ObjectSceneProps sceneProps = scene.getSceneProps();
+        ObjectRenderSettings renderSettings = scene.getRenderSettings();
 
         int totalFrames = (int) (sceneProps.getLength() * sceneProps.getFps() / 1000);
 

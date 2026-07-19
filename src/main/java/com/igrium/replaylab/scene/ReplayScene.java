@@ -7,10 +7,10 @@ import com.google.common.collect.Maps;
 import com.igrium.replaylab.anim.constraint.ConstraintEvaluator;
 import com.igrium.replaylab.editor.EditorState;
 import com.igrium.replaylab.operator.ReplayOperator;
-import com.igrium.replaylab.scene.obj.RenderSettingsObject;
+import com.igrium.replaylab.scene.obj.ObjectRenderSettings;
 import com.igrium.replaylab.anim.KeyChannel;
 import com.igrium.replaylab.scene.obj.*;
-import com.igrium.replaylab.scene.obj.ScenePropsObject;
+import com.igrium.replaylab.scene.obj.ObjectSceneProps;
 import com.igrium.replaylab.util.NameUtils;
 import lombok.Getter;
 import lombok.NonNull;
@@ -27,7 +27,7 @@ import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 
-import static com.igrium.replaylab.scene.obj.ScenePropsObject.PROP_SPEED;
+import static com.igrium.replaylab.scene.obj.ObjectSceneProps.PROP_SPEED;
 
 /**
  * Keeps track of all the runtime stuff regarding a scene.
@@ -67,11 +67,11 @@ public class ReplayScene {
     private Consumer<? super Exception> exceptionCallback;
 
 
-    public ScenePropsObject getSceneProps() {
+    public ObjectSceneProps getSceneProps() {
         ReplayObject obj = getObject(SCENE_PROPS);
-        ScenePropsObject sceneProps;
-        if (obj instanceof ScenePropsObject) {
-            sceneProps = (ScenePropsObject) obj;
+        ObjectSceneProps sceneProps;
+        if (obj instanceof ObjectSceneProps) {
+            sceneProps = (ObjectSceneProps) obj;
         } else {
             LOGGER.info("No Scene object found. Creating.");
             sceneProps = ReplayObjects.SCENE_PROPS.create(this);
@@ -83,11 +83,11 @@ public class ReplayScene {
     /**
      * Get the render settings object for the scene. Note that render settings are not stored in undo/redo.
      */
-    public RenderSettingsObject getRenderSettings() {
+    public ObjectRenderSettings getRenderSettings() {
         ReplayObject obj = getObject(RENDER_SETTINGS);
-        RenderSettingsObject renderSettings;
-        if (obj instanceof RenderSettingsObject) {
-            renderSettings = (RenderSettingsObject) obj;
+        ObjectRenderSettings renderSettings;
+        if (obj instanceof ObjectRenderSettings) {
+            renderSettings = (ObjectRenderSettings) obj;
         } else {
             LOGGER.info("No RenderSettings object found. Creating.");
             renderSettings = ReplayObjects.RENDER_SETTINGS.create(this);
@@ -115,7 +115,7 @@ public class ReplayScene {
      */
     public int sceneToReplayTime(int sceneTimestamp) {
         // TODO: Update this to handle time dilation
-        ScenePropsObject props = getSceneProps();
+        ObjectSceneProps props = getSceneProps();
         KeyChannel chan = props.getChannel(PROP_SPEED);
 
         if (chan == null || chan.isEmpty()) {

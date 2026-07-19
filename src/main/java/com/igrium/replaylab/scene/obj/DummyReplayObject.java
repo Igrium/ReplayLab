@@ -50,8 +50,8 @@ public class DummyReplayObject extends ReplayObject {
         dummyValInput[0] = getDummyValue();
 
         KeyWidgets.WidgetState state = PropertyWidgets.dragFloatN(this, "Dummy Value", 1, editor.getPlayhead(), "dummyValue");
-        if (state.isUpdated()) flags |= ObjectEditState.UPDATE_SCENE;
-        if (state.isDropped()) flags |= ObjectEditState.CREATE_UNDO_STEP;
+        if (state.isUpdated()) flags |= EditFlags.UPDATE_SCENE;
+        if (state.isDropped()) flags |= EditFlags.CREATE_UNDO_STEP;
 
 //        if (ImGui.dragScalar("Dummy Value", dummyValInput)) {
 //            flags |= ObjectEditState.UPDATE_SCENE;
@@ -68,7 +68,7 @@ public class DummyReplayObject extends ReplayObject {
             chan.getModifiers().add(mod);
 
             LoggerFactory.getLogger("ReplayLab/DummyReplayObject").info("modifiers: {}", chan.getModifiers());
-            flags |= ObjectEditState.CREATE_UNDO_STEP;
+            flags |= EditFlags.CREATE_UNDO_STEP;
         }
 
 //        boolean modified = false;

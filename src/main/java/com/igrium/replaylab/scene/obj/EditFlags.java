@@ -9,7 +9,7 @@ import lombok.experimental.UtilityClass;
  * <code>drawPropertiesPanel</code> and <code>drawGizmos</code>
  */
 @UtilityClass
-public final class ObjectEditState {
+public final class EditFlags {
     public static final int NONE = 0;
 
     /**
@@ -32,9 +32,9 @@ public final class ObjectEditState {
 
     public static void handleUpdate(EditorState editor, ReplayObject object, int state) {
         if (hasFlag(state, UPDATE_SCENE)) {
-            editor.applyToGame(hasFlag(state, ObjectEditState.RESAMPLE) ? o -> true : o -> o != object);
+            editor.applyToGame(hasFlag(state, EditFlags.RESAMPLE) ? o -> true : o -> o != object);
         }
-        if (hasFlag(state, ObjectEditState.CREATE_UNDO_STEP)) {
+        if (hasFlag(state, EditFlags.CREATE_UNDO_STEP)) {
             editor.applyOperator(new CommitObjectUpdateOperator(false, object.getId()), false);
         }
     }

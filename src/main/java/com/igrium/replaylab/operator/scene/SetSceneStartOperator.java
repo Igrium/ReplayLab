@@ -2,7 +2,7 @@ package com.igrium.replaylab.operator.scene;
 
 import com.igrium.replaylab.editor.EditorState;
 import com.igrium.replaylab.operator.ReplayOperator;
-import com.igrium.replaylab.scene.obj.ScenePropsObject;
+import com.igrium.replaylab.scene.obj.ObjectSceneProps;
 
 public class SetSceneStartOperator implements ReplayOperator {
 
@@ -26,7 +26,7 @@ public class SetSceneStartOperator implements ReplayOperator {
 
     @Override
     public boolean execute(EditorState editor) {
-        ScenePropsObject sceneProps = editor.getScene().getSceneProps();
+        ObjectSceneProps sceneProps = editor.getScene().getSceneProps();
         prevStart = sceneProps.getStartTime();
         prevLength = sceneProps.getLength(); // Avoid undo contamination if setLength clamps
 
@@ -51,7 +51,7 @@ public class SetSceneStartOperator implements ReplayOperator {
 
     @Override
     public void undo(EditorState editor) {
-        ScenePropsObject sceneProps = editor.getScene().getSceneProps();
+        ObjectSceneProps sceneProps = editor.getScene().getSceneProps();
         sceneProps.setStartTime(prevStart);
 
         if (shiftKeys) {
@@ -70,7 +70,7 @@ public class SetSceneStartOperator implements ReplayOperator {
 
     @Override
     public void redo(EditorState editor) {
-        ScenePropsObject sceneProps = editor.getScene().getSceneProps();
+        ObjectSceneProps sceneProps = editor.getScene().getSceneProps();
         sceneProps.setStartTime(newStart);
 
         if (shiftKeys) {

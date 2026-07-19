@@ -4,7 +4,7 @@ import com.igrium.replaylab.config.ReplayLabConfig;
 import com.igrium.replaylab.editor.EditorState;
 import com.igrium.replaylab.operator.ReplayOperator;
 import com.igrium.replaylab.scene.obj.ReplayObject;
-import com.igrium.replaylab.scene.obj.CameraObject;
+import com.igrium.replaylab.scene.obj.ObjectCamera;
 
 /**
  * Add a new object to the scene, calling <code>onCreated</code> in the process.
@@ -28,7 +28,7 @@ public class AddObjectOperator implements ReplayOperator {
 
             var sceneProps = editor.getScene().getSceneProps();
 
-            if ( object instanceof CameraObject
+            if ( object instanceof ObjectCamera
                     && ReplayLabConfig.getInstance().isAutoSetCamera()
                     && editor.getScene().getSceneProps().getCameraObject().isBlank()) {
                 sceneProps.setCameraObject(objectId);

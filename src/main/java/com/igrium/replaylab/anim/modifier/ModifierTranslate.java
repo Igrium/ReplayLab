@@ -4,15 +4,13 @@ import com.google.gson.JsonDeserializationContext;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonSerializationContext;
 import com.igrium.replaylab.editor.EditorState;
-import com.igrium.replaylab.scene.obj.ObjectEditState;
+import com.igrium.replaylab.scene.obj.EditFlags;
 import com.igrium.replaylab.ui.util.ReplayLabControls;
 import imgui.ImGui;
 import imgui.type.ImInt;
-import it.unimi.dsi.fastutil.doubles.Double2DoubleFunction;
 import lombok.Getter;
 import lombok.Setter;
 
-import java.nio.IntBuffer;
 import java.util.function.DoubleUnaryOperator;
 
 public class ModifierTranslate extends CurveModifier {
@@ -40,19 +38,19 @@ public class ModifierTranslate extends CurveModifier {
         intBuffer.set(offsetX);
         if (ReplayLabControls.inputTimestamp("Time Offset", intBuffer)) {
             offsetX = intBuffer.get();
-            flags |= ObjectEditState.RESAMPLE | ObjectEditState.UPDATE_SCENE;
+            flags |= EditFlags.RESAMPLE | EditFlags.UPDATE_SCENE;
         }
         if (ImGui.isItemDeactivatedAfterEdit()) {
-            flags |= ObjectEditState.COMMIT;
+            flags |= EditFlags.COMMIT;
         }
 
         doubleBuffer[0] = offsetY;
         if (ImGui.dragScalar("Value Offset", doubleBuffer, .25f)) {
             offsetY = doubleBuffer[0];
-            flags |= ObjectEditState.RESAMPLE |  ObjectEditState.UPDATE_SCENE;
+            flags |= EditFlags.RESAMPLE |  EditFlags.UPDATE_SCENE;
         }
         if (ImGui.isItemDeactivatedAfterEdit()) {
-            flags |= ObjectEditState.COMMIT;
+            flags |= EditFlags.COMMIT;
         }
 
         return flags | super.drawPropertiesPanel(editor);

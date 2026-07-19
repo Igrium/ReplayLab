@@ -6,7 +6,7 @@ import com.google.gson.JsonSerializationContext;
 import com.igrium.replaylab.editor.EditorState;
 import com.igrium.replaylab.math.SimplexNoise;
 import com.igrium.replaylab.math.Transform3;
-import com.igrium.replaylab.scene.obj.ObjectEditState;
+import com.igrium.replaylab.scene.obj.EditFlags;
 import com.igrium.replaylab.scene.obj.ReplayObject3D;
 import com.igrium.replaylab.ui.widgets.PropertyWidgets;
 import imgui.ImGui;
@@ -102,7 +102,7 @@ public class ConstraintNoise3D extends Constraint<ReplayObject3D> {
 
     @Override
     public int drawPropertiesPanel(EditorState editor) {
-        int flags = ObjectEditState.NONE;
+        int flags = EditFlags.NONE;
         int ph = editor.getPlayhead();
 
         flags |= dragFloat(t("gui.replaylab.noise3d.speed"), ph, .1f, SPEED);
@@ -140,7 +140,7 @@ public class ConstraintNoise3D extends Constraint<ReplayObject3D> {
         tmpBool.set(value);
         if (ImGui.checkbox(label, tmpBool)) {
             setter.accept(tmpBool.get());
-            return ObjectEditState.COMMIT;
+            return EditFlags.COMMIT;
         }
         return 0;
     }

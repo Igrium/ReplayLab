@@ -2,7 +2,7 @@ package com.igrium.replaylab.operator.scene;
 
 import com.igrium.replaylab.editor.EditorState;
 import com.igrium.replaylab.operator.ReplayOperator;
-import com.igrium.replaylab.scene.obj.ScenePropsObject;
+import com.igrium.replaylab.scene.obj.ObjectSceneProps;
 
 public class SetSceneLengthOperator implements ReplayOperator {
 
@@ -16,7 +16,7 @@ public class SetSceneLengthOperator implements ReplayOperator {
 
     @Override
     public boolean execute(EditorState editor) throws Exception {
-        ScenePropsObject sceneProps = editor.getScene().getSceneProps();
+        ObjectSceneProps sceneProps = editor.getScene().getSceneProps();
         prevLength = sceneProps.getLength();
         if (prevLength == length) return false;
 

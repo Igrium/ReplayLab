@@ -13,24 +13,24 @@ public class ReplayObjects {
 
     public static final BiMap<String, ReplayObjectType<?>> REGISTRY = HashBiMap.create();
 
-    public static final ReplayObjectType<ScenePropsObject> SCENE_PROPS = register("sceneProps",
-            new ReplayObjectType.Builder<>(ScenePropsObject::new)
+    public static final ReplayObjectType<ObjectSceneProps> SCENE_PROPS = register("sceneProps",
+            new ReplayObjectType.Builder<>(ObjectSceneProps::new)
                     .hideInOutliner()
                     .noManualSpawn()
     );
 
-    public static final ReplayObjectType<RenderSettingsObject> RENDER_SETTINGS = register("renderSettings",
-            new ReplayObjectType.Builder<>(RenderSettingsObject::new)
+    public static final ReplayObjectType<ObjectRenderSettings> RENDER_SETTINGS = register("renderSettings",
+            new ReplayObjectType.Builder<>(ObjectRenderSettings::new)
                     .noManualSpawn()
                     .hideInOutliner()
                     .hideInDopeSheet()
     );
 
     public static final ReplayObjectType<DummyReplayObject> DUMMY = register("dummy", DummyReplayObject::new);
-    public static final ReplayObjectType<BlockDisplayObject> BLOCK_DISPLAY = register("blockDisplay",
-            BlockDisplayObject::new);
-    public static final ReplayObjectType<CameraObject> CAMERA = register("camera", CameraObject::new);
-    public static final ReplayObjectType<EntityProxyObject> ENTITY_PROXY = register("entityProxy", EntityProxyObject::new);
+    public static final ReplayObjectType<ObjectBlockDisplay> BLOCK_DISPLAY = register("blockDisplay",
+            ObjectBlockDisplay::new);
+    public static final ReplayObjectType<ObjectCamera> CAMERA = register("camera", ObjectCamera::new);
+    public static final ReplayObjectType<ObjectEntityProxy> ENTITY_PROXY = register("entityProxy", ObjectEntityProxy::new);
 
     /**
      * Create a new replay object from a type ID.

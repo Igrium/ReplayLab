@@ -4,7 +4,7 @@ import com.google.gson.JsonDeserializationContext;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonSerializationContext;
 import com.igrium.replaylab.editor.EditorState;
-import com.igrium.replaylab.scene.obj.ObjectEditState;
+import com.igrium.replaylab.scene.obj.EditFlags;
 import com.igrium.replaylab.scene.obj.PropertyHolder;
 import com.igrium.replaylab.scene.obj.ReplayObject;
 import imgui.ImGui;
@@ -94,10 +94,10 @@ public abstract class Constraint<R> implements PropertyHolder {
     /**
      * Called during the ImGui render process to draw the constraint's configurable properties.
      *
-     * @return {@link ObjectEditState}
+     * @return {@link EditFlags}
      */
     public int drawPropertiesPanel(EditorState editor) {
         ImGui.text("This constraint has no editable properties.");
-        return ObjectEditState.NONE;
+        return EditFlags.NONE;
     }
 }

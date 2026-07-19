@@ -27,7 +27,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Objects;
 
-public class RenderSettingsObject extends ReplayObject {
+public class ObjectRenderSettings extends ReplayObject {
 
     @Getter
     @Setter
@@ -44,7 +44,7 @@ public class RenderSettingsObject extends ReplayObject {
     @NonNull
     private EncoderConfig encoder = EncoderTypes.PNG.create();
 
-    public RenderSettingsObject(ReplayObjectType<?> type, ReplayScene scene) {
+    public ObjectRenderSettings(ReplayObjectType<?> type, ReplayScene scene) {
         super(type, scene);
     }
 

@@ -7,8 +7,8 @@ import net.minecraft.entity.EntityType;
 import net.minecraft.entity.SpawnReason;
 import net.minecraft.entity.decoration.DisplayEntity;
 
-public class BlockDisplayObject extends EntityObject<DisplayEntity.BlockDisplayEntity> {
-    public BlockDisplayObject(ReplayObjectType<?> type, ReplayScene scene) {
+public class ObjectBlockDisplay extends EntityObject<DisplayEntity.BlockDisplayEntity> {
+    public ObjectBlockDisplay(ReplayObjectType<?> type, ReplayScene scene) {
         super(type, scene);
     }
 

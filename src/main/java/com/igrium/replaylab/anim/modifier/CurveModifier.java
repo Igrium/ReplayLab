@@ -2,7 +2,7 @@ package com.igrium.replaylab.anim.modifier;
 
 import com.google.gson.*;
 import com.igrium.replaylab.editor.EditorState;
-import com.igrium.replaylab.scene.obj.ObjectEditState;
+import com.igrium.replaylab.scene.obj.EditFlags;
 import com.igrium.replaylab.ui.util.ReplayLabControls;
 import imgui.ImGui;
 import imgui.flag.ImGuiTreeNodeFlags;
@@ -11,10 +11,8 @@ import imgui.type.ImInt;
 import it.unimi.dsi.fastutil.doubles.Double2DoubleFunction;
 import lombok.Getter;
 import lombok.Setter;
-import net.minecraft.util.Identifier;
 import net.minecraft.util.Language;
 
-import java.lang.reflect.Type;
 import java.util.function.DoubleUnaryOperator;
 
 public abstract class CurveModifier {
@@ -92,7 +90,7 @@ public abstract class CurveModifier {
     /**
      * Called during the render process to draw this modifier's editable properties
      * @param editor The current editor state
-     * @return {@link ObjectEditState}
+     * @return {@link EditFlags}
      */
     public int drawPropertiesPanel(EditorState editor) {
         int flags = 0;
@@ -106,7 +104,7 @@ public abstract class CurveModifier {
         tmpBool.set(isRestrictRange());
         if (ImGui.checkbox(t("gui.replaymod.restrict_range"), tmpBool)) {
             setRestrictRange(tmpBool.get());
-            flags |= ObjectEditState.RESAMPLE | ObjectEditState.COMMIT;
+            flags |= EditFlags.RESAMPLE | EditFlags.COMMIT;
         }
 
         if (open) {
@@ -138,10 +136,10 @@ public abstract class CurveModifier {
     private static int rangeInput(String label, ImInt value) {
         int flags = 0;
         if (ReplayLabControls.inputTimestamp(label, value)) {
-            flags = ObjectEditState.UPDATE_SCENE | ObjectEditState.RESAMPLE;
+            flags = EditFlags.UPDATE_SCENE | EditFlags.RESAMPLE;
         }
         if (ImGui.isItemDeactivatedAfterEdit()) {
-            flags |= ObjectEditState.COMMIT;
+            flags |= EditFlags.COMMIT;
         }
         return flags;
     }

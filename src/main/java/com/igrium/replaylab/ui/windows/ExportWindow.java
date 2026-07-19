@@ -1,7 +1,7 @@
 package com.igrium.replaylab.ui.windows;
 import com.igrium.craftui.app.AppManager;
 import com.igrium.replaylab.editor.EditorState;
-import com.igrium.replaylab.scene.obj.RenderSettingsObject;
+import com.igrium.replaylab.scene.obj.ObjectRenderSettings;
 import com.igrium.replaylab.scene.ReplayScene;
 import imgui.ImGui;
 import imgui.flag.ImGuiCond;
@@ -28,7 +28,7 @@ public class ExportWindow {
         boolean wantsOverrideConfirm = false;
         ImGui.setNextWindowSize(640, 0, ImGuiCond.Appearing);
         if (ImGui.beginPopupModal("Export Video", isOpen, ImGuiWindowFlags.NoSavedSettings)) {
-            RenderSettingsObject renderSettings = editor.getScene().getRenderSettings();
+            ObjectRenderSettings renderSettings = editor.getScene().getRenderSettings();
             renderSettings.drawPropertiesPanel(editor);
 
             ImGui.separator();

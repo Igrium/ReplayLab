@@ -23,7 +23,7 @@ import org.slf4j.LoggerFactory;
 /**
  * Global scene properties. Exactly one of these should exist per-scene.
  */
-public final class ScenePropsObject extends ReplayObject {
+public final class ObjectSceneProps extends ReplayObject {
 
     private static final Logger LOGGER = LoggerFactory.getLogger("ReplayLab/ScenePropsObject");
 
@@ -56,7 +56,7 @@ public final class ScenePropsObject extends ReplayObject {
         this.speed = Math.clamp(speed, 0, MAX_SPEED);
     }
 
-    public ScenePropsObject(ReplayObjectType<?> type, ReplayScene scene) {
+    public ObjectSceneProps(ReplayObjectType<?> type, ReplayScene scene) {
         super(type, scene);
         addProperty(PROP_SPEED, new Property(this::getSpeed, this::setSpeed, 0, MAX_SPEED, true));
     }
@@ -164,7 +164,7 @@ public final class ScenePropsObject extends ReplayObject {
                 resInput[1] = 2;
         } else if (editingRes && !ImGui.isItemActive()) {
             setResolution(resInput[0], resInput[1]);
-            rFlags = ObjectEditState.CREATE_UNDO_STEP;
+            rFlags = EditFlags.CREATE_UNDO_STEP;
             editingRes = false;
         }
 
@@ -173,13 +173,13 @@ public final class ScenePropsObject extends ReplayObject {
             setFps(fpsInput.get());
         }
         if (ImGui.isItemDeactivatedAfterEdit()) {
-            rFlags |= ObjectEditState.CREATE_UNDO_STEP;
+            rFlags |= EditFlags.CREATE_UNDO_STEP;
         }
 
         cameraObjectInput.setValue(cameraObject);
         if (ReplayLabControls.objectSelector("Camera Object", cameraObjectInput,
                 obj -> obj instanceof EntityProvider<?>, getScene().getObjects())) {
-            rFlags |= ObjectEditState.COMMIT;
+            rFlags |= EditFlags.COMMIT;
             setCameraObject(cameraObjectInput.getValue());
         }
 
@@ -188,7 +188,7 @@ public final class ScenePropsObject extends ReplayObject {
             startTime = Math.max(0, startTimeInput.get());
         }
         if (ImGui.isItemDeactivatedAfterEdit()) {
-            rFlags |= ObjectEditState.COMMIT | ObjectEditState.RESAMPLE;
+            rFlags |= EditFlags.COMMIT | EditFlags.RESAMPLE;
         }
 
         lengthInput.set(length);
@@ -196,12 +196,12 @@ public final class ScenePropsObject extends ReplayObject {
             length = Math.max(0, lengthInput.get());
         }
         if (ImGui.isItemDeactivatedAfterEdit()) {
-            rFlags |= ObjectEditState.CREATE_UNDO_STEP;
+            rFlags |= EditFlags.CREATE_UNDO_STEP;
         }
 
         WidgetState sState = PropertyWidgets.dragFloatN(this, "Speed", .125f, editor.getPlayhead(), PROP_SPEED);
         if (sState.isDropped() || sState.hasNewKey()) {
-            rFlags |= ObjectEditState.COMMIT;
+            rFlags |= EditFlags.COMMIT;
         }
 
         return rFlags;

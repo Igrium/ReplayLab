@@ -1,8 +1,7 @@
 package com.igrium.replaylab.ui.panels;
 
 import com.igrium.replaylab.editor.EditorState;
-import com.igrium.replaylab.operator.object.CommitObjectUpdateOperator;
-import com.igrium.replaylab.scene.obj.ObjectEditState;
+import com.igrium.replaylab.scene.obj.EditFlags;
 import com.igrium.replaylab.scene.obj.ReplayObject;
 import imgui.ImGui;
 import net.minecraft.util.Identifier;
@@ -34,7 +33,7 @@ public class Inspector extends UIPanel {
         if (object.hasConstraints()) {
             state |= object.drawConstraints(editorState);
         }
-        ObjectEditState.handleUpdate(editorState, object, state);
+        EditFlags.handleUpdate(editorState, object, state);
     }
 
     private static boolean hasFlag(int flags, int flag) {

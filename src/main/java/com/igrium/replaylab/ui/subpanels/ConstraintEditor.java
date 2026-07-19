@@ -6,7 +6,7 @@ import com.igrium.replaylab.anim.constraint.ConstraintType;
 import com.igrium.replaylab.editor.EditorState;
 import com.igrium.replaylab.operator.object.NewConstraintOperator;
 import com.igrium.replaylab.operator.object.RemoveConstraintOperator;
-import com.igrium.replaylab.scene.obj.ObjectEditState;
+import com.igrium.replaylab.scene.obj.EditFlags;
 import com.igrium.replaylab.scene.obj.ReplayObject;
 import com.igrium.replaylab.ui.widgets.DraggableList;
 import imgui.ImGui;
@@ -17,7 +17,6 @@ import imgui.flag.ImGuiWindowFlags;
 import imgui.type.ImString;
 import net.minecraft.util.Language;
 
-import java.util.AbstractMap;
 import java.util.Map;
 
 public class ConstraintEditor {
@@ -30,7 +29,7 @@ public class ConstraintEditor {
     private static final ImString strBuffer = new ImString(64);
 
     public static int draw(ReplayObject obj, EditorState editor) {
-        int flags = ObjectEditState.NONE;
+        int flags = EditFlags.NONE;
         float buttonSize = ImGui.getFrameHeight();
 
         if (ImGui.beginCombo("##addConstraint", t("gui.replaylab.add_constraint"))) {
@@ -96,7 +95,7 @@ public class ConstraintEditor {
             ImGui.popStyleColor();
             if (ImGui.isItemDeactivatedAfterEdit()) {
                 constraints.rename(key, strBuffer.get());
-                flags |= ObjectEditState.COMMIT;
+                flags |= EditFlags.COMMIT;
             }
 
             ImGui.sameLine();
@@ -118,7 +117,7 @@ public class ConstraintEditor {
                 var list = constraints.getValues().entryList();
                 var entry = list.remove(i);
                 list.add(targetPos, entry);
-                flags |= ObjectEditState.COMMIT;
+                flags |= EditFlags.COMMIT;
             }
         }
 

@@ -5,7 +5,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonSerializationContext;
 import com.igrium.replaylab.editor.EditorState;
 import com.igrium.replaylab.math.SimplexNoise;
-import com.igrium.replaylab.scene.obj.ObjectEditState;
+import com.igrium.replaylab.scene.obj.EditFlags;
 import com.igrium.replaylab.ui.util.ReplayLabControls;
 import imgui.ImGui;
 import imgui.type.ImInt;
@@ -14,7 +14,7 @@ import net.minecraft.util.Language;
 
 import java.util.function.DoubleUnaryOperator;
 
-import static com.igrium.replaylab.scene.obj.ObjectEditState.*;
+import static com.igrium.replaylab.scene.obj.EditFlags.*;
 
 public class ModifierNoise extends CurveModifier {
     private final float[] scale = new float[]{1};
@@ -68,7 +68,7 @@ public class ModifierNoise extends CurveModifier {
 
     @Override
     public int drawPropertiesPanel(EditorState editor) {
-        int flags = ObjectEditState.NONE;
+        int flags = EditFlags.NONE;
 
         flags |= drawField(ImGui.dragFloat(t("gui.replaylab.noise.scale"), scale, .01f));
         flags |= drawField(ImGui.dragFloat(t("gui.replaylab.noise.intensity"), intensity, .01f));

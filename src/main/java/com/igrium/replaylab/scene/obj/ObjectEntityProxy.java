@@ -18,8 +18,8 @@ import org.joml.Math;
 /**
  * An object which proxies an entity in the world, allowing it to be used as a camera, be parented to, etc.
  */
-public class EntityProxyObject extends ReplayObject implements EntityProvider<Entity>, TransformProvider {
-    public EntityProxyObject(ReplayObjectType<?> type, ReplayScene scene) {
+public class ObjectEntityProxy extends ReplayObject implements EntityProvider<Entity>, TransformProvider {
+    public ObjectEntityProxy(ReplayObjectType<?> type, ReplayScene scene) {
         super(type, scene);
     }
 
@@ -79,10 +79,10 @@ public class EntityProxyObject extends ReplayObject implements EntityProvider<En
 
     @Override
     public int drawPropertiesPanel(EditorState editor) {
-        int flags = ObjectEditState.NONE;
+        int flags = EditFlags.NONE;
 
         if (EntitySelector.selector("Entity", entId, e -> !(e instanceof CameraEntity))) {
-            flags |= ObjectEditState.COMMIT;
+            flags |= EditFlags.COMMIT;
         }
 
         return flags;

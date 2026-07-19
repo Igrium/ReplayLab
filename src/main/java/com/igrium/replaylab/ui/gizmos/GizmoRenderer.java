@@ -3,7 +3,7 @@ package com.igrium.replaylab.ui.gizmos;
 import com.igrium.craftui.app.CraftApp;
 import com.igrium.replaylab.editor.EditorState;
 import com.igrium.replaylab.operator.object.CommitObjectUpdateOperator;
-import com.igrium.replaylab.scene.obj.ObjectEditState;
+import com.igrium.replaylab.scene.obj.EditFlags;
 import com.igrium.replaylab.scene.obj.ReplayObject;
 import imgui.ImGui;
 import imgui.ImGuiViewport;
@@ -71,10 +71,10 @@ public class GizmoRenderer {
         for (var obj : editorState.getScene().getObjects().values()) {
             var state = obj.drawGizmos(editorState, cameraPos, viewMatrix, projectionMatrix, hidden);
 
-            if (hasFlag(state, ObjectEditState.UPDATE_SCENE)) {
-                editorState.applyToGame(hasFlag(state, ObjectEditState.RESAMPLE) ? o -> true : o -> o != obj);
+            if (hasFlag(state, EditFlags.UPDATE_SCENE)) {
+                editorState.applyToGame(hasFlag(state, EditFlags.RESAMPLE) ? o -> true : o -> o != obj);
             }
-            if (hasFlag(state, ObjectEditState.CREATE_UNDO_STEP)) {
+            if (hasFlag(state, EditFlags.CREATE_UNDO_STEP)) {
                 editorState.applyOperator(new CommitObjectUpdateOperator(false, obj.getId()), false);
             }
         }

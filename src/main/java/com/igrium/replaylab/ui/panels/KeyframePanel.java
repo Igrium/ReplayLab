@@ -14,7 +14,7 @@ import com.igrium.replaylab.operator.keyframe.SetHandleTypeOperator;
 import com.igrium.replaylab.operator.keyframe.SetInterpModeOperator;
 import com.igrium.replaylab.operator.keyframe.SetKeyPosOperator;
 import com.igrium.replaylab.scene.ReplayScene;
-import com.igrium.replaylab.scene.obj.ObjectEditState;
+import com.igrium.replaylab.scene.obj.EditFlags;
 import com.igrium.replaylab.scene.obj.ReplayObject;
 import com.igrium.replaylab.ui.subpanels.ChannelList;
 import com.igrium.replaylab.ui.subpanels.ChannelListFlags;
@@ -139,7 +139,7 @@ public abstract class KeyframePanel extends UIPanel {
 
     @Override
     protected void drawContents(EditorState editorState) {
-        int maxEditState = ObjectEditState.NONE;
+        int maxEditState = EditFlags.NONE;
         ReplayScene scene = editorState.getScene();
 
         Map<String, ReplayObject> objs;
@@ -230,11 +230,11 @@ public abstract class KeyframePanel extends UIPanel {
                 ImGui.endChild();
             }
 
-            if (selChanRef != null && chanEditState != ObjectEditState.NONE) {
-                ObjectEditState.handleUpdate(editorState, objs.get(selChanRef.objectName()), chanEditState);
+            if (selChanRef != null && chanEditState != EditFlags.NONE) {
+                EditFlags.handleUpdate(editorState, objs.get(selChanRef.objectName()), chanEditState);
             }
 
-            if (hasFlag(modEditState, ObjectEditState.RESAMPLE)) {
+            if (hasFlag(modEditState, EditFlags.RESAMPLE)) {
                 onUpdateMods();
             }
 

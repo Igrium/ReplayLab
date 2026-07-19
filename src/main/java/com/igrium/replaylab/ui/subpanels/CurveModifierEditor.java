@@ -8,7 +8,7 @@ import com.igrium.replaylab.editor.EditorState;
 import com.igrium.replaylab.editor.KeySelectionSet.ChannelReference;
 import com.igrium.replaylab.operator.keyframe.AddModifierOperator;
 import com.igrium.replaylab.operator.keyframe.RemoveModifierOperator;
-import com.igrium.replaylab.scene.obj.ObjectEditState;
+import com.igrium.replaylab.scene.obj.EditFlags;
 import com.igrium.replaylab.ui.widgets.DraggableList;
 import imgui.ImGui;
 import imgui.flag.ImGuiTreeNodeFlags;
@@ -32,11 +32,11 @@ public class CurveModifierEditor {
     }
 
     public static int drawEditor(EditorState editorState, @Nullable ChannelReference chRef, @Nullable KeyChannel channel) {
-        int flags = ObjectEditState.NONE;
+        int flags = EditFlags.NONE;
 
         if (channel == null) {
             ImGui.textWrapped(tt("gui.replaylab.one_channel"));
-            return ObjectEditState.NONE;
+            return EditFlags.NONE;
         }
         DraggableList.begin("modifierEditor");
 
@@ -66,7 +66,7 @@ public class CurveModifierEditor {
                 //noinspection SuspiciousListRemoveInLoop
                 channel.getModifiers().remove(i);
                 channel.getModifiers().add(targetPos, mods[i]);
-                flags |= ObjectEditState.COMMIT | ObjectEditState.RESAMPLE;
+                flags |= EditFlags.COMMIT | EditFlags.RESAMPLE;
             }
         }
         DraggableList.end();
