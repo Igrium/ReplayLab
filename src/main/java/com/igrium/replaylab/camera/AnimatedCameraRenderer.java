@@ -16,6 +16,8 @@ public class AnimatedCameraRenderer extends EntityRenderer<AnimatedCameraEntity,
 
     private static final Vector3f NORMAL = new Vector3f(0, 0, 1);
 
+    private static final float LINE_WIDTH = 2.5f;
+
     public AnimatedCameraRenderer(EntityRendererProvider.Context context) {
         super(context);
     }
@@ -148,8 +150,8 @@ public class AnimatedCameraRenderer extends EntityRenderer<AnimatedCameraEntity,
                                  float x2, float y2, float z2,
                                  int color) {
         Vector3f normal = new Vector3f(x2 - x1, y2 - y1, z2 - z1).normalize();
-        vertexConsumer.addVertex(entry, x1, y1, z1).setColor(color).setNormal(entry, normal);
-        vertexConsumer.addVertex(entry, x2, y2, z2).setColor(color).setNormal(entry, normal);
+        vertexConsumer.addVertex(entry, x1, y1, z1).setColor(color).setNormal(entry, normal).setLineWidth(LINE_WIDTH);
+        vertexConsumer.addVertex(entry, x2, y2, z2).setColor(color).setNormal(entry, normal).setLineWidth(LINE_WIDTH);
     }
 
     private float computeCamHeight(float fovRad) {

@@ -19,7 +19,7 @@ public class ObjectBlockDisplay extends EntityObject<Display.BlockDisplay> {
             ent.setBlockState(Blocks.DIRT.defaultBlockState());
         }
 
-        world.addEntity(ent);
+        addToWorld(world, ent);
         return ent;
     }
 }

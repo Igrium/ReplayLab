@@ -42,7 +42,7 @@ public class ObjectCamera extends EntityObject<AnimatedCameraEntity> {
 
         setCameraTransform(ent, getTransform(new Transform3()));
 
-        world.addEntity(ent);
+        addToWorld(world, ent);
         return ent;
     }
 
