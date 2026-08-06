@@ -1,5 +1,6 @@
 package com.igrium.replaylab.playback;
 
+import com.igrium.replaylab.editor.EditorState;
 import com.igrium.replaylab.scene.ReplayScene;
 import com.replaymod.core.mixin.MinecraftAccessor;
 import com.replaymod.core.mixin.TimerAccessor;
@@ -13,6 +14,8 @@ import lombok.NonNull;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.DeltaTracker;
 import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.concurrent.CompletableFuture;
 
@@ -20,6 +23,8 @@ import java.util.concurrent.CompletableFuture;
  * Reimplementation of AbstractTimelinePlayer for ReplayLab.
  */
 public abstract class AbstractScenePlayer extends EventRegistrations {
+    private static final Logger LOGGER = LoggerFactory.getLogger("ReplayLab/ScenePlayer");
+
     private final ReplayHandler replayHandler;
     private ReplayScene scene;
 
@@ -111,10 +116,24 @@ public abstract class AbstractScenePlayer extends EventRegistrations {
 
         replayTime = Math.min(replayTime, replayHandler.getReplayDuration());
 
-        if (sender.isAsyncMode()) {
-            sender.jumpToTime(replayTime);
-        } else {
-            sender.sendPacketsTill(replayTime);
+        // Don't let a sender failure escape into the render loop and take the client down. Stopping
+        // playback is enough to break the per-tick retry; the editor stays usable and the user can
+        // scrub or play again. See dev/replay-sender-decode-failure.md
+        try {
+            if (sender.isAsyncMode()) {
+                sender.jumpToTime(replayTime);
+            } else {
+                sender.sendPacketsTill(replayTime);
+            }
+        } catch (Exception e) {
+            LOGGER.error("Error advancing the replay during playback; stopping playback.", e);
+            stop();
+
+            EditorState editor = EditorState.getInstance();
+            if (editor != null) {
+                editor.onException(e);
+            }
+            return;
         }
 
         scene.applyToGame(timestamp);

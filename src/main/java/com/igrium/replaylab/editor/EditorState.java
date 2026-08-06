@@ -564,19 +564,31 @@ public final class EditorState {
 
 
     public void doTimeJump() {
-        if (isPlaying()) {
-            stopPlaying();
+        // Clear the request no matter what. It used to be cleared only on success, so a throwing
+        // jump left the flag set and ReplayLabUI.preRender retried it every single frame.
+        try {
+            if (isPlaying()) {
+                stopPlaying();
+            }
+
+            int replayTime = scene.sceneToReplayTime(getPlayhead());
+            replayTime = Math.min(replayTime, getReplayHandlerOrThrow().getReplayDuration());
+            // For some reason, it crashes if we clamp at 0
+            if (replayTime < 1)
+                replayTime = 1;
+
+            getReplayHandlerOrThrow().doJump(replayTime, true);
+
+            Minecraft.getInstance().schedule(this::applyToGame);
+        } catch (Exception e) {
+            // A failed jump must not propagate out of renderFrame and kill the client. Report it and
+            // leave the editor usable -- the next jump may well succeed, and even if it doesn't, the
+            // user can still save their work. See dev/replay-sender-decode-failure.md
+            LOGGER.error("Error jumping to a new point in the replay: ", e);
+            onException(e);
+        } finally {
+            wantsTimeJump = false;
         }
-
-        int replayTime = scene.sceneToReplayTime(getPlayhead());
-        replayTime = Math.min(replayTime, getReplayHandlerOrThrow().getReplayDuration());
-        if (replayTime < 0)
-            replayTime = 0;
-
-        getReplayHandlerOrThrow().doJump(replayTime, true);
-
-        Minecraft.getInstance().schedule(this::applyToGame);
-        wantsTimeJump = false;
     }
 
     /**

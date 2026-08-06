@@ -5,6 +5,7 @@ import com.igrium.replaylab.editor.EditorState;
 import com.igrium.replaylab.operator.ReplayOperator;
 import com.igrium.replaylab.object.ReplayObject;
 import com.igrium.replaylab.object.ObjectCamera;
+import com.igrium.replaylab.scene.ReplayScene;
 
 /**
  * Add a new object to the scene, calling <code>onCreated</code> in the process.
@@ -32,6 +33,9 @@ public class AddObjectOperator implements ReplayOperator {
                     && ReplayLabConfig.getInstance().isAutoSetCamera()
                     && editor.getScene().getSceneProps().getCameraObject().isBlank()) {
                 sceneProps.setCameraObject(objectId);
+                // The scene is written from the serialized snapshot cache, so mutating the live
+                // sceneProps isn't enough -- without this the assignment is lost on reload.
+                editor.getScene().saveObject(ReplayScene.SCENE_PROPS);
                 setCamera = true;
             }
 
@@ -48,6 +52,7 @@ public class AddObjectOperator implements ReplayOperator {
     public void undo(EditorState editor) {
         if (setCamera) {
             editor.getScene().getSceneProps().setCameraObject("");
+            editor.getScene().saveObject(ReplayScene.SCENE_PROPS);
         }
         editor.getScene().removeObject(objectId);
     }
@@ -58,6 +63,7 @@ public class AddObjectOperator implements ReplayOperator {
         editor.setActiveObject(objectId);
         if (setCamera) {
             editor.getScene().getSceneProps().setCameraObject(objectId);
+            editor.getScene().saveObject(ReplayScene.SCENE_PROPS);
         }
     }
 }

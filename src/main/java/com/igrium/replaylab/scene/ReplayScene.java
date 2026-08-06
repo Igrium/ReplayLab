@@ -109,18 +109,22 @@ public class ReplayScene {
     /**
      * Convert a local timestamp to a global replay time suitable for the relay mod.
      * @param sceneTimestamp Scene time in ms.
-     * @return Global replay time in ms.
+     * @return Global replay time in ms. Never negative.
      */
     public int sceneToReplayTime(int sceneTimestamp) {
         // TODO: Update this to handle time dilation
         ObjectSceneProps props = getSceneProps();
         KeyChannel chan = props.getChannel(PROP_SPEED);
 
+        int replayTime;
         if (chan == null || chan.isEmpty()) {
-            return (int) (props.getStartTime() + sceneTimestamp * props.getSpeed());
+            replayTime = (int) (props.getStartTime() + sceneTimestamp * props.getSpeed());
         } else {
-            return (int) (props.getStartTime() + chan.integrate(sceneTimestamp));
+            replayTime = (int) (props.getStartTime() + chan.integrate(sceneTimestamp));
         }
+
+        // Seeking before the start of the recording makes the sender restart the replay.
+        return Math.max(replayTime, 0);
     }
 
     public float getFps() {
