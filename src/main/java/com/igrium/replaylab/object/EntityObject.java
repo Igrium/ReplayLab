@@ -3,10 +3,10 @@ package com.igrium.replaylab.object;
 import com.igrium.replaylab.math.MathUtils;
 import com.igrium.replaylab.math.Transform3;
 import com.igrium.replaylab.scene.ReplayScene;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.world.ClientWorld;
-import net.minecraft.entity.Entity;
-import net.minecraft.world.World;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.multiplayer.ClientLevel;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.level.Level;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Quaternionf;
 
@@ -24,7 +24,7 @@ public abstract class EntityObject<T extends Entity> extends ReplayObject3D impl
     private @Nullable T entity;
 
     @Override
-    public @Nullable T getEntity(ClientWorld world) {
+    public @Nullable T getEntity(ClientLevel world) {
         if (!isEntValid(entity, world)) {
             entity = createEntity(world);
         }
@@ -38,13 +38,13 @@ public abstract class EntityObject<T extends Entity> extends ReplayObject3D impl
         return entity;
     }
 
-    private boolean isEntValid(Entity entity, World world) {
-        return entity != null && !entity.isRemoved() && entity.getWorld() == world;
+    private boolean isEntValid(Entity entity, Level world) {
+        return entity != null && !entity.isRemoved() && entity.level() == world;
     }
 
     @Override
     public void apply(int timestamp) {
-        var world = MinecraftClient.getInstance().world;
+        var world = Minecraft.getInstance().level;
         if (world == null)
             return;
 
@@ -54,7 +54,7 @@ public abstract class EntityObject<T extends Entity> extends ReplayObject3D impl
 
     @Override
     public void onAdded() {
-        var world = MinecraftClient.getInstance().world;
+        var world = Minecraft.getInstance().level;
         if (world == null)
             return;
 
@@ -79,10 +79,10 @@ public abstract class EntityObject<T extends Entity> extends ReplayObject3D impl
         var transform = getTransform(new Transform3());
         var pos = transform.pos();
 
-        entity.setPos(pos.x, pos.y, pos.z);
-        entity.prevX = pos.x;
-        entity.prevY = pos.y;
-        entity.prevZ = pos.z;
+        entity.setPosRaw(pos.x, pos.y, pos.z);
+        entity.xo = pos.x;
+        entity.yo = pos.y;
+        entity.zo = pos.z;
 
         // TODO: double-check that this transform setup is compatible with entities
         var rot = MathUtils.toEntityRot(transform.getRot(new Quaternionf()));
@@ -90,11 +90,11 @@ public abstract class EntityObject<T extends Entity> extends ReplayObject3D impl
         float pitch = rot.x;
         float yaw = rot.y;
 
-        entity.setYaw(yaw);
-        entity.setPitch(pitch);
+        entity.setYRot(yaw);
+        entity.setXRot(pitch);
 
-        entity.prevYaw = yaw;
-        entity.prevPitch = pitch;
+        entity.yRotO = yaw;
+        entity.xRotO = pitch;
     }
 
     /**
@@ -103,5 +103,5 @@ public abstract class EntityObject<T extends Entity> extends ReplayObject3D impl
      * @param world World to put the entity in
      * @return The new entity instance
      */
-    protected abstract T createEntity(ClientWorld world);
+    protected abstract T createEntity(ClientLevel world);
 }

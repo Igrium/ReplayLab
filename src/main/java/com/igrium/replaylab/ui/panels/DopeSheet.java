@@ -27,8 +27,8 @@ import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.objects.ObjectObjectImmutablePair;
 import lombok.Getter;
-import net.minecraft.util.Identifier;
-import net.minecraft.util.Language;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.locale.Language;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Vector2d;
 import org.joml.Vector2f;
@@ -93,7 +93,7 @@ public class DopeSheet extends KeyframePanel {
     private boolean mouseDragging;
     private boolean mouseStartedDragging;
 
-    public DopeSheet(Identifier id) {
+    public DopeSheet(ResourceLocation id) {
         super(id);
     }
 
@@ -737,6 +737,6 @@ public class DopeSheet extends KeyframePanel {
     }
 
     private static String t(String key) {
-        return Language.getInstance().get(key) + "###" + key;
+        return Language.getInstance().getOrDefault(key) + "###" + key;
     }
 }

@@ -3,7 +3,7 @@ package com.igrium.replaylab.ui.windows;
 import com.igrium.replaylab.ui.util.ReplayLabControls;
 import imgui.ImGui;
 import lombok.experimental.UtilityClass;
-import net.minecraft.util.Language;
+import net.minecraft.locale.Language;
 
 @UtilityClass
 public class NoFFmpegPopup {
@@ -11,11 +11,11 @@ public class NoFFmpegPopup {
     private static final String LINK = "https://www.replaymod.com/docs/#installing-ffmpeg";
 
     private static String tt(String key) {
-        return Language.getInstance().get(key);
+        return Language.getInstance().getOrDefault(key);
     }
 
     private static String t(String key) {
-        return Language.getInstance().get(key) + "###" + key;
+        return Language.getInstance().getOrDefault(key) + "###" + key;
     }
 
     /**

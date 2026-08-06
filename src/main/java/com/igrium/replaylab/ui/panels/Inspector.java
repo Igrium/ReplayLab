@@ -4,11 +4,11 @@ import com.igrium.replaylab.editor.EditorState;
 import com.igrium.replaylab.object.EditFlags;
 import com.igrium.replaylab.object.ReplayObject;
 import imgui.ImGui;
-import net.minecraft.util.Identifier;
-import net.minecraft.util.Language;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.locale.Language;
 
 public class Inspector extends UIPanel {
-    public Inspector(Identifier id) {
+    public Inspector(ResourceLocation id) {
         super(id);
     }
 
@@ -20,7 +20,7 @@ public class Inspector extends UIPanel {
         if (selected == null) {
             ImGui.text("No selected object.");
         } else {
-            String typeName = Language.getInstance().get(selected.getType().getTranslationKey());
+            String typeName = Language.getInstance().getOrDefault(selected.getType().getTranslationKey());
             ImGui.text(selId + " (" + typeName + ")");
             ImGui.separator();
             drawObjectProperties(selected, editorState);

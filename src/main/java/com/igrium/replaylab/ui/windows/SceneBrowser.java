@@ -4,8 +4,8 @@ import com.igrium.replaylab.editor.EditorState;
 import imgui.ImGui;
 import imgui.flag.ImGuiWindowFlags;
 import imgui.type.ImString;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.util.Identifier;
+import net.minecraft.client.Minecraft;
+import net.minecraft.resources.ResourceLocation;
 
 public class SceneBrowser extends UIModal {
 
@@ -13,7 +13,7 @@ public class SceneBrowser extends UIModal {
 
     private int selectedSceneIdx = -1;
 
-    public SceneBrowser(Identifier id) {
+    public SceneBrowser(ResourceLocation id) {
         super(id);
         setDefaultWidth(640);
         setDefaultHeight(480);
@@ -153,7 +153,7 @@ public class SceneBrowser extends UIModal {
 
         // Don't actually load the scene until the next frame.
         // Probably not a good idea to swap it in the middle of the UI rendering
-        MinecraftClient.getInstance().executeTask(() -> {
+        Minecraft.getInstance().doRunTask(() -> {
             editorState.loadScene(sceneName);
         });
         ImGui.closeCurrentPopup();

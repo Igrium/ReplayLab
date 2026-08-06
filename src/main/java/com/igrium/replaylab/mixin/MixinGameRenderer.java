@@ -3,11 +3,11 @@ package com.igrium.replaylab.mixin;
 import com.igrium.replaylab.camera.FovProvider;
 import com.igrium.replaylab.camera.RotationProvider;
 import com.llamalad7.mixinextras.sugar.Local;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.render.Camera;
-import net.minecraft.client.render.GameRenderer;
-import net.minecraft.client.render.RenderTickCounter;
-import net.minecraft.entity.Entity;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.Camera;
+import net.minecraft.client.renderer.GameRenderer;
+import net.minecraft.client.DeltaTracker;
+import net.minecraft.world.entity.Entity;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Quaternionf;
 import org.spongepowered.asm.mixin.Final;
@@ -23,22 +23,22 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 @Mixin(GameRenderer.class)
 public class MixinGameRenderer {
 
-    @Shadow @Final private Camera camera;
+    @Shadow @Final private Camera mainCamera;
 
     @Shadow @Final
-    private MinecraftClient client;
+    private Minecraft minecraft;
 
     @Shadow
-    private float fovMultiplier;
+    private float fovModifier;
 
     @Shadow
-    private float lastFovMultiplier;
+    private float oldFovModifier;
 
-    @Inject(method = "onCameraEntitySet", at = @At("RETURN"))
+    @Inject(method = "checkEntityPostEffect", at = @At("RETURN"))
     void onCameraEntitySet(@Nullable Entity entity, CallbackInfo ci) {
         if (entity != null) {
-            ((AccessorCamera) camera).setCameraY(entity.getStandingEyeHeight());
-            ((AccessorCamera) camera).setLastCameraY(entity.getStandingEyeHeight());
+            ((AccessorCamera) mainCamera).setEyeHeight(entity.getEyeHeight());
+            ((AccessorCamera) mainCamera).setEyeHeightOld(entity.getEyeHeight());
         }
     }
 
@@ -50,19 +50,19 @@ public class MixinGameRenderer {
         }
     }
 
-    @Inject(method = "updateFovMultiplier", at = @At("HEAD"), cancellable = true)
+    @Inject(method = "tickFov", at = @At("HEAD"), cancellable = true)
     void onUpdateFovMultiplier(CallbackInfo ci) {
         // Don't interpolate FOV if it's driven by animation
         if (getCamEnt() instanceof FovProvider) {
-            fovMultiplier = 1;
-            lastFovMultiplier = 1;
+            fovModifier = 1;
+            oldFovModifier = 1;
             ci.cancel();
         }
     }
 
     @Unique
     private @Nullable Entity getCamEnt() {
-        return this.client.getCameraEntity() == null ? this.client.player : this.client.getCameraEntity();
+        return this.minecraft.getCameraEntity() == null ? this.minecraft.player : this.minecraft.getCameraEntity();
     }
 
 }

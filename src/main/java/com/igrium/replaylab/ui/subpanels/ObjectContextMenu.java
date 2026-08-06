@@ -13,7 +13,7 @@ import com.igrium.replaylab.object.ReplayObject3D;
 import com.igrium.replaylab.object.TransformProvider;
 import com.igrium.replaylab.config.ShortcutUtils;
 import imgui.ImGui;
-import net.minecraft.util.Language;
+import net.minecraft.locale.Language;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -82,6 +82,6 @@ public class ObjectContextMenu {
     }
 
     private static String t(String key) {
-        return Language.getInstance().get(key) + "###" + key;
+        return Language.getInstance().getOrDefault(key) + "###" + key;
     }
 }

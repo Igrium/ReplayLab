@@ -5,8 +5,8 @@ import com.igrium.replaylab.render.VideoRenderer;
 import imgui.ImGui;
 import imgui.flag.ImGuiCond;
 import imgui.flag.ImGuiWindowFlags;
-import net.minecraft.client.texture.AbstractTexture;
-import net.minecraft.util.Language;
+import net.minecraft.client.renderer.texture.AbstractTexture;
+import net.minecraft.locale.Language;
 
 public class ExportProgressWindow {
     private static final String POPUP = "Exporting Video";
@@ -73,7 +73,7 @@ public class ExportProgressWindow {
 
         AbstractTexture tex = r.getRenderTexture();
         if (tex != null) {
-            ImGui.image(tex.getGlId(), imageWidth, imageHeight, 0, 1, 1, 0);
+            ImGui.image(tex.getId(), imageWidth, imageHeight, 0, 1, 1, 0);
         } else {
             ImGui.dummy(imageWidth, imageHeight);
         }
@@ -81,6 +81,6 @@ public class ExportProgressWindow {
     }
 
     private static String t(String key) {
-        return Language.getInstance().get(key);
+        return Language.getInstance().getOrDefault(key);
     }
 }

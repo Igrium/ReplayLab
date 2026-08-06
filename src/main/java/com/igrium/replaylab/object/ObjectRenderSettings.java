@@ -19,8 +19,8 @@ import lombok.Getter;
 import lombok.NonNull;
 import lombok.Setter;
 import net.fabricmc.loader.api.FabricLoader;
-import net.minecraft.util.Identifier;
-import net.minecraft.util.Language;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.locale.Language;
 import org.apache.commons.io.FilenameUtils;
 
 import java.nio.file.Path;
@@ -117,13 +117,13 @@ public class ObjectRenderSettings extends ReplayObject {
         }
 
         ImGui.separator();
-        Identifier selId = encoder.getType().getId();
-        if (ImGui.beginCombo(t("gui.replaylab.encoder"), t(selId.toTranslationKey("encoder")))) {
+        ResourceLocation selId = encoder.getType().getId();
+        if (ImGui.beginCombo(t("gui.replaylab.encoder"), t(selId.toLanguageKey("encoder")))) {
             for (var entry : EncoderTypes.REGISTRY.entrySet()) {
-                Identifier id = entry.getKey();
+                ResourceLocation id = entry.getKey();
                 boolean selected = id.equals(selId);
 
-                if (ImGui.selectable(t(id.toTranslationKey("encoder")), selected) && !selected) {
+                if (ImGui.selectable(t(id.toLanguageKey("encoder")), selected) && !selected) {
                     setEncoder(entry.getValue().create());
                 }
                 if (selected) {
@@ -139,11 +139,11 @@ public class ObjectRenderSettings extends ReplayObject {
     }
 
     private static String t(String key) {
-        return Language.getInstance().get(key) + "###" + key;
+        return Language.getInstance().getOrDefault(key) + "###" + key;
     }
 
     private static String tt(String key) {
-        return Language.getInstance().get(key);
+        return Language.getInstance().getOrDefault(key);
     }
 
     private static <T> boolean arrayContains(T[] array, T value) {

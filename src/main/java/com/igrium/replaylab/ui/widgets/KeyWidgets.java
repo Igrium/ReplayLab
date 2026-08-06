@@ -8,8 +8,8 @@ import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
 import lombok.NonNull;
 import lombok.experimental.UtilityClass;
-import net.minecraft.util.Language;
-import net.minecraft.util.math.ColorHelper;
+import net.minecraft.locale.Language;
+import net.minecraft.util.ARGB;
 import org.jetbrains.annotations.Nullable;
 
 /**
@@ -19,13 +19,13 @@ import org.jetbrains.annotations.Nullable;
 public final class KeyWidgets {
 
     public static final int COLOR_KEYED_NOW_HOVER = 0xFF27B7D1;
-    public static final int COLOR_KEYED_NOW = ColorHelper.withAlpha(128, COLOR_KEYED_NOW_HOVER);
+    public static final int COLOR_KEYED_NOW = ARGB.color(128, COLOR_KEYED_NOW_HOVER);
 
     public static final int COLOR_KEYED_ELSEWHERE_HOVER = 0xFF29C75F;
-    public static final int COLOR_KEYED_ELSEWHERE = ColorHelper.withAlpha(128, COLOR_KEYED_ELSEWHERE_HOVER);
+    public static final int COLOR_KEYED_ELSEWHERE = ARGB.color(128, COLOR_KEYED_ELSEWHERE_HOVER);
 
     public static final int COLOR_KEYED_INVALID_HOVER = 0xFF3184DF;
-    public static final int COLOR_KEYED_INVALID = ColorHelper.withAlpha(128, COLOR_KEYED_INVALID_HOVER);
+    public static final int COLOR_KEYED_INVALID = ARGB.color(128, COLOR_KEYED_INVALID_HOVER);
 
     private static final int CONTEXT_ADD_KEY = 1;
     private static final int CONTEXT_ADD_KEY_S = 2;
@@ -291,7 +291,7 @@ public final class KeyWidgets {
 
     // Translate
     private static String t(String key) {
-        return Language.getInstance().get(key) + "###" + key;
+        return Language.getInstance().getOrDefault(key) + "###" + key;
     }
 
     private static boolean hasFlag(int flags, int flag) {

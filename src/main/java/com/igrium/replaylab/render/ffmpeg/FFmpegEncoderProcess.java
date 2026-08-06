@@ -11,7 +11,7 @@ import com.igrium.replaylab.render.encoder.EncoderProcess;
 import com.replaymod.render.FFmpegWriter;
 import com.replaymod.render.utils.StreamPipe;
 import net.fabricmc.loader.api.FabricLoader;
-import net.minecraft.util.Util;
+import net.minecraft.Util;
 import org.apache.commons.io.output.TeeOutputStream;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.jetbrains.annotations.Nullable;
@@ -89,7 +89,7 @@ public class FFmpegEncoderProcess extends EncoderProcess {
             AccessorNativeImage img = (AccessorNativeImage) (Object) nImg;
             assert img != null;
             // View of nativeimage memory
-            ByteBuffer buffer = MemoryUtil.memByteBuffer(img.getPointer(), (int) img.getSizeBytes());
+            ByteBuffer buffer = MemoryUtil.memByteBuffer(img.getPixels(), (int) img.getSize());
             channel.write(buffer);
         });
     }

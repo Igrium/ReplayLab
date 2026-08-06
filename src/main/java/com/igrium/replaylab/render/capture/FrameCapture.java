@@ -12,7 +12,7 @@ import imgui.ImGui;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.Setter;
-import net.minecraft.util.Language;
+import net.minecraft.locale.Language;
 import org.jetbrains.annotations.Nullable;
 
 /**
@@ -68,6 +68,6 @@ public abstract class FrameCapture {
     public abstract void captureFrame(int frameIdx, SimpleTexture texture);
 
     public void drawProperties(EditorState editorState) {
-        ImGui.text(Language.getInstance().get("gui.replaylab.capture.noProps"));
+        ImGui.text(Language.getInstance().getOrDefault("gui.replaylab.capture.noProps"));
     }
 }

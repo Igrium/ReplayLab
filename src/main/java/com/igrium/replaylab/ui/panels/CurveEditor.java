@@ -25,8 +25,8 @@ import imgui.flag.*;
 import imgui.type.ImBoolean;
 import imgui.type.ImInt;
 import lombok.Getter;
-import net.minecraft.util.Identifier;
-import net.minecraft.util.math.ColorHelper;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.util.ARGB;
 import org.jetbrains.annotations.Nullable;
 import org.joml.*;
 
@@ -48,7 +48,7 @@ public class CurveEditor extends KeyframePanel {
      */
     private static final float HANDLE_SNAP_THRESHOLD = 12f;
 
-    public CurveEditor(Identifier id) {
+    public CurveEditor(ResourceLocation id) {
         super(id);
         channelListFlags |= ChannelListFlags.SHOW_COLORS | ChannelListFlags.HIGHLIGHT_SELECTION;
         setSeparateChannelScrolling(true);
@@ -597,8 +597,8 @@ public class CurveEditor extends KeyframePanel {
                     int modalDimColor = ImGui.getColorU32(ImGuiCol.ModalWindowDimBg);
                     int separatorColor = ImGui.getColorU32(ImGuiCol.Separator);
 
-                    int outOfNormalColor = ColorHelper.withAlpha(
-                            (int) (ColorHelper.getAlpha(modalDimColor) * .75f), modalDimColor);
+                    int outOfNormalColor = ARGB.color(
+                            (int) (ARGB.alpha(modalDimColor) * .75f), modalDimColor);
 
                     // Normalization bounds are -1 and 1
                     float pixelNeg1 = valueToPixelY(-1) + graphY;

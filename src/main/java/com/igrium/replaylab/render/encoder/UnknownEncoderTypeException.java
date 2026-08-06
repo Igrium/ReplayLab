@@ -1,13 +1,13 @@
 package com.igrium.replaylab.render.encoder;
 
 import lombok.Getter;
-import net.minecraft.util.Identifier;
+import net.minecraft.resources.ResourceLocation;
 
 public class UnknownEncoderTypeException extends RuntimeException {
     @Getter
-    private final Identifier identifier;
+    private final ResourceLocation identifier;
 
-    public UnknownEncoderTypeException(Identifier identifier) {
+    public UnknownEncoderTypeException(ResourceLocation identifier) {
         super("Unknown encoder type: " + identifier);
         this.identifier = identifier;
     }

@@ -11,9 +11,9 @@ import imgui.extension.imguizmo.ImGuizmo;
 import lombok.Getter;
 import lombok.experimental.Accessors;
 import lombok.experimental.UtilityClass;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.render.Camera;
-import net.minecraft.util.math.Vec3d;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.Camera;
+import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Matrix4f;
 import org.joml.Matrix4fc;
@@ -34,7 +34,7 @@ public class GizmoRenderer {
 
     // TODO: Fix gizmo projection matrix issue. I've been working on this for three days, and I'm tired.
     public static void setupCameraProjection(Matrix4fc positionMatrix, Matrix4fc projectionMatrix, Camera camera) {
-        Vec3d camPos = camera.getPos();
+        Vec3 camPos = camera.getPosition();
         GizmoRenderer.viewMatrix().set(positionMatrix);
         GizmoRenderer.projectionMatrix().set(projectionMatrix);
         GizmoRenderer.cameraPos().set(camPos.x, camPos.y, camPos.z);
@@ -46,7 +46,7 @@ public class GizmoRenderer {
         ImGuizmo.beginFrame();
 
         ImGuizmo.setDrawList();
-        int screenHeight = MinecraftClient.getInstance().getWindow().getHeight();
+        int screenHeight = Minecraft.getInstance().getWindow().getScreenHeight();
 
         // 1. Calculate base window-relative ImGui coordinates (reversing the OpenGL Y-flip)
         float rectX = viewportBounds.x();
@@ -62,7 +62,7 @@ public class GizmoRenderer {
         ImGuizmo.setRect(rectX, rectY, viewportBounds.width(), viewportBounds.height());
         ImGuizmo.allowAxisFlip(false);
 
-        boolean hidden = MinecraftClient.getInstance().currentScreen != null;
+        boolean hidden = Minecraft.getInstance().screen != null;
         int numObjects = editorState.getScene().getObjects().size();
 
         List<String> wantUndoStep = new ArrayList<>(numObjects);

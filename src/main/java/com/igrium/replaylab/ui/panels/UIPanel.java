@@ -9,8 +9,8 @@ import com.igrium.replaylab.object.ReplayObject;
 import imgui.ImGui;
 import imgui.type.ImBoolean;
 import lombok.Getter;
-import net.minecraft.util.Identifier;
-import net.minecraft.util.Language;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.locale.Language;
 import org.jetbrains.annotations.Nullable;
 
 /**
@@ -18,16 +18,16 @@ import org.jetbrains.annotations.Nullable;
  */
 public abstract class UIPanel {
     @Getter
-    private final Identifier id;
+    private final ResourceLocation id;
     private final ImBoolean visible = new ImBoolean(true);
 
     private boolean requestFocus;
 
-    public UIPanel(Identifier id) {
+    public UIPanel(ResourceLocation id) {
         this.id = id;
     }
 
-    public UIPanel(Identifier id, boolean visible) {
+    public UIPanel(ResourceLocation id, boolean visible) {
         this.id = id;
         this.visible.set(visible);
     }
@@ -41,7 +41,7 @@ public abstract class UIPanel {
     }
 
     public String getTitle() {
-        return Language.getInstance().get(id.toTranslationKey("panel"));
+        return Language.getInstance().getOrDefault(id.toLanguageKey("panel"));
     }
 
     public final String getPanelName() {

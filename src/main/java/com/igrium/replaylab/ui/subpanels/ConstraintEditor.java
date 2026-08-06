@@ -16,7 +16,7 @@ import imgui.flag.ImGuiStyleVar;
 import imgui.flag.ImGuiTreeNodeFlags;
 import imgui.flag.ImGuiWindowFlags;
 import imgui.type.ImString;
-import net.minecraft.util.Language;
+import net.minecraft.locale.Language;
 
 import java.util.Map;
 
@@ -133,7 +133,7 @@ public class ConstraintEditor {
     }
 
     private static String tt(String key) {
-        return Language.getInstance().get(key);
+        return Language.getInstance().getOrDefault(key);
     }
 
     private static String t(String key) {

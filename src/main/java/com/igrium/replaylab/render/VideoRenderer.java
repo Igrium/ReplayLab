@@ -1,16 +1,19 @@
+// TODO(Ravel): Failed to fully resolve file: null cannot be cast to non-null type com.intellij.psi.PsiJavaCodeReferenceElement
 package com.igrium.replaylab.render;
 
 import com.igrium.craftui.app.AppManager;
 import com.igrium.replaylab.editor.EditorState;
+import com.igrium.replaylab.object.ObjectRenderSettings;
+import com.igrium.replaylab.object.ObjectSceneProps;
 import com.igrium.replaylab.playback.AbstractScenePlayer;
 import com.igrium.replaylab.render.capture.FrameCapture;
 import com.igrium.replaylab.render.encoder.EncoderConfig;
 import com.igrium.replaylab.render.encoder.EncoderProcess;
 import com.igrium.replaylab.scene.ReplayScene;
-import com.igrium.replaylab.object.ObjectRenderSettings;
-import com.igrium.replaylab.object.ObjectSceneProps;
 import com.mojang.blaze3d.platform.GlConst;
 import com.mojang.blaze3d.platform.GlStateManager;
+import com.mojang.blaze3d.platform.NativeImage;
+import com.mojang.blaze3d.platform.Window;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.replaymod.core.mixin.MinecraftAccessor;
 import com.replaymod.core.mixin.TimerAccessor;
@@ -22,16 +25,14 @@ import com.replaymod.render.hooks.ForceChunkLoadingHook;
 import com.replaymod.replay.ReplayHandler;
 import lombok.Getter;
 import lombok.NonNull;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.sound.PositionedSoundInstance;
-import net.minecraft.client.texture.NativeImage;
-import net.minecraft.client.util.Window;
-import net.minecraft.sound.SoundCategory;
-import net.minecraft.sound.SoundEvent;
-import net.minecraft.util.Identifier;
-import net.minecraft.util.Util;
-import net.minecraft.util.crash.CrashException;
+import net.minecraft.ReportedException;
+import net.minecraft.Util;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.resources.sounds.SimpleSoundInstance;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.sounds.SoundEvent;
+import net.minecraft.sounds.SoundSource;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.jetbrains.annotations.Nullable;
 import org.lwjgl.glfw.GLFW;
@@ -57,7 +58,7 @@ public class VideoRenderer {
         DONE
     }
 
-    private final MinecraftClient mc = MinecraftClient.getInstance();
+    private final Minecraft mc = Minecraft.getInstance();
 
     @Getter
     private final RenderMetadata renderMetadata;
@@ -141,9 +142,9 @@ public class VideoRenderer {
         renderState = RenderState.STARTING;
         renderingVideo = true;
 
-        boolean debugWasShown = mc.getDebugHud().shouldShowDebugHud();
-        boolean mouseWasGrabbed = mc.mouse.isCursorLocked();
-        EnumMap<SoundCategory, Float> originalSoundLevels = new EnumMap<>(SoundCategory.class);
+        boolean debugWasShown = mc.getDebugOverlay().showDebugScreen();
+        boolean mouseHandlerWasGrabbed = mc.mouseHandler.isMouseGrabbed();
+        EnumMap<SoundSource, Float> originalSoundLevels = new EnumMap<>(SoundSource.class);
         ForceChunkLoadingHook forceChunkLoadingHook = null;
 
         RenderScenePlayer scenePlayer = null;
@@ -158,21 +159,21 @@ public class VideoRenderer {
             scenePlayer.start(scene);
 
             if (debugWasShown) {
-                mc.getDebugHud().toggleDebugHud();
+                mc.getDebugOverlay().toggleOverlay();
             }
 
             guiWindow = new VirtualWindow(mc);
 
-            mc.mouse.unlockCursor();
+            mc.mouseHandler.releaseMouse();
 
-            for (var category : SoundCategory.values()) {
-                if (category != SoundCategory.MASTER) {
-                    originalSoundLevels.put(category, mc.options.getSoundVolume(category));
-                    mc.options.getSoundVolumeOption(category).setValue(0d);
+            for (var category : SoundSource.values()) {
+                if (category != SoundSource.MASTER) {
+                    originalSoundLevels.put(category, mc.options.getSoundSourceVolume(category));
+                    mc.options.getSoundSourceOptionInstance(category).set(0d);
                 }
             }
 
-            forceChunkLoadingHook = new ForceChunkLoadingHook(mc.worldRenderer);
+            forceChunkLoadingHook = new ForceChunkLoadingHook(mc.levelRenderer);
 
             /// === TIMELINE SETUP ===
             // I have no idea what mixin bullshit replay mod is doing, but I'll just copy it
@@ -200,7 +201,7 @@ public class VideoRenderer {
 
             renderState = RenderState.RENDERING;
             while (frameIdx < renderMetadata.totalFrames() && !abort) {
-                if (GLFW.glfwWindowShouldClose(mc.getWindow().getHandle()) || ((MinecraftAccessor) mc).getCrashReporter() != null) {
+                if (GLFW.glfwWindowShouldClose(mc.getWindow().getWindow()) || ((MinecraftAccessor) mc).getCrashReporter() != null) {
                     encoder.finish().get(10, TimeUnit.SECONDS);
                 }
                 int curIdx = frameIdx;
@@ -209,9 +210,9 @@ public class VideoRenderer {
 
                 clearFramebufferAlpha(renderFbo.getFbo());
                 NativeImage nImage = new NativeImage(renderMetadata.width(), renderMetadata.height(), false);
-                RenderSystem.bindTexture(renderTexture.getGlId());
-                nImage.loadFromTextureImage(0, true);
-                nImage.mirrorVertically();
+                RenderSystem.bindTexture(renderTexture.getId());
+                nImage.downloadTexture(0, true);
+                nImage.flipY();
 
                 drawGui();
 
@@ -242,7 +243,7 @@ public class VideoRenderer {
             }
 
             if (((MinecraftAccessor) mc).getCrashReporter() != null) {
-                throw new CrashException(((MinecraftAccessor) mc).getCrashReporter().get());
+                throw new ReportedException(((MinecraftAccessor) mc).getCrashReporter().get());
             }
 
             // TODO: spherical metadata
@@ -271,15 +272,15 @@ public class VideoRenderer {
             }
 
             if (debugWasShown) {
-                mc.getDebugHud().toggleDebugHud();
+                mc.getDebugOverlay().toggleOverlay();
             }
 
-            if (mouseWasGrabbed) {
-                mc.mouse.lockCursor();
+            if (mouseHandlerWasGrabbed) {
+                mc.mouseHandler.grabMouse();
             }
 
             for (var entry : originalSoundLevels.entrySet()) {
-                mc.options.getSoundVolumeOption(entry.getKey()).setValue(Double.valueOf(entry.getValue()));
+                mc.options.getSoundSourceOptionInstance(entry.getKey()).set(Double.valueOf(entry.getValue()));
             }
 
             mc.setScreen(null);
@@ -287,8 +288,8 @@ public class VideoRenderer {
                 forceChunkLoadingHook.uninstall();
             }
 
-            mc.getSoundManager().play(PositionedSoundInstance.master(
-                    SoundEvent.of(Identifier.of("replaymod:render_success")), 1));
+            var event = SoundEvent.createFixedRangeEvent(ResourceLocation.parse("replaymod:render_success"), 1);
+            mc.getSoundManager().play(SimpleSoundInstance.forUI(event, 1));
 
             // Finally, resize the Minecraft framebuffer to the actual width/height of the window
 
@@ -320,7 +321,7 @@ public class VideoRenderer {
         ReplayTimer timer = (ReplayTimer) ((MinecraftAccessor) mc).getTimer();
         try {
             // TODO: GUI update
-            int elapsedTicks = timer.beginRenderTick(Util.getMeasuringTimeMs(), true);
+            int elapsedTicks = timer.advanceTime(Util.getMillis(), true);
             executeTaskQueue();
 
             while (elapsedTicks-- > 0) {
@@ -347,7 +348,7 @@ public class VideoRenderer {
             CompletableFuture<Void> resourceReloadFuture = ((MinecraftAccessor) mc).getResourceReloadFuture();
             if (resourceReloadFuture != null) {
                 ((MinecraftAccessor) mc).setResourceReloadFuture(null);
-                mc.reloadResources().thenRun(() -> resourceReloadFuture.complete(null));
+                mc.reloadResourcePacks().thenRun(() -> resourceReloadFuture.complete(null));
                 continue;
             }
             break;
@@ -358,7 +359,7 @@ public class VideoRenderer {
 
     public boolean drawGui() {
         Window window = mc.getWindow();
-        if (GLFW.glfwWindowShouldClose(window.getHandle()) || ((MinecraftAccessor) mc).getCrashReporter() != null) {
+        if (GLFW.glfwWindowShouldClose(window.getWindow()) || ((MinecraftAccessor) mc).getCrashReporter() != null) {
             return false;
         }
 
@@ -367,18 +368,18 @@ public class VideoRenderer {
         guiWindow.beginWrite();
 
 
-        DrawContext drawContext = new DrawContext(mc, mc.getBufferBuilders().getEntityVertexConsumers());
-        drawContext.draw();
+        GuiGraphics drawContext = new GuiGraphics(mc, mc.renderBuffers().bufferSource());
+        drawContext.flush();
 
         guiWindow.endWrite();
 
         MCVer.pushMatrix();
         AppManager.render(mc);
-        mc.getWindow().swapBuffers(null);
+        mc.getWindow().updateDisplay(null);
         MCVer.popMatrix();
 
-        if (mc.mouse.isCursorLocked()) {
-            mc.mouse.unlockCursor();
+        if (mc.mouseHandler.isMouseGrabbed()) {
+            mc.mouseHandler.releaseMouse();
         }
 
         return !abort;

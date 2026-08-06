@@ -7,8 +7,8 @@ import imgui.ImGui;
 import imgui.flag.ImGuiCond;
 import imgui.flag.ImGuiWindowFlags;
 import imgui.type.ImBoolean;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.util.Language;
+import net.minecraft.client.Minecraft;
+import net.minecraft.locale.Language;
 import java.nio.file.Files;
 
 public class ExportWindow {
@@ -97,14 +97,14 @@ public class ExportWindow {
     private static void export(EditorState editor) {
         editor.getScene().saveObject(ReplayScene.RENDER_SETTINGS);
         editor.saveSceneAsync(); // Save our render settings
-        MinecraftClient.getInstance().send(editor::render); // Render outside ImGui context
+        Minecraft.getInstance().schedule(editor::render); // Render outside ImGui context
     }
 
     private static String t(String key) {
-        return Language.getInstance().get(key) + "###" + key;
+        return Language.getInstance().getOrDefault(key) + "###" + key;
     }
 
     private static String tt(String key) {
-        return Language.getInstance().get(key);
+        return Language.getInstance().getOrDefault(key);
     }
 }

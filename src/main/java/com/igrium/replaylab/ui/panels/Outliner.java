@@ -12,9 +12,9 @@ import imgui.ImGui;
 import imgui.flag.ImGuiCol;
 import imgui.flag.ImGuiKey;
 import imgui.type.ImString;
-import net.minecraft.util.Identifier;
-import net.minecraft.util.Language;
-import net.minecraft.util.math.ColorHelper;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.locale.Language;
+import net.minecraft.util.ARGB;
 import org.jetbrains.annotations.Nullable;
 
 public class Outliner extends UIPanel {
@@ -32,7 +32,7 @@ public class Outliner extends UIPanel {
     private String[] queuedDelete;
 
 
-    public Outliner(Identifier id) {
+    public Outliner(ResourceLocation id) {
         super(id);
     }
 
@@ -49,7 +49,7 @@ public class Outliner extends UIPanel {
         drawRemoveObjectButton(editorState);
 
         // Selectable uses header colors
-        ImGui.pushStyleColor(ImGuiCol.Header, ColorHelper.withAlpha(48, ImGui.getColorU32(ImGuiCol.HeaderActive)));
+        ImGui.pushStyleColor(ImGuiCol.Header, ARGB.color(48, ImGui.getColorU32(ImGuiCol.HeaderActive)));
 
         if (ImGui.beginChild("objects")) {
             ImGui.setNextItemWidth(ImGui.getContentRegionAvailX());
@@ -83,7 +83,7 @@ public class Outliner extends UIPanel {
 
                         // Active object gets brighter color.
                         if (isActive) {
-                            ImGui.pushStyleColor(ImGuiCol.Header, ColorHelper.withAlpha(128, ImGui.getColorU32(ImGuiCol.Header)));
+                            ImGui.pushStyleColor(ImGuiCol.Header, ARGB.color(128, ImGui.getColorU32(ImGuiCol.Header)));
                             activeIdx = i;
                         }
                         if (ImGui.selectable(obj.getDisplayName() + "###" + id, isSelected)) {
@@ -197,7 +197,7 @@ public class Outliner extends UIPanel {
 
         if (ImGui.beginPopup("New Object")) {
             ReplayObjects.getSpawnableTypes().forEach(type -> {
-                String name = Language.getInstance().get(type.getTranslationKey());
+                String name = Language.getInstance().getOrDefault(type.getTranslationKey());
                 if (ImGui.selectable(name)) {
                     var obj = type.create(editorState.getScene());
                     editorState.applyOperator(new AddObjectOperator(editorState.getScene().makeNameUnique(name), obj));

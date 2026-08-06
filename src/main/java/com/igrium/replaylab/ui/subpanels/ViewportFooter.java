@@ -9,8 +9,8 @@ import com.igrium.replaylab.util.Timestamps;
 import imgui.ImGui;
 import imgui.flag.ImGuiMouseCursor;
 import imgui.type.ImBoolean;
-import net.minecraft.util.Language;
-import net.minecraft.util.Util;
+import net.minecraft.locale.Language;
+import net.minecraft.Util;
 
 public class ViewportFooter {
 
@@ -152,7 +152,7 @@ public class ViewportFooter {
 
         ImGui.setCursorScreenPos(rectMinX, rectMinY);
         if (ImGui.invisibleButton(id, rectSizeX, rectSizeY)) {
-            clipboardCopyTime = Util.getMeasuringTimeMs();
+            clipboardCopyTime = Util.getMillis();
             ImGui.setClipboardText(str);
         }
 
@@ -165,7 +165,7 @@ public class ViewportFooter {
         if (hovered) {
             ImGui.setMouseCursor(ImGuiMouseCursor.Hand);
         }
-        if (Util.getMeasuringTimeMs() - clipboardCopyTime < 1000) {
+        if (Util.getMillis() - clipboardCopyTime < 1000) {
             ImGui.setTooltip(tt("gui.replaylab.clipboarded"));
         } else {
             ImGui.setItemTooltip(tooltip);
@@ -184,10 +184,10 @@ public class ViewportFooter {
     }
 
     private static String t(String key) {
-        return Language.getInstance().get(key) + "###" + key;
+        return Language.getInstance().getOrDefault(key) + "###" + key;
     }
 
     private static String tt(String key) {
-        return Language.getInstance().get(key);
+        return Language.getInstance().getOrDefault(key);
     }
 }

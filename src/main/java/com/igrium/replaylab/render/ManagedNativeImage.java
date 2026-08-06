@@ -6,7 +6,7 @@ import com.igrium.replaylab.util.ThrowingConsumer;
 import com.igrium.replaylab.util.ThrowingFunction;
 import lombok.Getter;
 import lombok.Setter;
-import net.minecraft.client.texture.NativeImage;
+import com.mojang.blaze3d.platform.NativeImage;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
@@ -119,7 +119,7 @@ public final class ManagedNativeImage {
     // Wrap nativeImage function calls so we don't lose references to this while being called.
 
     public void writeTo(Path path) throws IOException {
-        useRawImage(path, NativeImage::writeTo);
+        useRawImage(path, NativeImage::writeToFile);
     }
 
     public void copyFrom(NativeImage other) {
@@ -142,11 +142,11 @@ public final class ManagedNativeImage {
     }
 
     public int[] copyPixelsAbgr() {
-        return useRawImage(NativeImage::copyPixelsAbgr);
+        return useRawImage(NativeImage::getPixelsABGR);
     }
 
     public int[] copyPixelsArgb() {
-        return useRawImage(NativeImage::copyPixelsArgb);
+        return useRawImage(NativeImage::getPixels);
     }
 
     public int getWidth() {
@@ -166,12 +166,12 @@ public final class ManagedNativeImage {
     }
 
     public NativeImage.Format getFormat() {
-        return useRawImage(NativeImage::getFormat);
+        return useRawImage(NativeImage::format);
 
     }
 
     public void mirrorVertically() {
-        useRawImage(NativeImage::mirrorVertically);
+        useRawImage(NativeImage::flipY);
     }
 
     public void reachabilityFence() {

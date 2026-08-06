@@ -5,9 +5,9 @@ import com.igrium.replaylab.ui.util.ReplayLabControls;
 import imgui.ImGui;
 import imgui.type.ImInt;
 import lombok.experimental.UtilityClass;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.world.ClientWorld;
-import net.minecraft.entity.Entity;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.multiplayer.ClientLevel;
+import net.minecraft.world.entity.Entity;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.function.Predicate;
@@ -66,8 +66,8 @@ public class EntitySelector {
     }
 
     private static @Nullable Entity getEnt(int id) {
-        ClientWorld world = MinecraftClient.getInstance().world;
-        return world != null ? world.getEntityById(id) : null;
+        ClientLevel world = Minecraft.getInstance().level;
+        return world != null ? world.getEntity(id) : null;
     }
 
 }

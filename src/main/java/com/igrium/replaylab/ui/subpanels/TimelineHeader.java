@@ -17,8 +17,8 @@ import imgui.type.ImInt;
 import it.unimi.dsi.fastutil.floats.FloatUnaryOperator;
 import lombok.Getter;
 import lombok.experimental.Accessors;
-import net.minecraft.util.Colors;
-import net.minecraft.util.Language;
+import net.minecraft.util.CommonColors;
+import net.minecraft.locale.Language;
 import org.jetbrains.annotations.Nullable;
 
 public class TimelineHeader {
@@ -259,7 +259,7 @@ public class TimelineHeader {
 
                 if (Math.abs(x - playheadX) > 10)
                     fgDrawList.addLine(x, cursorY + headerHeight, x, cursorY + headerHeight + windowHeight,
-                            Colors.BLACK);
+                            CommonColors.BLACK);
             }
         }
     }
@@ -289,6 +289,6 @@ public class TimelineHeader {
     }
 
     private static String t(String key) {
-        return Language.getInstance().get(key) + "###" + key;
+        return Language.getInstance().getOrDefault(key) + "###" + key;
     }
 }

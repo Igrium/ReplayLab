@@ -8,7 +8,7 @@ import imgui.ImGui;
 import imgui.flag.ImGuiKey;
 import it.unimi.dsi.fastutil.ints.*;
 import lombok.experimental.UtilityClass;
-import net.minecraft.util.Language;
+import net.minecraft.locale.Language;
 
 import java.util.Map;
 import java.util.function.IntConsumer;
@@ -225,6 +225,6 @@ public final class ShortcutUtils {
     }
 
     private static String t(String key) {
-        return Language.getInstance().get(key);
+        return Language.getInstance().getOrDefault(key);
     }
 }

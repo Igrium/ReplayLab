@@ -1,11 +1,13 @@
 package com.igrium.replaylab.camera;
 
 import com.igrium.replaylab.ui.gizmos.GizmoColors;
-import net.minecraft.client.render.*;
-import net.minecraft.client.render.entity.EntityRenderer;
-import net.minecraft.client.render.entity.EntityRendererFactory;
-import net.minecraft.client.util.math.MatrixStack;
-import net.minecraft.util.math.ColorHelper;
+import com.mojang.blaze3d.vertex.VertexConsumer;
+import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.renderer.RenderType;
+import net.minecraft.client.renderer.entity.EntityRenderer;
+import net.minecraft.client.renderer.entity.EntityRendererProvider;
+import com.mojang.blaze3d.vertex.PoseStack;
+import net.minecraft.util.ARGB;
 import org.joml.*;
 import org.joml.Math;
 
@@ -13,7 +15,7 @@ public class AnimatedCameraRenderer extends EntityRenderer<AnimatedCameraEntity,
 
     private static final Vector3f NORMAL = new Vector3f(0, 0, 1);
 
-    public AnimatedCameraRenderer(EntityRendererFactory.Context context) {
+    public AnimatedCameraRenderer(EntityRendererProvider.Context context) {
         super(context);
     }
 
@@ -23,8 +25,8 @@ public class AnimatedCameraRenderer extends EntityRenderer<AnimatedCameraEntity,
     }
 
     @Override
-    public void updateRenderState(AnimatedCameraEntity entity, AnimatedCameraRenderState state, float tickDelta) {
-        super.updateRenderState(entity, state, tickDelta);
+    public void extractRenderState(AnimatedCameraEntity entity, AnimatedCameraRenderState state, float tickDelta) {
+        super.extractRenderState(entity, state, tickDelta);
         state.setFov(entity.getFov());
 
         state.setRotation(entity.getRotationQuat());
@@ -35,13 +37,13 @@ public class AnimatedCameraRenderer extends EntityRenderer<AnimatedCameraEntity,
         state.setAspectRatio(entity.getAspectRatio());
     }
     @Override
-    public void render(AnimatedCameraRenderState state, MatrixStack matrices, VertexConsumerProvider vertexConsumers, int light) {
+    public void render(AnimatedCameraRenderState state, PoseStack matrices, MultiBufferSource vertexConsumers, int light) {
         super.render(state, matrices, vertexConsumers, light);
 
-        matrices.push();
-        matrices.multiply(state.getRotation());
+        matrices.pushPose();
+        matrices.mulPose(state.getRotation());
 
-        VertexConsumer lines = vertexConsumers.getBuffer(RenderLayer.LINES);
+        VertexConsumer lines = vertexConsumers.getBuffer(RenderType.LINES);
 
         float width = Math.min(1.0f, state.getAspectRatio());
         float height = width / state.getAspectRatio();
@@ -112,10 +114,10 @@ public class AnimatedCameraRenderer extends EntityRenderer<AnimatedCameraEntity,
 
         if (state.isSceneCamera()) {
             // Triangle doesn't play well with alpha
-            color = ColorHelper.withAlpha(255, color);
+            color = ARGB.color(255, color);
 
-            VertexConsumer solid = vertexConsumers.getBuffer(RenderLayer.getDebugFilledBox());
-            MatrixStack.Entry entry = matrices.peek();
+            VertexConsumer solid = vertexConsumers.getBuffer(RenderType.debugFilledBox());
+            PoseStack.Pose entry = matrices.last();
 
             tri(depth, color, p1x, p1y, p2x, p2y, p3x, p3y, solid, entry);
             tri(depth, color, p3x, p3y, p2x, p2y, p1x, p1y, solid, entry);
@@ -127,25 +129,25 @@ public class AnimatedCameraRenderer extends EntityRenderer<AnimatedCameraEntity,
         }
 
 
-        matrices.pop();
+        matrices.popPose();
     }
 
     private static void tri(float depth, int color, float p1x, float p1y, float p2x, float p2y, float p3x, float p3y,
-                            VertexConsumer solid, MatrixStack.Entry entry) {
-        solid.vertex(entry, p1x, p1y, depth).color(color).texture(0f, 0f).light(15).normal(entry, NORMAL);
-        solid.vertex(entry, p2x, p2y, depth).color(color).texture(0f, 0f).light(15).normal(entry, NORMAL);
-        solid.vertex(entry, p3x, p3y, depth).color(color).texture(0f, 0f).light(15).normal(entry, NORMAL);
-        solid.vertex(entry, p3x, p3y, depth).color(color).texture(0f, 0f).light(15).normal(entry, NORMAL);
+                            VertexConsumer solid, PoseStack.Pose entry) {
+        solid.addVertex(entry, p1x, p1y, depth).setColor(color).setUv(0f, 0f).setLight(15).setNormal(entry, NORMAL);
+        solid.addVertex(entry, p2x, p2y, depth).setColor(color).setUv(0f, 0f).setLight(15).setNormal(entry, NORMAL);
+        solid.addVertex(entry, p3x, p3y, depth).setColor(color).setUv(0f, 0f).setLight(15).setNormal(entry, NORMAL);
+        solid.addVertex(entry, p3x, p3y, depth).setColor(color).setUv(0f, 0f).setLight(15).setNormal(entry, NORMAL);
     }
 
-    private static void drawLine(MatrixStack matrices, VertexConsumer vertexConsumer,
+    private static void drawLine(PoseStack matrices, VertexConsumer vertexConsumer,
                                  float x1, float y1, float z1,
                                  float x2, float y2, float z2,
                                  int color) {
-        MatrixStack.Entry entry = matrices.peek();
+        PoseStack.Pose entry = matrices.last();
         Vector3f normal = new Vector3f(x2 - x1, y2 - y1, z2 - z1).normalize();
-        vertexConsumer.vertex(entry, x1, y1, z1).color(color).normal(entry, normal);
-        vertexConsumer.vertex(entry, x2, y2, z2).color(color).normal(entry, normal);
+        vertexConsumer.addVertex(entry, x1, y1, z1).setColor(color).setNormal(entry, normal);
+        vertexConsumer.addVertex(entry, x2, y2, z2).setColor(color).setNormal(entry, normal);
     }
 
     private float computeCamHeight(float fovRad) {

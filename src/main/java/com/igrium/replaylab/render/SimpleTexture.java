@@ -3,7 +3,7 @@ package com.igrium.replaylab.render;
 import com.mojang.blaze3d.platform.GlConst;
 import com.mojang.blaze3d.platform.GlStateManager;
 import lombok.Getter;
-import net.minecraft.client.texture.AbstractTexture;
+import net.minecraft.client.renderer.texture.AbstractTexture;
 
 public class SimpleTexture extends AbstractTexture {
     @Getter
@@ -26,7 +26,7 @@ public class SimpleTexture extends AbstractTexture {
     }
 
     private void prepareImage() {
-        int glId = getGlId();
+        int glId = getId();
         GlStateManager._bindTexture(glId);
         GlStateManager._texImage2D(GlConst.GL_TEXTURE_2D, 0, internalFormat, width, height, 0,
                 GlConst.GL_RGBA, GlConst.GL_UNSIGNED_BYTE, null);
@@ -38,6 +38,6 @@ public class SimpleTexture extends AbstractTexture {
     @Override
     public void close() {
         super.close();
-        clearGlId();
+        releaseId();
     }
 }

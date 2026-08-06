@@ -10,7 +10,7 @@ import com.igrium.replaylab.ui.util.ReplayLabControls;
 import imgui.ImGui;
 import imgui.type.ImInt;
 
-import net.minecraft.util.Language;
+import net.minecraft.locale.Language;
 
 import java.util.function.DoubleUnaryOperator;
 
@@ -113,6 +113,6 @@ public class ModifierNoise extends CurveModifier {
     }
 
     private static String t(String key) {
-        return Language.getInstance().get(key) + "###" + key;
+        return Language.getInstance().getOrDefault(key) + "###" + key;
     }
 }

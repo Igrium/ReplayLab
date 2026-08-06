@@ -7,7 +7,7 @@ import com.igrium.replaylab.util.Timestamps;
 import imgui.ImGui;
 import imgui.type.ImBoolean;
 import lombok.Getter;
-import net.minecraft.util.Language;
+import net.minecraft.locale.Language;
 import org.apache.commons.lang3.function.BooleanConsumer;
 
 public class SettingsEditor {
@@ -110,10 +110,10 @@ public class SettingsEditor {
     private final ImBoolean tmpBool = new ImBoolean(false);
 
     private static String t(String key) {
-        return Language.getInstance().get(key) + "###" + key;
+        return Language.getInstance().getOrDefault(key) + "###" + key;
     }
 
     private static String tt(String key) {
-        return Language.getInstance().get(key);
+        return Language.getInstance().getOrDefault(key);
     }
 }

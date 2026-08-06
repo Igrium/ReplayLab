@@ -7,7 +7,7 @@ import imgui.ImGui;
 import imgui.flag.ImGuiKey;
 import imgui.flag.ImGuiTableColumnFlags;
 import imgui.flag.ImGuiTableFlags;
-import net.minecraft.util.Language;
+import net.minecraft.locale.Language;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.function.IntConsumer;
@@ -167,6 +167,6 @@ public class KeybindEditor {
     }
 
     private static String t(String key) {
-        return Language.getInstance().get(key);
+        return Language.getInstance().getOrDefault(key);
     }
 }

@@ -13,7 +13,7 @@ import imgui.ImGui;
 import imgui.type.ImBoolean;
 import lombok.Getter;
 import lombok.Setter;
-import net.minecraft.util.Language;
+import net.minecraft.locale.Language;
 import org.apache.commons.lang3.function.BooleanConsumer;
 
 public class ConstraintNoise3D extends Constraint<ReplayObject3D> {
@@ -150,7 +150,7 @@ public class ConstraintNoise3D extends Constraint<ReplayObject3D> {
     }
 
     private static String tt(String key) {
-        return Language.getInstance().get(key);
+        return Language.getInstance().getOrDefault(key);
     }
 
     private static String t(String key) {

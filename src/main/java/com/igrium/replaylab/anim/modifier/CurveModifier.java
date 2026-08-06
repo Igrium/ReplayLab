@@ -11,7 +11,7 @@ import imgui.type.ImInt;
 import it.unimi.dsi.fastutil.doubles.Double2DoubleFunction;
 import lombok.Getter;
 import lombok.Setter;
-import net.minecraft.util.Language;
+import net.minecraft.locale.Language;
 
 import java.util.function.DoubleUnaryOperator;
 
@@ -182,6 +182,6 @@ public abstract class CurveModifier {
     }
 
     private static String t(String key) {
-        return Language.getInstance().get(key) + "###" + key;
+        return Language.getInstance().getOrDefault(key) + "###" + key;
     }
 }

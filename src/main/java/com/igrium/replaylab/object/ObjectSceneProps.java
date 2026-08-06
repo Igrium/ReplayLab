@@ -15,7 +15,7 @@ import imgui.type.ImInt;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.Setter;
-import net.minecraft.util.Language;
+import net.minecraft.locale.Language;
 import org.apache.commons.lang3.mutable.Mutable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -209,6 +209,6 @@ public final class ObjectSceneProps extends ReplayObject {
 
     @Override
     public String getDisplayName() {
-        return Language.getInstance().get("replayobject.sceneProps");
+        return Language.getInstance().getOrDefault("replayobject.sceneProps");
     }
 }

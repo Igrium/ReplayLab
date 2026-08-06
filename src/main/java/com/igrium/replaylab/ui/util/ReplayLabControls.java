@@ -13,9 +13,9 @@ import imgui.type.ImBoolean;
 import imgui.type.ImInt;
 import imgui.type.ImString;
 import lombok.NonNull;
-import net.minecraft.util.Identifier;
-import net.minecraft.util.Language;
-import net.minecraft.util.Util;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.locale.Language;
+import net.minecraft.Util;
 import org.apache.commons.lang3.mutable.Mutable;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
@@ -28,7 +28,7 @@ import java.util.function.Predicate;
 public class ReplayLabControls {
     private static final ImBoolean isSelected = new ImBoolean();
     private static final Logger LOGGER = LoggerFactory.getLogger(ReplayLabControls.class);
-    public static final Identifier ROBOTO_MONO = Identifier.of("replaylab:roboto-mono");
+    public static final ResourceLocation ROBOTO_MONO = ResourceLocation.parse("replaylab:roboto-mono");
 
     /**
      * Draw a dropdown box with a collection of strings.
@@ -125,7 +125,7 @@ public class ReplayLabControls {
         ImGui.popFont();
 
         if (tooltip != null) {
-            ImGui.setItemTooltip(Language.getInstance().get(tooltip));
+            ImGui.setItemTooltip(Language.getInstance().getOrDefault(tooltip));
         }
         return result;
     }
@@ -137,7 +137,7 @@ public class ReplayLabControls {
         ImGui.popFont();
 
         if (tooltip != null) {
-            ImGui.setItemTooltip(Language.getInstance().get(tooltip));
+            ImGui.setItemTooltip(Language.getInstance().getOrDefault(tooltip));
         }
         return result;
     }
@@ -257,7 +257,7 @@ public class ReplayLabControls {
         }
 
         if (ImGui.isItemClicked(0)) {
-            Util.getOperatingSystem().open(link);
+            Util.getPlatform().openUri(link);
         }
     }
 

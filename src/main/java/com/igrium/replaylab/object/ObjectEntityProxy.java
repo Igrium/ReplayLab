@@ -9,10 +9,10 @@ import com.igrium.replaylab.scene.ReplayScene;
 import com.igrium.replaylab.ui.widgets.EntitySelector;
 import com.replaymod.replay.camera.CameraEntity;
 import imgui.type.ImInt;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.world.ClientWorld;
-import net.minecraft.entity.Entity;
-import net.minecraft.util.math.Vec3d;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.multiplayer.ClientLevel;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Math;
 
@@ -36,8 +36,8 @@ public class ObjectEntityProxy extends ReplayObject implements EntityProvider<En
     }
 
     @Override
-    public @Nullable Entity getEntity(ClientWorld world) {
-        return world.getEntityById(getEntId());
+    public @Nullable Entity getEntity(ClientLevel world) {
+        return world.getEntity(getEntId());
     }
 
     @Override
@@ -63,14 +63,14 @@ public class ObjectEntityProxy extends ReplayObject implements EntityProvider<En
         if (ent == null) {
             return dest.identity();
         }
-        float tickDelta = MinecraftClient.getInstance().getRenderTickCounter().getTickDelta(false);
+        float tickDelta = Minecraft.getInstance().getDeltaTracker().getGameTimeDeltaPartialTick(false);
 
-        Vec3d entPos = ent.getLerpedPos(tickDelta);
+        Vec3 entPos = ent.getPosition(tickDelta);
         dest.pos().set(entPos.x, entPos.y, entPos.z);
 
         dest.rot().setEulerYXZ(
-                -Math.toRadians(ent.getYaw(tickDelta)),
-                Math.toRadians(ent.getPitch(tickDelta)),
+                -Math.toRadians(ent.getViewYRot(tickDelta)),
+                Math.toRadians(ent.getViewXRot(tickDelta)),
                 0
         );
 

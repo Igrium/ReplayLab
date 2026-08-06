@@ -9,7 +9,7 @@ import com.google.gson.JsonParseException;
 import com.google.gson.JsonSerializationContext;
 import lombok.Getter;
 import lombok.NonNull;
-import net.minecraft.util.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.function.Function;
@@ -18,15 +18,15 @@ public final class FrameCaptureType<T extends FrameCapture> {
 
     /// === REGISTRY ===
 
-    public static final BiMap<Identifier, FrameCaptureType<?>> REGISTRY = Maps.synchronizedBiMap(HashBiMap.create());
+    public static final BiMap<ResourceLocation, FrameCaptureType<?>> REGISTRY = Maps.synchronizedBiMap(HashBiMap.create());
 
-    public static <T extends FrameCapture> FrameCaptureType<T> register(FrameCaptureType<T> type, Identifier id) {
+    public static <T extends FrameCapture> FrameCaptureType<T> register(FrameCaptureType<T> type, ResourceLocation id) {
         REGISTRY.put(id, type);
         return type;
     }
 
     public static final FrameCaptureType<BasicFrameCapture> BASIC = register(new FrameCaptureType<>(BasicFrameCapture::new),
-            Identifier.of("replaylab:basic"));
+            ResourceLocation.parse("replaylab:basic"));
 
     /// === FIELDS ===
 
@@ -41,7 +41,7 @@ public final class FrameCaptureType<T extends FrameCapture> {
 
     /// === IDENTITY ===
 
-    public Identifier getId() {
+    public ResourceLocation getId() {
         var id = REGISTRY.inverse().get(this);
         if (id == null) {
             throw new IllegalStateException("This FrameCaptureType is not registered!");
@@ -49,14 +49,14 @@ public final class FrameCaptureType<T extends FrameCapture> {
         return id;
     }
 
-    public @Nullable Identifier tryGetId() {
+    public @Nullable ResourceLocation tryGetId() {
         return REGISTRY.inverse().get(this);
     }
 
     /// === SERIALIZATION ===
 
     public static FrameCapture parse(JsonObject json, JsonDeserializationContext ctx) throws JsonParseException, UnknownFrameCaptureTypeException {
-        var id = Identifier.of(json.get("type").getAsString());
+        var id = ResourceLocation.parse(json.get("type").getAsString());
         var type = REGISTRY.get(id);
         if (type == null) {
             throw new UnknownFrameCaptureTypeException(id);

@@ -4,7 +4,7 @@ import com.igrium.craftui.app.AppManager;
 import com.igrium.craftui.app.CraftApp;
 import com.igrium.replaylab.render.VideoRenderer;
 import com.igrium.replaylab.render.RenderUtils;
-import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.Minecraft;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -22,7 +22,7 @@ public class MixinAppManager {
     }
 
     @Inject(method = "render", at = @At("HEAD"), cancellable = true)
-    private static void cancelRender(MinecraftClient client, CallbackInfo ci) {
+    private static void cancelRender(Minecraft client, CallbackInfo ci) {
         if (RenderUtils.forceNoCraftUI)
             ci.cancel();
     }

@@ -20,10 +20,10 @@
     "AccessorNativeImage",
     "MixinCamera",
     "MixinCameraEntity",
-    "MixinClientPlayerEntity",
+      "MixinLocalPlayer",
     "MixinGameRenderer",
     "MixinLanguageManager",
-    "MixinMinecraftClient",
-    "MixinWorldRenderer"
+      "MixinMinecraft",
+      "MixinLevelRenderer"
   ]
 }

@@ -12,10 +12,10 @@ import imgui.type.ImString;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import lombok.experimental.UtilityClass;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.world.ClientWorld;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.multiplayer.ClientLevel;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.player.Player;
 
 import java.util.Collections;
 import java.util.function.Predicate;
@@ -33,8 +33,8 @@ public class EntitySelectorWindow {
     }
 
     public static boolean selectEntity(String name, ImInt entId, Predicate<? super Entity> predicate) {
-        ClientWorld world = MinecraftClient.getInstance().world;
-        Iterable<Entity> iterable = world != null ? Iterables.filter(world.getEntities(), predicate::test) : Collections.emptyList();
+        ClientLevel world = Minecraft.getInstance().level;
+        Iterable<Entity> iterable = world != null ? Iterables.filter(world.entitiesForRendering(), predicate::test) : Collections.emptyList();
         return selectEntity(name, entId, iterable);
     }
 
@@ -63,7 +63,7 @@ public class EntitySelectorWindow {
             String filterStr = filter.get().toLowerCase();
             int index = 0;
             for (var ent : entities) {
-                if (onlyPlayers.get() && !(ent instanceof PlayerEntity)) {
+                if (onlyPlayers.get() && !(ent instanceof Player)) {
                     continue;
                 }
 

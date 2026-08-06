@@ -7,14 +7,14 @@ import imgui.flag.ImGuiWindowFlags;
 import imgui.type.ImBoolean;
 import lombok.Getter;
 import lombok.Setter;
-import net.minecraft.util.Identifier;
-import net.minecraft.util.Language;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.locale.Language;
 import org.jetbrains.annotations.Nullable;
 
 public abstract class UIModal {
 
     @Getter
-    private final Identifier id;
+    private final ResourceLocation id;
 
     private final ImBoolean open = new ImBoolean(false);
 
@@ -28,7 +28,7 @@ public abstract class UIModal {
 
     private boolean wasOpen;
 
-    protected UIModal(Identifier id) {
+    protected UIModal(ResourceLocation id) {
         this.id = id;
     }
 
@@ -37,7 +37,7 @@ public abstract class UIModal {
     }
 
     public String getTitle() {
-        return Language.getInstance().get(id.toTranslationKey("panel"));
+        return Language.getInstance().getOrDefault(id.toLanguageKey("panel"));
     }
 
     public String getPopupName() {

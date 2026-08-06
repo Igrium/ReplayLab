@@ -4,7 +4,7 @@ import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.gson.*;
 import com.igrium.replaylab.json.GsonSerializationContext;
-import net.minecraft.util.Identifier;
+import net.minecraft.resources.ResourceLocation;
 
 import java.util.function.Function;
 
@@ -27,7 +27,7 @@ public class CurveModifierType<T extends CurveModifier> {
         return factory.apply(this);
     }
 
-    public Identifier getId() {
+    public ResourceLocation getId() {
         var id = REGISTRY.inverse().get(this);
         if (id == null) {
             // Should never happen, so blow up when it does
@@ -37,14 +37,14 @@ public class CurveModifierType<T extends CurveModifier> {
     }
 
     public String getTranslationKey() {
-        return getId().toTranslationKey("curve_modifier");
+        return getId().toLanguageKey("curve_modifier");
     }
 
     public static CurveModifier fromJson(JsonObject json, JsonDeserializationContext context) {
         if (!json.has("type")) {
             throw new JsonParseException("Invalid json object. Missing 'type'");
         }
-        Identifier id = Identifier.of(json.get("type").getAsString());
+        ResourceLocation id = ResourceLocation.parse(json.get("type").getAsString());
         CurveModifierType<?> type = CurveModifierType.REGISTRY.get(id);
         if (type == null) {
             throw new IllegalArgumentException("Unknown curve modifier type: " + id);
@@ -54,18 +54,18 @@ public class CurveModifierType<T extends CurveModifier> {
         return mod;
     }
 
-    public static final BiMap<Identifier, CurveModifierType<?>> REGISTRY = HashBiMap.create();
+    public static final BiMap<ResourceLocation, CurveModifierType<?>> REGISTRY = HashBiMap.create();
 
-    public static <T extends CurveModifier> CurveModifierType<T> register(Identifier id, Function<CurveModifierType<T>, T> factory) {
+    public static <T extends CurveModifier> CurveModifierType<T> register(ResourceLocation id, Function<CurveModifierType<T>, T> factory) {
         var type = new CurveModifierType<>(factory);
         REGISTRY.put(id, type);
         return type;
     }
 
     public static final CurveModifierType<ModifierNoise> NOISE =
-            register(Identifier.of("replaylab:noise"), ModifierNoise::new);
+            register(ResourceLocation.parse("replaylab:noise"), ModifierNoise::new);
 
     public static final CurveModifierType<ModifierTranslate> TRANSLATE =
-            register(Identifier.of("replaylab:translate"), ModifierTranslate::new);
+            register(ResourceLocation.parse("replaylab:translate"), ModifierTranslate::new);
 
 }

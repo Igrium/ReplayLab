@@ -4,7 +4,7 @@ import com.mojang.blaze3d.platform.GlConst;
 import com.mojang.blaze3d.platform.GlStateManager;
 import com.mojang.blaze3d.systems.RenderSystem;
 import lombok.Getter;
-import net.minecraft.client.texture.AbstractTexture;
+import net.minecraft.client.renderer.texture.AbstractTexture;
 
 import java.io.Closeable;
 
@@ -36,7 +36,7 @@ public class SimpleFramebuffer implements Closeable {
         int prevFbo = GlStateManager.getBoundFramebuffer();
         GlStateManager._glBindFramebuffer(GlConst.GL_FRAMEBUFFER, fbo);
         GlStateManager._glFramebufferTexture2D(GlConst.GL_FRAMEBUFFER, GlConst.GL_COLOR_ATTACHMENT0,
-                GlConst.GL_TEXTURE_2D, texture.getGlId(), 0);
+                GlConst.GL_TEXTURE_2D, texture.getId(), 0);
         GlStateManager._glBindFramebuffer(GlConst.GL_FRAMEBUFFER, prevFbo);
     }
 

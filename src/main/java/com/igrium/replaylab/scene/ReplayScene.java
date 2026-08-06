@@ -13,9 +13,9 @@ import com.igrium.replaylab.util.NameUtils;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.Setter;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.world.ClientWorld;
-import net.minecraft.entity.Entity;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.multiplayer.ClientLevel;
+import net.minecraft.world.entity.Entity;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -151,7 +151,7 @@ public class ReplayScene {
     public void spectateCamera() {
         Entity cam = getSceneCamera();
         if (cam != null) {
-            MinecraftClient.getInstance().setCameraEntity(cam);
+            Minecraft.getInstance().setCameraEntity(cam);
         }
     }
 
@@ -312,7 +312,7 @@ public class ReplayScene {
      */
     public Stream<ReplayObject> referencingObjects(Entity entity) {
         return objectsUnmod.values().stream().filter(obj ->
-                obj instanceof EntityProvider<?> e && e.getEntity((ClientWorld) entity.getWorld()) == entity);
+                obj instanceof EntityProvider<?> e && e.getEntity((ClientLevel) entity.level()) == entity);
     }
 
     /**

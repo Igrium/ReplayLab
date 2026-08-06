@@ -11,8 +11,8 @@ import com.replaymod.core.events.PostRenderCallback;
 import com.replaymod.core.events.PreRenderCallback;
 import com.replaymod.core.versions.MCVer;
 import com.replaymod.render.mixin.GameRendererAccessor;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.screen.Screen;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.screens.Screen;
 
 import static com.mojang.blaze3d.platform.GlConst.*;
 
@@ -41,31 +41,31 @@ public class BasicFrameCapture extends FrameCapture {
         RenderSystem.assertOnRenderThread();
 
         RenderMetadata meta = getMetadata();
-        MinecraftClient mc = MinecraftClient.getInstance();
+        Minecraft mc = Minecraft.getInstance();
 
         /// === RENDER ===
         MCVer.resizeMainWindow(mc, meta.width(), meta.height());
         MCVer.pushMatrix();
-        mc.getFramebuffer().beginWrite(true);
+        mc.getMainRenderTarget().bindWrite(true);
 
         RenderSystem.clear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         PreRenderCallback.EVENT.invoker().preRender();
 
-        if (mc.world != null && mc.player != null) {
+        if (mc.level != null && mc.player != null) {
             GameRendererAccessor gameRenderer = (GameRendererAccessor) mc.gameRenderer;
-            Screen orgScreen = mc.currentScreen;
+            Screen orgScreen = mc.screen;
             boolean orgPauseOnLostFocus = mc.options.pauseOnLostFocus;
             boolean orgRenderHand = gameRenderer.getRenderHand();
 
             try {
-                mc.currentScreen = null;
+                mc.screen = null;
                 mc.options.pauseOnLostFocus = false;
                 // TODO: set render hand if omnidirectional
 
-                mc.gameRenderer.render(mc.getRenderTickCounter(), true);
+                mc.gameRenderer.render(mc.getDeltaTracker(), true);
             } finally {
-                mc.currentScreen = orgScreen;
+                mc.screen = orgScreen;
                 mc.options.pauseOnLostFocus = orgPauseOnLostFocus;
                 gameRenderer.setRenderHand(orgRenderHand);
             }
@@ -73,15 +73,15 @@ public class BasicFrameCapture extends FrameCapture {
 
         PostRenderCallback.EVENT.invoker().postRender();
 
-        mc.getFramebuffer().endWrite();
+        mc.getMainRenderTarget().unbindWrite();
         MCVer.popMatrix();
 
         /// === SAVE FRAME ===
-        GlStateManager._glBindFramebuffer(GL_FRAMEBUFFER, mc.getFramebuffer().fbo);
-        GlStateManager._bindTexture(texture.getGlId());
+        GlStateManager._glBindFramebuffer(GL_FRAMEBUFFER, mc.getMainRenderTarget().frameBufferId);
+        GlStateManager._bindTexture(texture.getId());
 
         GlStateManager._glCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 0, 0,
-                mc.getFramebuffer().textureWidth, mc.getFramebuffer().textureHeight);
+                mc.getMainRenderTarget().width, mc.getMainRenderTarget().height);
     }
 
 }

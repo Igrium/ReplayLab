@@ -6,7 +6,7 @@ import com.google.gson.JsonSerializationContext;
 import com.igrium.replaylab.render.ManagedNativeImage;
 import com.igrium.replaylab.render.RenderMetadata;
 import com.igrium.replaylab.util.SimpleBlockingQueue;
-import net.minecraft.util.Util;
+import net.minecraft.Util;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 
 import java.nio.file.Files;
@@ -89,7 +89,7 @@ public class PNGEncoder extends EncoderConfig {
                     // There's absolutely no reason runAsync shouldn't handle checked exceptions
                     throw ExceptionUtils.asRuntimeException(e);
                 }
-            }, Util.getIoWorkerExecutor());
+            }, Util.ioPool());
         }
 
         @Override

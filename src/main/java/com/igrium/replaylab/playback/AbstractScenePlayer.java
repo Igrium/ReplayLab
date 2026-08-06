@@ -10,8 +10,8 @@ import com.replaymod.replay.ReplayHandler;
 import com.replaymod.replay.ReplaySender;
 import lombok.Getter;
 import lombok.NonNull;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.render.RenderTickCounter;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.DeltaTracker;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.concurrent.CompletableFuture;
@@ -25,7 +25,7 @@ public abstract class AbstractScenePlayer extends EventRegistrations {
 
     private boolean wasAsyncMode;
 
-    private RenderTickCounter.Dynamic origTimer;
+    private DeltaTracker.Timer origTimer;
 
     /**
      * The previously processed replay time during timeline playback
@@ -57,7 +57,7 @@ public abstract class AbstractScenePlayer extends EventRegistrations {
         register();
         prevReplayTime = 0;
 
-        var mcA = (MinecraftAccessor) MinecraftClient.getInstance();
+        var mcA = (MinecraftAccessor) Minecraft.getInstance();
         origTimer = mcA.getTimer();
         ReplayTimer timer = new ReplayTimer();
         mcA.setTimer(timer);
@@ -78,7 +78,7 @@ public abstract class AbstractScenePlayer extends EventRegistrations {
     }
 
     private void restoreState() {
-        var mcA = (MinecraftAccessor) MinecraftClient.getInstance();
+        var mcA = (MinecraftAccessor) Minecraft.getInstance();
         mcA.setTimer(origTimer);
         replayHandler.getReplaySender().setReplaySpeed(0);
         if (wasAsyncMode) {
@@ -127,7 +127,7 @@ public abstract class AbstractScenePlayer extends EventRegistrations {
         float prevTimeInTicks = prevReplayTime / 50f;
         float passedTicks = timeInTicks - prevTimeInTicks;
 
-        RenderTickCounter rTickCounter = ((MinecraftAccessor) MinecraftClient.getInstance()).getTimer();
+        DeltaTracker rTickCounter = ((MinecraftAccessor) Minecraft.getInstance()).getTimer();
         if (rTickCounter instanceof ReplayTimer timer) {
             timer.tickDelta += passedTicks;
             timer.ticksThisFrame = (int) timer.tickDelta;

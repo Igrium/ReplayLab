@@ -1,25 +1,25 @@
 package com.igrium.replaylab;
 
 import com.igrium.replaylab.camera.AnimatedCameraEntity;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.EntityType;
-import net.minecraft.entity.SpawnGroup;
-import net.minecraft.registry.Registries;
-import net.minecraft.registry.Registry;
-import net.minecraft.registry.RegistryKey;
-import net.minecraft.registry.RegistryKeys;
-import net.minecraft.util.Identifier;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.MobCategory;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.Registry;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.ResourceLocation;
 
 public class ReplayLabEntities {
     public static final EntityType<AnimatedCameraEntity> CAMERA = registerEntity(
-            "replaylab:camera", EntityType.Builder.create(AnimatedCameraEntity::new, SpawnGroup.MISC)
-                    .dimensions(.75f, .75f)
+            "replaylab:camera", EntityType.Builder.of(AnimatedCameraEntity::new, MobCategory.MISC)
+                    .sized(.75f, .75f)
                     .eyeHeight(0)
-                    .disableSummon());
+                    .noSummon());
 
     private static <T extends Entity> EntityType<T> registerEntity(String id, EntityType.Builder<T> type) {
-        RegistryKey<EntityType<?>> registryKey = RegistryKey.of(RegistryKeys.ENTITY_TYPE, Identifier.of(id));
-        return Registry.register(Registries.ENTITY_TYPE, registryKey, type.build(registryKey));
+        ResourceKey<EntityType<?>> registryKey = ResourceKey.create(Registries.ENTITY_TYPE, ResourceLocation.parse(id));
+        return Registry.register(BuiltInRegistries.ENTITY_TYPE, registryKey, type.build(registryKey));
     }
 
     public static void register() {
