@@ -340,7 +340,7 @@ public abstract class ReplayObject3D extends ReplayObject implements TransformPr
     public void onCreated() {
         super.onCreated();
         Minecraft mc = Minecraft.getInstance();
-        Entity camEnt = mc.cameraEntity != null ? mc.cameraEntity : mc.player;
+        Entity camEnt = mc.getCameraEntity() != null ? mc.getCameraEntity() : mc.player;
         if (camEnt != null) {
             Vec3 newPos = camEnt.getLookAngle().scale(5).add(camEnt.getEyePosition());
             position().set(newPos.x, newPos.y, newPos.z);

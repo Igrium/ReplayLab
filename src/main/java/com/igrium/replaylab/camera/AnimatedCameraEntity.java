@@ -8,7 +8,8 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.network.syncher.SynchedEntityData;
-import net.minecraft.nbt.CompoundTag;
+import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.level.storage.ValueOutput;
 import net.minecraft.network.protocol.game.ClientGamePacketListener;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.server.level.ServerEntity;
@@ -62,7 +63,7 @@ public class AnimatedCameraEntity extends Entity implements FovProvider, Rotatio
 
     public AnimatedCameraEntity(EntityType<?> type, Level world) {
         super(type, world);
-        if (!world.isClientSide) {
+        if (!world.isClientSide()) {
             throw new IllegalStateException("Animated camera should never be spawned on the server!");
         }
     }
@@ -88,7 +89,7 @@ public class AnimatedCameraEntity extends Entity implements FovProvider, Rotatio
         this.xOld = this.xo = x;
         this.yOld = this.yo = y;
         this.zOld = this.zo = z;
-        this.moveTo(x, y, z, getYRot(), getXRot());
+        this.snapTo(x, y, z, getYRot(), getXRot());
         refreshDimensions();
     }
 
@@ -132,12 +133,12 @@ public class AnimatedCameraEntity extends Entity implements FovProvider, Rotatio
     }
 
     @Override
-    protected void readAdditionalSaveData(CompoundTag nbt) {
+    protected void readAdditionalSaveData(ValueInput input) {
 
     }
 
     @Override
-    protected void addAdditionalSaveData(CompoundTag nbt) {
+    protected void addAdditionalSaveData(ValueOutput output) {
 
     }
 

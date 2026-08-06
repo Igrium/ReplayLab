@@ -25,7 +25,7 @@ public class CameraToViewOperator implements ReplayOperator {
         if (editor.isCameraView()) return false;
 
         Minecraft mc = Minecraft.getInstance();
-        Entity camEnt = mc.cameraEntity != null ? mc.cameraEntity : mc.player;
+        Entity camEnt = mc.getCameraEntity() != null ? mc.getCameraEntity() : mc.player;
         if (camEnt == null) return false;
 
         ReplayObject cObj = editor.getScene().getSceneCameraObject();

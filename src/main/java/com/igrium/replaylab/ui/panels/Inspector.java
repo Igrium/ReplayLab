@@ -4,11 +4,11 @@ import com.igrium.replaylab.editor.EditorState;
 import com.igrium.replaylab.object.EditFlags;
 import com.igrium.replaylab.object.ReplayObject;
 import imgui.ImGui;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.locale.Language;
 
 public class Inspector extends UIPanel {
-    public Inspector(ResourceLocation id) {
+    public Inspector(Identifier id) {
         super(id);
     }
 

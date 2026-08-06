@@ -1,13 +1,13 @@
 package com.igrium.replaylab.render.capture;
 
 import lombok.Getter;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 public class UnknownFrameCaptureTypeException extends RuntimeException {
     @Getter
-    private final ResourceLocation identifier;
+    private final Identifier identifier;
 
-    public UnknownFrameCaptureTypeException(ResourceLocation identifier) {
+    public UnknownFrameCaptureTypeException(Identifier identifier) {
         super("Unknown frame capture type: " + identifier);
         this.identifier = identifier;
     }

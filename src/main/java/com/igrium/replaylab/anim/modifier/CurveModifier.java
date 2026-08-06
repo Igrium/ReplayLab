@@ -98,7 +98,7 @@ public abstract class CurveModifier {
         ImGui.separator();
 
         ImGui.alignTextToFramePadding();
-        boolean open = ImGui.treeNodeEx("##", ImGuiTreeNodeFlags.AllowItemOverlap);
+        boolean open = ImGui.treeNodeEx("##", ImGuiTreeNodeFlags.AllowOverlap);
         ImGui.sameLine();
 
         tmpBool.set(isRestrictRange());

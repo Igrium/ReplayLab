@@ -5,7 +5,7 @@ import com.igrium.replaylab.config.ReplayLabConfig;
 import com.igrium.replaylab.editor.EditorState;
 import com.igrium.replaylab.ui.settings.SettingsEditor;
 import lombok.Getter;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 public class SettingsWindow extends UIModal {
 
@@ -14,7 +14,7 @@ public class SettingsWindow extends UIModal {
     @Getter
     private boolean modified;
 
-    public SettingsWindow(ResourceLocation id) {
+    public SettingsWindow(Identifier id) {
         super(id);
 
         setDefaultWidth(640);

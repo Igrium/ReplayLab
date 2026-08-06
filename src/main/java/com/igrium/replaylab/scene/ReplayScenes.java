@@ -5,7 +5,7 @@ import com.google.gson.reflect.TypeToken;
 import com.igrium.replaylab.object.SerializedReplayObject;
 import com.replaymod.replaystudio.replay.ReplayFile;
 import lombok.experimental.UtilityClass;
-import net.minecraft.Util;
+import net.minecraft.util.Util;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.jetbrains.annotations.Nullable;

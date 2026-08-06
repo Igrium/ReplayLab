@@ -10,7 +10,7 @@ import imgui.ImGui;
 import imgui.flag.ImGuiMouseCursor;
 import imgui.type.ImBoolean;
 import net.minecraft.locale.Language;
-import net.minecraft.Util;
+import net.minecraft.util.Util;
 
 public class ViewportFooter {
 
@@ -23,7 +23,7 @@ public class ViewportFooter {
     private final ImBoolean tmpBoolean = new ImBoolean();
 
     public void drawPlaybackControls(EditorState editorState) {
-        ImGui.pushFont(ReplayLabIcons.getFont());
+        ImGui.pushFont(ReplayLabIcons.getFont(), 0);
         float buttonSize = ImGui.getTextLineHeightWithSpacing() * 1.25f;
         float viewportFooterHeight = buttonSize + ImGui.getStyle().getWindowPaddingY() * 2;
         ImGui.popFont();
@@ -137,7 +137,7 @@ public class ViewportFooter {
     private void timestampView(String id, int timestamp, String tooltip) {
         ImGui.beginGroup();
 
-        ImGui.pushFont(CraftUIFonts.getFont(ReplayLabControls.ROBOTO_MONO));
+        ImGui.pushFont(CraftUIFonts.getFont(ReplayLabControls.ROBOTO_MONO), 0);
         String str = Timestamps.toTimestamp(timestamp, 3, ReplayLabConfig.getInstance().getTimestampMode());
         ImGui.text(str);
         ImGui.popFont();
@@ -147,8 +147,6 @@ public class ViewportFooter {
         float rectMinY = ImGui.getItemRectMinY();
         float rectSizeX = ImGui.getItemRectSizeX();
         float rectSizeY = ImGui.getItemRectSizeY();
-        float cursorX = ImGui.getCursorPosX();
-        float cursorY = ImGui.getCursorPosY();
 
         ImGui.setCursorScreenPos(rectMinX, rectMinY);
         if (ImGui.invisibleButton(id, rectSizeX, rectSizeY)) {
@@ -158,8 +156,9 @@ public class ViewportFooter {
 
         boolean hovered = ImGui.isItemHovered();
 
-        ImGui.setCursorPosX(cursorX);
-        ImGui.setCursorPosY(cursorY);
+        // The invisible button occupies the text's exact rect, so it already leaves the cursor where
+        // the text did -- restoring it by hand would only trip ImGui 1.92's EndGroup assertion, which
+        // fires when SetCursorPos is the last thing a group does.
         ImGui.endGroup();
 
         if (hovered) {
@@ -174,7 +173,7 @@ public class ViewportFooter {
     }
 
     private boolean playbackIcon(String icon, String tooltip, float buttonSize) {
-        ImGui.pushFont(ReplayLabIcons.getFont());
+        ImGui.pushFont(ReplayLabIcons.getFont(), 0);
         boolean res = ImGui.button(String.valueOf(icon), buttonSize, buttonSize);
         ImGui.popFont();
 

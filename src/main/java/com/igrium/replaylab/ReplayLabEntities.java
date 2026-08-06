@@ -8,7 +8,7 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.Registry;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.core.registries.Registries;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 public class ReplayLabEntities {
     public static final EntityType<AnimatedCameraEntity> CAMERA = registerEntity(
@@ -18,7 +18,7 @@ public class ReplayLabEntities {
                     .noSummon());
 
     private static <T extends Entity> EntityType<T> registerEntity(String id, EntityType.Builder<T> type) {
-        ResourceKey<EntityType<?>> registryKey = ResourceKey.create(Registries.ENTITY_TYPE, ResourceLocation.parse(id));
+        ResourceKey<EntityType<?>> registryKey = ResourceKey.create(Registries.ENTITY_TYPE, Identifier.parse(id));
         return Registry.register(BuiltInRegistries.ENTITY_TYPE, registryKey, type.build(registryKey));
     }
 

@@ -7,7 +7,7 @@ import com.igrium.replaylab.editor.EditorState;
 import com.igrium.replaylab.render.RenderMetadata;
 import com.igrium.replaylab.render.SimpleTexture;
 import com.igrium.replaylab.render.encoder.EncoderProcess;
-import com.mojang.blaze3d.platform.GlConst;
+import com.mojang.blaze3d.GpuFormat;
 import imgui.ImGui;
 import lombok.Getter;
 import lombok.NonNull;
@@ -56,7 +56,7 @@ public abstract class FrameCapture {
 
     public SimpleTexture generateTexture() {
         var meta = getMetadata();
-        return new SimpleTexture(meta.width(), meta.height(), GlConst.GL_RGBA8);
+        return new SimpleTexture(meta.width(), meta.height(), GpuFormat.RGBA8_UNORM);
     }
 
     /**

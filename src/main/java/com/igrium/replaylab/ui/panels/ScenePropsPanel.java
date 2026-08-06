@@ -1,10 +1,10 @@
 package com.igrium.replaylab.ui.panels;
 
 import com.igrium.replaylab.editor.EditorState;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 public class ScenePropsPanel extends Inspector {
-    public ScenePropsPanel(ResourceLocation id) {
+    public ScenePropsPanel(Identifier id) {
         super(id);
     }
 

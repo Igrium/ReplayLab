@@ -5,7 +5,7 @@ import imgui.ImGui;
 import imgui.flag.ImGuiWindowFlags;
 import imgui.type.ImString;
 import net.minecraft.client.Minecraft;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 public class SceneBrowser extends UIModal {
 
@@ -13,7 +13,7 @@ public class SceneBrowser extends UIModal {
 
     private int selectedSceneIdx = -1;
 
-    public SceneBrowser(ResourceLocation id) {
+    public SceneBrowser(Identifier id) {
         super(id);
         setDefaultWidth(640);
         setDefaultHeight(480);
@@ -153,7 +153,7 @@ public class SceneBrowser extends UIModal {
 
         // Don't actually load the scene until the next frame.
         // Probably not a good idea to swap it in the middle of the UI rendering
-        Minecraft.getInstance().doRunTask(() -> {
+        Minecraft.getInstance().execute(() -> {
             editorState.loadScene(sceneName);
         });
         ImGui.closeCurrentPopup();

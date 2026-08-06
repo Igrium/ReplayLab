@@ -41,7 +41,7 @@ public class EntitySelector {
         }
 
         ImGui.sameLine();
-        ImGui.pushFont(ReplayLabIcons.getFont());
+        ImGui.pushFont(ReplayLabIcons.getFont(), 0);
         if (ImGui.button(ReplayLabIcons.ICON_EYE_DROPPER + "###pickButton", iconWidth, 0)) {
             EntityPicker.open("picker");
         }

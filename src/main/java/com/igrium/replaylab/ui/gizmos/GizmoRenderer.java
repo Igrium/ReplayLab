@@ -12,7 +12,7 @@ import lombok.Getter;
 import lombok.experimental.Accessors;
 import lombok.experimental.UtilityClass;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.Camera;
+import net.minecraft.client.renderer.state.level.CameraRenderState;
 import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Matrix4f;
@@ -33,10 +33,10 @@ public class GizmoRenderer {
     private static final Matrix4f projectionMatrix = new Matrix4f();
 
     // TODO: Fix gizmo projection matrix issue. I've been working on this for three days, and I'm tired.
-    public static void setupCameraProjection(Matrix4fc positionMatrix, Matrix4fc projectionMatrix, Camera camera) {
-        Vec3 camPos = camera.getPosition();
+    public static void setupCameraProjection(Matrix4fc positionMatrix, CameraRenderState cameraState) {
+        Vec3 camPos = cameraState.pos;
         GizmoRenderer.viewMatrix().set(positionMatrix);
-        GizmoRenderer.projectionMatrix().set(projectionMatrix);
+        GizmoRenderer.projectionMatrix().set(cameraState.projectionMatrix);
         GizmoRenderer.cameraPos().set(camPos.x, camPos.y, camPos.z);
     }
 
@@ -62,7 +62,7 @@ public class GizmoRenderer {
         ImGuizmo.setRect(rectX, rectY, viewportBounds.width(), viewportBounds.height());
         ImGuizmo.allowAxisFlip(false);
 
-        boolean hidden = Minecraft.getInstance().screen != null;
+        boolean hidden = Minecraft.getInstance().gui.screen() != null;
         int numObjects = editorState.getScene().getObjects().size();
 
         List<String> wantUndoStep = new ArrayList<>(numObjects);

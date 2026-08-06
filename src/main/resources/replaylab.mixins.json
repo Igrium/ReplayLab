@@ -23,7 +23,6 @@
       "MixinLocalPlayer",
     "MixinGameRenderer",
     "MixinLanguageManager",
-      "MixinMinecraft",
       "MixinLevelRenderer"
   ]
 }

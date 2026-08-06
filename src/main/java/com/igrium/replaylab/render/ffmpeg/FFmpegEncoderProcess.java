@@ -11,7 +11,7 @@ import com.igrium.replaylab.render.encoder.EncoderProcess;
 import com.replaymod.render.FFmpegWriter;
 import com.replaymod.render.utils.StreamPipe;
 import net.fabricmc.loader.api.FabricLoader;
-import net.minecraft.Util;
+import net.minecraft.util.Util;
 import org.apache.commons.io.output.TeeOutputStream;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.jetbrains.annotations.Nullable;

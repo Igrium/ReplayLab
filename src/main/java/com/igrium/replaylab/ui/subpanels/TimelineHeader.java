@@ -117,7 +117,7 @@ public class TimelineHeader {
 
         if (ImGui.beginPopup("headerPopup")) {
 
-            ImGui.pushFont(CraftUIFonts.getFont(ReplayLabControls.ROBOTO_MONO));
+            ImGui.pushFont(CraftUIFonts.getFont(ReplayLabControls.ROBOTO_MONO), 0);
             ImGui.beginDisabled();
             ImGui.text(contextTimeStr);
             ImGui.endDisabled();

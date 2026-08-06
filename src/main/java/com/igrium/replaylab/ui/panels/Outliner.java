@@ -12,7 +12,7 @@ import imgui.ImGui;
 import imgui.flag.ImGuiCol;
 import imgui.flag.ImGuiKey;
 import imgui.type.ImString;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.locale.Language;
 import net.minecraft.util.ARGB;
 import org.jetbrains.annotations.Nullable;
@@ -32,7 +32,7 @@ public class Outliner extends UIPanel {
     private String[] queuedDelete;
 
 
-    public Outliner(ResourceLocation id) {
+    public Outliner(Identifier id) {
         super(id);
     }
 

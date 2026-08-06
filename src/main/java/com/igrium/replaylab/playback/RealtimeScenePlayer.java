@@ -40,7 +40,7 @@ public class RealtimeScenePlayer extends AbstractScenePlayer {
             // Re-measure to account for time the first frame's jump took
             startSystemTime = System.currentTimeMillis() - startTimestamp;
         }
-        if (Minecraft.getInstance().getOverlay() != null) {
+        if (Minecraft.getInstance().gui.overlay() != null) {
             if (!loadingResources) {
                 timeBeforeResourceLoading = getTimePassed();
                 loadingResources = true;

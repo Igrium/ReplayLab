@@ -13,9 +13,9 @@ import imgui.type.ImBoolean;
 import imgui.type.ImInt;
 import imgui.type.ImString;
 import lombok.NonNull;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.locale.Language;
-import net.minecraft.Util;
+import net.minecraft.util.Util;
 import org.apache.commons.lang3.mutable.Mutable;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
@@ -28,7 +28,7 @@ import java.util.function.Predicate;
 public class ReplayLabControls {
     private static final ImBoolean isSelected = new ImBoolean();
     private static final Logger LOGGER = LoggerFactory.getLogger(ReplayLabControls.class);
-    public static final ResourceLocation ROBOTO_MONO = ResourceLocation.parse("replaylab:roboto-mono");
+    public static final Identifier ROBOTO_MONO = Identifier.parse("replaylab:roboto-mono");
 
     /**
      * Draw a dropdown box with a collection of strings.
@@ -120,7 +120,7 @@ public class ReplayLabControls {
 
     @Deprecated
     public static boolean toggleButton(char icon, String id, ImBoolean pressed, @Nullable String tooltip) {
-        ImGui.pushFont(ReplayLabIcons.getFont());
+        ImGui.pushFont(ReplayLabIcons.getFont(), 0);
         boolean result = toggleButton(icon + "###" + id, pressed);
         ImGui.popFont();
 
@@ -132,7 +132,7 @@ public class ReplayLabControls {
 
     @Deprecated
     public static boolean iconButton(char icon, String id, @Nullable String tooltip) {
-        ImGui.pushFont(ReplayLabIcons.getFont());
+        ImGui.pushFont(ReplayLabIcons.getFont(), 0);
         boolean result = ImGui.button(icon + "###" + id);
         ImGui.popFont();
 

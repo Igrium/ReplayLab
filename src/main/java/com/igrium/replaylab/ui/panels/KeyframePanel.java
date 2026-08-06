@@ -32,7 +32,7 @@ import it.unimi.dsi.fastutil.ints.IntSet;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import lombok.Getter;
 import lombok.Setter;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.locale.Language;
 
 import java.util.*;
@@ -113,7 +113,7 @@ public abstract class KeyframePanel extends UIPanel {
 
     private float cachedContentHeight = 100f;
 
-    public KeyframePanel(ResourceLocation id) {
+    public KeyframePanel(Identifier id) {
         super(id);
     }
 

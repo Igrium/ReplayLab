@@ -40,7 +40,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.client.CameraType;
 import net.minecraft.world.entity.Entity;
-import net.minecraft.Util;
+import net.minecraft.util.Util;
 import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -505,7 +505,7 @@ public final class EditorState {
                 // TP player to camera, taken directly from the replay object rather than going through camera ent,
                 // which has been through quaternion.
                 Vector3f euler = cam3d.rotation().getEulerYXZ(new Vector3f());
-                player.moveTo(cam3d.position().x,
+                player.snapTo(cam3d.position().x,
                         cam3d.position().y - player.getEyeHeight(), cam3d.position().z,
                         -Math.toDegrees(euler.y), Math.toDegrees(euler.x));
             }
@@ -717,7 +717,7 @@ public final class EditorState {
         vec.mul(-4);
         vec.add(x, y, z);
 
-        player.moveTo(vec.x, vec.y - player.getEyeHeight(), vec.z,
+        player.snapTo(vec.x, vec.y - player.getEyeHeight(), vec.z,
                 player.getYRot(), player.getXRot());
     }
 

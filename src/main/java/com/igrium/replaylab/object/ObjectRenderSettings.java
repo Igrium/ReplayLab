@@ -19,7 +19,7 @@ import lombok.Getter;
 import lombok.NonNull;
 import lombok.Setter;
 import net.fabricmc.loader.api.FabricLoader;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.locale.Language;
 import org.apache.commons.io.FilenameUtils;
 
@@ -117,10 +117,10 @@ public class ObjectRenderSettings extends ReplayObject {
         }
 
         ImGui.separator();
-        ResourceLocation selId = encoder.getType().getId();
+        Identifier selId = encoder.getType().getId();
         if (ImGui.beginCombo(t("gui.replaylab.encoder"), t(selId.toLanguageKey("encoder")))) {
             for (var entry : EncoderTypes.REGISTRY.entrySet()) {
-                ResourceLocation id = entry.getKey();
+                Identifier id = entry.getKey();
                 boolean selected = id.equals(selId);
 
                 if (ImGui.selectable(t(id.toLanguageKey("encoder")), selected) && !selected) {

@@ -170,10 +170,6 @@ public final class ManagedNativeImage {
 
     }
 
-    public void mirrorVertically() {
-        useRawImage(NativeImage::flipY);
-    }
-
     public void reachabilityFence() {
         Reference.reachabilityFence(this);
     }

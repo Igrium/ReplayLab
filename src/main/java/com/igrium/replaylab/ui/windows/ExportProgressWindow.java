@@ -5,7 +5,8 @@ import com.igrium.replaylab.render.VideoRenderer;
 import imgui.ImGui;
 import imgui.flag.ImGuiCond;
 import imgui.flag.ImGuiWindowFlags;
-import net.minecraft.client.renderer.texture.AbstractTexture;
+import com.igrium.replaylab.render.SimpleTexture;
+import com.mojang.blaze3d.opengl.GlTexture;
 import net.minecraft.locale.Language;
 
 public class ExportProgressWindow {
@@ -71,9 +72,12 @@ public class ExportProgressWindow {
         float centerOffsetX = (availWidth - imageWidth) / 2.0f;
         ImGui.setCursorPosX(ImGui.getCursorPosX() + centerOffsetX);
 
-        AbstractTexture tex = r.getRenderTexture();
-        if (tex != null) {
-            ImGui.image(tex.getId(), imageWidth, imageHeight, 0, 1, 1, 0);
+        // ImGui only understands raw texture handles. The OpenGL backend gives us one; the Vulkan
+        // backend (ImGuiImplBlaze3D) ignores per-command texture ids entirely, so there we fall
+        // back to blank space and the progress bar above carries the feedback.
+        SimpleTexture tex = r.getRenderTexture();
+        if (tex != null && !tex.isClosed() && tex.getTexture() instanceof GlTexture glTexture) {
+            ImGui.image(glTexture.glId(), imageWidth, imageHeight, 0, 1, 1, 0);
         } else {
             ImGui.dummy(imageWidth, imageHeight);
         }

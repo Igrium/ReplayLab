@@ -18,7 +18,7 @@ public class MixinEntity {
 
     @Inject(method = "turn", at = @At("HEAD"), cancellable = true)
     void lookDirectionChangeRoll(double cursorDeltaX, double cursorDeltaY, CallbackInfo ci) {
-        if (!level.isClientSide) {
+        if (!level.isClientSide()) {
             return;
         }
         var editor = EditorState.getInstance();

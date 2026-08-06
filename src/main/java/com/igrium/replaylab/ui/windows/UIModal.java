@@ -7,14 +7,14 @@ import imgui.flag.ImGuiWindowFlags;
 import imgui.type.ImBoolean;
 import lombok.Getter;
 import lombok.Setter;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.locale.Language;
 import org.jetbrains.annotations.Nullable;
 
 public abstract class UIModal {
 
     @Getter
-    private final ResourceLocation id;
+    private final Identifier id;
 
     private final ImBoolean open = new ImBoolean(false);
 
@@ -28,7 +28,7 @@ public abstract class UIModal {
 
     private boolean wasOpen;
 
-    protected UIModal(ResourceLocation id) {
+    protected UIModal(Identifier id) {
         this.id = id;
     }
 
