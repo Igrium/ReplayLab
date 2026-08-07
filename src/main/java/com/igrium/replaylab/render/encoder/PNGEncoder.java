@@ -3,7 +3,7 @@ package com.igrium.replaylab.render.encoder;
 import com.google.gson.JsonDeserializationContext;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonSerializationContext;
-import com.igrium.replaylab.render.ManagedNativeImage;
+import com.mojang.blaze3d.platform.NativeImage;
 import com.igrium.replaylab.render.RenderMetadata;
 import com.igrium.replaylab.util.SimpleBlockingQueue;
 import net.minecraft.util.Util;
@@ -42,6 +42,11 @@ public class PNGEncoder extends EncoderConfig {
      */
     public static class PNGEncoderProcess extends EncoderProcess {
 
+        /**
+         * Rough ceiling on how much frame data may sit in the write queue at once.
+         */
+        private static final long MAX_QUEUED_BYTES = 512L * 1024 * 1024;
+
         private ExecutorService executor;
 
 
@@ -49,30 +54,43 @@ public class PNGEncoder extends EncoderConfig {
         protected void startEncoding() throws Exception {
             Files.createDirectories(getMetadata().outPath());
             int availableProcessors = Runtime.getRuntime().availableProcessors();
+
+            // Bound queue by bytes so it scales cleanly with resolution (and therefore memory usage)
+            long frameBytes = (long) getMetadata().width() * getMetadata().height() * 4;
+            int queueSize = Math.clamp(MAX_QUEUED_BYTES / Math.max(frameBytes, 1), 4, 32);
+
             executor = new ThreadPoolExecutor(
                     availableProcessors,
                     availableProcessors,
                     20,
                     TimeUnit.MILLISECONDS,
-                    new SimpleBlockingQueue<>(32)
+                    new SimpleBlockingQueue<>(queueSize)
             );
         }
 
         @Override
-        protected void encodeFrame(ManagedNativeImage frame, int frameIdx) {
-            executor.submit(() -> {
-                try {
-                    if (getState() != EncodingState.ENCODING)
-                        return;
+        protected void encodeFrame(NativeImage frame, int frameIdx) {
+            try {
+                executor.submit(() -> {
+                    try {
+                        if (getState() != EncodingState.ENCODING)
+                            return;
 
-                    int maxDigits = (int) (Math.log10(getMetadata().totalFrames()) + 1);
-                    String prefix = String.format("%0" + maxDigits + "d", frameIdx);
-                    var path = getMetadata().outPath().resolve(prefix + ".png");
-                    frame.writeTo(path);
-                } catch (Exception e) {
-                    fail(e);
-                }
-            });
+                        int maxDigits = (int) (Math.log10(getMetadata().totalFrames()) + 1);
+                        String prefix = String.format("%0" + maxDigits + "d", frameIdx);
+                        var path = getMetadata().outPath().resolve(prefix + ".png");
+                        frame.writeToFile(path);
+                    } catch (Exception e) {
+                        fail(e);
+                    } finally {
+                        frame.close();
+                    }
+                });
+            } catch (RejectedExecutionException e) {
+                // Nobody took ownership, so it's still ours to free.
+                frame.close();
+                throw e;
+            }
         }
 
         @Override

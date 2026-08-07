@@ -1,4 +1,3 @@
-// TODO(Ravel): Failed to fully resolve file: null cannot be cast to non-null type com.intellij.psi.PsiJavaCodeReferenceElement
 package com.igrium.replaylab.render;
 
 import com.igrium.craftui.app.AppManager;
@@ -12,6 +11,8 @@ import com.igrium.replaylab.render.encoder.EncoderProcess;
 import com.igrium.replaylab.scene.ReplayScene;
 import com.mojang.blaze3d.buffers.GpuBuffer;
 import com.mojang.blaze3d.buffers.GpuBufferSlice;
+import com.mojang.blaze3d.buffers.GpuFence;
+import com.mojang.blaze3d.systems.CommandEncoder;
 import com.mojang.blaze3d.pipeline.RenderTarget;
 import com.mojang.blaze3d.platform.NativeImage;
 import com.mojang.blaze3d.platform.Window;
@@ -49,6 +50,9 @@ import java.util.concurrent.TimeUnit;
 
 public class VideoRenderer {
     private static final Logger LOGGER = LoggerFactory.getLogger("ReplayLab/VideoRenderer");
+
+    /** Per-attempt wait for the frame readback fence. Looped, so a slow frame just waits again. */
+    private static final long FENCE_TIMEOUT_NS = TimeUnit.SECONDS.toNanos(5);
 
     @Getter
     private static boolean renderingVideo;
@@ -97,6 +101,11 @@ public class VideoRenderer {
      */
     @Getter
     private @Nullable SimpleTexture renderTexture;
+
+    /**
+     * Persistent buffer for reading from gpu into cpu.
+     */
+    private @Nullable GpuBuffer readbackBuffer;
 
     public VideoRenderer(RenderMetadata renderMetadata, ReplayHandler replay, ReplayScene scene, FrameCapture frameCapture, EncoderConfig encoder) {
         this.renderMetadata = renderMetadata;
@@ -160,6 +169,12 @@ public class VideoRenderer {
                 mc.debugEntries.setOverlayVisible(false);
             }
 
+
+            int[] realWidth = new int[1];
+            int[] realHeight = new int[1];
+            GLFW.glfwGetFramebufferSize(mc.getWindow().handle(), realWidth, realHeight);
+            MCVer.resizeMainWindow(mc, realWidth[0], realHeight[0]);
+
             guiWindow = new VirtualWindow(mc);
 
             mc.mouseHandler.releaseMouse();
@@ -205,16 +220,19 @@ public class VideoRenderer {
                 queueFrame(frameIdx, 1);
                 frameCapture.captureFrame(curIdx, renderTexture);
 
+                // TODO: if the texture is downloaded async under-the-hood,
+                // can we write it async as well?
                 NativeImage nImage = downloadTexture(renderTexture);
 
                 drawGui();
 
                 Throwable e = encoder.getFailureReason();
                 if (e != null) {
+                    nImage.close();
                     throw (Exception) e;
                 }
-                encoder.accept(ManagedNativeImage.of(nImage), curIdx);
-
+                // Ownership passes to the encoder, which closes it once the frame is written.
+                encoder.accept(nImage, curIdx);
             }
 
             /// === FINISH ===
@@ -252,6 +270,11 @@ public class VideoRenderer {
             if (renderTexture != null) {
                 renderTexture.close();
                 renderTexture = null;
+            }
+
+            if (readbackBuffer != null) {
+                readbackBuffer.close();
+                readbackBuffer = null;
             }
 
 
@@ -295,14 +318,17 @@ public class VideoRenderer {
     /**
      * Read a rendered frame back off the GPU into a {@link NativeImage}.
      * <p>
-     * This mirrors {@link net.minecraft.client.Screenshot}, except that (like ReplayMod) we map the
-     * staging buffer immediately rather than waiting on the copy callback, so the render loop stays
-     * synchronous and frames keep reaching the encoder in index order.
+     * The copy is asynchronous on both backends -- GL turns it into a PBO {@code glReadPixels} and
+     * defers the callback to a fence, Vulkan records it into the in-flight command buffer -- so we
+     * must block on a fence before mapping. Mapping straight away yields a partially written buffer,
+     * which shows up as the bottom of the frame being cut off by a different amount each time.
+     * Vanilla's {@link net.minecraft.client.Screenshot} sidesteps this by reading inside the
+     * callback; the export loop needs the pixels synchronously, so it waits instead.
      * <p>
      * Minecraft's offscreen render target leaves alpha at 0, so alpha is forced opaque here. The
      * vertical flip that {@code NativeImage.flipY} used to do is folded into the row indexing.
      */
-    private static NativeImage downloadTexture(SimpleTexture texture) {
+    private NativeImage downloadTexture(SimpleTexture texture) {
         RenderSystem.assertOnRenderThread();
 
         int width = texture.getWidth();
@@ -310,12 +336,25 @@ public class VideoRenderer {
         GpuTexture gpuTexture = texture.getTexture();
         int blockSize = gpuTexture.getFormat().blockSize();
 
-        NativeImage image = new NativeImage(width, height, false);
-        try (GpuBuffer buffer = RenderSystem.getDevice().createBuffer(() -> "ReplayLab frame readback",
-                GpuBuffer.USAGE_MAP_READ | GpuBuffer.USAGE_COPY_DST, (long) width * height * blockSize)) {
+        // Kept for the whole export rather than allocated per frame; it's 32 MiB at 4K.
+        if (readbackBuffer == null) {
+            readbackBuffer = RenderSystem.getDevice().createBuffer(() -> "ReplayLab frame readback",
+                    GpuBuffer.USAGE_MAP_READ | GpuBuffer.USAGE_COPY_DST, (long) width * height * blockSize);
+        }
+        GpuBuffer buffer = readbackBuffer;
 
-            RenderSystem.getDevice().createCommandEncoder()
-                    .copyTextureToBuffer(gpuTexture, buffer, 0, () -> {}, 0);
+        NativeImage image = new NativeImage(width, height, false);
+        try {
+            CommandEncoder encoder = RenderSystem.getDevice().createCommandEncoder();
+            encoder.copyTextureToBuffer(gpuTexture, buffer, 0, () -> {}, 0);
+
+            // The fence has to be created before the submit: Vulkan's implementation pins it to the
+            // submission that is currently being built, which is the one holding the copy.
+            try (GpuFence fence = encoder.createFence()) {
+                encoder.submit();
+                //noinspection StatementWithEmptyBody
+                while (!fence.awaitCompletion(FENCE_TIMEOUT_NS)) {}
+            }
 
             try (GpuBufferSlice.MappedView view = buffer.map(true, false)) {
                 for (int y = 0; y < height; y++) {
@@ -390,6 +429,26 @@ public class VideoRenderer {
         // Minecraft's main loop isn't running during export; without this the OS window stops responding.
         RenderSystem.pollEvents();
 
+        // captureFrame leaves Window sized to the video resolution. The progress UI is drawn at the
+        // window's real size (ImGui takes its display size straight from GLFW), so bind the virtual
+        // window for the duration -- otherwise everything is laid out against the video resolution.
+        guiWindow.bind();
+        try {
+            drawGuiBound();
+        } finally {
+            guiWindow.unbind();
+        }
+
+        if (mc.mouseHandler.isMouseGrabbed()) {
+            mc.mouseHandler.releaseMouse();
+        }
+
+        return !abort;
+    }
+
+    private void drawGuiBound() {
+        Window window = mc.getWindow();
+
         clearMainRenderTarget();
 
         // While the gui window is bound for writing, mc.gameRenderer.mainRenderTarget() resolves to
@@ -414,12 +473,6 @@ public class VideoRenderer {
 
         // Replaces Window.updateDisplay: presents the gui framebuffer through the window surface.
         guiWindow.flip();
-
-        if (mc.mouseHandler.isMouseGrabbed()) {
-            mc.mouseHandler.releaseMouse();
-        }
-
-        return !abort;
     }
 
     private void clearMainRenderTarget() {

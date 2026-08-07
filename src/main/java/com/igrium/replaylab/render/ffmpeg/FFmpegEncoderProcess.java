@@ -3,17 +3,14 @@ package com.igrium.replaylab.render.ffmpeg;
 import com.google.common.collect.ImmutableList;
 import com.igrium.replaylab.mixin.AccessorNativeImage;
 import com.igrium.replaylab.mixin.AccessorRenderSettings;
-import com.igrium.replaylab.render.ManagedNativeImage;
 import com.igrium.replaylab.render.RenderMetadata;
-import com.igrium.replaylab.render.encoder.EncoderConfig;
 import com.igrium.replaylab.render.encoder.EncoderException;
 import com.igrium.replaylab.render.encoder.EncoderProcess;
+import com.mojang.blaze3d.platform.NativeImage;
 import com.replaymod.render.FFmpegWriter;
 import com.replaymod.render.utils.StreamPipe;
 import net.fabricmc.loader.api.FabricLoader;
-import net.minecraft.util.Util;
 import org.apache.commons.io.output.TeeOutputStream;
-import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.jetbrains.annotations.Nullable;
 import org.lwjgl.system.MemoryUtil;
 import org.slf4j.Logger;
@@ -25,15 +22,11 @@ import java.nio.channels.Channels;
 import java.nio.channels.WritableByteChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionException;
 import java.util.concurrent.TimeUnit;
 
 import static com.igrium.replaylab.render.ffmpeg.FFmpegEncoder.CODECS;
-import static com.igrium.replaylab.render.ffmpeg.FFmpegEncoder.RateControlMode.CBR;
-import static com.igrium.replaylab.render.ffmpeg.FFmpegEncoder.RateControlMode.VBR;
 
 /**
  * Adapted from {@link com.replaymod.render.FFmpegWriter} for use with ReplayLab scenes
@@ -83,15 +76,18 @@ public class FFmpegEncoderProcess extends EncoderProcess {
         channel = Channels.newChannel(outputStream);
     }
 
+    @SuppressWarnings("TryFinallyCanBeTryWithResources") // More clear what it's doing
     @Override
-    protected void encodeFrame(ManagedNativeImage frame, int frameIdx) throws IOException {
-        frame.useRawImage(nImg -> {
-            AccessorNativeImage img = (AccessorNativeImage) (Object) nImg;
-            assert img != null;
-            // View of nativeimage memory
+    protected void encodeFrame(NativeImage frame, int frameIdx) throws IOException {
+        try {
+            //noinspection DataFlowIssue (mixins babyyyyy)
+            AccessorNativeImage img = (AccessorNativeImage) (Object) frame;
             ByteBuffer buffer = MemoryUtil.memByteBuffer(img.getPixels(), (int) img.getSize());
             channel.write(buffer);
-        });
+        } finally {
+            // Write is synchronous, so the frame is dead the moment it returns.
+            frame.close();
+        }
     }
 
 

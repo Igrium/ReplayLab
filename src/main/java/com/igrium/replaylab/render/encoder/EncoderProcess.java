@@ -1,7 +1,7 @@
 package com.igrium.replaylab.render.encoder;
 
-import com.igrium.replaylab.render.ManagedNativeImage;
 import com.igrium.replaylab.render.RenderMetadata;
+import com.mojang.blaze3d.platform.NativeImage;
 import lombok.Getter;
 import lombok.NonNull;
 import org.jetbrains.annotations.Nullable;
@@ -81,15 +81,23 @@ public abstract class EncoderProcess {
 
     /**
      * Queue a frame to be encoded.
+     * <p>
+     * <strong>Takes ownership of the frame.</strong> The encoder <em>must call</em> {@link NativeImage#close()
+     * close} at some point after it's done.
      *
-     * @param frame The frame to encode.
+     * @param frame The frame to encode. Do not touch it after this call.
      * @throws IllegalStateException If we're not in state {@link EncodingState#ENCODING}
      * @apiNote If the encoder is not ready to receive the frame (buffer is full, etc.), blocks until it's ready
      */
-    public final void accept(ManagedNativeImage frame, int frameIdx) throws IllegalStateException, EncoderException {
-        ensureNotFailed();
-        if (state != EncodingState.ENCODING) {
-            throw new IllegalStateException("Encoder must be in EncodingState.ENCODING (was " + state + ")");
+    public final void accept(NativeImage frame, int frameIdx) throws IllegalStateException, EncoderException {
+        try {
+            ensureNotFailed();
+            if (state != EncodingState.ENCODING) {
+                throw new IllegalStateException("Encoder must be in EncodingState.ENCODING (was " + state + ")");
+            }
+        } catch (Exception e) {
+            frame.close();
+            throw e;
         }
 
         try {
@@ -101,7 +109,10 @@ public abstract class EncoderProcess {
         }
     }
 
-    protected abstract void encodeFrame(ManagedNativeImage frame, int frameIdx) throws Exception;
+    /**
+     * Encode a single frame, taking ownership of it. See {@link #accept}.
+     */
+    protected abstract void encodeFrame(NativeImage frame, int frameIdx) throws Exception;
 
     /**
      * Asynchronously finalize this 
