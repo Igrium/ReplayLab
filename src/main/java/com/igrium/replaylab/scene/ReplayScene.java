@@ -22,6 +22,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.*;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 
@@ -66,32 +67,14 @@ public class ReplayScene {
 
 
     public ObjectSceneProps getSceneProps() {
-        ReplayObject obj = getObject(SCENE_PROPS);
-        ObjectSceneProps sceneProps;
-        if (obj instanceof ObjectSceneProps) {
-            sceneProps = (ObjectSceneProps) obj;
-        } else {
-            LOGGER.info("No Scene object found. Creating.");
-            sceneProps = ReplayObjects.SCENE_PROPS.create(this);
-            addObject(SCENE_PROPS, sceneProps);
-        }
-        return sceneProps;
+        return (ObjectSceneProps) getOrCreateObject(SCENE_PROPS, ReplayObjects.SCENE_PROPS::create);
     }
 
     /**
      * Get the render settings object for the scene. Note that render settings are not stored in undo/redo.
      */
     public ObjectRenderSettings getRenderSettings() {
-        ReplayObject obj = getObject(RENDER_SETTINGS);
-        ObjectRenderSettings renderSettings;
-        if (obj instanceof ObjectRenderSettings) {
-            renderSettings = (ObjectRenderSettings) obj;
-        } else {
-            LOGGER.info("No RenderSettings object found. Creating.");
-            renderSettings = ReplayObjects.RENDER_SETTINGS.create(this);
-            addObject(RENDER_SETTINGS, renderSettings);
-        }
-        return renderSettings;
+        return (ObjectRenderSettings) getOrCreateObject(RENDER_SETTINGS, ReplayObjects.RENDER_SETTINGS::create);
     }
 
     public int getLength() {
@@ -211,6 +194,21 @@ public class ReplayScene {
             return true;
         }
         return false;
+    }
+
+    /**
+     * Get an object of a given ID, creating it if it doesn't exist.
+     *
+     * @param id      Object ID to use
+     * @param factory Factory to create the new object if needed.
+     * @return The new or existing object
+     */
+    public ReplayObject getOrCreateObject(String id, Function<? super ReplayScene, ? extends ReplayObject> factory) {
+        return objects.computeIfAbsent(id, i -> {
+            var obj = factory.apply(this);
+            onAddObject(i, obj);
+            return obj;
+        });
     }
 
     /**
