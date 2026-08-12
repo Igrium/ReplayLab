@@ -2,6 +2,7 @@ package com.igrium.replaylab.ui;
 
 
 import com.igrium.craftui.app.DockSpaceApp;
+import com.igrium.craftui.icon.FontAwesome;
 import com.igrium.replaylab.ReplayLab;
 import com.igrium.replaylab.config.Keybinds;
 import com.igrium.replaylab.editor.EditorState;
@@ -485,9 +486,7 @@ public class ReplayLabUI extends DockSpaceApp {
 
 
     private boolean toggleButton(char icon, @Nullable String tooltip, ImBoolean value) {
-        ImGui.pushFont(ReplayLabIcons.getFont(), 0);
         boolean result = ReplayLabControls.toggleButton(String.valueOf(icon), value);
-        ImGui.popFont();
 
         if (ImGui.isItemHovered() && tooltip != null) ImGui.setTooltip(tooltip);
         return result;

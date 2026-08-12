@@ -1,6 +1,6 @@
 package com.igrium.replaylab.ui.widgets;
 
-import com.igrium.replaylab.ui.ReplayLabIcons;
+import com.igrium.craftui.icon.FontAwesome;
 import com.igrium.replaylab.ui.util.ReplayLabControls;
 import imgui.ImGui;
 import imgui.type.ImInt;
@@ -41,8 +41,7 @@ public class EntitySelector {
         }
 
         ImGui.sameLine();
-        ImGui.pushFont(ReplayLabIcons.getFont(), 0);
-        if (ImGui.button(ReplayLabIcons.ICON_EYE_DROPPER + "###pickButton", iconWidth, 0)) {
+        if (ImGui.button(FontAwesome.ICON_EYE_DROPPER + "###pickButton", iconWidth, 0)) {
             EntityPicker.open("picker");
         }
         EntityPicker picker = EntityPicker.get("picker");

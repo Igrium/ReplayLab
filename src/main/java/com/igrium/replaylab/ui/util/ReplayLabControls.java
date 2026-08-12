@@ -2,7 +2,6 @@ package com.igrium.replaylab.ui.util;
 
 import com.igrium.replaylab.config.ReplayLabConfig;
 import com.igrium.replaylab.object.ReplayObject;
-import com.igrium.replaylab.ui.ReplayLabIcons;
 import com.igrium.replaylab.util.Timestamps;
 import imgui.ImGui;
 import imgui.ImGuiIO;
@@ -72,14 +71,14 @@ public class ReplayLabControls {
     public static boolean objectSelector(@NonNull String label, @NonNull Mutable<String> selectedId,
                                          Predicate<? super ReplayObject> predicate, Map<String, ReplayObject> objects) {
         boolean updated = false;
-        ReplayObject selObj = objects.get(selectedId.getValue());
+        ReplayObject selObj = objects.get(selectedId.get());
 
-        String selDisp = selObj != null ? selObj.getDisplayName() : selectedId.getValue();
+        String selDisp = selObj != null ? selObj.getDisplayName() : selectedId.get();
         if (ImGui.beginCombo(label, selDisp != null ? selDisp : "")) {
             for (var objEntry : objects.entrySet()) {
                 if (!predicate.test(objEntry.getValue())) continue;
 
-                boolean selected = Objects.equals(selectedId.getValue(), objEntry.getKey());
+                boolean selected = Objects.equals(selectedId.get(), objEntry.getKey());
                 if (ImGui.selectable(objEntry.getValue().getDisplayName() + "###" + objEntry.getKey(), selected)) {
                     updated = true;
                     selectedId.setValue(objEntry.getKey());
@@ -120,9 +119,7 @@ public class ReplayLabControls {
 
     @Deprecated
     public static boolean toggleButton(char icon, String id, ImBoolean pressed, @Nullable String tooltip) {
-        ImGui.pushFont(ReplayLabIcons.getFont(), 0);
         boolean result = toggleButton(icon + "###" + id, pressed);
-        ImGui.popFont();
 
         if (tooltip != null) {
             ImGui.setItemTooltip(Language.getInstance().getOrDefault(tooltip));
@@ -132,9 +129,7 @@ public class ReplayLabControls {
 
     @Deprecated
     public static boolean iconButton(char icon, String id, @Nullable String tooltip) {
-        ImGui.pushFont(ReplayLabIcons.getFont(), 0);
         boolean result = ImGui.button(icon + "###" + id);
-        ImGui.popFont();
 
         if (tooltip != null) {
             ImGui.setItemTooltip(Language.getInstance().getOrDefault(tooltip));

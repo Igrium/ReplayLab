@@ -5,6 +5,7 @@ import imgui.ImFont;
 import lombok.experimental.UtilityClass;
 import net.minecraft.resources.Identifier;
 
+@Deprecated
 @UtilityClass
 public class ReplayLabIcons {
     public static final Identifier FONT_ID = Identifier.parse("replaylab:font-awesome");

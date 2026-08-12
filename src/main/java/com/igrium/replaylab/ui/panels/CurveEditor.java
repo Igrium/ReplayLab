@@ -14,7 +14,7 @@ import com.igrium.replaylab.anim.ChannelUtils;
 import com.igrium.replaylab.anim.KeyChannel;
 import com.igrium.replaylab.anim.Keyframe;
 import com.igrium.replaylab.object.ReplayObject;
-import com.igrium.replaylab.ui.ReplayLabIcons;
+import com.igrium.craftui.icon.FontAwesome;
 import com.igrium.replaylab.ui.subpanels.ChannelListFlags;
 import com.igrium.replaylab.ui.util.ReplayLabControls;
 import com.igrium.replaylab.ui.subpanels.TimelineHeader;
@@ -157,20 +157,20 @@ public class CurveEditor extends KeyframePanel {
 
     @Override
     protected void drawControlButtons(EditorState editorState) {
-        ReplayLabControls.toggleButton(ReplayLabIcons.ICON_ARROW_POINTER, "selectedOnly", getSelectedOnlyRef(),
+        ReplayLabControls.toggleButton(FontAwesome.ICON_ARROW_POINTER, "selectedOnly", getSelectedOnlyRef(),
                 "gui.replaylab.selected_only");
         ImGui.sameLine();
 
-        ReplayLabControls.toggleButton(ReplayLabIcons.ICON_MAGNET, "snapKeyframes", snapKeyframes,
+        ReplayLabControls.toggleButton(FontAwesome.ICON_MAGNET, "snapKeyframes", snapKeyframes,
                 "gui.replaylab.tooltip_snap");
         ImGui.sameLine();
-        wantsFit = ReplayLabControls.iconButton(ReplayLabIcons.ICON_RESIZE_FULL_ALT, "wantsFit",
+        wantsFit = ReplayLabControls.iconButton(FontAwesome.ICON_UP_RIGHT_AND_DOWN_LEFT_FROM_CENTER, "wantsFit",
                 "gui.replaylab.tooltip_fit");
 
         wasNormalized = isNormalized();
 
         ImGui.sameLine();
-        ReplayLabControls.toggleButton(ReplayLabIcons.ICON_ARROWS_V, "normalize", normalized,
+        ReplayLabControls.toggleButton(FontAwesome.ICON_ARROWS_UP_DOWN, "normalize", normalized,
                 "gui.replaylab.tooltip_normalize");
     }
 
