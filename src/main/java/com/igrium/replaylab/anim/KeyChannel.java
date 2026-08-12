@@ -24,7 +24,7 @@ import java.util.stream.IntStream;
 @JsonAdapter(KeyChannelSerializer.class)
 public final class KeyChannel {
 
-    private static final Logger LOGGER = ReplayLab.getLogger("KeyChannel");
+    private static final Logger LOGGER = ReplayLab.getLogger("ReplayLab/KeyChannel");
 
     @Getter
     private final List<Keyframe> keyframes;
@@ -77,9 +77,22 @@ public final class KeyChannel {
      *
      * @param timestamp Timestamp to add at.
      * @param value     Value to give the new keyframe. <code>NaN</code> to automatically generate.
-     * @return The index of the new keyframe (likely at the end)
+     * @return The in-memory index of the new keyframe (likely at the end)
      */
     public int addKeyframe(int timestamp, double value) {
+        return addKeyframe(timestamp, value, InterpolationMode.BEZIER);
+    }
+
+    /**
+     * Add a keyframe to this channel.
+     * If there is already a keyframe at that timestamp, replace its value with the new value.
+     *
+     * @param timestamp  Timestamp to add at.
+     * @param value      Value to give the new keyframe. <code>NaN</code> to automatically generate.
+     * @param interpMode Interpolation mode to assign the new keyframe
+     * @return The in-memory index of the new keyframe (likely at the end)
+     */
+    public int addKeyframe(int timestamp, double value, InterpolationMode interpMode) {
         int i = 0;
         for (var key : keyframes) {
             if (key.getTimeInt() == timestamp) {
@@ -91,6 +104,7 @@ public final class KeyChannel {
 
         Keyframe keyframe = new Keyframe(timestamp, value);
         keyframe.setHandleType(ReplayLabConfig.getInstance().getDefaultHandleType());
+        keyframe.setInterpolationMode(interpMode);
         this.keyframes.add(keyframe);
 
         ChannelUtils.computeHandles(this, null);

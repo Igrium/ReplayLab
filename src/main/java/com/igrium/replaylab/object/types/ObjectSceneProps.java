@@ -62,7 +62,7 @@ public final class ObjectSceneProps extends ReplayObject {
 
     public ObjectSceneProps(ReplayObjectType<?> type, ReplayScene scene) {
         super(type, scene);
-        addProperty(PROP_SPEED, new Property(this::getSpeed, this::setSpeed, 0, MAX_SPEED, true));
+        addProperty(PROP_SPEED, new Property(this::getSpeed, this::setSpeed, 0, MAX_SPEED, false, true));
     }
 
     public void setStartTime(int startTime) {

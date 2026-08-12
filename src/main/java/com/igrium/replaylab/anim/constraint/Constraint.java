@@ -5,7 +5,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonSerializationContext;
 import com.igrium.replaylab.editor.EditorState;
 import com.igrium.replaylab.object.EditFlags;
-import com.igrium.replaylab.object.PropertyHolder;
+import com.igrium.replaylab.anim.PropertyHolder;
 import com.igrium.replaylab.object.ReplayObject;
 import imgui.ImGui;
 import lombok.Getter;

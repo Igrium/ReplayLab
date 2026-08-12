@@ -1,5 +1,6 @@
-package com.igrium.replaylab.object;
+package com.igrium.replaylab.anim;
 
+import com.igrium.replaylab.object.ReplayObject;
 import lombok.Getter;
 import org.jetbrains.annotations.Nullable;
 
@@ -36,9 +37,14 @@ public interface PropertyHolder {
      * @param noMods If set, this property is not allowed to have curve modifiers (UI only)
      */
     record Property(DoubleSupplier getter, DoubleConsumer setter,
-                    double minVal, double maxVal, boolean noMods) {
+                    double minVal, double maxVal, boolean discrete, boolean noMods) {
         public Property(DoubleSupplier getter, DoubleConsumer setter) {
-            this(getter, setter, Double.MIN_VALUE, Double.MAX_VALUE, false);
+            this(getter, setter, Double.MIN_VALUE, Double.MAX_VALUE, false, false);
+        }
+
+        public Property(DoubleSupplier getter, DoubleConsumer setter,
+                        double minVal, double maxVal, boolean discrete) {
+            this(getter, setter, minVal, maxVal, discrete, false);
         }
 
         public double getValue() {
@@ -122,5 +128,15 @@ public interface PropertyHolder {
      */
     default boolean hasProperty(String name) {
         return getPropertyRef(name) != null;
+    }
+
+    /**
+     * Get the default interpolation mode for a given property
+     * @param property The property
+     * @return Interpolation mode to use
+     */
+    default InterpolationMode getDefaultInterpMode(String property) {
+        var prop = getPropertyRef(property);
+        return prop != null && prop.discrete() ? InterpolationMode.CONSTANT : InterpolationMode.BEZIER;
     }
 }

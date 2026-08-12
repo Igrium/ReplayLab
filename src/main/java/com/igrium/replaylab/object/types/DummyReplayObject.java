@@ -19,6 +19,8 @@ import org.slf4j.LoggerFactory;
 
 public class DummyReplayObject extends ReplayObject {
 
+    private enum TestEnum {VAL1, VAL2, VAL3}
+
     @Getter @Setter
     private double dummyValue;
 
@@ -56,14 +58,6 @@ public class DummyReplayObject extends ReplayObject {
         if (state.isUpdated()) flags |= EditFlags.UPDATE_SCENE;
         if (state.isDropped()) flags |= EditFlags.CREATE_UNDO_STEP;
 
-//        if (ImGui.dragScalar("Dummy Value", dummyValInput)) {
-//            flags |= ObjectEditState.UPDATE_SCENE;
-//            setDummyValue(dummyValInput[0]);
-//        }
-//        if (ImGui.isItemDeactivatedAfterEdit()) {
-//            flags |= ObjectEditState.COMMIT;
-//        }
-
         if (ImGui.button("Add test modifier")) {
             var mod = CurveModifierType.TRANSLATE.create();
             mod.setOffsetY(10);
@@ -74,15 +68,7 @@ public class DummyReplayObject extends ReplayObject {
             flags |= EditFlags.CREATE_UNDO_STEP;
         }
 
-//        boolean modified = false;
-//
-//        dummyValInput[0] = dummyValue;
-//        if (ImGui.dragScalar("Dummy Value", dummyValInput, 1)) {
-//            modified = true;
-//        }
-//        dummyValue = dummyValInput[0];
-//
-//
+        
 
         return flags;
     }

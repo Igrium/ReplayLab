@@ -3,6 +3,8 @@ package com.igrium.replaylab.object;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.gson.*;
+import com.igrium.replaylab.anim.PropertyHolder;
+import com.igrium.replaylab.anim.PropertyHolder.Property;
 import com.igrium.replaylab.anim.constraint.Constraint;
 import com.igrium.replaylab.anim.constraint.ConstraintContainer;
 import com.igrium.replaylab.anim.constraint.ObjectAccessor;
@@ -25,6 +27,8 @@ import org.joml.Vector3dc;
 import java.util.*;
 import java.util.function.DoubleConsumer;
 import java.util.function.DoubleSupplier;
+import java.util.function.IntConsumer;
+import java.util.function.IntSupplier;
 
 /**
  * An object that can be animated within a replay
@@ -48,7 +52,7 @@ public abstract class ReplayObject implements PropertyHolder {
      * <code>writeJson</code>
      */
     @Getter
-    private final Map<String, PropertyHolder.Property> properties = new HashMap<>();
+    private final Map<String, Property> properties = new HashMap<>();
 
     /**
      * All animation channels in the object. Not all properties have a channel.
@@ -97,18 +101,32 @@ public abstract class ReplayObject implements PropertyHolder {
 
     /// === PROPERTIES ===
 
-    protected final void addProperty(String name, DoubleSupplier getter, DoubleConsumer setter) {
-        addProperty(name, new PropertyHolder.Property(getter, setter));
-    }
-
-    protected final void addProperty(String name, PropertyHolder.Property property) {
+    /**
+     * Add a property
+     */
+    protected final void addProperty(String name, Property property) {
         if (name.contains(":")) {
             throw new IllegalArgumentException("Property names may not contain ':'");
         }
         getProperties().put(name, property);
     }
 
-    public @Nullable PropertyHolder.Property getPropertyRef(String propName) {
+    /**
+     * Add a scalar property
+     */
+    protected final void addProperty(String name, DoubleSupplier getter, DoubleConsumer setter) {
+        addProperty(name, new Property(getter, setter));
+    }
+
+    /**
+     * Add a discrete property
+     */
+    protected final void addProperty(String name, IntSupplier getter, IntConsumer setter) {
+        addProperty(name, new Property(getter::getAsInt, val -> setter.accept((int) Math.round(val)),
+                Double.MIN_VALUE, Double.MAX_VALUE, true));
+    }
+
+    public @Nullable Property getPropertyRef(String propName) {
         String[] split = propName.split(":", 2);
 
         if (split.length > 1) {

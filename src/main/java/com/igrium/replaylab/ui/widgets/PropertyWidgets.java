@@ -58,7 +58,7 @@ public final class PropertyWidgets {
         for (int idx : state.newKeys()) {
             var chan = obj.getOrCreateChannel(properties[idx]);
             if (!chan.isLocked()) {
-                chan.addKeyframe(playhead, values[idx]);
+                chan.addKeyframe(playhead, values[idx], obj.getDefaultInterpMode(properties[idx]));
                 obj.getSampledValues().put(properties[idx], values[idx]);
             }
         }
