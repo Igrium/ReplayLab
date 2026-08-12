@@ -2,8 +2,8 @@ package com.igrium.replaylab.render;
 
 import com.igrium.craftui.app.AppManager;
 import com.igrium.replaylab.editor.EditorState;
-import com.igrium.replaylab.object.ObjectRenderSettings;
-import com.igrium.replaylab.object.ObjectSceneProps;
+import com.igrium.replaylab.object.types.ObjectRenderSettings;
+import com.igrium.replaylab.object.types.ObjectSceneProps;
 import com.igrium.replaylab.playback.AbstractScenePlayer;
 import com.igrium.replaylab.render.capture.FrameCapture;
 import com.igrium.replaylab.render.encoder.EncoderConfig;

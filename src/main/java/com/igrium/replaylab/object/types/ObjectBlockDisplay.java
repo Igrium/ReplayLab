@@ -1,5 +1,7 @@
-package com.igrium.replaylab.object;
+package com.igrium.replaylab.object.types;
 
+import com.igrium.replaylab.object.EntityObject;
+import com.igrium.replaylab.object.ReplayObjectType;
 import com.igrium.replaylab.scene.ReplayScene;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.client.multiplayer.ClientLevel;

@@ -1,4 +1,4 @@
-package com.igrium.replaylab.object;
+package com.igrium.replaylab.object.types;
 
 import com.google.gson.JsonDeserializationContext;
 import com.google.gson.JsonObject;
@@ -7,6 +7,9 @@ import com.igrium.replaylab.ReplayLabEntities;
 import com.igrium.replaylab.camera.AnimatedCameraEntity;
 import com.igrium.replaylab.editor.EditorState;
 import com.igrium.replaylab.math.Transform3;
+import com.igrium.replaylab.object.EditFlags;
+import com.igrium.replaylab.object.EntityObject;
+import com.igrium.replaylab.object.ReplayObjectType;
 import com.igrium.replaylab.scene.ReplayScene;
 import com.igrium.replaylab.ui.widgets.PropertyWidgets;
 import imgui.ImGui;

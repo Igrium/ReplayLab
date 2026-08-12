@@ -2,6 +2,7 @@ package com.igrium.replaylab.object;
 
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
+import com.igrium.replaylab.object.types.*;
 import com.igrium.replaylab.scene.ReplayScene;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

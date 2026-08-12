@@ -4,7 +4,7 @@ import com.igrium.replaylab.config.ReplayLabConfig;
 import com.igrium.replaylab.editor.EditorState;
 import com.igrium.replaylab.operator.ReplayOperator;
 import com.igrium.replaylab.object.ReplayObject;
-import com.igrium.replaylab.object.ObjectCamera;
+import com.igrium.replaylab.object.types.ObjectCamera;
 import com.igrium.replaylab.scene.ReplayScene;
 
 /**
@@ -23,7 +23,7 @@ public class AddObjectOperator implements ReplayOperator {
 
     @Override
     public boolean execute(EditorState editor) {
-        if (editor.getScene().addObjectIfAbsent(objectId, object)) {
+        if (editor.getScene().addObjectIfAbsent(objectId, object) == null) {
             object.onCreated();
             editor.setActiveObject(objectId);
 

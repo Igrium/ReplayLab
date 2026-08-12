@@ -1,4 +1,4 @@
-package com.igrium.replaylab.object;
+package com.igrium.replaylab.object.types;
 
 import com.google.gson.JsonDeserializationContext;
 import com.google.gson.JsonObject;
@@ -6,6 +6,8 @@ import com.google.gson.JsonSerializationContext;
 import com.igrium.craftui.file.FileDialogs;
 import com.igrium.craftui.file.FileDialogs.FileFilter;
 import com.igrium.replaylab.editor.EditorState;
+import com.igrium.replaylab.object.ReplayObject;
+import com.igrium.replaylab.object.ReplayObjectType;
 import com.igrium.replaylab.render.RenderUtils;
 import com.igrium.replaylab.render.capture.FrameCapture;
 import com.igrium.replaylab.render.capture.FrameCaptureType;

@@ -2,7 +2,6 @@ package com.igrium.replaylab.ui;
 
 
 import com.igrium.craftui.app.DockSpaceApp;
-import com.igrium.craftui.icon.FontAwesome;
 import com.igrium.replaylab.ReplayLab;
 import com.igrium.replaylab.config.Keybinds;
 import com.igrium.replaylab.editor.EditorState;
@@ -14,7 +13,7 @@ import com.igrium.replaylab.operator.scene.SetSceneCameraOperator;
 import com.igrium.replaylab.object.EntityProvider;
 import com.igrium.replaylab.object.ReplayObject;
 import com.igrium.replaylab.object.ReplayObject3D;
-import com.igrium.replaylab.object.ObjectSceneProps;
+import com.igrium.replaylab.object.types.ObjectSceneProps;
 import com.igrium.replaylab.ui.gizmos.GizmoRenderer;
 import com.igrium.replaylab.ui.panels.*;
 import com.igrium.replaylab.ui.subpanels.ExceptionPopup;

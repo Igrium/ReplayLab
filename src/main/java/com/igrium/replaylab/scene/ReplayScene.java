@@ -7,6 +7,8 @@ import com.google.common.collect.Maps;
 import com.igrium.replaylab.anim.constraint.ConstraintEvaluator;
 import com.igrium.replaylab.editor.EditorState;
 import com.igrium.replaylab.object.*;
+import com.igrium.replaylab.object.types.ObjectRenderSettings;
+import com.igrium.replaylab.object.types.ObjectSceneProps;
 import com.igrium.replaylab.operator.ReplayOperator;
 import com.igrium.replaylab.anim.KeyChannel;
 import com.igrium.replaylab.util.NameUtils;
@@ -26,10 +28,11 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 
-import static com.igrium.replaylab.object.ObjectSceneProps.PROP_SPEED;
+import static com.igrium.replaylab.object.types.ObjectSceneProps.PROP_SPEED;
 
 /**
  * Keeps track of all the runtime stuff regarding a scene.
+ *
  * @apiNote <b>Warning:</b> Calling most of these functions on their own can corrupt the undo/redo stack.
  * Prefer using operators.
  */
@@ -62,7 +65,8 @@ public class ReplayScene {
     @Getter
     private final Deque<ReplayOperator> redoStack = new ArrayDeque<>();
 
-    @Setter @Nullable
+    @Setter
+    @Nullable
     private Consumer<? super Exception> exceptionCallback;
 
 
@@ -83,6 +87,7 @@ public class ReplayScene {
 
     /**
      * Get the time in the replay where the scene starts.
+     *
      * @return Global replay start time (ms)
      */
     public int getStartTime() {
@@ -91,6 +96,7 @@ public class ReplayScene {
 
     /**
      * Convert a local timestamp to a global replay time suitable for the relay mod.
+     *
      * @param sceneTimestamp Scene time in ms.
      * @return Global replay time in ms. Never negative.
      */
@@ -124,6 +130,7 @@ public class ReplayScene {
 
     /**
      * Get the entity responsible for providing the camera view on a given frame.
+     *
      * @return The scene camera entity. if there is any at that timestamp.
      */
     public @Nullable Entity getSceneCamera() {
@@ -144,6 +151,7 @@ public class ReplayScene {
 
     /**
      * Get a map of all the replay objects in this scene.
+     *
      * @return Unmodifiable view of all objects.
      */
     public BiMap<String, ReplayObject> getObjects() {
@@ -152,6 +160,7 @@ public class ReplayScene {
 
     /**
      * Get the animation object belonging to a specific ID.
+     *
      * @param id ID to search for.
      * @return The object, or <code>null</code> if no object by that ID exists.
      */
@@ -183,17 +192,19 @@ public class ReplayScene {
      *
      * @param id  ID to assign the new object.
      * @param obj Object to add.
-     * @return <code>true</code> if the object was added; <code>false</code> if there was a naming conflict.
+     * @return <code>null</code> if the object was successfully added. If there was a conflict, the object that was
+     * already using that ID.
      */
-    public boolean addObjectIfAbsent(String id, ReplayObject obj) {
+    public @Nullable ReplayObject addObjectIfAbsent(String id, ReplayObject obj) {
         if (obj.getScene() != this) {
             throw new IllegalArgumentException("Object belongs to the wrong scene.");
         }
-        if (objects.putIfAbsent(id, obj) == null) {
+        ReplayObject existing = objects.putIfAbsent(id, obj);
+        if (existing == null) {
             onAddObject(id, obj);
-            return true;
+            return null;
         }
-        return false;
+        return existing;
     }
 
     /**
@@ -213,6 +224,7 @@ public class ReplayScene {
 
     /**
      * Remove a replay object from the scene.
+     *
      * @param id ID of the object to remove.
      * @return The object that was removed, if any.
      */
@@ -271,6 +283,7 @@ public class ReplayScene {
 
     /**
      * Save an object into the saved object cache. Used when an undo step is created.
+     *
      * @param id ID of object to save.
      * @return The new serialized data. <code>null</code> if the object could not be found.
      */
@@ -288,6 +301,7 @@ public class ReplayScene {
 
     /**
      * Revert an object to the version in the saved object cache.
+     *
      * @param id ID of the object to revert.
      */
     public void revertObject(String id) {
@@ -308,6 +322,7 @@ public class ReplayScene {
 
     /**
      * Find all replay objects that provide a reference to the given entity.
+     *
      * @param entity Entity to search for.
      * @return A stream of all valid replay objects.
      * @implNote Somewhat expensive operation. Should be cached if used frequently.
@@ -319,6 +334,7 @@ public class ReplayScene {
 
     /**
      * Find the first replay object that provides a reference to the given entity.
+     *
      * @param entity Entity to search for.
      * @return The first valid replay object, or <code>null</code> if none was found.
      * @implNote Somewhat expensive operation. Should be cached if used frequently.
@@ -329,6 +345,7 @@ public class ReplayScene {
 
     /**
      * Make a given object name unique so it doesn't conflict with anything else in the scene.
+     *
      * @param original Original object name.
      * @return The unique object name.
      */
@@ -338,6 +355,7 @@ public class ReplayScene {
 
     /**
      * Attempt to execute an operator.
+     *
      * @param operator Operator to execute.
      * @return <code>true</code> if the operation was successful and the operator was added to the undo stack.
      */
@@ -365,6 +383,7 @@ public class ReplayScene {
 
     /**
      * Undo the previous operation.
+     *
      * @return the operator that was undone, or <code>null</code> if there was none.
      */
     public @Nullable ReplayOperator undo(EditorState editorState) {
@@ -388,6 +407,7 @@ public class ReplayScene {
 
     /**
      * Redo the previous operation.
+     *
      * @return the operator that was redone, or <code>null</code> if there was none.
      */
     public @Nullable ReplayOperator redo(EditorState editorState) {
@@ -452,6 +472,7 @@ public class ReplayScene {
 
     /**
      * Clear the scene and re-create it from the serialized form of all its objects.
+     *
      * @param serialized Serialized objects.
      */
     public void readSerializedObjects(Map<? extends String, ? extends SerializedReplayObject> serialized) {
