@@ -117,7 +117,6 @@ public class ReplayLabControls {
         return changed;
     }
 
-    @Deprecated
     public static boolean toggleButton(char icon, String id, ImBoolean pressed, @Nullable String tooltip) {
         boolean result = toggleButton(icon + "###" + id, pressed);
 
@@ -127,7 +126,6 @@ public class ReplayLabControls {
         return result;
     }
 
-    @Deprecated
     public static boolean iconButton(char icon, String id, @Nullable String tooltip) {
         boolean result = ImGui.button(icon + "###" + id);
 
@@ -148,7 +146,7 @@ public class ReplayLabControls {
     /**
      * A timestamp field that can be dragged to change its value like <code>DragScalar</code>
      */
-    public static boolean inputTimestamp(String label, ImInt timestamp, Timestamps.Display display, int imGuiInputTextFlags) {
+    public static boolean inputTimestamp(String label, int[] timestamp, Timestamps.Display display, int imGuiInputTextFlags) {
         int id = ImGui.getID(label);
         // Typing mode: an ordinary editable inputText (native label, editing, and undo behavior).
         if (timestampInputId == id) {
@@ -156,11 +154,11 @@ public class ReplayLabControls {
                 ImGui.setKeyboardFocusHere();
                 timestampInputJustStarted = false;
             }
-            timestampInBuffer.set(Timestamps.toTimestamp(timestamp.get(), display));
+            timestampInBuffer.set(Timestamps.toTimestamp(timestamp[0], display));
             boolean changed = false;
             if (ImGui.inputText(label, timestampInBuffer, imGuiInputTextFlags)) {
                 try {
-                    timestamp.set(Timestamps.fromTimestamp(timestampInBuffer.get()));
+                    timestamp[0] = Timestamps.fromTimestamp(timestampInBuffer.get());
                     changed = true;
                 } catch (NumberFormatException ignored) {
                 }
@@ -172,7 +170,7 @@ public class ReplayLabControls {
         }
         // Readonly: keep the actual inputText buffer blank so click-dragging can't select text,
         // and draw the live timestamp on top via the draw list instead.
-        String displayText = Timestamps.toTimestamp(timestamp.get(), display);
+        String displayText = Timestamps.toTimestamp(timestamp[0], display);
         timestampInBuffer.set("");
         // Frame bounds only (excludes the label, which getItemRect* would otherwise include).
         float minX = ImGui.getCursorScreenPosX();
@@ -212,7 +210,7 @@ public class ReplayLabControls {
                 int intDelta = (int) timestampDragDelta;
                 timestampDragDelta -= intDelta; // keep the sub-integer remainder
                 if (intDelta != 0) {
-                    timestamp.set(timestamp.get() + intDelta);
+                    timestamp[0] += intDelta;
                     changed = true;
                 }
             }
@@ -226,15 +224,15 @@ public class ReplayLabControls {
         return changed;
     }
 
-    public static boolean inputTimestamp(String label, ImInt timestamp, Timestamps.Display display) {
+    public static boolean inputTimestamp(String label, int[] timestamp, Timestamps.Display display) {
         return inputTimestamp(label, timestamp, display, 0);
     }
 
-    public static boolean inputTimestamp(String label, ImInt timestamp, int imGuiInputTextFlags) {
+    public static boolean inputTimestamp(String label, int[] timestamp, int imGuiInputTextFlags) {
         return inputTimestamp(label, timestamp, timestampDisplay(), imGuiInputTextFlags);
     }
 
-    public static boolean inputTimestamp(String label, ImInt timestamp) {
+    public static boolean inputTimestamp(String label, int[] timestamp) {
         return inputTimestamp(label, timestamp, timestampDisplay(), 0);
     }
 

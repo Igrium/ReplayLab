@@ -356,7 +356,7 @@ public abstract class KeyframePanel extends UIPanel {
                 tsIn.set(key.getTimeInt());
                 doubleIn.set(key.getValue());
 
-                ReplayLabControls.inputTimestamp("Time", tsIn);
+                ReplayLabControls.inputTimestamp("Time", tsIn.getData());
                 if (ImGui.isItemDeactivatedAfterEdit()) {
                     editor.applyOperator(new SetKeyPosOperator(keyRef, tsIn.get(), key.getValue()));
                 }

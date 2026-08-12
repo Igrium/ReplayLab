@@ -184,7 +184,7 @@ public final class ObjectSceneProps extends ReplayObject {
         }
 
         startTimeInput.set(startTime);
-        if (ReplayLabControls.inputTimestamp("Start Time", startTimeInput)) {
+        if (ReplayLabControls.inputTimestamp("Start Time", startTimeInput.getData())) {
             startTime = Math.max(0, startTimeInput.get());
         }
         if (ImGui.isItemDeactivatedAfterEdit()) {
@@ -192,7 +192,7 @@ public final class ObjectSceneProps extends ReplayObject {
         }
 
         lengthInput.set(length);
-        if (ReplayLabControls.inputTimestamp("Length", lengthInput)) {
+        if (ReplayLabControls.inputTimestamp("Length", lengthInput.getData())) {
             length = Math.max(0, lengthInput.get());
         }
         if (ImGui.isItemDeactivatedAfterEdit()) {

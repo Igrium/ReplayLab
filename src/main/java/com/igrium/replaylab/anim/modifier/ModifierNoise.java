@@ -72,7 +72,7 @@ public class ModifierNoise extends CurveModifier {
 
         flags |= drawField(ImGui.dragFloat(t("gui.replaylab.noise.scale"), scale, .01f));
         flags |= drawField(ImGui.dragFloat(t("gui.replaylab.noise.intensity"), intensity, .01f));
-        flags |= drawField(ReplayLabControls.inputTimestamp(t("gui.replaylab.noise.offset"), offset));
+        flags |= drawField(ReplayLabControls.inputTimestamp(t("gui.replaylab.noise.offset"), offset.getData()));
         flags |= drawField(ImGui.dragFloat(t("gui.replaylab.noise.phase"), phase, .001f));
 
         return flags | super.drawPropertiesPanel(editor);
