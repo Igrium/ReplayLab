@@ -36,7 +36,7 @@ public class ModifierTranslate extends CurveModifier {
     public int drawPropertiesPanel(EditorState editor) {
         int flags = 0;
         intBuffer.set(offsetX);
-        if (ReplayLabControls.inputTimestamp("Time Offset", intBuffer)) {
+        if (ReplayLabControls.inputTimestamp("Time Offset", intBuffer.getData())) {
             offsetX = intBuffer.get();
             flags |= EditFlags.RESAMPLE | EditFlags.UPDATE_SCENE;
         }

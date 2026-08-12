@@ -2,7 +2,6 @@ package com.igrium.replaylab.ui.util;
 
 import com.igrium.replaylab.config.ReplayLabConfig;
 import com.igrium.replaylab.object.ReplayObject;
-import com.igrium.replaylab.ui.ReplayLabIcons;
 import com.igrium.replaylab.util.Timestamps;
 import imgui.ImGui;
 import imgui.ImGuiIO;
@@ -13,8 +12,8 @@ import imgui.type.ImBoolean;
 import imgui.type.ImInt;
 import imgui.type.ImString;
 import lombok.NonNull;
-import net.minecraft.util.Identifier;
-import net.minecraft.util.Language;
+import net.minecraft.resources.Identifier;
+import net.minecraft.locale.Language;
 import net.minecraft.util.Util;
 import org.apache.commons.lang3.mutable.Mutable;
 import org.jetbrains.annotations.Nullable;
@@ -28,7 +27,7 @@ import java.util.function.Predicate;
 public class ReplayLabControls {
     private static final ImBoolean isSelected = new ImBoolean();
     private static final Logger LOGGER = LoggerFactory.getLogger(ReplayLabControls.class);
-    public static final Identifier ROBOTO_MONO = Identifier.of("replaylab:roboto-mono");
+    public static final Identifier ROBOTO_MONO = Identifier.parse("replaylab:roboto-mono");
 
     /**
      * Draw a dropdown box with a collection of strings.
@@ -72,14 +71,14 @@ public class ReplayLabControls {
     public static boolean objectSelector(@NonNull String label, @NonNull Mutable<String> selectedId,
                                          Predicate<? super ReplayObject> predicate, Map<String, ReplayObject> objects) {
         boolean updated = false;
-        ReplayObject selObj = objects.get(selectedId.getValue());
+        ReplayObject selObj = objects.get(selectedId.get());
 
-        String selDisp = selObj != null ? selObj.getDisplayName() : selectedId.getValue();
+        String selDisp = selObj != null ? selObj.getDisplayName() : selectedId.get();
         if (ImGui.beginCombo(label, selDisp != null ? selDisp : "")) {
             for (var objEntry : objects.entrySet()) {
                 if (!predicate.test(objEntry.getValue())) continue;
 
-                boolean selected = Objects.equals(selectedId.getValue(), objEntry.getKey());
+                boolean selected = Objects.equals(selectedId.get(), objEntry.getKey());
                 if (ImGui.selectable(objEntry.getValue().getDisplayName() + "###" + objEntry.getKey(), selected)) {
                     updated = true;
                     selectedId.setValue(objEntry.getKey());
@@ -118,26 +117,20 @@ public class ReplayLabControls {
         return changed;
     }
 
-    @Deprecated
     public static boolean toggleButton(char icon, String id, ImBoolean pressed, @Nullable String tooltip) {
-        ImGui.pushFont(ReplayLabIcons.getFont());
         boolean result = toggleButton(icon + "###" + id, pressed);
-        ImGui.popFont();
 
         if (tooltip != null) {
-            ImGui.setItemTooltip(Language.getInstance().get(tooltip));
+            ImGui.setItemTooltip(Language.getInstance().getOrDefault(tooltip));
         }
         return result;
     }
 
-    @Deprecated
     public static boolean iconButton(char icon, String id, @Nullable String tooltip) {
-        ImGui.pushFont(ReplayLabIcons.getFont());
         boolean result = ImGui.button(icon + "###" + id);
-        ImGui.popFont();
 
         if (tooltip != null) {
-            ImGui.setItemTooltip(Language.getInstance().get(tooltip));
+            ImGui.setItemTooltip(Language.getInstance().getOrDefault(tooltip));
         }
         return result;
     }
@@ -153,7 +146,7 @@ public class ReplayLabControls {
     /**
      * A timestamp field that can be dragged to change its value like <code>DragScalar</code>
      */
-    public static boolean inputTimestamp(String label, ImInt timestamp, Timestamps.Display display, int imGuiInputTextFlags) {
+    public static boolean inputTimestamp(String label, int[] timestamp, Timestamps.Display display, int imGuiInputTextFlags) {
         int id = ImGui.getID(label);
         // Typing mode: an ordinary editable inputText (native label, editing, and undo behavior).
         if (timestampInputId == id) {
@@ -161,11 +154,11 @@ public class ReplayLabControls {
                 ImGui.setKeyboardFocusHere();
                 timestampInputJustStarted = false;
             }
-            timestampInBuffer.set(Timestamps.toTimestamp(timestamp.get(), display));
+            timestampInBuffer.set(Timestamps.toTimestamp(timestamp[0], display));
             boolean changed = false;
             if (ImGui.inputText(label, timestampInBuffer, imGuiInputTextFlags)) {
                 try {
-                    timestamp.set(Timestamps.fromTimestamp(timestampInBuffer.get()));
+                    timestamp[0] = Timestamps.fromTimestamp(timestampInBuffer.get());
                     changed = true;
                 } catch (NumberFormatException ignored) {
                 }
@@ -177,7 +170,7 @@ public class ReplayLabControls {
         }
         // Readonly: keep the actual inputText buffer blank so click-dragging can't select text,
         // and draw the live timestamp on top via the draw list instead.
-        String displayText = Timestamps.toTimestamp(timestamp.get(), display);
+        String displayText = Timestamps.toTimestamp(timestamp[0], display);
         timestampInBuffer.set("");
         // Frame bounds only (excludes the label, which getItemRect* would otherwise include).
         float minX = ImGui.getCursorScreenPosX();
@@ -217,7 +210,7 @@ public class ReplayLabControls {
                 int intDelta = (int) timestampDragDelta;
                 timestampDragDelta -= intDelta; // keep the sub-integer remainder
                 if (intDelta != 0) {
-                    timestamp.set(timestamp.get() + intDelta);
+                    timestamp[0] += intDelta;
                     changed = true;
                 }
             }
@@ -231,15 +224,15 @@ public class ReplayLabControls {
         return changed;
     }
 
-    public static boolean inputTimestamp(String label, ImInt timestamp, Timestamps.Display display) {
+    public static boolean inputTimestamp(String label, int[] timestamp, Timestamps.Display display) {
         return inputTimestamp(label, timestamp, display, 0);
     }
 
-    public static boolean inputTimestamp(String label, ImInt timestamp, int imGuiInputTextFlags) {
+    public static boolean inputTimestamp(String label, int[] timestamp, int imGuiInputTextFlags) {
         return inputTimestamp(label, timestamp, timestampDisplay(), imGuiInputTextFlags);
     }
 
-    public static boolean inputTimestamp(String label, ImInt timestamp) {
+    public static boolean inputTimestamp(String label, int[] timestamp) {
         return inputTimestamp(label, timestamp, timestampDisplay(), 0);
     }
 
@@ -257,7 +250,7 @@ public class ReplayLabControls {
         }
 
         if (ImGui.isItemClicked(0)) {
-            Util.getOperatingSystem().open(link);
+            Util.getPlatform().openUri(link);
         }
     }
 

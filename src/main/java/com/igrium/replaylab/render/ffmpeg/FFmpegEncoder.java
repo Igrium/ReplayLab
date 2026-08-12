@@ -13,7 +13,7 @@ import imgui.type.ImInt;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.Setter;
-import net.minecraft.util.Language;
+import net.minecraft.locale.Language;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -346,11 +346,11 @@ public class FFmpegEncoder extends EncoderConfig {
     }
 
     private static String t(String key) {
-        return Language.getInstance().get(key) + "###" + key;
+        return Language.getInstance().getOrDefault(key) + "###" + key;
     }
 
     private static String tt(String key) {
-        return Language.getInstance().get(key);
+        return Language.getInstance().getOrDefault(key);
     }
 
     private static <T> boolean arrayContains(T[] array, T value) {

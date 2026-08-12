@@ -4,6 +4,7 @@ import com.igrium.replaylab.editor.EditorState;
 import com.igrium.replaylab.operator.ReplayOperator;
 import com.igrium.replaylab.object.EntityProvider;
 import com.igrium.replaylab.object.ReplayObject;
+import com.igrium.replaylab.scene.ReplayScene;
 
 public class SetSceneCameraOperator implements ReplayOperator {
 
@@ -23,6 +24,9 @@ public class SetSceneCameraOperator implements ReplayOperator {
         oldSceneCam = sceneProps.getCameraObject();
         if (oldSceneCam.equals(newSceneCam)) return false;
         sceneProps.setCameraObject(newSceneCam);
+        // The scene is written from the serialized snapshot cache, so the live sceneProps has to be
+        // re-snapshotted or the assignment never reaches disk.
+        editor.getScene().saveObject(ReplayScene.SCENE_PROPS);
 
         return true;
     }
@@ -30,10 +34,12 @@ public class SetSceneCameraOperator implements ReplayOperator {
     @Override
     public void undo(EditorState editor) throws Exception {
         editor.getScene().getSceneProps().setCameraObject(oldSceneCam);
+        editor.getScene().saveObject(ReplayScene.SCENE_PROPS);
     }
 
     @Override
     public void redo(EditorState editor) throws Exception {
         editor.getScene().getSceneProps().setCameraObject(newSceneCam);
+        editor.getScene().saveObject(ReplayScene.SCENE_PROPS);
     }
 }

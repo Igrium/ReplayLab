@@ -3,19 +3,20 @@ package com.igrium.replaylab.camera;
 import com.igrium.replaylab.math.MathUtils;
 import lombok.Getter;
 import lombok.Setter;
-import net.minecraft.client.world.ClientWorld;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.EntityType;
-import net.minecraft.entity.damage.DamageSource;
-import net.minecraft.entity.data.DataTracker;
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.network.listener.ClientPlayPacketListener;
-import net.minecraft.network.packet.Packet;
-import net.minecraft.server.network.EntityTrackerEntry;
-import net.minecraft.server.world.ServerWorld;
-import net.minecraft.util.math.Box;
-import net.minecraft.util.math.Vec3d;
-import net.minecraft.world.World;
+import net.minecraft.client.multiplayer.ClientLevel;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.network.syncher.SynchedEntityData;
+import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.level.storage.ValueOutput;
+import net.minecraft.network.protocol.game.ClientGamePacketListener;
+import net.minecraft.network.protocol.Packet;
+import net.minecraft.server.level.ServerEntity;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.Vec3;
+import net.minecraft.world.level.Level;
 import org.joml.Math;
 import org.joml.Quaternionf;
 import org.joml.Quaternionfc;
@@ -60,9 +61,9 @@ public class AnimatedCameraEntity extends Entity implements FovProvider, Rotatio
     private final Quaternionf rotationQuat = new Quaternionf();
 
 
-    public AnimatedCameraEntity(EntityType<?> type, World world) {
+    public AnimatedCameraEntity(EntityType<?> type, Level world) {
         super(type, world);
-        if (!world.isClient) {
+        if (!world.isClientSide()) {
             throw new IllegalStateException("Animated camera should never be spawned on the server!");
         }
     }
@@ -85,11 +86,11 @@ public class AnimatedCameraEntity extends Entity implements FovProvider, Rotatio
      * @param z Z coordinate
      */
     public void setCameraPosition(double x, double y, double z) {
-        this.lastRenderX = this.prevX = x;
-        this.lastRenderY = this.prevY = y;
-        this.lastRenderZ = this.prevZ = z;
-        this.refreshPositionAndAngles(x, y, z, getYaw(), getPitch());
-        calculateDimensions();
+        this.xOld = this.xo = x;
+        this.yOld = this.yo = y;
+        this.zOld = this.zo = z;
+        this.snapTo(x, y, z, getYRot(), getXRot());
+        refreshDimensions();
     }
 
     public void setCameraPosition(Vector3dc vec) {
@@ -97,10 +98,10 @@ public class AnimatedCameraEntity extends Entity implements FovProvider, Rotatio
     }
 
     private void setCameraRotation(float pitch, float yaw, float roll) {
-        this.prevPitch = pitch;
-        this.prevYaw = yaw;
-        setPitch(pitch);
-        setYaw(yaw);
+        this.xRotO = pitch;
+        this.yRotO = yaw;
+        setXRot(pitch);
+        setYRot(yaw);
         this.roll = roll;
     }
 
@@ -112,32 +113,32 @@ public class AnimatedCameraEntity extends Entity implements FovProvider, Rotatio
     }
 
     @Override
-    public ClientWorld getWorld() {
-        return (ClientWorld) super.getWorld();
+    public ClientLevel level() {
+        return (ClientLevel) super.level();
     }
 
     @Override
-    public Packet<ClientPlayPacketListener> createSpawnPacket(EntityTrackerEntry entityTrackerEntry) {
+    public Packet<ClientGamePacketListener> getAddEntityPacket(ServerEntity entityTrackerEntry) {
         throw new IllegalStateException("This entity is client-side only.");
     }
 
     @Override
-    protected void initDataTracker(DataTracker.Builder builder) {
+    protected void defineSynchedData(SynchedEntityData.Builder builder) {
 
     }
 
     @Override
-    public boolean damage(ServerWorld world, DamageSource source, float amount) {
+    public boolean hurtServer(ServerLevel world, DamageSource source, float amount) {
         return false;
     }
 
     @Override
-    protected void readCustomDataFromNbt(NbtCompound nbt) {
+    protected void readAdditionalSaveData(ValueInput input) {
 
     }
 
     @Override
-    protected void writeCustomDataToNbt(NbtCompound nbt) {
+    protected void addAdditionalSaveData(ValueOutput output) {
 
     }
 
@@ -147,17 +148,17 @@ public class AnimatedCameraEntity extends Entity implements FovProvider, Rotatio
     }
 
     @Override
-    protected void spawnSprintingParticles() {
+    protected void spawnSprintParticle() {
         // We do not produce any particles, we are a camera
     }
 
     @Override
-    public boolean shouldSave() {
+    public boolean shouldBeSaved() {
         return false;
     }
 
     @Override
-    public boolean canHit() {
+    public boolean isPickable() {
         return true; // Allows player to interact
     }
 
@@ -168,7 +169,7 @@ public class AnimatedCameraEntity extends Entity implements FovProvider, Rotatio
         double minX, minY, minZ;
         double maxX, maxY, maxZ;
 
-        SimpleBox(Vec3d origin) {
+        SimpleBox(Vec3 origin) {
             minX = origin.x;
             minY = origin.y;
             minZ = origin.z;
@@ -189,7 +190,7 @@ public class AnimatedCameraEntity extends Entity implements FovProvider, Rotatio
             return this;
         }
 
-        SimpleBox shift(Vec3d vec) {
+        SimpleBox shift(Vec3 vec) {
             minX += vec.x;
             minY += vec.y;
             minZ += vec.z;
@@ -200,16 +201,16 @@ public class AnimatedCameraEntity extends Entity implements FovProvider, Rotatio
             return this;
         }
 
-        Box toBox() {
-            return new Box(minX, minY, minZ, maxX, maxY, maxZ);
+        AABB toBox() {
+            return new AABB(minX, minY, minZ, maxX, maxY, maxZ);
         }
     }
 
     @Override
-    protected Box calculateDefaultBoundingBox(Vec3d pos) {
+    protected AABB makeBoundingBox(Vec3 pos) {
        return new SimpleBox(pos)
                .expand(0.5)
-               .shift(getRotationVector().multiply(.5))
+               .shift(getLookAngle().scale(.5))
                .toBox();
     }
 }

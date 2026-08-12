@@ -2,16 +2,23 @@ package com.igrium.replaylab.render;
 
 import com.igrium.craftui.app.AppManager;
 import com.igrium.replaylab.editor.EditorState;
+import com.igrium.replaylab.object.ObjectRenderSettings;
+import com.igrium.replaylab.object.ObjectSceneProps;
 import com.igrium.replaylab.playback.AbstractScenePlayer;
 import com.igrium.replaylab.render.capture.FrameCapture;
 import com.igrium.replaylab.render.encoder.EncoderConfig;
 import com.igrium.replaylab.render.encoder.EncoderProcess;
 import com.igrium.replaylab.scene.ReplayScene;
-import com.igrium.replaylab.object.ObjectRenderSettings;
-import com.igrium.replaylab.object.ObjectSceneProps;
-import com.mojang.blaze3d.platform.GlConst;
-import com.mojang.blaze3d.platform.GlStateManager;
+import com.mojang.blaze3d.buffers.GpuBuffer;
+import com.mojang.blaze3d.buffers.GpuBufferSlice;
+import com.mojang.blaze3d.buffers.GpuFence;
+import com.mojang.blaze3d.systems.CommandEncoder;
+import com.mojang.blaze3d.pipeline.RenderTarget;
+import com.mojang.blaze3d.platform.NativeImage;
+import com.mojang.blaze3d.platform.Window;
 import com.mojang.blaze3d.systems.RenderSystem;
+import com.mojang.blaze3d.textures.GpuTexture;
+import com.replaymod.core.mixin.BlockableEventLoopAccessor;
 import com.replaymod.core.mixin.MinecraftAccessor;
 import com.replaymod.core.mixin.TimerAccessor;
 import com.replaymod.core.utils.Utils;
@@ -22,20 +29,18 @@ import com.replaymod.render.hooks.ForceChunkLoadingHook;
 import com.replaymod.replay.ReplayHandler;
 import lombok.Getter;
 import lombok.NonNull;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.sound.PositionedSoundInstance;
-import net.minecraft.client.texture.NativeImage;
-import net.minecraft.client.util.Window;
-import net.minecraft.sound.SoundCategory;
-import net.minecraft.sound.SoundEvent;
-import net.minecraft.util.Identifier;
+import net.minecraft.ReportedException;
 import net.minecraft.util.Util;
-import net.minecraft.util.crash.CrashException;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.state.WindowRenderState;
+import net.minecraft.client.resources.sounds.SimpleSoundInstance;
+import net.minecraft.resources.Identifier;
+import net.minecraft.sounds.SoundEvent;
+import net.minecraft.sounds.SoundSource;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.jetbrains.annotations.Nullable;
+import org.joml.Vector4f;
 import org.lwjgl.glfw.GLFW;
-import org.lwjgl.opengl.GL11;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -45,6 +50,9 @@ import java.util.concurrent.TimeUnit;
 
 public class VideoRenderer {
     private static final Logger LOGGER = LoggerFactory.getLogger("ReplayLab/VideoRenderer");
+
+    /** Per-attempt wait for the frame readback fence. Looped, so a slow frame just waits again. */
+    private static final long FENCE_TIMEOUT_NS = TimeUnit.SECONDS.toNanos(5);
 
     @Getter
     private static boolean renderingVideo;
@@ -57,7 +65,7 @@ public class VideoRenderer {
         DONE
     }
 
-    private final MinecraftClient mc = MinecraftClient.getInstance();
+    private final Minecraft mc = Minecraft.getInstance();
 
     @Getter
     private final RenderMetadata renderMetadata;
@@ -95,10 +103,9 @@ public class VideoRenderer {
     private @Nullable SimpleTexture renderTexture;
 
     /**
-     * A framebuffer wrapping {@link #renderTexture} so we can perform operations on it
+     * Persistent buffer for reading from gpu into cpu.
      */
-    @Getter
-    private @Nullable SimpleFramebuffer renderFbo;
+    private @Nullable GpuBuffer readbackBuffer;
 
     public VideoRenderer(RenderMetadata renderMetadata, ReplayHandler replay, ReplayScene scene, FrameCapture frameCapture, EncoderConfig encoder) {
         this.renderMetadata = renderMetadata;
@@ -141,9 +148,10 @@ public class VideoRenderer {
         renderState = RenderState.STARTING;
         renderingVideo = true;
 
-        boolean debugWasShown = mc.getDebugHud().shouldShowDebugHud();
-        boolean mouseWasGrabbed = mc.mouse.isCursorLocked();
-        EnumMap<SoundCategory, Float> originalSoundLevels = new EnumMap<>(SoundCategory.class);
+        // 26.2 moved the debug overlay's visibility flag onto DebugScreenEntryList.
+        boolean debugWasShown = mc.debugEntries.isOverlayVisible();
+        boolean mouseHandlerWasGrabbed = mc.mouseHandler.isMouseGrabbed();
+        EnumMap<SoundSource, Float> originalSoundLevels = new EnumMap<>(SoundSource.class);
         ForceChunkLoadingHook forceChunkLoadingHook = null;
 
         RenderScenePlayer scenePlayer = null;
@@ -158,21 +166,27 @@ public class VideoRenderer {
             scenePlayer.start(scene);
 
             if (debugWasShown) {
-                mc.getDebugHud().toggleDebugHud();
+                mc.debugEntries.setOverlayVisible(false);
             }
+
+
+            int[] realWidth = new int[1];
+            int[] realHeight = new int[1];
+            GLFW.glfwGetFramebufferSize(mc.getWindow().handle(), realWidth, realHeight);
+            MCVer.resizeMainWindow(mc, realWidth[0], realHeight[0]);
 
             guiWindow = new VirtualWindow(mc);
 
-            mc.mouse.unlockCursor();
+            mc.mouseHandler.releaseMouse();
 
-            for (var category : SoundCategory.values()) {
-                if (category != SoundCategory.MASTER) {
-                    originalSoundLevels.put(category, mc.options.getSoundVolume(category));
-                    mc.options.getSoundVolumeOption(category).setValue(0d);
+            for (var category : SoundSource.values()) {
+                if (category != SoundSource.MASTER) {
+                    originalSoundLevels.put(category, mc.options.getSoundSourceVolume(category));
+                    mc.options.getSoundSourceOptionInstance(category).set(0d);
                 }
             }
 
-            forceChunkLoadingHook = new ForceChunkLoadingHook(mc.worldRenderer);
+            forceChunkLoadingHook = new ForceChunkLoadingHook(mc.levelRenderer);
 
             /// === TIMELINE SETUP ===
             // I have no idea what mixin bullshit replay mod is doing, but I'll just copy it
@@ -196,31 +210,29 @@ public class VideoRenderer {
             /// === RENDERING PIPELINE ===
             encoder.start(renderMetadata);
             renderTexture = frameCapture.generateTexture();
-            renderFbo = new SimpleFramebuffer(renderTexture);
 
             renderState = RenderState.RENDERING;
             while (frameIdx < renderMetadata.totalFrames() && !abort) {
-                if (GLFW.glfwWindowShouldClose(mc.getWindow().getHandle()) || ((MinecraftAccessor) mc).getCrashReporter() != null) {
+                if (GLFW.glfwWindowShouldClose(mc.getWindow().handle()) || getDelayedCrash() != null) {
                     encoder.finish().get(10, TimeUnit.SECONDS);
                 }
                 int curIdx = frameIdx;
                 queueFrame(frameIdx, 1);
                 frameCapture.captureFrame(curIdx, renderTexture);
 
-                clearFramebufferAlpha(renderFbo.getFbo());
-                NativeImage nImage = new NativeImage(renderMetadata.width(), renderMetadata.height(), false);
-                RenderSystem.bindTexture(renderTexture.getGlId());
-                nImage.loadFromTextureImage(0, true);
-                nImage.mirrorVertically();
+                // TODO: if the texture is downloaded async under-the-hood,
+                // can we write it async as well?
+                NativeImage nImage = downloadTexture(renderTexture);
 
                 drawGui();
 
                 Throwable e = encoder.getFailureReason();
                 if (e != null) {
+                    nImage.close();
                     throw (Exception) e;
                 }
-                encoder.accept(ManagedNativeImage.of(nImage), curIdx);
-
+                // Ownership passes to the encoder, which closes it once the frame is written.
+                encoder.accept(nImage, curIdx);
             }
 
             /// === FINISH ===
@@ -241,8 +253,8 @@ public class VideoRenderer {
                 throw e instanceof Exception ex ? ex : ExceptionUtils.asRuntimeException(e);
             }
 
-            if (((MinecraftAccessor) mc).getCrashReporter() != null) {
-                throw new CrashException(((MinecraftAccessor) mc).getCrashReporter().get());
+            if (getDelayedCrash() != null) {
+                throw new ReportedException(getDelayedCrash().get());
             }
 
             // TODO: spherical metadata
@@ -255,14 +267,14 @@ public class VideoRenderer {
             renderingVideo = false;
             renderState = RenderState.DONE;
 
-            if (renderFbo != null) {
-                renderFbo.close();
-                renderFbo = null;
-            }
-
             if (renderTexture != null) {
                 renderTexture.close();
                 renderTexture = null;
+            }
+
+            if (readbackBuffer != null) {
+                readbackBuffer.close();
+                readbackBuffer = null;
             }
 
 
@@ -271,24 +283,24 @@ public class VideoRenderer {
             }
 
             if (debugWasShown) {
-                mc.getDebugHud().toggleDebugHud();
+                mc.debugEntries.setOverlayVisible(true);
             }
 
-            if (mouseWasGrabbed) {
-                mc.mouse.lockCursor();
+            if (mouseHandlerWasGrabbed) {
+                mc.mouseHandler.grabMouse();
             }
 
             for (var entry : originalSoundLevels.entrySet()) {
-                mc.options.getSoundVolumeOption(entry.getKey()).setValue(Double.valueOf(entry.getValue()));
+                mc.options.getSoundSourceOptionInstance(entry.getKey()).set(Double.valueOf(entry.getValue()));
             }
 
-            mc.setScreen(null);
+            mc.gui.setScreen(null);
             if (forceChunkLoadingHook != null) {
                 forceChunkLoadingHook.uninstall();
             }
 
-            mc.getSoundManager().play(PositionedSoundInstance.master(
-                    SoundEvent.of(Identifier.of("replaymod:render_success")), 1));
+            var event = SoundEvent.createFixedRangeEvent(Identifier.parse("replaymod:render_success"), 1);
+            mc.getSoundManager().play(SimpleSoundInstance.forUI(event, 1));
 
             // Finally, resize the Minecraft framebuffer to the actual width/height of the window
 
@@ -299,18 +311,65 @@ public class VideoRenderer {
         }
     }
 
+    private @Nullable java.util.function.Supplier<net.minecraft.CrashReport> getDelayedCrash() {
+        return ((BlockableEventLoopAccessor) mc).getDelayedCrash();
+    }
+
     /**
-     * Minecraft's offscreen framebuffer leaves alpha at 0. Fix that.
+     * Read a rendered frame back off the GPU into a {@link NativeImage}.
+     * <p>
+     * The copy is asynchronous on both backends -- GL turns it into a PBO {@code glReadPixels} and
+     * defers the callback to a fence, Vulkan records it into the in-flight command buffer -- so we
+     * must block on a fence before mapping. Mapping straight away yields a partially written buffer,
+     * which shows up as the bottom of the frame being cut off by a different amount each time.
+     * Vanilla's {@link net.minecraft.client.Screenshot} sidesteps this by reading inside the
+     * callback; the export loop needs the pixels synchronously, so it waits instead.
+     * <p>
+     * Minecraft's offscreen render target leaves alpha at 0, so alpha is forced opaque here. The
+     * vertical flip that {@code NativeImage.flipY} used to do is folded into the row indexing.
      */
-    private static void clearFramebufferAlpha(int fbo) {
-        RenderSystem.assertOnRenderThreadOrInit();
-        int prevFbo = GlStateManager.getBoundFramebuffer();
-        GlStateManager._glBindFramebuffer(GlConst.GL_FRAMEBUFFER, fbo);
-        GlStateManager._colorMask(false, false, false, true);
-        GlStateManager._clearColor(0, 0, 0, 1);
-        GlStateManager._clear(GlConst.GL_COLOR_BUFFER_BIT);
-        GlStateManager._colorMask(true, true, true, true);
-        GlStateManager._glBindFramebuffer(GlConst.GL_FRAMEBUFFER, prevFbo);
+    private NativeImage downloadTexture(SimpleTexture texture) {
+        RenderSystem.assertOnRenderThread();
+
+        int width = texture.getWidth();
+        int height = texture.getHeight();
+        GpuTexture gpuTexture = texture.getTexture();
+        int blockSize = gpuTexture.getFormat().blockSize();
+
+        // Kept for the whole export rather than allocated per frame; it's 32 MiB at 4K.
+        if (readbackBuffer == null) {
+            readbackBuffer = RenderSystem.getDevice().createBuffer(() -> "ReplayLab frame readback",
+                    GpuBuffer.USAGE_MAP_READ | GpuBuffer.USAGE_COPY_DST, (long) width * height * blockSize);
+        }
+        GpuBuffer buffer = readbackBuffer;
+
+        NativeImage image = new NativeImage(width, height, false);
+        try {
+            CommandEncoder encoder = RenderSystem.getDevice().createCommandEncoder();
+            encoder.copyTextureToBuffer(gpuTexture, buffer, 0, () -> {}, 0);
+
+            // The fence has to be created before the submit: Vulkan's implementation pins it to the
+            // submission that is currently being built, which is the one holding the copy.
+            try (GpuFence fence = encoder.createFence()) {
+                encoder.submit();
+                //noinspection StatementWithEmptyBody
+                while (!fence.awaitCompletion(FENCE_TIMEOUT_NS)) {}
+            }
+
+            try (GpuBufferSlice.MappedView view = buffer.map(true, false)) {
+                for (int y = 0; y < height; y++) {
+                    for (int x = 0; x < width; x++) {
+                        int argb = view.data().getInt((x + y * width) * blockSize);
+                        image.setPixelABGR(x, height - y - 1, argb | 0xFF000000);
+                    }
+                }
+            }
+        } catch (Throwable t) {
+            image.close();
+            throw t;
+        }
+
+        return image;
     }
 
     public float queueFrame(int sampleIdx, int totalSamples) {
@@ -320,11 +379,16 @@ public class VideoRenderer {
         ReplayTimer timer = (ReplayTimer) ((MinecraftAccessor) mc).getTimer();
         try {
             // TODO: GUI update
-            int elapsedTicks = timer.beginRenderTick(Util.getMeasuringTimeMs(), true);
+            int elapsedTicks = timer.advanceGameTime(Util.getMillis());
             executeTaskQueue();
 
             while (elapsedTicks-- > 0) {
                 mc.tick();
+            }
+
+            // 26.1+ moved per-frame level bookkeeping out of tick() and into Level.update()
+            if (mc.level != null) {
+                mc.level.update();
             }
         } finally {
             guiWindow.unbind();
@@ -339,7 +403,7 @@ public class VideoRenderer {
 
     private void executeTaskQueue() {
         while (true) {
-            while (mc.getOverlay() != null) {
+            while (mc.gui.overlay() != null) {
                 ((MCVer.MinecraftMethodAccessor) mc).replayModExecuteTaskQueue();
             }
 
@@ -347,7 +411,7 @@ public class VideoRenderer {
             CompletableFuture<Void> resourceReloadFuture = ((MinecraftAccessor) mc).getResourceReloadFuture();
             if (resourceReloadFuture != null) {
                 ((MinecraftAccessor) mc).setResourceReloadFuture(null);
-                mc.reloadResources().thenRun(() -> resourceReloadFuture.complete(null));
+                mc.reloadResourcePacks().thenRun(() -> resourceReloadFuture.complete(null));
                 continue;
             }
             break;
@@ -358,30 +422,63 @@ public class VideoRenderer {
 
     public boolean drawGui() {
         Window window = mc.getWindow();
-        if (GLFW.glfwWindowShouldClose(window.getHandle()) || ((MinecraftAccessor) mc).getCrashReporter() != null) {
+        if (GLFW.glfwWindowShouldClose(window.handle()) || getDelayedCrash() != null) {
             return false;
         }
 
+        // Minecraft's main loop isn't running during export; without this the OS window stops responding.
+        RenderSystem.pollEvents();
 
-        RenderSystem.clear(GL11.GL_COLOR_BUFFER_BIT | GL11.GL_DEPTH_BUFFER_BIT);
-        guiWindow.beginWrite();
+        // captureFrame leaves Window sized to the video resolution. The progress UI is drawn at the
+        // window's real size (ImGui takes its display size straight from GLFW), so bind the virtual
+        // window for the duration -- otherwise everything is laid out against the video resolution.
+        guiWindow.bind();
+        try {
+            drawGuiBound();
+        } finally {
+            guiWindow.unbind();
+        }
 
-
-        DrawContext drawContext = new DrawContext(mc, mc.getBufferBuilders().getEntityVertexConsumers());
-        drawContext.draw();
-
-        guiWindow.endWrite();
-
-        MCVer.pushMatrix();
-        AppManager.render(mc);
-        mc.getWindow().swapBuffers(null);
-        MCVer.popMatrix();
-
-        if (mc.mouse.isCursorLocked()) {
-            mc.mouse.unlockCursor();
+        if (mc.mouseHandler.isMouseGrabbed()) {
+            mc.mouseHandler.releaseMouse();
         }
 
         return !abort;
+    }
+
+    private void drawGuiBound() {
+        Window window = mc.getWindow();
+
+        clearMainRenderTarget();
+
+        // While the gui window is bound for writing, mc.gameRenderer.mainRenderTarget() resolves to
+        // ReplayMod's gui framebuffer -- which is what CraftUI's ImGui backend draws into.
+        guiWindow.beginWrite();
+        try {
+            clearMainRenderTarget();
+
+            WindowRenderState windowRenderState = mc.gameRenderer.gameRenderState().windowRenderState;
+            windowRenderState.width = window.getWidth();
+            windowRenderState.height = window.getHeight();
+            windowRenderState.guiScale = window.getGuiScale();
+            windowRenderState.appropriateLineWidth = window.getAppropriateLineWidth();
+            windowRenderState.isMinimized = window.isMinimized();
+
+            // The progress UI is drawn entirely by CraftUI/ImGui, which writes straight into
+            // mainRenderTarget -- nothing goes through the vanilla gui render state here.
+            AppManager.render(mc);
+        } finally {
+            guiWindow.endWrite();
+        }
+
+        // Replaces Window.updateDisplay: presents the gui framebuffer through the window surface.
+        guiWindow.flip();
+    }
+
+    private void clearMainRenderTarget() {
+        RenderTarget target = mc.gameRenderer.mainRenderTarget();
+        RenderSystem.getDevice().createCommandEncoder().clearColorAndDepthTextures(
+                target.getColorTexture(), new Vector4f(), target.getDepthTexture(), 0);
     }
 
     public int getVideoTime() {

@@ -11,7 +11,7 @@ import imgui.type.ImInt;
 import it.unimi.dsi.fastutil.doubles.Double2DoubleFunction;
 import lombok.Getter;
 import lombok.Setter;
-import net.minecraft.util.Language;
+import net.minecraft.locale.Language;
 
 import java.util.function.DoubleUnaryOperator;
 
@@ -98,7 +98,7 @@ public abstract class CurveModifier {
         ImGui.separator();
 
         ImGui.alignTextToFramePadding();
-        boolean open = ImGui.treeNodeEx("##", ImGuiTreeNodeFlags.AllowItemOverlap);
+        boolean open = ImGui.treeNodeEx("##", ImGuiTreeNodeFlags.AllowOverlap);
         ImGui.sameLine();
 
         tmpBool.set(isRestrictRange());
@@ -111,19 +111,19 @@ public abstract class CurveModifier {
             ImGui.beginDisabled(!isRestrictRange());
 
             tmpInt.set(start);
-            flags |= rangeInput(t("gui.replaylab.mod_start"), tmpInt);
+            flags |= rangeInput(t("gui.replaylab.mod_start"), tmpInt.getData());
             start = tmpInt.get();
 
             tmpInt.set(end);
-            flags |= rangeInput(t("gui.replaylab.mod_end"), tmpInt);
+            flags |= rangeInput(t("gui.replaylab.mod_end"), tmpInt.getData());
             end = tmpInt.get();
 
             tmpInt.set(blendIn);
-            flags |= rangeInput(t("gui.replaylab.mod_in"), tmpInt);
+            flags |= rangeInput(t("gui.replaylab.mod_in"), tmpInt.getData());
             blendIn = tmpInt.get();
 
             tmpInt.set(blendOut);
-            flags |= rangeInput(t("gui.replaylab.mod_out"), tmpInt);
+            flags |= rangeInput(t("gui.replaylab.mod_out"), tmpInt.getData());
             blendOut = tmpInt.get();
 
             ImGui.endDisabled();
@@ -133,7 +133,7 @@ public abstract class CurveModifier {
         return flags;
     }
 
-    private static int rangeInput(String label, ImInt value) {
+    private static int rangeInput(String label, int[] value) {
         int flags = 0;
         if (ReplayLabControls.inputTimestamp(label, value)) {
             flags = EditFlags.UPDATE_SCENE | EditFlags.RESAMPLE;
@@ -182,6 +182,6 @@ public abstract class CurveModifier {
     }
 
     private static String t(String key) {
-        return Language.getInstance().get(key) + "###" + key;
+        return Language.getInstance().getOrDefault(key) + "###" + key;
     }
 }

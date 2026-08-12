@@ -7,8 +7,8 @@ import imgui.flag.ImGuiWindowFlags;
 import imgui.type.ImBoolean;
 import lombok.Getter;
 import lombok.Setter;
-import net.minecraft.util.Identifier;
-import net.minecraft.util.Language;
+import net.minecraft.resources.Identifier;
+import net.minecraft.locale.Language;
 import org.jetbrains.annotations.Nullable;
 
 public abstract class UIModal {
@@ -37,7 +37,7 @@ public abstract class UIModal {
     }
 
     public String getTitle() {
-        return Language.getInstance().get(id.toTranslationKey("panel"));
+        return Language.getInstance().getOrDefault(id.toLanguageKey("panel"));
     }
 
     public String getPopupName() {

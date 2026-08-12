@@ -13,7 +13,7 @@ import com.igrium.replaylab.ui.widgets.DraggableList;
 import imgui.ImGui;
 import imgui.flag.ImGuiTreeNodeFlags;
 import lombok.experimental.UtilityClass;
-import net.minecraft.util.Language;
+import net.minecraft.locale.Language;
 import org.jetbrains.annotations.Nullable;
 
 @UtilityClass
@@ -87,10 +87,10 @@ public class CurveModifierEditor {
     }
 
     private static String tt(String key) {
-        return Language.getInstance().get(key);
+        return Language.getInstance().getOrDefault(key);
     }
 
     private static String t(String key) {
-        return Language.getInstance().get(key) + "###" + key;
+        return Language.getInstance().getOrDefault(key) + "###" + key;
     }
 }

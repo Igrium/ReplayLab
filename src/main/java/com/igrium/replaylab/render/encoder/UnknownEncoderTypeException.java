@@ -1,7 +1,7 @@
 package com.igrium.replaylab.render.encoder;
 
 import lombok.Getter;
-import net.minecraft.util.Identifier;
+import net.minecraft.resources.Identifier;
 
 public class UnknownEncoderTypeException extends RuntimeException {
     @Getter

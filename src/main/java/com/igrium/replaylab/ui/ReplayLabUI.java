@@ -2,6 +2,7 @@ package com.igrium.replaylab.ui;
 
 
 import com.igrium.craftui.app.DockSpaceApp;
+import com.igrium.craftui.icon.FontAwesome;
 import com.igrium.replaylab.ReplayLab;
 import com.igrium.replaylab.config.Keybinds;
 import com.igrium.replaylab.editor.EditorState;
@@ -28,10 +29,10 @@ import imgui.flag.ImGuiCol;
 import imgui.flag.ImGuiStyleVar;
 import imgui.type.ImBoolean;
 import lombok.Getter;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.util.Window;
-import net.minecraft.util.Identifier;
-import net.minecraft.util.Language;
+import net.minecraft.client.Minecraft;
+import com.mojang.blaze3d.platform.Window;
+import net.minecraft.resources.Identifier;
+import net.minecraft.locale.Language;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Matrix4f;
@@ -52,7 +53,7 @@ public class ReplayLabUI extends DockSpaceApp {
     // =========================================================================
 
     private static final Logger LOGGER = ReplayLab.getLogger();
-    private static final Identifier LAYOUT = Identifier.of("replaylab:replaylab");
+    private static final Identifier LAYOUT = Identifier.parse("replaylab:replaylab");
 
     @Getter
     private static final Matrix4f viewMatrix = new Matrix4f();
@@ -70,21 +71,21 @@ public class ReplayLabUI extends DockSpaceApp {
     // UI panels
     // =========================================================================
 
-    private static final Inspector inspector = new Inspector(Identifier.of("replaylab:inspector"));
+    private static final Inspector inspector = new Inspector(Identifier.parse("replaylab:inspector"));
 
     private final List<UIPanel> panels = List.of(
-            new DopeSheet(Identifier.of("replaylab:dopesheet")),
-            new CurveEditor(Identifier.of("replaylab:curveeditor")),
-            new Outliner(Identifier.of("replaylab:outliner")),
+            new DopeSheet(Identifier.parse("replaylab:dopesheet")),
+            new CurveEditor(Identifier.parse("replaylab:curveeditor")),
+            new Outliner(Identifier.parse("replaylab:outliner")),
             inspector,
-            new ScenePropsPanel(Identifier.of("replaylab:sceneprops"))
+            new ScenePropsPanel(Identifier.parse("replaylab:sceneprops"))
     );
 
     @Getter
-    private final SceneBrowser sceneBrowser = new SceneBrowser(Identifier.of("replaylab:scenebrowser"));
+    private final SceneBrowser sceneBrowser = new SceneBrowser(Identifier.parse("replaylab:scenebrowser"));
 
     @Getter
-    private final SettingsWindow settingsWindow = new SettingsWindow(Identifier.of("replaylab:settings"));
+    private final SettingsWindow settingsWindow = new SettingsWindow(Identifier.parse("replaylab:settings"));
 
     private final ViewportControls viewportControls = new ViewportControls();
 
@@ -139,7 +140,7 @@ public class ReplayLabUI extends DockSpaceApp {
     }
 
     @Override
-    protected void preRender(MinecraftClient client) {
+    protected void preRender(Minecraft client) {
         super.preRender(client);
 
         if (getReplayHandler() == null) {
@@ -154,8 +155,8 @@ public class ReplayLabUI extends DockSpaceApp {
             } catch (Exception e) {
                 LOGGER.error("Error saving replay: ", e);
                 ReplayModReplay.instance.forcefullyStopReplay();
-                MinecraftClient.getInstance().disconnect();
-                MinecraftClient.getInstance().setScreen(null);
+                Minecraft.getInstance().disconnectWithProgressScreen();
+                Minecraft.getInstance().gui.setScreen(null);
             }
         }
         if (editorState.wantsTimeJump()) {
@@ -169,7 +170,7 @@ public class ReplayLabUI extends DockSpaceApp {
 
 
     @Override
-    protected void render(MinecraftClient client) {
+    protected void render(Minecraft client) {
         var replayHandler = getReplayHandler();
         if (replayHandler == null) {
             close();
@@ -469,8 +470,8 @@ public class ReplayLabUI extends DockSpaceApp {
      */
     private @NotNull ViewportBounds getViewportBounds() {
         var bounds = getCustomViewportBounds();
-        Window window = MinecraftClient.getInstance().getWindow();
-        return bounds != null ? bounds : new ViewportBounds(0, 0, window.getWidth(), window.getHeight());
+        Window window = Minecraft.getInstance().getWindow();
+        return bounds != null ? bounds : new ViewportBounds(0, 0, window.getScreenWidth(), window.getScreenHeight());
     }
 
     @Override
@@ -485,9 +486,7 @@ public class ReplayLabUI extends DockSpaceApp {
 
 
     private boolean toggleButton(char icon, @Nullable String tooltip, ImBoolean value) {
-        ImGui.pushFont(ReplayLabIcons.getFont());
         boolean result = ReplayLabControls.toggleButton(String.valueOf(icon), value);
-        ImGui.popFont();
 
         if (ImGui.isItemHovered() && tooltip != null) ImGui.setTooltip(tooltip);
         return result;
@@ -502,6 +501,6 @@ public class ReplayLabUI extends DockSpaceApp {
     }
 
     private static String t(String key) {
-        return Language.getInstance().get(key);
+        return Language.getInstance().getOrDefault(key);
     }
 }

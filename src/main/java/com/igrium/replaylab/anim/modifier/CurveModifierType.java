@@ -4,7 +4,7 @@ import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.gson.*;
 import com.igrium.replaylab.json.GsonSerializationContext;
-import net.minecraft.util.Identifier;
+import net.minecraft.resources.Identifier;
 
 import java.util.function.Function;
 
@@ -37,14 +37,14 @@ public class CurveModifierType<T extends CurveModifier> {
     }
 
     public String getTranslationKey() {
-        return getId().toTranslationKey("curve_modifier");
+        return getId().toLanguageKey("curve_modifier");
     }
 
     public static CurveModifier fromJson(JsonObject json, JsonDeserializationContext context) {
         if (!json.has("type")) {
             throw new JsonParseException("Invalid json object. Missing 'type'");
         }
-        Identifier id = Identifier.of(json.get("type").getAsString());
+        Identifier id = Identifier.parse(json.get("type").getAsString());
         CurveModifierType<?> type = CurveModifierType.REGISTRY.get(id);
         if (type == null) {
             throw new IllegalArgumentException("Unknown curve modifier type: " + id);
@@ -63,9 +63,9 @@ public class CurveModifierType<T extends CurveModifier> {
     }
 
     public static final CurveModifierType<ModifierNoise> NOISE =
-            register(Identifier.of("replaylab:noise"), ModifierNoise::new);
+            register(Identifier.parse("replaylab:noise"), ModifierNoise::new);
 
     public static final CurveModifierType<ModifierTranslate> TRANSLATE =
-            register(Identifier.of("replaylab:translate"), ModifierTranslate::new);
+            register(Identifier.parse("replaylab:translate"), ModifierTranslate::new);
 
 }

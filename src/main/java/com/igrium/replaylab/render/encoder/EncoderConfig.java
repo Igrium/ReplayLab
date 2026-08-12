@@ -6,7 +6,7 @@ import com.google.gson.JsonSerializationContext;
 import com.igrium.replaylab.editor.EditorState;
 import imgui.ImGui;
 import lombok.Getter;
-import net.minecraft.util.Language;
+import net.minecraft.locale.Language;
 
 /**
  * Stores and persists the configuration for an {@link EncoderConfig}.
@@ -58,6 +58,6 @@ public abstract class EncoderConfig {
     }
 
     public void drawProperties(EditorState editor) {
-        ImGui.text(Language.getInstance().get("gui.replaylab.encoder.noProps"));
+        ImGui.text(Language.getInstance().getOrDefault("gui.replaylab.encoder.noProps"));
     }
 }

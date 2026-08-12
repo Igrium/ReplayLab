@@ -5,12 +5,12 @@ import imgui.ImGui;
 import imgui.flag.ImGuiKey;
 import imgui.flag.ImGuiMouseButton;
 import imgui.flag.ImGuiMouseCursor;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.Mouse;
-import net.minecraft.client.world.ClientWorld;
-import net.minecraft.entity.Entity;
-import net.minecraft.util.hit.EntityHitResult;
-import net.minecraft.util.hit.HitResult;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.MouseHandler;
+import net.minecraft.client.multiplayer.ClientLevel;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.phys.EntityHitResult;
+import net.minecraft.world.phys.HitResult;
 import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.Nullable;
 
@@ -80,12 +80,12 @@ public final class EntityPicker {
             return;
         }
 
-        MinecraftClient mc = MinecraftClient.getInstance();
-        ClientWorld world = mc.world;
+        Minecraft mc = Minecraft.getInstance();
+        ClientLevel world = mc.level;
         if (world == null) return;
 
-        Mouse mouse = mc.mouse;
-        HitResult raycast = RaycastUtils.raycastViewport((float) mouse.getX(), (float) mouse.getY(), 1000,
+        MouseHandler mouse = mc.mouseHandler;
+        HitResult raycast = RaycastUtils.raycastViewport((float) mouse.xpos(), (float) mouse.ypos(), 1000,
                 e -> e != mc.getCameraEntity(), false);
 
         if (raycast instanceof EntityHitResult entHit) {

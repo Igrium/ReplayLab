@@ -5,8 +5,8 @@ import com.igrium.replaylab.math.DynamicRotation;
 import com.igrium.replaylab.operator.ReplayOperator;
 import com.igrium.replaylab.object.ReplayObject;
 import com.igrium.replaylab.object.ReplayObject3D;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.entity.Entity;
+import net.minecraft.client.Minecraft;
+import net.minecraft.world.entity.Entity;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Vector3d;
 
@@ -24,8 +24,8 @@ public class CameraToViewOperator implements ReplayOperator {
     public boolean execute(EditorState editor) throws Exception {
         if (editor.isCameraView()) return false;
 
-        MinecraftClient mc = MinecraftClient.getInstance();
-        Entity camEnt = mc.cameraEntity != null ? mc.cameraEntity : mc.player;
+        Minecraft mc = Minecraft.getInstance();
+        Entity camEnt = mc.getCameraEntity() != null ? mc.getCameraEntity() : mc.player;
         if (camEnt == null) return false;
 
         ReplayObject cObj = editor.getScene().getSceneCameraObject();
@@ -40,7 +40,7 @@ public class CameraToViewOperator implements ReplayOperator {
         prevRot = new DynamicRotation().set(cameraObject.rotation());
 
         cameraObject.position().set(camEnt.getX(), camEnt.getEyeY(), camEnt.getZ());
-        cameraObject.rotation().setEulerYXZ(org.joml.Math.toRadians(-camEnt.getYaw()), org.joml.Math.toRadians(camEnt.getPitch()), 0);
+        cameraObject.rotation().setEulerYXZ(org.joml.Math.toRadians(-camEnt.getYRot()), org.joml.Math.toRadians(camEnt.getXRot()), 0);
 
         newPos = new Vector3d(cameraObject.position());
         newRot = new DynamicRotation().set(cameraObject.rotation());

@@ -17,7 +17,7 @@ import lombok.Getter;
 import lombok.NonNull;
 import lombok.Setter;
 
-import net.minecraft.util.Language;
+import net.minecraft.locale.Language;
 import org.apache.commons.lang3.mutable.Mutable;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Quaternionf;
@@ -238,7 +238,7 @@ public class ConstraintParent extends Constraint<ReplayObject3D> {
     }
 
     private static String tt(String key) {
-        return Language.getInstance().get(key);
+        return Language.getInstance().getOrDefault(key);
     }
 
     private static String t(String key) {

@@ -32,8 +32,8 @@ import it.unimi.dsi.fastutil.ints.IntSet;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import lombok.Getter;
 import lombok.Setter;
-import net.minecraft.util.Identifier;
-import net.minecraft.util.Language;
+import net.minecraft.resources.Identifier;
+import net.minecraft.locale.Language;
 
 import java.util.*;
 
@@ -356,7 +356,7 @@ public abstract class KeyframePanel extends UIPanel {
                 tsIn.set(key.getTimeInt());
                 doubleIn.set(key.getValue());
 
-                ReplayLabControls.inputTimestamp("Time", tsIn);
+                ReplayLabControls.inputTimestamp("Time", tsIn.getData());
                 if (ImGui.isItemDeactivatedAfterEdit()) {
                     editor.applyOperator(new SetKeyPosOperator(keyRef, tsIn.get(), key.getValue()));
                 }
@@ -374,6 +374,6 @@ public abstract class KeyframePanel extends UIPanel {
         return (flags & flag) != 0;
     }
     private static String t(String key) {
-        return Language.getInstance().get(key) + "###" + key;
+        return Language.getInstance().getOrDefault(key) + "###" + key;
     }
 }

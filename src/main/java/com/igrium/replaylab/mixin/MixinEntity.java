@@ -2,8 +2,8 @@ package com.igrium.replaylab.mixin;
 
 import com.igrium.replaylab.editor.EditorState;
 import com.igrium.replaylab.object.ReplayObject3D;
-import net.minecraft.entity.Entity;
-import net.minecraft.world.World;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.level.Level;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
@@ -14,11 +14,11 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public class MixinEntity {
 
     @Shadow
-    private World world;
+    private Level level;
 
-    @Inject(method = "changeLookDirection", at = @At("HEAD"), cancellable = true)
+    @Inject(method = "turn", at = @At("HEAD"), cancellable = true)
     void lookDirectionChangeRoll(double cursorDeltaX, double cursorDeltaY, CallbackInfo ci) {
-        if (!world.isClient) {
+        if (!level.isClientSide()) {
             return;
         }
         var editor = EditorState.getInstance();

@@ -1,5 +1,5 @@
 plugins {
-    id 'fabric-loom' version '1.10-SNAPSHOT'
+    id 'net.fabricmc.fabric-loom' version '1.17.16'
     id 'maven-publish'
     id("io.freefair.lombok") version "8.14.2"
 }
@@ -11,24 +11,31 @@ base {
     archivesName = project.archives_base_name
 }
 
+// Lombok 1.18.46+ is required to support the Java 25 javac internals used by MC 26.2.
+lombok {
+    version = "1.18.46"
+}
+
 repositories {
     maven { url = 'https://jitpack.io' }
     maven { url = "https://api.modrinth.com/maven" }
 }
 
 dependencies {
-    minecraft "net.minecraft:minecraft:${project.minecraft_version}"
-    mappings "net.fabricmc:yarn:${project.yarn_mappings}:v2"
-    modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
+    minecraft "com.mojang:minecraft:${project.minecraft_version}"
+    implementation "net.fabricmc:fabric-loader:${project.loader_version}"
 
     // Fabric API
-    modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
+    implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
 
-    modImplementation "com.github.Igrium:CraftUI:${project.craftui_version}"
-    modImplementation "maven.modrinth:replaymod:${replaymod_version}"
+    implementation "com.github.Igrium:CraftUI:${project.craftui_version}"
+    implementation "maven.modrinth:replaymod:${replaymod_version}"
 
-    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.8.1'
-    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.8.1'
+    testImplementation platform('org.junit:junit-bom:5.11.4')
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine'
+    // Gradle 9 requires the launcher to be on the test runtime classpath explicitly.
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 
     // So NFD works in a dev environment
     runtimeOnly "org.lwjgl:lwjgl-nfd:3.3.3:natives-linux"
@@ -43,7 +50,7 @@ processResources {
 }
 
 tasks.withType(JavaCompile).configureEach {
-    it.options.release = 21
+    it.options.release = 25
 }
 
 java {
@@ -52,8 +59,8 @@ java {
     // If you remove this line, sources will not be generated.
     withSourcesJar()
 
-    sourceCompatibility = JavaVersion.VERSION_21
-    targetCompatibility = JavaVersion.VERSION_21
+    sourceCompatibility = JavaVersion.VERSION_25
+    targetCompatibility = JavaVersion.VERSION_25
 }
 
 jar {

@@ -2,7 +2,7 @@ package com.igrium.replaylab;
 
 import net.fabricmc.fabric.api.event.Event;
 import net.fabricmc.fabric.api.event.EventFactory;
-import net.minecraft.util.Language;
+import net.minecraft.locale.Language;
 
 /**
  * Called when the language file is switched or reloaded

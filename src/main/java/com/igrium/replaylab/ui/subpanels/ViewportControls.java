@@ -11,13 +11,13 @@ import com.igrium.replaylab.ui.panels.UIPanel;
 import com.igrium.replaylab.config.ShortcutUtils;
 import imgui.ImGui;
 import imgui.type.ImString;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.Mouse;
-import net.minecraft.client.world.ClientWorld;
-import net.minecraft.entity.Entity;
-import net.minecraft.util.Language;
-import net.minecraft.util.hit.EntityHitResult;
-import net.minecraft.util.hit.HitResult;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.MouseHandler;
+import net.minecraft.client.multiplayer.ClientLevel;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.locale.Language;
+import net.minecraft.world.phys.EntityHitResult;
+import net.minecraft.world.phys.HitResult;
 import org.jetbrains.annotations.Nullable;
 
 public class ViewportControls {
@@ -121,12 +121,12 @@ public class ViewportControls {
     }
 
     private void raycastSelect(EditorState editorState) {
-        Mouse mouse = MinecraftClient.getInstance().mouse;
+        MouseHandler mouse = Minecraft.getInstance().mouseHandler;
 
-        ClientWorld world = MinecraftClient.getInstance().world;
+        ClientLevel world = Minecraft.getInstance().level;
         if (world == null) return;
 
-        HitResult raycast = RaycastUtils.raycastViewport((float) mouse.getX(), (float) mouse.getY(), 1000, e -> true, false);
+        HitResult raycast = RaycastUtils.raycastViewport((float) mouse.xpos(), (float) mouse.ypos(), 1000, e -> true, false);
         if (raycast instanceof EntityHitResult hit) {
             Entity ent = hit.getEntity();
             if (ImGui.getIO().getKeyCtrl() || ImGui.getIO().getKeyShift()) {
@@ -165,12 +165,12 @@ public class ViewportControls {
     }
 
     private @Nullable ReplayObject raycastReplayObject(EditorState editorState) {
-        Mouse mouse = MinecraftClient.getInstance().mouse;
+        MouseHandler mouse = Minecraft.getInstance().mouseHandler;
 
-        ClientWorld world = MinecraftClient.getInstance().world;
+        ClientLevel world = Minecraft.getInstance().level;
         if (world == null) return null;
 
-        HitResult raycast = RaycastUtils.raycastViewport((float) mouse.getX(), (float) mouse.getY(), 1000, e -> true, false);
+        HitResult raycast = RaycastUtils.raycastViewport((float) mouse.xpos(), (float) mouse.ypos(), 1000, e -> true, false);
         if (raycast instanceof EntityHitResult entHit) {
             return editorState.getScene().referencingObjects(entHit.getEntity()).findFirst().orElse(null);
         }
@@ -178,9 +178,9 @@ public class ViewportControls {
     }
 
     private static String t(String key) {
-        return Language.getInstance().get(key) + "###" + key;
+        return Language.getInstance().getOrDefault(key) + "###" + key;
     }
     private static String tt(String key) {
-        return Language.getInstance().get(key);
+        return Language.getInstance().getOrDefault(key);
     }
 }

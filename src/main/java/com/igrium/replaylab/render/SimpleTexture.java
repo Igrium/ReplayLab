@@ -1,11 +1,30 @@
 package com.igrium.replaylab.render;
 
-import com.mojang.blaze3d.platform.GlConst;
-import com.mojang.blaze3d.platform.GlStateManager;
+import com.mojang.blaze3d.GpuFormat;
+import com.mojang.blaze3d.systems.RenderSystem;
+import com.mojang.blaze3d.textures.GpuTexture;
+import com.mojang.blaze3d.textures.GpuTextureView;
 import lombok.Getter;
-import net.minecraft.client.texture.AbstractTexture;
 
-public class SimpleTexture extends AbstractTexture {
+import java.io.Closeable;
+
+/**
+ * A simple off-screen texture we can render into and read back from.
+ * <p>
+ * Since 26.2 there is no public GL texture id to hang onto; this wraps the Blaze3D
+ * {@link GpuTexture} and a view of it instead.
+ */
+public class SimpleTexture implements Closeable {
+
+    /**
+     * Usage flags every render texture needs: sampled by the UI, written to by the world render,
+     * and read back by the encoder.
+     */
+    private static final int USAGE = GpuTexture.USAGE_TEXTURE_BINDING
+            | GpuTexture.USAGE_COPY_DST
+            | GpuTexture.USAGE_COPY_SRC
+            | GpuTexture.USAGE_RENDER_ATTACHMENT;
+
     @Getter
     private final int width;
 
@@ -13,31 +32,38 @@ public class SimpleTexture extends AbstractTexture {
     private final int height;
 
     @Getter
-    private final int internalFormat;
+    private final GpuFormat format;
 
-    public SimpleTexture(int width, int height, int internalFormat) {
+    @Getter
+    private final GpuTexture texture;
+
+    @Getter
+    private final GpuTextureView textureView;
+
+    @Getter
+    private boolean closed;
+
+    public SimpleTexture(int width, int height, GpuFormat format) {
         if (width <= 0 || height <= 0) {
             throw new IllegalArgumentException("Width and height must be positive");
         }
+        RenderSystem.assertOnRenderThread();
+
         this.width = width;
         this.height = height;
-        this.internalFormat = internalFormat;
-        RenderUtils.onRenderThread(this::prepareImage);
-    }
+        this.format = format;
 
-    private void prepareImage() {
-        int glId = getGlId();
-        GlStateManager._bindTexture(glId);
-        GlStateManager._texImage2D(GlConst.GL_TEXTURE_2D, 0, internalFormat, width, height, 0,
-                GlConst.GL_RGBA, GlConst.GL_UNSIGNED_BYTE, null);
-
-        GlStateManager._texParameter(GlConst.GL_TEXTURE_2D, GlConst.GL_TEXTURE_MIN_FILTER, GlConst.GL_LINEAR);
-        GlStateManager._texParameter(GlConst.GL_TEXTURE_2D, GlConst.GL_TEXTURE_MAG_FILTER, GlConst.GL_LINEAR);
+        this.texture = RenderSystem.getDevice().createTexture("ReplayLab render target", USAGE, format, width, height, 1, 1);
+        this.textureView = RenderSystem.getDevice().createTextureView(texture);
     }
 
     @Override
     public void close() {
-        super.close();
-        clearGlId();
+        if (closed) return;
+        closed = true;
+        RenderUtils.onRenderThread(() -> {
+            textureView.close();
+            texture.close();
+        });
     }
 }

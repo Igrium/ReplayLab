@@ -3,8 +3,7 @@ package com.igrium.replaylab.mixin;
 import com.igrium.craftui.app.AppManager;
 import com.igrium.craftui.app.CraftApp;
 import com.igrium.replaylab.render.VideoRenderer;
-import com.igrium.replaylab.render.RenderUtils;
-import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.Minecraft;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -21,9 +20,16 @@ public class MixinAppManager {
         }
     }
 
-    @Inject(method = "render", at = @At("HEAD"), cancellable = true)
-    private static void cancelRender(MinecraftClient client, CallbackInfo ci) {
-        if (RenderUtils.forceNoCraftUI)
+    /**
+     * <code>compositeViewportTarget</code> reads the <code>currentViewportBounds</code> field directly,
+     * so overriding {@link AppManager#getCustomViewportBounds()} isn't enough to keep it out of the
+     * export loop. Since <code>preRender</code> never runs during export, that field keeps its last
+     * in-game value and the compositor would hijack <code>mainRenderTarget</code> out from under
+     * ReplayMod's gui framebuffer.
+     */
+    @Inject(method = "compositeViewportTarget", at = @At("HEAD"), cancellable = true)
+    private static void cancelComposite(Minecraft client, CallbackInfo ci) {
+        if (VideoRenderer.isRenderingVideo())
             ci.cancel();
     }
 }

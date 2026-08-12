@@ -22,11 +22,11 @@ import imgui.extension.imguizmo.flag.Mode;
 import imgui.extension.imguizmo.flag.Operation;
 import lombok.Getter;
 import lombok.experimental.Accessors;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.entity.Entity;
-import net.minecraft.util.Language;
-import net.minecraft.util.math.MathHelper;
-import net.minecraft.util.math.Vec3d;
+import net.minecraft.client.Minecraft;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.locale.Language;
+import net.minecraft.util.Mth;
+import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
 import org.joml.*;
 import org.slf4j.Logger;
@@ -245,7 +245,7 @@ public abstract class ReplayObject3D extends ReplayObject implements TransformPr
         if (getRotationMode() == RotationMode.QUATERNION) {
             modified |= hasRot && dragFloatN(t("gui.replaylab.rot"), .125f, pHead, 1, ROT_QUAT_W, ROT_QUAT_X, ROT_QUAT_Y, ROT_QUAT_Z);
         } else {
-            float rotFactor = ReplayLabConfig.getInstance().isDisplayDegrees() ? MathHelper.DEGREES_PER_RADIAN : 1;
+            float rotFactor = ReplayLabConfig.getInstance().isDisplayDegrees() ? Mth.RAD_TO_DEG : 1;
             modified |= hasRot && dragFloatN(t("gui.replaylab.rot"), 1, pHead, rotFactor, ROT_EULER_X, ROT_EULER_Y, ROT_EULER_Z);
         }
 
@@ -339,10 +339,10 @@ public abstract class ReplayObject3D extends ReplayObject implements TransformPr
     @Override
     public void onCreated() {
         super.onCreated();
-        MinecraftClient mc = MinecraftClient.getInstance();
-        Entity camEnt = mc.cameraEntity != null ? mc.cameraEntity : mc.player;
+        Minecraft mc = Minecraft.getInstance();
+        Entity camEnt = mc.getCameraEntity() != null ? mc.getCameraEntity() : mc.player;
         if (camEnt != null) {
-            Vec3d newPos = camEnt.getRotationVector().multiply(5).add(camEnt.getEyePos());
+            Vec3 newPos = camEnt.getLookAngle().scale(5).add(camEnt.getEyePosition());
             position().set(newPos.x, newPos.y, newPos.z);
         }
     }
@@ -356,7 +356,7 @@ public abstract class ReplayObject3D extends ReplayObject implements TransformPr
     }
 
     private static String t(String key) {
-        return Language.getInstance().get(key) + "###" + key;
+        return Language.getInstance().getOrDefault(key) + "###" + key;
     }
 
     /**

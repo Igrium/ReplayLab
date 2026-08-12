@@ -11,7 +11,7 @@ import imgui.flag.ImGuiCol;
 import imgui.flag.ImGuiStyleVar;
 import imgui.flag.ImGuiTreeNodeFlags;
 import lombok.experimental.UtilityClass;
-import net.minecraft.util.math.ColorHelper;
+import net.minecraft.util.ARGB;
 
 import java.util.*;
 import java.util.function.BiConsumer;
@@ -168,7 +168,7 @@ public class ChannelList {
                     if (hasFlag(flags, ChannelListFlags.SHOW_COLORS)) {
                         ImDrawList drawList = ImGui.getWindowDrawList();
                         drawList.addRectFilled(cursorX, cursorY + 2, cursorX + 8, cursorY + ImGui.getFrameHeight() - 2,
-                                ColorHelper.withAlpha(96, obj.getChannelColor(chEntry.getKey())));
+                                ARGB.color(96, obj.getChannelColor(chEntry.getKey())));
 
                     }
 

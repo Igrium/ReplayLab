@@ -1,8 +1,8 @@
 package com.igrium.replaylab.object;
 
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.world.ClientWorld;
-import net.minecraft.entity.Entity;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.multiplayer.ClientLevel;
+import net.minecraft.world.entity.Entity;
 import org.jetbrains.annotations.Nullable;
 
 /**
@@ -15,7 +15,7 @@ public interface EntityProvider<T extends Entity> {
      * @param world World to search in.
      * @return The entity. <code>null</code> if it does not exist.
      */
-    @Nullable T getEntity(ClientWorld world);
+    @Nullable T getEntity(ClientLevel world);
 
     /**
      * Get the entity this object references from the current client world.
@@ -23,7 +23,7 @@ public interface EntityProvider<T extends Entity> {
      * @return The entity. <code>null</code> if it does not exist or if the client isn't in a world.
      */
     default @Nullable T getEntity() {
-        var world = MinecraftClient.getInstance().world;
+        var world = Minecraft.getInstance().level;
         return (world != null) ? getEntity(world) : null;
     }
 }

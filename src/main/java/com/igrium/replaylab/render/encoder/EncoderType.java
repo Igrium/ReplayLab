@@ -11,7 +11,7 @@ import com.igrium.replaylab.render.ffmpeg.FFmpegEncoder;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NonNull;
-import net.minecraft.util.Identifier;
+import net.minecraft.resources.Identifier;
 
 import java.util.function.Function;
 
@@ -48,7 +48,7 @@ public class EncoderType<T extends EncoderConfig> {
     /// === SERIALIZATION ===
     public static EncoderConfig parse(JsonObject json, JsonDeserializationContext ctx) throws JsonParseException,
             UnknownEncoderTypeException {
-        var id = Identifier.of(json.get("type").getAsString());
+        var id = Identifier.parse(json.get("type").getAsString());
         var type = REGISTRY.get(id);
         if (type == null) {
             throw new UnknownEncoderTypeException(id);

@@ -125,7 +125,7 @@ public final class ReplayScenes {
             } catch (IOException e) {
                 throw ExceptionUtils.asRuntimeException(e);
             }
-        }, Util.getIoWorkerExecutor());
+        }, Util.ioPool());
     }
 
     private static void closeQuietly(@Nullable Closeable closable) {

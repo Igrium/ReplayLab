@@ -17,7 +17,7 @@ import imgui.ImGui;
 import it.unimi.dsi.fastutil.objects.Object2DoubleArrayMap;
 import it.unimi.dsi.fastutil.objects.Object2DoubleMap;
 import lombok.Getter;
-import net.minecraft.util.Language;
+import net.minecraft.locale.Language;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Matrix4fc;
 import org.joml.Vector3dc;
@@ -285,12 +285,12 @@ public abstract class ReplayObject implements PropertyHolder {
      * @return {@link EditFlags}
      */
     public int drawPropertiesPanel(EditorState editor) {
-        ImGui.text(Language.getInstance().get("gui.replaylab.noprops"));
+        ImGui.text(Language.getInstance().getOrDefault("gui.replaylab.noprops"));
         return EditFlags.NONE;
     }
 
     public int drawConstraints(EditorState editor) {
-        ImGui.separatorText(Language.getInstance().get("gui.replaylab.constraints"));
+        ImGui.separatorText(Language.getInstance().getOrDefault("gui.replaylab.constraints"));
         return ConstraintEditor.draw(this, editor);
     }
 

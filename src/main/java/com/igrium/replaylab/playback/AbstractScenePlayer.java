@@ -1,5 +1,6 @@
 package com.igrium.replaylab.playback;
 
+import com.igrium.replaylab.editor.EditorState;
 import com.igrium.replaylab.scene.ReplayScene;
 import com.replaymod.core.mixin.MinecraftAccessor;
 import com.replaymod.core.mixin.TimerAccessor;
@@ -10,9 +11,11 @@ import com.replaymod.replay.ReplayHandler;
 import com.replaymod.replay.ReplaySender;
 import lombok.Getter;
 import lombok.NonNull;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.render.RenderTickCounter;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.DeltaTracker;
 import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.concurrent.CompletableFuture;
 
@@ -20,12 +23,14 @@ import java.util.concurrent.CompletableFuture;
  * Reimplementation of AbstractTimelinePlayer for ReplayLab.
  */
 public abstract class AbstractScenePlayer extends EventRegistrations {
+    private static final Logger LOGGER = LoggerFactory.getLogger("ReplayLab/ScenePlayer");
+
     private final ReplayHandler replayHandler;
     private ReplayScene scene;
 
     private boolean wasAsyncMode;
 
-    private RenderTickCounter.Dynamic origTimer;
+    private DeltaTracker.Timer origTimer;
 
     /**
      * The previously processed replay time during timeline playback
@@ -57,7 +62,7 @@ public abstract class AbstractScenePlayer extends EventRegistrations {
         register();
         prevReplayTime = 0;
 
-        var mcA = (MinecraftAccessor) MinecraftClient.getInstance();
+        var mcA = (MinecraftAccessor) Minecraft.getInstance();
         origTimer = mcA.getTimer();
         ReplayTimer timer = new ReplayTimer();
         mcA.setTimer(timer);
@@ -78,7 +83,7 @@ public abstract class AbstractScenePlayer extends EventRegistrations {
     }
 
     private void restoreState() {
-        var mcA = (MinecraftAccessor) MinecraftClient.getInstance();
+        var mcA = (MinecraftAccessor) Minecraft.getInstance();
         mcA.setTimer(origTimer);
         replayHandler.getReplaySender().setReplaySpeed(0);
         if (wasAsyncMode) {
@@ -111,10 +116,24 @@ public abstract class AbstractScenePlayer extends EventRegistrations {
 
         replayTime = Math.min(replayTime, replayHandler.getReplayDuration());
 
-        if (sender.isAsyncMode()) {
-            sender.jumpToTime(replayTime);
-        } else {
-            sender.sendPacketsTill(replayTime);
+        // Don't let a sender failure escape into the render loop and take the client down. Stopping
+        // playback is enough to break the per-tick retry; the editor stays usable and the user can
+        // scrub or play again. See dev/replay-sender-decode-failure.md
+        try {
+            if (sender.isAsyncMode()) {
+                sender.jumpToTime(replayTime);
+            } else {
+                sender.sendPacketsTill(replayTime);
+            }
+        } catch (Exception e) {
+            LOGGER.error("Error advancing the replay during playback; stopping playback.", e);
+            stop();
+
+            EditorState editor = EditorState.getInstance();
+            if (editor != null) {
+                editor.onException(e);
+            }
+            return;
         }
 
         scene.applyToGame(timestamp);
@@ -127,7 +146,7 @@ public abstract class AbstractScenePlayer extends EventRegistrations {
         float prevTimeInTicks = prevReplayTime / 50f;
         float passedTicks = timeInTicks - prevTimeInTicks;
 
-        RenderTickCounter rTickCounter = ((MinecraftAccessor) MinecraftClient.getInstance()).getTimer();
+        DeltaTracker rTickCounter = ((MinecraftAccessor) Minecraft.getInstance()).getTimer();
         if (rTickCounter instanceof ReplayTimer timer) {
             timer.tickDelta += passedTicks;
             timer.ticksThisFrame = (int) timer.tickDelta;

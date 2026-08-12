@@ -9,7 +9,7 @@ import com.google.gson.JsonParseException;
 import com.google.gson.JsonSerializationContext;
 import lombok.Getter;
 import lombok.NonNull;
-import net.minecraft.util.Identifier;
+import net.minecraft.resources.Identifier;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.function.Function;
@@ -26,7 +26,7 @@ public final class FrameCaptureType<T extends FrameCapture> {
     }
 
     public static final FrameCaptureType<BasicFrameCapture> BASIC = register(new FrameCaptureType<>(BasicFrameCapture::new),
-            Identifier.of("replaylab:basic"));
+            Identifier.parse("replaylab:basic"));
 
     /// === FIELDS ===
 
@@ -56,7 +56,7 @@ public final class FrameCaptureType<T extends FrameCapture> {
     /// === SERIALIZATION ===
 
     public static FrameCapture parse(JsonObject json, JsonDeserializationContext ctx) throws JsonParseException, UnknownFrameCaptureTypeException {
-        var id = Identifier.of(json.get("type").getAsString());
+        var id = Identifier.parse(json.get("type").getAsString());
         var type = REGISTRY.get(id);
         if (type == null) {
             throw new UnknownFrameCaptureTypeException(id);

@@ -5,16 +5,15 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonSerializationContext;
 import com.igrium.replaylab.render.RenderMetadata;
 import com.igrium.replaylab.render.SimpleTexture;
-import com.mojang.blaze3d.platform.GlStateManager;
+import com.mojang.blaze3d.pipeline.RenderTarget;
+import com.mojang.blaze3d.systems.CommandEncoder;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.replaymod.core.events.PostRenderCallback;
 import com.replaymod.core.events.PreRenderCallback;
 import com.replaymod.core.versions.MCVer;
-import com.replaymod.render.mixin.GameRendererAccessor;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.screen.Screen;
-
-import static com.mojang.blaze3d.platform.GlConst.*;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.screens.Screen;
+import org.joml.Vector4f;
 
 public class BasicFrameCapture extends FrameCapture {
     public BasicFrameCapture(FrameCaptureType<?> type) {
@@ -41,47 +40,56 @@ public class BasicFrameCapture extends FrameCapture {
         RenderSystem.assertOnRenderThread();
 
         RenderMetadata meta = getMetadata();
-        MinecraftClient mc = MinecraftClient.getInstance();
+        Minecraft mc = Minecraft.getInstance();
 
         /// === RENDER ===
         MCVer.resizeMainWindow(mc, meta.width(), meta.height());
-        MCVer.pushMatrix();
-        mc.getFramebuffer().beginWrite(true);
+        RenderTarget target = mc.gameRenderer.mainRenderTarget();
 
-        RenderSystem.clear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        RenderSystem.getDevice().createCommandEncoder().clearColorAndDepthTextures(
+                target.getColorTexture(), new Vector4f(), target.getDepthTexture(), 0);
 
         PreRenderCallback.EVENT.invoker().preRender();
 
-        if (mc.world != null && mc.player != null) {
-            GameRendererAccessor gameRenderer = (GameRendererAccessor) mc.gameRenderer;
-            Screen orgScreen = mc.currentScreen;
+        if (mc.level != null && mc.player != null) {
+            Screen orgScreen = mc.gui.screen();
             boolean orgPauseOnLostFocus = mc.options.pauseOnLostFocus;
-            boolean orgRenderHand = gameRenderer.getRenderHand();
+            boolean orgHudHidden = mc.gui.hud.isHidden();
 
             try {
-                mc.currentScreen = null;
+                mc.gui.setScreen(null);
                 mc.options.pauseOnLostFocus = false;
-                // TODO: set render hand if omnidirectional
+                // The HUD (and, with it, the held item) is toggled off for the duration of the capture.
+                if (!orgHudHidden) {
+                    mc.gui.hud.toggle();
+                }
 
-                mc.gameRenderer.render(mc.getRenderTickCounter(), true);
+                // 26.2 splits the world render into update / extract / render.
+                mc.gameRenderer.update(mc.getDeltaTracker());
+                mc.gameRenderer.extract(mc.getDeltaTracker(), true);
+                mc.gameRenderer.render(mc.getDeltaTracker(), true);
             } finally {
-                mc.currentScreen = orgScreen;
+                mc.gui.setScreen(orgScreen);
                 mc.options.pauseOnLostFocus = orgPauseOnLostFocus;
-                gameRenderer.setRenderHand(orgRenderHand);
+                if (mc.gui.hud.isHidden() != orgHudHidden) {
+                    mc.gui.hud.toggle();
+                }
             }
         }
 
         PostRenderCallback.EVENT.invoker().postRender();
 
-        mc.getFramebuffer().endWrite();
-        MCVer.popMatrix();
+        // The frame must be explicitly finished before its contents can be read.
+        RenderSystem.getDynamicUniforms().reset();
+        mc.levelRenderer.endFrame();
+        RenderSystem.getDevice().createCommandEncoder().submit();
 
         /// === SAVE FRAME ===
-        GlStateManager._glBindFramebuffer(GL_FRAMEBUFFER, mc.getFramebuffer().fbo);
-        GlStateManager._bindTexture(texture.getGlId());
-
-        GlStateManager._glCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 0, 0,
-                mc.getFramebuffer().textureWidth, mc.getFramebuffer().textureHeight);
+        CommandEncoder encoder = RenderSystem.getDevice().createCommandEncoder();
+        int width = Math.min(target.width, texture.getWidth());
+        int height = Math.min(target.height, texture.getHeight());
+        encoder.copyTextureToTexture(target.getColorTexture(), texture.getTexture(), 0,
+                0, 0, 0, 0, width, height);
     }
 
 }

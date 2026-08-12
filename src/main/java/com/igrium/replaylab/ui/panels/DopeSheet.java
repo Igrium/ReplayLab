@@ -11,7 +11,7 @@ import com.igrium.replaylab.anim.ChannelUtils;
 import com.igrium.replaylab.anim.KeyChannel;
 import com.igrium.replaylab.anim.Keyframe;
 import com.igrium.replaylab.object.ReplayObject;
-import com.igrium.replaylab.ui.ReplayLabIcons;
+import com.igrium.craftui.icon.FontAwesome;
 import com.igrium.replaylab.ui.subpanels.TimelineHeader;
 import com.igrium.replaylab.ui.util.ReplayLabControls;
 import com.igrium.replaylab.ui.util.TimelineFlags;
@@ -27,8 +27,8 @@ import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.objects.ObjectObjectImmutablePair;
 import lombok.Getter;
-import net.minecraft.util.Identifier;
-import net.minecraft.util.Language;
+import net.minecraft.resources.Identifier;
+import net.minecraft.locale.Language;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Vector2d;
 import org.joml.Vector2f;
@@ -158,14 +158,14 @@ public class DopeSheet extends KeyframePanel {
 
     @Override
     protected void drawControlButtons(EditorState editorState) {
-        ReplayLabControls.toggleButton(ReplayLabIcons.ICON_ARROW_POINTER, "selectedOnly", getSelectedOnlyRef(),
+        ReplayLabControls.toggleButton(FontAwesome.ICON_ARROW_POINTER, "selectedOnly", getSelectedOnlyRef(),
                 "gui.replaylab.selected_only");
         ImGui.sameLine();
 
-        ReplayLabControls.toggleButton(ReplayLabIcons.ICON_MAGNET, "snapKeyframes", snapKeyframes,
+        ReplayLabControls.toggleButton(FontAwesome.ICON_MAGNET, "snapKeyframes", snapKeyframes,
                 "gui.replaylab.tooltip_snap");
         ImGui.sameLine();
-        wantsFit = ReplayLabControls.iconButton(ReplayLabIcons.ICON_RESIZE_FULL_ALT, "fitKeys",
+        wantsFit = ReplayLabControls.iconButton(FontAwesome.ICON_UP_RIGHT_AND_DOWN_LEFT_FROM_CENTER, "fitKeys",
                 "gui.replaylab.tooltip_fit");
     }
 
@@ -737,6 +737,6 @@ public class DopeSheet extends KeyframePanel {
     }
 
     private static String t(String key) {
-        return Language.getInstance().get(key) + "###" + key;
+        return Language.getInstance().getOrDefault(key) + "###" + key;
     }
 }

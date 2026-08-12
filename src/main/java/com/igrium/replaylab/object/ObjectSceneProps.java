@@ -15,7 +15,7 @@ import imgui.type.ImInt;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.Setter;
-import net.minecraft.util.Language;
+import net.minecraft.locale.Language;
 import org.apache.commons.lang3.mutable.Mutable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -184,7 +184,7 @@ public final class ObjectSceneProps extends ReplayObject {
         }
 
         startTimeInput.set(startTime);
-        if (ReplayLabControls.inputTimestamp("Start Time", startTimeInput)) {
+        if (ReplayLabControls.inputTimestamp("Start Time", startTimeInput.getData())) {
             startTime = Math.max(0, startTimeInput.get());
         }
         if (ImGui.isItemDeactivatedAfterEdit()) {
@@ -192,7 +192,7 @@ public final class ObjectSceneProps extends ReplayObject {
         }
 
         lengthInput.set(length);
-        if (ReplayLabControls.inputTimestamp("Length", lengthInput)) {
+        if (ReplayLabControls.inputTimestamp("Length", lengthInput.getData())) {
             length = Math.max(0, lengthInput.get());
         }
         if (ImGui.isItemDeactivatedAfterEdit()) {
@@ -209,6 +209,6 @@ public final class ObjectSceneProps extends ReplayObject {
 
     @Override
     public String getDisplayName() {
-        return Language.getInstance().get("replayobject.sceneProps");
+        return Language.getInstance().getOrDefault("replayobject.sceneProps");
     }
 }

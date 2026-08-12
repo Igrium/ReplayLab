@@ -2,7 +2,7 @@ package com.igrium.replaylab.camera;
 
 import lombok.Getter;
 import lombok.Setter;
-import net.minecraft.client.render.entity.state.EntityRenderState;
+import net.minecraft.client.renderer.entity.state.EntityRenderState;
 import org.joml.Quaternionf;
 import org.joml.Quaternionfc;
 

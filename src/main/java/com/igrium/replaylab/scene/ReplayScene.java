@@ -13,15 +13,16 @@ import com.igrium.replaylab.util.NameUtils;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.Setter;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.world.ClientWorld;
-import net.minecraft.entity.Entity;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.multiplayer.ClientLevel;
+import net.minecraft.world.entity.Entity;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 
@@ -66,32 +67,14 @@ public class ReplayScene {
 
 
     public ObjectSceneProps getSceneProps() {
-        ReplayObject obj = getObject(SCENE_PROPS);
-        ObjectSceneProps sceneProps;
-        if (obj instanceof ObjectSceneProps) {
-            sceneProps = (ObjectSceneProps) obj;
-        } else {
-            LOGGER.info("No Scene object found. Creating.");
-            sceneProps = ReplayObjects.SCENE_PROPS.create(this);
-            addObject(SCENE_PROPS, sceneProps);
-        }
-        return sceneProps;
+        return (ObjectSceneProps) getOrCreateObject(SCENE_PROPS, ReplayObjects.SCENE_PROPS::create);
     }
 
     /**
      * Get the render settings object for the scene. Note that render settings are not stored in undo/redo.
      */
     public ObjectRenderSettings getRenderSettings() {
-        ReplayObject obj = getObject(RENDER_SETTINGS);
-        ObjectRenderSettings renderSettings;
-        if (obj instanceof ObjectRenderSettings) {
-            renderSettings = (ObjectRenderSettings) obj;
-        } else {
-            LOGGER.info("No RenderSettings object found. Creating.");
-            renderSettings = ReplayObjects.RENDER_SETTINGS.create(this);
-            addObject(RENDER_SETTINGS, renderSettings);
-        }
-        return renderSettings;
+        return (ObjectRenderSettings) getOrCreateObject(RENDER_SETTINGS, ReplayObjects.RENDER_SETTINGS::create);
     }
 
     public int getLength() {
@@ -109,18 +92,22 @@ public class ReplayScene {
     /**
      * Convert a local timestamp to a global replay time suitable for the relay mod.
      * @param sceneTimestamp Scene time in ms.
-     * @return Global replay time in ms.
+     * @return Global replay time in ms. Never negative.
      */
     public int sceneToReplayTime(int sceneTimestamp) {
         // TODO: Update this to handle time dilation
         ObjectSceneProps props = getSceneProps();
         KeyChannel chan = props.getChannel(PROP_SPEED);
 
+        int replayTime;
         if (chan == null || chan.isEmpty()) {
-            return (int) (props.getStartTime() + sceneTimestamp * props.getSpeed());
+            replayTime = (int) (props.getStartTime() + sceneTimestamp * props.getSpeed());
         } else {
-            return (int) (props.getStartTime() + chan.integrate(sceneTimestamp));
+            replayTime = (int) (props.getStartTime() + chan.integrate(sceneTimestamp));
         }
+
+        // Seeking before the start of the recording makes the sender restart the replay.
+        return Math.max(replayTime, 0);
     }
 
     public float getFps() {
@@ -151,7 +138,7 @@ public class ReplayScene {
     public void spectateCamera() {
         Entity cam = getSceneCamera();
         if (cam != null) {
-            MinecraftClient.getInstance().setCameraEntity(cam);
+            Minecraft.getInstance().setCameraEntity(cam);
         }
     }
 
@@ -207,6 +194,21 @@ public class ReplayScene {
             return true;
         }
         return false;
+    }
+
+    /**
+     * Get an object of a given ID, creating it if it doesn't exist.
+     *
+     * @param id      Object ID to use
+     * @param factory Factory to create the new object if needed.
+     * @return The new or existing object
+     */
+    public ReplayObject getOrCreateObject(String id, Function<? super ReplayScene, ? extends ReplayObject> factory) {
+        return objects.computeIfAbsent(id, i -> {
+            var obj = factory.apply(this);
+            onAddObject(i, obj);
+            return obj;
+        });
     }
 
     /**
@@ -312,7 +314,7 @@ public class ReplayScene {
      */
     public Stream<ReplayObject> referencingObjects(Entity entity) {
         return objectsUnmod.values().stream().filter(obj ->
-                obj instanceof EntityProvider<?> e && e.getEntity((ClientWorld) entity.getWorld()) == entity);
+                obj instanceof EntityProvider<?> e && e.getEntity((ClientLevel) entity.level()) == entity);
     }
 
     /**

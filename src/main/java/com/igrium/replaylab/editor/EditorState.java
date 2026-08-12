@@ -36,12 +36,12 @@ import lombok.Getter;
 import lombok.NonNull;
 import lombok.Setter;
 import lombok.experimental.Accessors;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.network.ClientPlayerEntity;
-import net.minecraft.client.option.Perspective;
-import net.minecraft.entity.Entity;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.player.LocalPlayer;
+import net.minecraft.client.CameraType;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.util.Util;
-import net.minecraft.util.math.Vec3d;
+import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Math;
@@ -100,7 +100,7 @@ public final class EditorState {
 
     /// ===== Fields =====
 
-    private final MinecraftClient mc = MinecraftClient.getInstance();
+    private final Minecraft mc = Minecraft.getInstance();
 
     @Getter
     private final ImInt playheadRef = new ImInt(0);
@@ -392,7 +392,7 @@ public final class EditorState {
     }
 
     public CompletableFuture<List<String>> refreshSceneListAsync() {
-        return CompletableFuture.supplyAsync(this::refreshSceneListSync, Util.getIoWorkerExecutor());
+        return CompletableFuture.supplyAsync(this::refreshSceneListSync, Util.ioPool());
     }
 
     public void renameScene(String oldName, String newName) throws IOException {
@@ -471,7 +471,7 @@ public final class EditorState {
             setCameraView(false);
         }
         // No F5
-        mc.options.setPerspective(Perspective.FIRST_PERSON);
+        mc.options.setCameraType(CameraType.FIRST_PERSON);
         if (isCameraView()) {
 
             scene.spectateCamera();
@@ -479,10 +479,10 @@ public final class EditorState {
             Entity cameraEnt = scene.getSceneCamera();
             ReplayObject cameraObj = scene.getSceneCameraObject();
 
-            ClientPlayerEntity player = mc.player;
+            LocalPlayer player = mc.player;
 
             // Pilot the camera if cursor is locked
-            if (mc.mouse.isCursorLocked() && cameraObj instanceof ReplayObject3D cam3d && player != null) {
+            if (mc.mouseHandler.isMouseGrabbed() && cameraObj instanceof ReplayObject3D cam3d && player != null) {
                 pilotingCamera = true;
                 double posX = player.getX();
                 double posY = player.getEyeY();
@@ -491,7 +491,7 @@ public final class EditorState {
                 float roll = cam3d.rotation().getEulerYXZ(new Vector3f()).z;
 
                 cam3d.position().set(posX, posY, posZ);
-                cam3d.rotation().setEulerYXZ(Math.toRadians(-player.getYaw()), Math.toRadians(player.getPitch()), roll);
+                cam3d.rotation().setEulerYXZ(Math.toRadians(-player.getYRot()), Math.toRadians(player.getXRot()), roll);
                 cam3d.getConstraints().evaluate(getPlayhead(), new ConstraintEvaluator(getScene().getObjects(), getPlayhead()));
                 cam3d.apply(getPlayhead());
 
@@ -505,14 +505,14 @@ public final class EditorState {
                 // TP player to camera, taken directly from the replay object rather than going through camera ent,
                 // which has been through quaternion.
                 Vector3f euler = cam3d.rotation().getEulerYXZ(new Vector3f());
-                player.refreshPositionAndAngles(cam3d.position().x,
-                        cam3d.position().y - player.getStandingEyeHeight(), cam3d.position().z,
+                player.snapTo(cam3d.position().x,
+                        cam3d.position().y - player.getEyeHeight(), cam3d.position().z,
                         -Math.toDegrees(euler.y), Math.toDegrees(euler.x));
             }
 
         } else {
             pilotingCamera = false;
-            MinecraftClient.getInstance().setCameraEntity(null);
+            Minecraft.getInstance().setCameraEntity(null);
         }
     }
 
@@ -557,26 +557,38 @@ public final class EditorState {
             setSceneName("Scene");
         }
 
-        MinecraftClient.getInstance().send(() -> {
+        Minecraft.getInstance().schedule(() -> {
             startPlaying(0);
         });
     }
 
 
     public void doTimeJump() {
-        if (isPlaying()) {
-            stopPlaying();
+        // Clear the request no matter what. It used to be cleared only on success, so a throwing
+        // jump left the flag set and ReplayLabUI.preRender retried it every single frame.
+        try {
+            if (isPlaying()) {
+                stopPlaying();
+            }
+
+            int replayTime = scene.sceneToReplayTime(getPlayhead());
+            replayTime = Math.min(replayTime, getReplayHandlerOrThrow().getReplayDuration());
+            // For some reason, it crashes if we clamp at 0
+            if (replayTime < 1)
+                replayTime = 1;
+
+            getReplayHandlerOrThrow().doJump(replayTime, true);
+
+            Minecraft.getInstance().schedule(this::applyToGame);
+        } catch (Exception e) {
+            // A failed jump must not propagate out of renderFrame and kill the client. Report it and
+            // leave the editor usable -- the next jump may well succeed, and even if it doesn't, the
+            // user can still save their work. See dev/replay-sender-decode-failure.md
+            LOGGER.error("Error jumping to a new point in the replay: ", e);
+            onException(e);
+        } finally {
+            wantsTimeJump = false;
         }
-
-        int replayTime = scene.sceneToReplayTime(getPlayhead());
-        replayTime = Math.min(replayTime, getReplayHandlerOrThrow().getReplayDuration());
-        if (replayTime < 0)
-            replayTime = 0;
-
-        getReplayHandlerOrThrow().doJump(replayTime, true);
-
-        MinecraftClient.getInstance().send(this::applyToGame);
-        wantsTimeJump = false;
     }
 
     /**
@@ -683,7 +695,7 @@ public final class EditorState {
     }
 
     public void snapViewportToSelected() {
-        ClientPlayerEntity player = mc.player;
+        LocalPlayer player = mc.player;
         if (player == null || selectedObjects.isEmpty()) return;
 
         int count = 0;
@@ -708,17 +720,17 @@ public final class EditorState {
     }
 
     public void snapViewportTo(double x, double y, double z) {
-        ClientPlayerEntity player = mc.player;
+        LocalPlayer player = mc.player;
         if (player == null) return;
 
-        Vec3d forward = player.getRotationVector();
+        Vec3 forward = player.getLookAngle();
         Vector3d vec = new Vector3d(forward.x, forward.y, forward.z);
 
         vec.mul(-4);
         vec.add(x, y, z);
 
-        player.refreshPositionAndAngles(vec.x, vec.y - player.getStandingEyeHeight(), vec.z,
-                player.getYaw(), player.getPitch());
+        player.snapTo(vec.x, vec.y - player.getEyeHeight(), vec.z,
+                player.getYRot(), player.getXRot());
     }
 
     public CompletableFuture<?> ensureQuickModeEnabled(@Nullable FloatConsumer progressConsumer) {
@@ -872,7 +884,7 @@ public final class EditorState {
                 LOGGER.debug("Error saving scene {}", sceneName, e);
                 onException(e);
             }
-        }, Util.getIoWorkerExecutor());
+        }, Util.ioPool());
     }
 
 

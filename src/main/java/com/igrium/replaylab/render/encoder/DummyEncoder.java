@@ -4,7 +4,7 @@ import com.google.gson.JsonDeserializationContext;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonSerializationContext;
 import com.igrium.replaylab.editor.EditorState;
-import com.igrium.replaylab.render.ManagedNativeImage;
+import com.mojang.blaze3d.platform.NativeImage;
 import com.igrium.replaylab.render.RenderMetadata;
 import imgui.ImGui;
 import imgui.type.ImString;
@@ -59,8 +59,8 @@ public class DummyEncoder extends EncoderConfig {
         }
 
         @Override
-        protected void encodeFrame(ManagedNativeImage frame, int frameIdx) throws Exception {
-
+        protected void encodeFrame(NativeImage frame, int frameIdx) throws Exception {
+            frame.close();
         }
 
         @Override

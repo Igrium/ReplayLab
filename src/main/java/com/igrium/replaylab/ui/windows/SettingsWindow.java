@@ -5,7 +5,7 @@ import com.igrium.replaylab.config.ReplayLabConfig;
 import com.igrium.replaylab.editor.EditorState;
 import com.igrium.replaylab.ui.settings.SettingsEditor;
 import lombok.Getter;
-import net.minecraft.util.Identifier;
+import net.minecraft.resources.Identifier;
 
 public class SettingsWindow extends UIModal {
 

@@ -21,11 +21,11 @@
     "replaylab.mixins.json"
   ],
   "depends": {
-    "fabricloader": ">=0.14.6",
-    "minecraft": "~1.21.4",
-    "java": ">=21",
+    "fabricloader": ">=0.19.3",
+    "minecraft": "~26.2",
+    "java": ">=25",
     "fabric-api": "*",
-    "craftui": "~0.6.1",
+    "craftui": "~0.8.0",
     "replaymod": "*"
   },
   "suggests": {

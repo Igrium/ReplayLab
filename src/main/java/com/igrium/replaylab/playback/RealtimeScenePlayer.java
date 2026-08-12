@@ -3,7 +3,7 @@ import com.igrium.replaylab.scene.ReplayScene;
 import com.replaymod.replay.ReplayHandler;
 import lombok.NonNull;
 import lombok.Setter;
-import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.Minecraft;
 import java.util.concurrent.CompletableFuture;
 /**
  * Scene player using the system time.
@@ -40,7 +40,7 @@ public class RealtimeScenePlayer extends AbstractScenePlayer {
             // Re-measure to account for time the first frame's jump took
             startSystemTime = System.currentTimeMillis() - startTimestamp;
         }
-        if (MinecraftClient.getInstance().getOverlay() != null) {
+        if (Minecraft.getInstance().gui.overlay() != null) {
             if (!loadingResources) {
                 timeBeforeResourceLoading = getTimePassed();
                 loadingResources = true;

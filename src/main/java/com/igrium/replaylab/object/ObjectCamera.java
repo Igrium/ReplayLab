@@ -11,9 +11,9 @@ import com.igrium.replaylab.scene.ReplayScene;
 import com.igrium.replaylab.ui.widgets.PropertyWidgets;
 import imgui.ImGui;
 import lombok.Getter;
-import net.minecraft.client.world.ClientWorld;
-import net.minecraft.entity.SpawnReason;
-import net.minecraft.util.Language;
+import net.minecraft.client.multiplayer.ClientLevel;
+import net.minecraft.world.entity.EntitySpawnReason;
+import net.minecraft.locale.Language;
 import org.joml.Matrix4fc;
 import org.joml.Quaternionf;
 import org.joml.Vector3dc;
@@ -36,13 +36,13 @@ public class ObjectCamera extends EntityObject<AnimatedCameraEntity> {
     }
 
     @Override
-    protected AnimatedCameraEntity createEntity(ClientWorld world) {
-        var ent = ReplayLabEntities.CAMERA.create(world, SpawnReason.COMMAND);
+    protected AnimatedCameraEntity createEntity(ClientLevel world) {
+        var ent = ReplayLabEntities.CAMERA.create(world, EntitySpawnReason.COMMAND);
         assert ent != null;
 
         setCameraTransform(ent, getTransform(new Transform3()));
 
-        world.addEntity(ent);
+        addToWorld(world, ent);
         return ent;
     }
 
@@ -111,6 +111,6 @@ public class ObjectCamera extends EntityObject<AnimatedCameraEntity> {
     }
 
     private static String t(String key) {
-        return Language.getInstance().get(key) + "###" + key;
+        return Language.getInstance().getOrDefault(key) + "###" + key;
     }
 }

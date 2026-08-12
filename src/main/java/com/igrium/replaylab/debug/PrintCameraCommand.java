@@ -3,14 +3,14 @@ package com.igrium.replaylab.debug;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.context.CommandContext;
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
-import net.minecraft.command.CommandRegistryAccess;
-import net.minecraft.text.Text;
+import net.minecraft.commands.CommandBuildContext;
+import net.minecraft.network.chat.Component;
 
-import static net.fabricmc.fabric.api.client.command.v2.ClientCommandManager.*;
+import static net.fabricmc.fabric.api.client.command.v2.ClientCommands.*;
 
 public class PrintCameraCommand {
     public static void register(CommandDispatcher<FabricClientCommandSource> dispatcher,
-                                CommandRegistryAccess commandRegistryAccess) {
+                                CommandBuildContext commandRegistryAccess) {
 
         dispatcher.register(literal("printcamera").executes(PrintCameraCommand::execPrintCamera));
     }
@@ -18,10 +18,10 @@ public class PrintCameraCommand {
     private static int execPrintCamera(CommandContext<FabricClientCommandSource> context) {
         var camEnt = context.getSource().getClient().getCameraEntity();
         if (camEnt == null) {
-            context.getSource().sendFeedback(Text.literal("No camera entity"));
+            context.getSource().sendFeedback(Component.literal("No camera entity"));
         } else {
             context.getSource().sendFeedback(
-                    Text.literal("The camera is a ").append(camEnt.getClass().getSimpleName())
+                    Component.literal("The camera is a ").append(camEnt.getClass().getSimpleName())
                             .append(" called ").append(camEnt.getDisplayName()));
         }
 

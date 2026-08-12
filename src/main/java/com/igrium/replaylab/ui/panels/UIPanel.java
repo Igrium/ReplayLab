@@ -9,8 +9,8 @@ import com.igrium.replaylab.object.ReplayObject;
 import imgui.ImGui;
 import imgui.type.ImBoolean;
 import lombok.Getter;
-import net.minecraft.util.Identifier;
-import net.minecraft.util.Language;
+import net.minecraft.resources.Identifier;
+import net.minecraft.locale.Language;
 import org.jetbrains.annotations.Nullable;
 
 /**
@@ -41,7 +41,7 @@ public abstract class UIPanel {
     }
 
     public String getTitle() {
-        return Language.getInstance().get(id.toTranslationKey("panel"));
+        return Language.getInstance().getOrDefault(id.toLanguageKey("panel"));
     }
 
     public final String getPanelName() {

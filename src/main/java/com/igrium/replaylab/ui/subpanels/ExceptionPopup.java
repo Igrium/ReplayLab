@@ -7,7 +7,7 @@ import imgui.flag.ImGuiCond;
 import imgui.flag.ImGuiWindowFlags;
 import imgui.type.ImBoolean;
 import lombok.NonNull;
-import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.Minecraft;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.PrintWriter;
@@ -88,7 +88,7 @@ public class ExceptionPopup {
 
             ImGui.sameLine();
             if (ImGui.button("Copy to Clipboard")) {
-                MinecraftClient.getInstance().keyboard.setClipboard(message + System.lineSeparator() + stackTrace);
+                Minecraft.getInstance().keyboardHandler.setClipboard(message + System.lineSeparator() + stackTrace);
             }
 
             ImGui.endPopup();
