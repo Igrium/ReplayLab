@@ -6,6 +6,7 @@ import imgui.ImGui;
 import imgui.flag.ImGuiCol;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
+import lombok.Getter;
 import lombok.NonNull;
 import lombok.experimental.UtilityClass;
 import net.minecraft.locale.Language;
@@ -36,14 +37,15 @@ public final class KeyWidgets {
 
     /**
      * The state of a keyframable widget after it has been rendered.
+     *
      * @param updated The indices of the values which have been updated this frame.
      * @param dropped The indices of the values which were being dragged and have just been dropped (released).
      * @param newKeys The indices of the values that should have a keyframe inserted.
      */
-    public record WidgetState(int @NonNull [] updated, int @NonNull[] dropped, int @NonNull[] newKeys) {
+    public record WidgetState(int @NonNull [] updated, int @NonNull [] dropped, int @NonNull [] newKeys) {
 
         private static final int[] EMPTY = new int[0];
-        private static final int[] SINGLE = new int[] {0};
+        private static final int[] SINGLE = new int[]{0};
 
         public static final WidgetState DEFAULT = new WidgetState(EMPTY, EMPTY, EMPTY);
         public static final WidgetState UPDATED = new WidgetState(SINGLE, EMPTY, EMPTY);
@@ -110,7 +112,56 @@ public final class KeyWidgets {
 
     }
 
+    /**
+     * An in-progress combo box needed to keep track of keyframe updates while drawing a combo.
+     * Call {@link #select()} when you've updated the selected item, and {@link #end()} when finished drawing the combo.
+     */
+    public static sealed class ComboScope permits PropertyWidgets.PropComboScope {
+        @Getter
+        private final boolean open;
+
+        @Getter
+        private final boolean newKey;
+
+        private boolean updated;
+
+        protected ComboScope(boolean open, boolean newKey) {
+            this.open = open;
+            this.newKey = newKey;
+        }
+
+        public void select() {
+            updated = true;
+        }
+
+        public WidgetState end() {
+            if (open) {
+                ImGui.endCombo();
+            }
+            return WidgetState.of(this.updated, this.updated, this.newKey);
+        }
+    }
+
     /// === WIDGETS ===
+
+    public static ComboScope beginCombo(String label, String preview, KeyState state, int flags) {
+        pushStyle(state);
+        boolean open = ImGui.beginCombo(label, preview, flags);
+        popStyle(state);
+
+        boolean newKey = false;
+        if (!open) {
+            // New keys only when closed
+            newKey = shortcut() | shortcutAlt();
+
+            int ctxResult = drawContextMenu();
+            if (hasFlag(ctxResult, CONTEXT_ADD_KEY) || ctxResult == CONTEXT_ADD_KEY_S) {
+                newKey = true;
+            }
+        }
+
+        return new ComboScope(open, newKey);
+    }
 
     public static WidgetState dragFloat3(String label, float[] v, float vSpeed, KeyState state) {
         pushStyle(state);
@@ -247,7 +298,8 @@ public final class KeyWidgets {
     }
 
     private static boolean shortcut() {
-        return ImGui.isItemHovered() && ImGui.shortcut(Keybinds.addKey(), 1 << 12); // ImGuiInputFlags_RouteGlobal (why is this not in the bindings???)
+        return ImGui.isItemHovered() && ImGui.shortcut(Keybinds.addKey(), 1 << 12); // ImGuiInputFlags_RouteGlobal
+        // (why is this not in the bindings???)
     }
 
     private static boolean shortcutAlt() {
@@ -282,8 +334,8 @@ public final class KeyWidgets {
     }
 
     private static int findRenderedTextEnd(String text) {
-        for (int i = 0; i < text.length()-1; i++) {
-            if (text.charAt(i) == '#' && text.charAt(i+1) == '#')
+        for (int i = 0; i < text.length() - 1; i++) {
+            if (text.charAt(i) == '#' && text.charAt(i + 1) == '#')
                 return i;
         }
         return -1;
