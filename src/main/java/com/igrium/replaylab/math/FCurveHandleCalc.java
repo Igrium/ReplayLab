@@ -454,7 +454,11 @@ public class FCurveHandleCalc {
         boolean solveFirst = bezierCheckSolveEndHandle(beztFirst, beztFirst.h2, start == 0);
         boolean solveLast = bezierCheckSolveEndHandle(beztLast, beztLast.h1, start + count == total);
 
-        if (count == 2 && !fullCycle && solveFirst == solveLast) {
+        boolean flatten = (flags & SMOOTH_FLATTEN_ENDS) != 0;
+        boolean flattenFirst = flatten && start == 0 && solveFirst;
+        boolean flattenLast = flatten && start + count == total && solveLast;
+
+        if (count == 2 && !fullCycle && solveFirst == solveLast && !flattenFirst && !flattenLast) {
             return;
         }
 
@@ -527,11 +531,6 @@ public class FCurveHandleCalc {
             bezierEqContinuous(a, b, c, d, dy, l, 0);
         } else {
             Vector2d tmp = new Vector2d();
-
-            // Flatten only the genuine ends of the whole (non-cyclic) curve, not internal chunk boundaries.
-            boolean flatten = (flags & SMOOTH_FLATTEN_ENDS) != 0;
-            boolean flattenFirst = flatten && start == 0;
-            boolean flattenLast = flatten && start + count == total;
 
             if (!solveFirst) {
                 tmp.set(beztFirst.vec[2].x - beztFirst.vec[1].x, beztFirst.vec[2].y - beztFirst.vec[1].y);
