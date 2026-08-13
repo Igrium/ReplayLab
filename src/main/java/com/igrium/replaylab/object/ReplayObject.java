@@ -4,7 +4,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.gson.*;
 import com.igrium.replaylab.anim.PropertyHolder;
-import com.igrium.replaylab.anim.PropertyHolder.Property;
 import com.igrium.replaylab.anim.constraint.Constraint;
 import com.igrium.replaylab.anim.constraint.ConstraintContainer;
 import com.igrium.replaylab.anim.constraint.ObjectAccessor;
@@ -340,7 +339,7 @@ public abstract class ReplayObject implements PropertyHolder {
 
     public final boolean isSceneCamera() {
         String id = getId();
-        return id != null && id.equals(scene.getSceneProps().getCameraObject());
+        return id != null && id.equals(scene.getSceneProps().getCamera());
     }
 
     /**

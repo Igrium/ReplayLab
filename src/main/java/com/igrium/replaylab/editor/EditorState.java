@@ -366,7 +366,7 @@ public final class EditorState {
         try {
             var scene = ReplayScenes.readScene(sceneName, getReplayHandlerOrThrow().getReplayFile(), this::onException);
             setScene(scene, sceneName);
-            String camId = scene.getSceneProps().getCameraObject();
+            String camId = scene.getSceneProps().getCamera();
             selectedObjects.add(camId);
             setActiveObject(camId);
             return scene;

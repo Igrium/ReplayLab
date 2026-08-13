@@ -31,8 +31,8 @@ public class AddObjectOperator implements ReplayOperator {
 
             if ( object instanceof ObjectCamera
                     && ReplayLabConfig.getInstance().isAutoSetCamera()
-                    && editor.getScene().getSceneProps().getCameraObject().isBlank()) {
-                sceneProps.setCameraObject(objectId);
+                    && editor.getScene().getSceneProps().getCamera().isBlank()) {
+                sceneProps.setCamera(objectId);
                 // The scene is written from the serialized snapshot cache, so mutating the live
                 // sceneProps isn't enough -- without this the assignment is lost on reload.
                 editor.getScene().saveObject(ReplayScene.SCENE_PROPS);
@@ -51,7 +51,7 @@ public class AddObjectOperator implements ReplayOperator {
     @Override
     public void undo(EditorState editor) {
         if (setCamera) {
-            editor.getScene().getSceneProps().setCameraObject("");
+            editor.getScene().getSceneProps().setCamera("");
             editor.getScene().saveObject(ReplayScene.SCENE_PROPS);
         }
         editor.getScene().removeObject(objectId);
@@ -62,7 +62,7 @@ public class AddObjectOperator implements ReplayOperator {
         editor.getScene().addObject(objectId, object);
         editor.setActiveObject(objectId);
         if (setCamera) {
-            editor.getScene().getSceneProps().setCameraObject(objectId);
+            editor.getScene().getSceneProps().setCamera(objectId);
             editor.getScene().saveObject(ReplayScene.SCENE_PROPS);
         }
     }

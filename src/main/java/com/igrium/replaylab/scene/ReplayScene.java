@@ -121,7 +121,7 @@ public class ReplayScene {
     }
 
     public @Nullable ReplayObject getSceneCameraObject() {
-        String objName = getSceneProps().getCameraObject();
+        String objName = getSceneProps().getCamera();
         if (objName.isEmpty())
             return null;
 

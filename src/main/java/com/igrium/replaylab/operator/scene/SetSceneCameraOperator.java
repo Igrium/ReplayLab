@@ -21,9 +21,9 @@ public class SetSceneCameraOperator implements ReplayOperator {
         if (!(activeObj instanceof EntityProvider)) return false;
 
         var sceneProps = editor.getScene().getSceneProps();
-        oldSceneCam = sceneProps.getCameraObject();
+        oldSceneCam = sceneProps.getCamera();
         if (oldSceneCam.equals(newSceneCam)) return false;
-        sceneProps.setCameraObject(newSceneCam);
+        sceneProps.setCamera(newSceneCam);
         // The scene is written from the serialized snapshot cache, so the live sceneProps has to be
         // re-snapshotted or the assignment never reaches disk.
         editor.getScene().saveObject(ReplayScene.SCENE_PROPS);
@@ -33,13 +33,13 @@ public class SetSceneCameraOperator implements ReplayOperator {
 
     @Override
     public void undo(EditorState editor) throws Exception {
-        editor.getScene().getSceneProps().setCameraObject(oldSceneCam);
+        editor.getScene().getSceneProps().setCamera(oldSceneCam);
         editor.getScene().saveObject(ReplayScene.SCENE_PROPS);
     }
 
     @Override
     public void redo(EditorState editor) throws Exception {
-        editor.getScene().getSceneProps().setCameraObject(newSceneCam);
+        editor.getScene().getSceneProps().setCamera(newSceneCam);
         editor.getScene().saveObject(ReplayScene.SCENE_PROPS);
     }
 }

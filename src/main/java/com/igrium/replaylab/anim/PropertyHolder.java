@@ -44,7 +44,7 @@ public interface PropertyHolder {
 
         public Property(DoubleSupplier getter, DoubleConsumer setter,
                         double minVal, double maxVal, boolean discrete) {
-            this(getter, setter, minVal, maxVal, discrete, false);
+            this(getter, setter, minVal, maxVal, discrete, true);
         }
 
         public double getValue() {
