@@ -1,6 +1,6 @@
 package com.igrium.replaylab.ui.subpanels;
 
-import com.igrium.craftui.MaterialIcons;
+import com.igrium.craftui.icon.FontAwesome;
 import com.igrium.replaylab.anim.KeyChannel;
 import com.igrium.replaylab.anim.modifier.CurveModifier;
 import com.igrium.replaylab.anim.modifier.CurveModifierType;
@@ -52,7 +52,7 @@ public class CurveModifierEditor {
             ImGui.setNextItemAllowOverlap();
             boolean open = ImGui.collapsingHeader(key, ImGuiTreeNodeFlags.DefaultOpen);
             ImGui.sameLine(ImGui.getContentRegionAvailX() - buttonSize);
-            if (ImGui.button("" + MaterialIcons.ICON_DELETE)) {
+            if (ImGui.button("" + FontAwesome.ICON_TRASH)) {
                 toDelete = i;
             }
             if (open) {

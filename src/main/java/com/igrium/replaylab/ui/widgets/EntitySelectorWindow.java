@@ -2,6 +2,7 @@ package com.igrium.replaylab.ui.widgets;
 
 import com.google.common.collect.Iterables;
 import com.igrium.craftui.MaterialIcons;
+import com.igrium.craftui.icon.FontAwesome;
 import com.replaymod.replay.camera.CameraEntity;
 import imgui.ImGui;
 import imgui.ImGuiStorage;
@@ -49,7 +50,7 @@ public class EntitySelectorWindow {
             }
 
             ImString filter = filterStrs.computeIfAbsent(filterKey, id -> new ImString());
-            ImGui.inputTextWithHint("##filter", "" + MaterialIcons.ICON_SEARCH, filter);
+            ImGui.inputTextWithHint("##filter", "" + FontAwesome.ICON_MAGNIFYING_GLASS, filter);
             ImGui.sameLine();
 
             ImGuiStorage storage = ImGui.getStateStorage();

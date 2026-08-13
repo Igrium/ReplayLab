@@ -53,7 +53,6 @@ public class EntitySelector {
                 modified = true;
             }
         }
-        ImGui.popFont();
 
         ImGui.sameLine();
         ImGui.text(getRenderedText(name));

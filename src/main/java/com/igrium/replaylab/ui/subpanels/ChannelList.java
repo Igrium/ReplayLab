@@ -1,6 +1,7 @@
 package com.igrium.replaylab.ui.subpanels;
 
 import com.igrium.craftui.MaterialIcons;
+import com.igrium.craftui.icon.FontAwesome;
 import com.igrium.replaylab.editor.KeySelectionSet;
 import com.igrium.replaylab.editor.KeySelectionSet.ChannelReference;
 import com.igrium.replaylab.anim.KeyChannel;
@@ -80,7 +81,7 @@ public class ChannelList {
             ImGui.setCursorPosX(ImGui.getCursorStartPosX() + width - ImGui.getFontSize() * 3.5f);
 
             if (hasFlag(flags, ChannelListFlags.SHOW_HIDE)) {
-                char objHideIcon = anyVisible ? MaterialIcons.ICON_VISIBILITY : MaterialIcons.ICON_VISIBILITY_OFF;
+                char objHideIcon = anyVisible ? FontAwesome.ICON_EYE : FontAwesome.ICON_EYE_SLASH;
                 boolean toggleObjHidden = ImGui.button(objHideIcon + "###obj." + objName + "hide");
                 if (toggleObjHidden) {
                     if (toggleHiddenChannels == null) toggleHiddenChannels = new HashSet<>();
@@ -91,7 +92,7 @@ public class ChannelList {
                 ImGui.sameLine();
             }
 
-            char objLockIcon = anyUnlocked ? MaterialIcons.ICON_LOCK_OPEN : MaterialIcons.ICON_LOCK;
+            char objLockIcon = anyUnlocked ? FontAwesome.ICON_LOCK_OPEN : FontAwesome.ICON_LOCK;
             boolean toggleObjLock = ImGui.button(objLockIcon + "###obj." + objName + "lock");
 
             if (toggleObjLock) {
@@ -148,7 +149,7 @@ public class ChannelList {
 
                     if (hasFlag(flags, ChannelListFlags.SHOW_HIDE)) {
                         boolean wasHidden = chEntry.getValue().isHidden();
-                        char hiddenIcon = wasHidden ? MaterialIcons.ICON_VISIBILITY_OFF : MaterialIcons.ICON_VISIBILITY;
+                        char hiddenIcon = wasHidden ? FontAwesome.ICON_EYE_SLASH : FontAwesome.ICON_EYE;
                         if (ImGui.button(hiddenIcon + "###" + objName + chEntry.getKey() + "hide")) {
                             if (toggleHiddenChannels == null) toggleHiddenChannels = new HashSet<>();
                             toggleHiddenChannels.add(new ChannelReference(objName, chEntry.getKey()));
@@ -158,7 +159,7 @@ public class ChannelList {
                     }
 
                     boolean wasLocked = chEntry.getValue().isLocked();
-                    char lockIcon = wasLocked ? MaterialIcons.ICON_LOCK : MaterialIcons.ICON_LOCK_OPEN;
+                    char lockIcon = wasLocked ? FontAwesome.ICON_LOCK : FontAwesome.ICON_LOCK_OPEN;
                     if (ImGui.button(lockIcon + "###" + objName + chEntry.getKey() + "lock")) {
                         if (toggleLockedChannels == null) toggleLockedChannels = new HashSet<>();
                         toggleLockedChannels.add(new ChannelReference(objName, chEntry.getKey()));
