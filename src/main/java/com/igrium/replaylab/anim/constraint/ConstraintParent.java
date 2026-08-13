@@ -230,11 +230,12 @@ public class ConstraintParent extends Constraint<ReplayObject3D> {
     }
 
     @Override
-    public void remapReferences(String oldName, String newName) {
-        super.remapReferences(oldName, newName);
+    public boolean remapReferences(String oldName, String newName) {
         if (getParent().equals(oldName)) {
             setParent(newName);
+            return true;
         }
+        return false;
     }
 
     private static String tt(String key) {

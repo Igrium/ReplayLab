@@ -68,6 +68,21 @@ public final class PropertyWidgets {
         return scope.end();
     }
 
+    public static <T> WidgetState combo(ReplayObject obj, String label, T[] options, int playhead, Function<T, String> toString, String property) {
+        int val = (int) Math.round(obj.getPropertyOrThrow(property));
+        T cur = options[Math.clamp(val, 0, options.length - 1)];
+        var scope = beginCombo(obj, label, toString.apply(cur), playhead, property);
+        if (scope.isOpen()) {
+            for (int i = 0; i < options.length; i++) {
+                if (ImGui.selectable(toString.apply(options[i]), i == val)) {
+                    obj.setProperty(property, i);
+                    scope.select();
+                }
+            }
+        }
+        return scope.end();
+    }
+
     /**
      * Draw a slider widget for a vector-like structure containing a number of properties.
      * Automatically handles keyframe insertion and highlighting.

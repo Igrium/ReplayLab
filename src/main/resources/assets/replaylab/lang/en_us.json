@@ -264,5 +264,9 @@
   "timestamp_display.milliseconds": "Milliseconds",
   "timestamp_display.seconds": "Seconds",
   "timestamp_display.minutes": "Minutes",
-  "timestamp_display.hours": "Hours"
+  "timestamp_display.hours": "Hours",
+
+  "camera_type.first_person": "First Person",
+  "camera_type.third_person_back": "Third Person",
+  "camera_type.third_person_front": "Third Person (Front)"
 }

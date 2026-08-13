@@ -467,7 +467,7 @@ public final class EditorState {
         if (scenePlayer != null && scenePlayer.isActive()) {
             setPlayhead(scenePlayer.getTimePassed());
         }
-        if (scene.getSceneCameraObject() == null) {
+        if (scene.getCameraObject() == null) {
             setCameraView(false);
         }
         // No F5
@@ -476,8 +476,8 @@ public final class EditorState {
 
             scene.spectateCamera();
 
-            Entity cameraEnt = scene.getSceneCamera();
-            ReplayObject cameraObj = scene.getSceneCameraObject();
+            Entity cameraEnt = scene.getCameraEntity();
+            ReplayObject cameraObj = scene.getCameraObject();
 
             LocalPlayer player = mc.player;
 
@@ -691,7 +691,7 @@ public final class EditorState {
      */
     @Deprecated
     public @Nullable Entity getSceneCamera(int timestamp) {
-        return scene.getSceneCamera();
+        return scene.getCameraEntity();
     }
 
     public void snapViewportToSelected() {

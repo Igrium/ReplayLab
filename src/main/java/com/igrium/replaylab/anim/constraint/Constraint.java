@@ -105,8 +105,9 @@ public abstract class Constraint<R> implements PropertyHolder {
      *
      * @param oldName Old name of the object.
      * @param newName New name of the object.
+     * @return If this object changed as a result of the remap
      */
-    public void remapReferences(String oldName, String newName) {
-
+    public boolean remapReferences(String oldName, String newName) {
+        return false;
     }
 }

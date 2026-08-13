@@ -171,13 +171,15 @@ public final class ObjectSceneProps extends ReplayObject {
     }
 
     @Override
-    public void remapReferences(String oldName, String newName) {
-        super.remapReferences(oldName, newName);
+    public boolean remapReferences(String oldName, String newName) {
+        boolean update = super.remapReferences(oldName, newName);
         for (var entry : this.cameras.int2ObjectEntrySet()) {
             if (entry.getValue().equals(oldName)) {
                 entry.setValue(newName);
+                update = true;
             }
         }
+        return update;
     }
 
     @Override

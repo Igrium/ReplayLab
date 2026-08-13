@@ -15,6 +15,7 @@ import com.igrium.replaylab.util.NameUtils;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.Setter;
+import net.minecraft.client.CameraType;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.world.entity.Entity;
@@ -120,7 +121,7 @@ public class ReplayScene {
         return getSceneProps().getFps();
     }
 
-    public @Nullable ReplayObject getSceneCameraObject() {
+    public @Nullable ReplayObject getCameraObject() {
         String objName = getSceneProps().getCamera();
         if (objName.isEmpty())
             return null;
@@ -128,24 +129,31 @@ public class ReplayScene {
         return getObject(objName);
     }
 
+    public @Nullable EntityProvider<?> getCameraProvider() {
+        ReplayObject obj = getCameraObject();
+        return (obj instanceof EntityProvider<?> prov) ? prov : null;
+    }
+
     /**
      * Get the entity responsible for providing the camera view on a given frame.
      *
      * @return The scene camera entity. if there is any at that timestamp.
      */
-    public @Nullable Entity getSceneCamera() {
-        ReplayObject obj = getSceneCameraObject();
-        if (obj instanceof EntityProvider<?> prov) {
-            return prov.getEntity();
-        } else {
-            return null;
-        }
+    public @Nullable Entity getCameraEntity() {
+        EntityProvider<?> provider = getCameraProvider();
+        return (provider != null) ? provider.getEntity() : null;
     }
 
     public void spectateCamera() {
-        Entity cam = getSceneCamera();
-        if (cam != null) {
-            Minecraft.getInstance().setCameraEntity(cam);
+        Minecraft mc = Minecraft.getInstance();
+        EntityProvider<?> provider = getCameraProvider();
+        Entity ent;
+        if (provider != null && (ent = provider.getEntity()) != null) {
+            mc.setCameraEntity(ent);
+            mc.options.setCameraType(provider.getCameraType());
+        } else {
+            mc.setCameraEntity(null);
+            mc.options.setCameraType(CameraType.FIRST_PERSON);
         }
     }
 
@@ -265,8 +273,10 @@ public class ReplayScene {
         objects.put(newName, object);
         savedObjects.put(newName, saved);
 
-        for (var obj : objects.values()) {
-            obj.remapReferences(oldName, newName);
+        for (var entry : objects.entrySet()) {
+            if (entry.getValue().remapReferences(oldName, newName)) {
+                saveObject(entry.getKey());
+            }
         }
 
         return true;

@@ -8,10 +8,16 @@ import com.igrium.replaylab.math.Transform3;
 import com.igrium.replaylab.object.*;
 import com.igrium.replaylab.scene.ReplayScene;
 import com.igrium.replaylab.ui.widgets.EntitySelector;
+import com.igrium.replaylab.ui.widgets.PropertyWidgets;
 import com.replaymod.replay.camera.CameraEntity;
 import imgui.type.ImInt;
+import lombok.Getter;
+import lombok.NonNull;
+import lombok.Setter;
+import net.minecraft.client.CameraType;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
+import net.minecraft.locale.Language;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
@@ -21,12 +27,21 @@ import org.joml.Math;
  * An object which proxies an entity in the world, allowing it to be used as a camera, be parented to, etc.
  */
 public class ObjectEntityProxy extends ReplayObject implements EntityProvider<Entity>, TransformProvider {
-    public ObjectEntityProxy(ReplayObjectType<?> type, ReplayScene scene) {
-        super(type, scene);
-    }
-
 
     private final ImInt entId = new ImInt();
+
+    // Getter overrides interface default
+    @Getter
+    @Setter
+    private @NonNull CameraType cameraType = CameraType.FIRST_PERSON;
+
+    // Cache to avoid re-allocation
+    private static final CameraType[] CAM_TYPES = CameraType.values();
+
+    public ObjectEntityProxy(ReplayObjectType<?> type, ReplayScene scene) {
+        super(type, scene);
+        addProperty("cameraType", CameraType.class, this::getCameraType, this::setCameraType);
+    }
 
     public int getEntId() {
         return entId.get();
@@ -44,6 +59,7 @@ public class ObjectEntityProxy extends ReplayObject implements EntityProvider<En
     @Override
     protected void writeJson(JsonObject json, JsonSerializationContext context) {
         json.addProperty("entId", getEntId());
+        json.addProperty("cameraType", getCameraType().name());
     }
 
     @Override
@@ -51,12 +67,16 @@ public class ObjectEntityProxy extends ReplayObject implements EntityProvider<En
         if (json.has("entId")) {
             setEntId(json.get("entId").getAsInt());
         }
+        if (json.has("cameraType")) {
+            setCameraType(CameraType.valueOf(json.get("cameraType").getAsString()));
+        }
     }
 
     @Override
     public void apply(int timestamp) {
-        
+
     }
+
 
     @Override
     public Transform3 getTransform(Transform3 dest) {
@@ -75,7 +95,6 @@ public class ObjectEntityProxy extends ReplayObject implements EntityProvider<En
                 0
         );
 
-
         dest.scale().set(1);
 
         return dest;
@@ -89,7 +108,15 @@ public class ObjectEntityProxy extends ReplayObject implements EntityProvider<En
             flags |= EditFlags.COMMIT;
         }
 
+        flags |= PropertyWidgets.combo(this, "Camera Type", CAM_TYPES, editor.getPlayhead(),
+                ObjectEntityProxy::cameraTypeString, "cameraType").getEditFlags();
+
         return flags;
+    }
+
+    private static String cameraTypeString(CameraType cameraType) {
+        String key = "camera_type." +  cameraType.name().toLowerCase();
+        return Language.getInstance().getOrDefault(key) + "###" + cameraType.name();
     }
 
 }

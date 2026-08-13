@@ -24,10 +24,7 @@ import org.joml.Matrix4fc;
 import org.joml.Vector3dc;
 
 import java.util.*;
-import java.util.function.DoubleConsumer;
-import java.util.function.DoubleSupplier;
-import java.util.function.IntConsumer;
-import java.util.function.IntSupplier;
+import java.util.function.*;
 
 /**
  * An object that can be animated within a replay
@@ -123,6 +120,20 @@ public abstract class ReplayObject implements PropertyHolder {
     protected final void addProperty(String name, IntSupplier getter, IntConsumer setter) {
         addProperty(name, new Property(getter::getAsInt, val -> setter.accept((int) Math.round(val)),
                 Double.MIN_VALUE, Double.MAX_VALUE, true));
+    }
+
+    /**
+     * Add an enum property (wraps discrete property)
+     * @param name Property name
+     * @param type Enum type to use
+     * @param getter Getter function
+     * @param setter Setter function
+     */
+    protected final <T extends Enum<T>> void addProperty(String name, Class<T> type, Supplier<T> getter, Consumer<T> setter) {
+        T[] constants = type.getEnumConstants();
+        IntSupplier supplier = () -> getter.get().ordinal();
+        IntConsumer consumer = ordinal -> setter.accept(constants[Math.clamp(ordinal, 0, constants.length - 1)]);
+        addProperty(name, supplier, consumer);
     }
 
     public @Nullable Property getPropertyRef(String propName) {
@@ -348,10 +359,12 @@ public abstract class ReplayObject implements PropertyHolder {
      * @param oldName Old name of the object.
      * @param newName New name of the object.
      */
-    public void remapReferences(String oldName, String newName) {
+    public boolean remapReferences(String oldName, String newName) {
+        boolean update = false;
         for (var constraint : constraints.getValues().values()) {
-            constraint.remapReferences(oldName, newName);
+            update |= constraint.remapReferences(oldName, newName);
         }
+        return update;
     }
 
     /**

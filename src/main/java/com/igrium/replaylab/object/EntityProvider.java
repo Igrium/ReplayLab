@@ -1,5 +1,6 @@
 package com.igrium.replaylab.object;
 
+import net.minecraft.client.CameraType;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.world.entity.Entity;
@@ -25,5 +26,9 @@ public interface EntityProvider<T extends Entity> {
     default @Nullable T getEntity() {
         var world = Minecraft.getInstance().level;
         return (world != null) ? getEntity(world) : null;
+    }
+
+    default CameraType getCameraType() {
+        return CameraType.FIRST_PERSON;
     }
 }

@@ -28,7 +28,7 @@ public class CameraToViewOperator implements ReplayOperator {
         Entity camEnt = mc.getCameraEntity() != null ? mc.getCameraEntity() : mc.player;
         if (camEnt == null) return false;
 
-        ReplayObject cObj = editor.getScene().getSceneCameraObject();
+        ReplayObject cObj = editor.getScene().getCameraObject();
 
         if (cObj instanceof ReplayObject3D c3d){
             cameraObject = c3d;

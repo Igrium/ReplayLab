@@ -23,7 +23,7 @@ public class MixinEntity {
         }
         var editor = EditorState.getInstance();
         if (editor != null && editor.isRollingCamera() && editor.isCameraView()
-                && editor.getScene().getSceneCameraObject() instanceof ReplayObject3D cam) {
+                && editor.getScene().getCameraObject() instanceof ReplayObject3D cam) {
 
             cam.rotation().rotateZ((float) Math.toRadians(cursorDeltaX * .15f));
             ci.cancel();
