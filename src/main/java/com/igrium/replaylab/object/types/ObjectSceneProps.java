@@ -1,6 +1,5 @@
 package com.igrium.replaylab.object.types;
 
-import com.google.gson.JsonArray;
 import com.google.gson.JsonDeserializationContext;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonSerializationContext;
@@ -12,10 +11,9 @@ import com.igrium.replaylab.object.EntityProvider;
 import com.igrium.replaylab.object.ReplayObject;
 import com.igrium.replaylab.object.ReplayObjectType;
 import com.igrium.replaylab.scene.ReplayScene;
+import com.igrium.replaylab.ui.util.ReplayLabControls;
 import com.igrium.replaylab.ui.widgets.KeyWidgets.WidgetState;
 import com.igrium.replaylab.ui.widgets.PropertyWidgets;
-import com.igrium.replaylab.ui.util.ReplayLabControls;
-import com.igrium.replaylab.util.SimpleMutable;
 import imgui.ImGui;
 import imgui.type.ImFloat;
 import imgui.type.ImInt;
@@ -24,14 +22,8 @@ import lombok.Getter;
 import lombok.NonNull;
 import lombok.Setter;
 import net.minecraft.locale.Language;
-import org.apache.commons.lang3.mutable.Mutable;
-import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
 
 /**
  * Global scene properties. Exactly one of these should exist per-scene.
@@ -165,13 +157,11 @@ public final class ObjectSceneProps extends ReplayObject {
 
     private void cleanCamList() {
         IntSet keyed = getKeyedCamIndices();
-        IntSet toRemove = new IntArraySet();
         var iter = cameras.keySet().iterator();
         while (iter.hasNext()) {
             int idx = iter.nextInt();
             if (idx != getCameraIdx() && !keyed.contains(idx)) {
                 iter.remove();
-                toRemove.add(idx);
             }
         }
     }
@@ -240,7 +230,7 @@ public final class ObjectSceneProps extends ReplayObject {
         json.addProperty("speed", getSpeed());
     }
 
-    private final Mutable<String> cameraObjectInput = new SimpleMutable<>();
+//    private final Mutable<String> cameraObjectInput = new SimpleMutable<>();
     private final ImInt startTimeInput = new ImInt();
     private final ImInt lengthInput = new ImInt();
     private final ImFloat fpsInput = new ImFloat();
@@ -279,12 +269,7 @@ public final class ObjectSceneProps extends ReplayObject {
             rFlags |= EditFlags.CREATE_UNDO_STEP;
         }
 
-        cameraObjectInput.setValue(getCamera());
-        if (ReplayLabControls.objectSelector("Camera Object", cameraObjectInput,
-                obj -> obj instanceof EntityProvider<?>, getScene().getObjects())) {
-            rFlags |= EditFlags.COMMIT;
-            setCamera(cameraObjectInput.get());
-        }
+        rFlags |= drawCameraSelector(editor);
 
         startTimeInput.set(startTime);
         if (ReplayLabControls.inputTimestamp("Start Time", startTimeInput.getData())) {
@@ -308,6 +293,30 @@ public final class ObjectSceneProps extends ReplayObject {
         }
 
         return rFlags;
+    }
+
+    private int drawCameraSelector(EditorState editor) {
+        String camId = getCamera();
+        ReplayObject camera = getScene().getObject(camId);
+        String camName = camera != null ? camera.getDisplayName() : "";
+
+        var scope = PropertyWidgets.beginCombo(this, "Camera Object",
+                camName, editor.getPlayhead(), PROP_CAMERA);
+
+        if (scope.isOpen()) {
+            for (var entry : editor.getScene().getObjects().entrySet()) {
+                String id = entry.getKey();
+                ReplayObject obj = entry.getValue();
+                if (!(obj instanceof EntityProvider<?>)) continue;
+
+                boolean selected = id.equals(camId);
+                if (ImGui.selectable(obj.getDisplayName() + "###" + id, selected)) {
+                    setCamera(id);
+                    scope.select();
+                }
+            }
+        }
+        return scope.end().getEditFlags();
     }
 
     @Override
