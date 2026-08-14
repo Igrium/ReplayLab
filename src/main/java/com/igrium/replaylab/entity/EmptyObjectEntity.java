@@ -1,5 +1,6 @@
 package com.igrium.replaylab.entity;
 
+import com.igrium.replaylab.math.SimpleBox;
 import com.igrium.replaylab.object.types.ObjectEmpty;
 import lombok.Getter;
 import lombok.Setter;
@@ -11,6 +12,8 @@ import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.storage.ValueInput;
 import net.minecraft.world.level.storage.ValueOutput;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.Vec3;
 import org.joml.Quaternionf;
 import org.joml.Quaternionfc;
 import org.joml.Vector3f;
@@ -64,5 +67,12 @@ public class EmptyObjectEntity extends Entity {
     @Override
     protected void addAdditionalSaveData(ValueOutput output) {
 
+    }
+
+    @Override
+    protected AABB makeBoundingBox(Vec3 position) {
+        return new SimpleBox(position)
+                .expand(0.4)
+                .toBox();
     }
 }
