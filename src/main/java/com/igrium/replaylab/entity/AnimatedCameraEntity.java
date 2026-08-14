@@ -1,6 +1,10 @@
-package com.igrium.replaylab.camera;
+package com.igrium.replaylab.entity;
 
+import com.igrium.replaylab.camera.FovProvider;
+import com.igrium.replaylab.camera.RollProvider;
+import com.igrium.replaylab.camera.RotationProvider;
 import com.igrium.replaylab.math.MathUtils;
+import com.igrium.replaylab.math.SimpleBox;
 import lombok.Getter;
 import lombok.Setter;
 import net.minecraft.client.multiplayer.ClientLevel;
@@ -31,7 +35,6 @@ public class AnimatedCameraEntity extends Entity implements FovProvider, Rotatio
 
     @Getter @Setter
     private float fov = 60;
-
 
     @Getter @Setter
     private boolean selected;
@@ -162,49 +165,6 @@ public class AnimatedCameraEntity extends Entity implements FovProvider, Rotatio
         return true; // Allows player to interact
     }
 
-    /**
-     * Because Box is missing crucial functions.
-     */
-    private static class SimpleBox {
-        double minX, minY, minZ;
-        double maxX, maxY, maxZ;
-
-        SimpleBox(Vec3 origin) {
-            minX = origin.x;
-            minY = origin.y;
-            minZ = origin.z;
-
-            maxX = origin.x;
-            maxY = origin.y;
-            maxZ = origin.z;
-        }
-
-        SimpleBox expand(double amount) {
-            minX -= amount;
-            minY -= amount;
-            minZ -= amount;
-
-            maxX += amount;
-            maxY += amount;
-            maxZ += amount;
-            return this;
-        }
-
-        SimpleBox shift(Vec3 vec) {
-            minX += vec.x;
-            minY += vec.y;
-            minZ += vec.z;
-
-            maxX += vec.x;
-            maxY += vec.y;
-            maxZ += vec.z;
-            return this;
-        }
-
-        AABB toBox() {
-            return new AABB(minX, minY, minZ, maxX, maxY, maxZ);
-        }
-    }
 
     @Override
     protected AABB makeBoundingBox(Vec3 pos) {

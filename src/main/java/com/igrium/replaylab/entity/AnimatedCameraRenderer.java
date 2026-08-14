@@ -1,4 +1,4 @@
-package com.igrium.replaylab.camera;
+package com.igrium.replaylab.entity;
 
 import com.igrium.replaylab.ui.gizmos.GizmoColors;
 import com.mojang.blaze3d.vertex.VertexConsumer;

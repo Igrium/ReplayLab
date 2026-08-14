@@ -1,6 +1,6 @@
 package com.igrium.replaylab.mixin;
 
-import com.igrium.replaylab.camera.AnimatedCameraEntity;
+import com.igrium.replaylab.entity.AnimatedCameraEntity;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
 import org.spongepowered.asm.mixin.Final;

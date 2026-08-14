@@ -1,9 +1,11 @@
 package com.igrium.replaylab;
 
 import com.igrium.craftui.app.AppManager;
-import com.igrium.replaylab.camera.AnimatedCameraRenderer;
+import com.igrium.replaylab.entity.AnimatedCameraRenderer;
 import com.igrium.replaylab.config.ReplayLabConfig;
 import com.igrium.replaylab.debug.PrintCameraCommand;
+import com.igrium.replaylab.entity.EmptyObjectRenderer;
+import com.igrium.replaylab.entity.ReplayLabEntities;
 import com.igrium.replaylab.ui.ReplayLabUI;
 import com.replaymod.core.ReplayMod;
 import com.replaymod.replay.ReplayModReplay;
@@ -15,6 +17,7 @@ import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
 import net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry;
 import net.fabricmc.loader.api.FabricLoader;
+import net.minecraft.client.renderer.entity.EntityRenderers;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -65,9 +68,14 @@ public class ReplayLab implements ModInitializer, ClientModInitializer {
         if (FabricLoader.getInstance().isDevelopmentEnvironment()) {
             ClientCommandRegistrationCallback.EVENT.register(PrintCameraCommand::register);
         }
-        EntityRendererRegistry.register(
+        EntityRenderers.register(
                 ReplayLabEntities.CAMERA,
                 AnimatedCameraRenderer::new
+        );
+
+        EntityRenderers.register(
+                ReplayLabEntities.EMPTY,
+                EmptyObjectRenderer::new
         );
     }
 

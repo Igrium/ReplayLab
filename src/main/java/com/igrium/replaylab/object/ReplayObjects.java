@@ -31,7 +31,9 @@ public class ReplayObjects {
     public static final ReplayObjectType<ObjectBlockDisplay> BLOCK_DISPLAY = register("blockDisplay",
             ObjectBlockDisplay::new);
     public static final ReplayObjectType<ObjectCamera> CAMERA = register("camera", ObjectCamera::new);
+    public static final ReplayObjectType<ObjectEmpty> EMPTY = register("empty", ObjectEmpty::new);
     public static final ReplayObjectType<ObjectEntityProxy> ENTITY_PROXY = register("entityProxy", ObjectEntityProxy::new);
+
 
     /**
      * Create a new replay object from a type ID.

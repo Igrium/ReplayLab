@@ -1,6 +1,5 @@
-package com.igrium.replaylab;
+package com.igrium.replaylab.entity;
 
-import com.igrium.replaylab.camera.AnimatedCameraEntity;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.MobCategory;
@@ -16,6 +15,13 @@ public class ReplayLabEntities {
                     .sized(.75f, .75f)
                     .eyeHeight(0)
                     .noSummon());
+
+    public static final EntityType<EmptyObjectEntity> EMPTY = registerEntity(
+            "replaylab:empty", EntityType.Builder.of(EmptyObjectEntity::new, MobCategory.MISC)
+                    .sized(.75f, .75f)
+                    .eyeHeight(0)
+                    .noSummon()
+    );
 
     private static <T extends Entity> EntityType<T> registerEntity(String id, EntityType.Builder<T> type) {
         ResourceKey<EntityType<?>> registryKey = ResourceKey.create(Registries.ENTITY_TYPE, Identifier.parse(id));
