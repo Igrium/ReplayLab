@@ -32,12 +32,19 @@ public class GizmoRenderer {
     @Getter
     private static final Matrix4f projectionMatrix = new Matrix4f();
 
-    // TODO: Fix gizmo projection matrix issue. I've been working on this for three days, and I'm tired.
+
     public static void setupCameraProjection(Matrix4fc positionMatrix, CameraRenderState cameraState) {
         Vec3 camPos = cameraState.pos;
         GizmoRenderer.viewMatrix().set(positionMatrix);
-        GizmoRenderer.projectionMatrix().set(cameraState.projectionMatrix);
         GizmoRenderer.cameraPos().set(camPos.x, camPos.y, camPos.z);
+
+        Matrix4f projection = GizmoRenderer.projectionMatrix().set(cameraState.projectionMatrix);
+
+        // Flip depth because MC has matrix backwards apparently
+        float near = 0.05f;
+        float far = cameraState.depthFar;
+        projection.m22((far + near) / (near - far))
+                .m32(2 * far * near / (near - far));
     }
 
     public static void drawGizmos(EditorState editorState, CraftApp.ViewportBounds viewportBounds) {
