@@ -4,11 +4,14 @@ import com.igrium.craftui.CraftUIFonts;
 import com.igrium.craftui.icon.FontAwesome;
 import com.igrium.replaylab.config.ReplayLabConfig;
 import com.igrium.replaylab.editor.EditorState;
+import com.igrium.replaylab.mixin.AccessorHud;
 import com.igrium.replaylab.ui.util.ReplayLabControls;
 import com.igrium.replaylab.util.Timestamps;
 import imgui.ImGui;
 import imgui.flag.ImGuiMouseCursor;
 import imgui.type.ImBoolean;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.Hud;
 import net.minecraft.locale.Language;
 import net.minecraft.util.Util;
 
@@ -123,6 +126,12 @@ public class ViewportFooter {
         if (ReplayLabControls.toggleButton(FontAwesome.ICON_VIDEO, "cameraView", cameraViewInput,
                 "key.replaylab.cameraview")) {
             editorState.setCameraView(cameraViewInput.get());
+        }
+        ImGui.sameLine();
+        Hud hud = Minecraft.getInstance().gui.hud;
+        tmpBoolean.set(!hud.isHidden());
+        if (ReplayLabControls.toggleButton(FontAwesome.ICON_TV, "hideWidgets", tmpBoolean, "key.replaylab.hide_widgets")) {
+            ((AccessorHud) hud).setIsHidden(!tmpBoolean.get());
         }
 
 

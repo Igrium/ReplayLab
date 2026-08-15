@@ -17,12 +17,14 @@
   },
   "client": [
     "AccessorCamera",
+    "AccessorHud",
     "AccessorNativeImage",
     "MixinCamera",
     "MixinCameraEntity",
-      "MixinLocalPlayer",
     "MixinGameRenderer",
+    "MixinHud",
     "MixinLanguageManager",
-      "MixinLevelRenderer"
+    "MixinLevelRenderer",
+    "MixinLocalPlayer"
   ]
 }

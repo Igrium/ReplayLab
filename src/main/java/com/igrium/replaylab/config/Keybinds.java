@@ -13,6 +13,7 @@ public class Keybinds {
     private int copy = ImGuiKey.ImGuiMod_Ctrl | ImGuiKey.C;
     private int paste = ImGuiKey.ImGuiMod_Ctrl | ImGuiKey.V;
 
+    private int hideWidgets = ImGuiKey.F1;
     private int cameraView = ImGuiKey.C;
     private int cameraToView = ImGuiKey.ImGuiMod_Shift | ImGuiKey.C;
     private int activeToCam = ImGuiKey.ImGuiMod_Alt | ImGuiKey.C;
@@ -51,6 +52,7 @@ public class Keybinds {
         this.copy = other.copy;
         this.paste = other.paste;
 
+        this.hideWidgets = other.hideWidgets;
         this.cameraView = other.cameraView;
         this.cameraToView = other.cameraToView;
         this.activeToCam = other.activeToCam;
@@ -100,6 +102,10 @@ public class Keybinds {
 
     public static int paste() {
         return getKeybinds().getPaste();
+    }
+
+    public static int hideWidgets() {
+        return getKeybinds().getHideWidgets();
     }
 
     public static int cameraView() {

@@ -9,6 +9,7 @@ import com.igrium.replaylab.object.ReplayObject;
 import imgui.ImGui;
 import imgui.type.ImBoolean;
 import lombok.Getter;
+import net.minecraft.client.Minecraft;
 import net.minecraft.resources.Identifier;
 import net.minecraft.locale.Language;
 import org.jetbrains.annotations.Nullable;
@@ -104,6 +105,10 @@ public abstract class UIPanel {
 
         if (ImGui.shortcut(Keybinds.nextKey())) {
             editorState.jumpNextKeyframe();
+        }
+
+        if (ImGui.shortcut(Keybinds.hideWidgets())) {
+            Minecraft.getInstance().gui.hud.toggle();
         }
 
         if (ImGui.shortcut(Keybinds.cameraView())) {

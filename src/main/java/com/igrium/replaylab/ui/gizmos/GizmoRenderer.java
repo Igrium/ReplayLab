@@ -2,9 +2,8 @@ package com.igrium.replaylab.ui.gizmos;
 
 import com.igrium.craftui.app.CraftApp;
 import com.igrium.replaylab.editor.EditorState;
-import com.igrium.replaylab.operator.object.CommitObjectUpdateOperator;
 import com.igrium.replaylab.object.EditFlags;
-import com.igrium.replaylab.object.ReplayObject;
+import com.igrium.replaylab.operator.object.CommitObjectUpdateOperator;
 import imgui.ImGui;
 import imgui.ImGuiViewport;
 import imgui.extension.imguizmo.ImGuizmo;
@@ -18,9 +17,6 @@ import org.jetbrains.annotations.Nullable;
 import org.joml.Matrix4f;
 import org.joml.Matrix4fc;
 import org.joml.Vector3d;
-
-import java.util.ArrayList;
-import java.util.List;
 
 @UtilityClass @Accessors(fluent = true)
 public class GizmoRenderer {
@@ -49,18 +45,17 @@ public class GizmoRenderer {
 
     public static void drawGizmos(EditorState editorState, CraftApp.ViewportBounds viewportBounds) {
         // TODO: this should really be initialized in CraftUI
+        if (Minecraft.getInstance().gui.hud.isHidden()) return;
+
         ImGuizmo.setOrthographic(false);
         ImGuizmo.beginFrame();
 
         ImGuizmo.setDrawList();
         int screenHeight = Minecraft.getInstance().getWindow().getScreenHeight();
 
-        // 1. Calculate base window-relative ImGui coordinates (reversing the OpenGL Y-flip)
         float rectX = viewportBounds.x();
         float rectY = screenHeight - viewportBounds.y() - viewportBounds.height();
 
-        // 2. If viewports are enabled, ImGuizmo requires absolute monitor coordinates.
-        // Add the main viewport's global position back to satisfy ImGuizmo.
         ImGuiViewport vp = ImGui.getMainViewport();
             rectX += vp.getPosX();
             rectY += vp.getPosY();
@@ -70,10 +65,6 @@ public class GizmoRenderer {
         ImGuizmo.allowAxisFlip(false);
 
         boolean hidden = Minecraft.getInstance().gui.screen() != null;
-        int numObjects = editorState.getScene().getObjects().size();
-
-        List<String> wantUndoStep = new ArrayList<>(numObjects);
-        List<ReplayObject> wantUpdateScene = new ArrayList<>(numObjects);
 
         for (var obj : editorState.getScene().getObjects().values()) {
             var state = obj.drawGizmos(editorState, cameraPos, viewMatrix, projectionMatrix, hidden);

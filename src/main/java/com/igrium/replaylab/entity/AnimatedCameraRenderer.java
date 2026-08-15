@@ -2,6 +2,7 @@ package com.igrium.replaylab.entity;
 
 import com.igrium.replaylab.ui.gizmos.GizmoColors;
 import com.mojang.blaze3d.vertex.VertexConsumer;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.SubmitNodeCollector;
 import net.minecraft.client.renderer.rendertype.RenderTypes;
 import net.minecraft.client.renderer.entity.EntityRenderer;
@@ -43,6 +44,7 @@ public class AnimatedCameraRenderer extends EntityRenderer<AnimatedCameraEntity,
     public void submit(AnimatedCameraRenderState state, PoseStack matrices, SubmitNodeCollector submitNodeCollector,
                        CameraRenderState camera) {
         super.submit(state, matrices, submitNodeCollector, camera);
+        if (Minecraft.getInstance().gui.hud.isHidden()) return;
 
         matrices.pushPose();
         matrices.mulPose(state.getRotation());

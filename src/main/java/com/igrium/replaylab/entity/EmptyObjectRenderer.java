@@ -3,6 +3,7 @@ package com.igrium.replaylab.entity;
 import com.igrium.replaylab.ui.gizmos.GizmoColors;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.SubmitNodeCollector;
 import net.minecraft.client.renderer.entity.EntityRenderer;
 import net.minecraft.client.renderer.entity.EntityRendererProvider;
@@ -37,6 +38,7 @@ public class EmptyObjectRenderer extends EntityRenderer<EmptyObjectEntity, Empty
     public void submit(EmptyObjectRenderState state, PoseStack matrices, SubmitNodeCollector submitNodeCollector,
                        CameraRenderState camera) {
         super.submit(state, matrices, submitNodeCollector, camera);
+        if (Minecraft.getInstance().gui.hud.isHidden()) return;
 
         matrices.pushPose();
         matrices.mulPose(state.getRotation());

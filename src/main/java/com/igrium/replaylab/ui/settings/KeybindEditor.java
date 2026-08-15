@@ -41,6 +41,7 @@ public class KeybindEditor {
 
             ImGui.separator();
 
+            changed |= drawBinding("key.replaylab.hide_widgets", current.getHideWidgets(), DEFAULT.getHideWidgets(), current::setHideWidgets);
             changed |= drawBinding("key.replaylab.cameraview", current.getCameraView(), DEFAULT.getCameraView(), current::setCameraView);
             changed |= drawBinding("key.replaylab.active_to_cam", current.getActiveToCam(), DEFAULT.getActiveToCam(), current::setActiveToCam);
             changed |= drawBinding("key.replaylab.frame", current.getFrameSelected(), DEFAULT.getFrameSelected(), current::setFrameSelected);
