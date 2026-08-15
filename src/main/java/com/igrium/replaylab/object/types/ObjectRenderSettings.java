@@ -90,9 +90,12 @@ public class ObjectRenderSettings extends ReplayObject {
                 filters = new FileFilter[0];
             }
 
+            Path outPath = getOutPath();
+            Path parent = outPath.getParent();
+
             FileDialogs.showSaveDialog(
-                    getOutPath().getParent().toString(),
-                    getOutPath().getFileName().toString(),
+                    parent != null ? parent.toString() : "",
+                    outPath.getFileName().toString(),
                     filters
             ).thenAcceptAsync(
                     opt -> opt.ifPresent(s -> setOutPath(Paths.get(s))),
