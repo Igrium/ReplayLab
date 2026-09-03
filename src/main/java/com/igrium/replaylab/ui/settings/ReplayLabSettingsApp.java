@@ -1,7 +1,7 @@
 package com.igrium.replaylab.ui.settings;
 
-import com.igrium.craftui.app.CraftApp;
-import com.igrium.craftui.screen.CraftAppScreen;
+import com.igrium.craftui.api.app.CraftApp;
+import com.igrium.craftui.api.screen.CraftAppScreen;
 import com.igrium.replaylab.config.ReplayLabConfig;
 import imgui.ImGui;
 import imgui.flag.ImGuiCond;
@@ -14,7 +14,7 @@ public class ReplayLabSettingsApp extends CraftApp {
     private final SettingsEditor settingsEditor = new SettingsEditor(ReplayLabConfig.getInstance());
 
     @Override
-    protected void render(Minecraft client) {
+    public void render(Minecraft client) {
         var viewport = ImGui.getMainViewport();
         ImGui.setNextWindowPos(viewport.getCenterX(), viewport.getCenterY(), ImGuiCond.Always, .5f, .5f);
 

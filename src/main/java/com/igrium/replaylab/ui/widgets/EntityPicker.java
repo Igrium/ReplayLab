@@ -1,6 +1,6 @@
 package com.igrium.replaylab.ui.widgets;
 
-import com.igrium.craftui.util.RaycastUtils;
+import com.igrium.craftui.api.CraftUI;
 import imgui.ImGui;
 import imgui.flag.ImGuiKey;
 import imgui.flag.ImGuiMouseButton;
@@ -85,7 +85,7 @@ public final class EntityPicker {
         if (world == null) return;
 
         MouseHandler mouse = mc.mouseHandler;
-        HitResult raycast = RaycastUtils.raycastViewport((float) mouse.xpos(), (float) mouse.ypos(), 1000,
+        HitResult raycast = CraftUI.raycastViewport((float) mouse.xpos(), (float) mouse.ypos(), 1000,
                 e -> e != mc.getCameraEntity(), false);
 
         if (raycast instanceof EntityHitResult entHit) {

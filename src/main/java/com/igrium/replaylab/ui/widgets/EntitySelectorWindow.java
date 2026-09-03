@@ -1,8 +1,7 @@
 package com.igrium.replaylab.ui.widgets;
 
 import com.google.common.collect.Iterables;
-import com.igrium.craftui.MaterialIcons;
-import com.igrium.craftui.icon.FontAwesome;
+import com.igrium.craftui.api.icon.FontAwesome;
 import com.replaymod.replay.camera.CameraEntity;
 import imgui.ImGui;
 import imgui.ImGuiStorage;

@@ -11,7 +11,7 @@ import com.igrium.replaylab.anim.ChannelUtils;
 import com.igrium.replaylab.anim.KeyChannel;
 import com.igrium.replaylab.anim.Keyframe;
 import com.igrium.replaylab.object.ReplayObject;
-import com.igrium.craftui.icon.FontAwesome;
+import com.igrium.craftui.api.icon.FontAwesome;
 import com.igrium.replaylab.ui.subpanels.TimelineHeader;
 import com.igrium.replaylab.ui.util.ReplayLabControls;
 import com.igrium.replaylab.ui.util.TimelineFlags;

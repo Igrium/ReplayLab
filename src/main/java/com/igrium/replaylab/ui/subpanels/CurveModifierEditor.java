@@ -1,6 +1,6 @@
 package com.igrium.replaylab.ui.subpanels;
 
-import com.igrium.craftui.icon.FontAwesome;
+import com.igrium.craftui.api.icon.FontAwesome;
 import com.igrium.replaylab.anim.KeyChannel;
 import com.igrium.replaylab.anim.modifier.CurveModifier;
 import com.igrium.replaylab.anim.modifier.CurveModifierType;

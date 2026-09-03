@@ -1,6 +1,6 @@
 package com.igrium.replaylab.ui.subpanels;
 
-import com.igrium.craftui.util.RaycastUtils;
+import com.igrium.craftui.api.CraftUI;
 import com.igrium.replaylab.config.Keybinds;
 import com.igrium.replaylab.editor.EditorState;
 import com.igrium.replaylab.operator.object.RemoveObjectsOperator;
@@ -126,7 +126,7 @@ public class ViewportControls {
         ClientLevel world = Minecraft.getInstance().level;
         if (world == null) return;
 
-        HitResult raycast = RaycastUtils.raycastViewport((float) mouse.xpos(), (float) mouse.ypos(), 1000, e -> true, false);
+        HitResult raycast = CraftUI.raycastViewport((float) mouse.xpos(), (float) mouse.ypos(), 1000, e -> true, false);
         if (raycast instanceof EntityHitResult hit) {
             Entity ent = hit.getEntity();
             if (ImGui.getIO().getKeyCtrl() || ImGui.getIO().getKeyShift()) {
@@ -170,7 +170,7 @@ public class ViewportControls {
         ClientLevel world = Minecraft.getInstance().level;
         if (world == null) return null;
 
-        HitResult raycast = RaycastUtils.raycastViewport((float) mouse.xpos(), (float) mouse.ypos(), 1000, e -> true, false);
+        HitResult raycast = CraftUI.raycastViewport((float) mouse.xpos(), (float) mouse.ypos(), 1000, e -> true, false);
         if (raycast instanceof EntityHitResult entHit) {
             return editorState.getScene().referencingObjects(entHit.getEntity()).findFirst().orElse(null);
         }

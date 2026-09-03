@@ -1,6 +1,6 @@
 package com.igrium.replaylab.ui.subpanels;
 
-import com.igrium.craftui.icon.FontAwesome;
+import com.igrium.craftui.api.icon.FontAwesome;
 import com.igrium.replaylab.anim.constraint.Constraint;
 import com.igrium.replaylab.anim.constraint.ConstraintType;
 import com.igrium.replaylab.editor.EditorState;

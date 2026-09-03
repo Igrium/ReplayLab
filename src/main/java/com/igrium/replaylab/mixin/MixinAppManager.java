@@ -1,7 +1,7 @@
 package com.igrium.replaylab.mixin;
 
-import com.igrium.craftui.app.AppManager;
-import com.igrium.craftui.app.CraftApp;
+import com.igrium.craftui.impl.AppManager;
+import com.igrium.craftui.api.app.CraftApp;
 import com.igrium.replaylab.render.VideoRenderer;
 import net.minecraft.client.Minecraft;
 import org.spongepowered.asm.mixin.Mixin;
@@ -22,7 +22,7 @@ public class MixinAppManager {
 
     /**
      * <code>compositeViewportTarget</code> reads the <code>currentViewportBounds</code> field directly,
-     * so overriding {@link AppManager#getCustomViewportBounds()} isn't enough to keep it out of the
+     * so overriding {@link com.igrium.craftui.api.CraftUI#getCustomViewportBounds()} isn't enough to keep it out of the
      * export loop. Since <code>preRender</code> never runs during export, that field keeps its last
      * in-game value and the compositor would hijack <code>mainRenderTarget</code> out from under
      * ReplayMod's gui framebuffer.

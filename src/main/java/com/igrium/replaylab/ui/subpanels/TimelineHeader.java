@@ -1,6 +1,6 @@
 package com.igrium.replaylab.ui.subpanels;
 
-import com.igrium.craftui.CraftUIFonts;
+import com.igrium.craftui.api.style.CraftUIFonts;
 import com.igrium.replaylab.config.ReplayLabConfig;
 import com.igrium.replaylab.editor.EditorState;
 import com.igrium.replaylab.operator.scene.SetSceneLengthOperator;

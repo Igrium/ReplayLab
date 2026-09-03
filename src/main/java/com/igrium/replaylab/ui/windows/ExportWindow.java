@@ -1,5 +1,5 @@
 package com.igrium.replaylab.ui.windows;
-import com.igrium.craftui.app.AppManager;
+import com.igrium.craftui.api.CraftUI;
 import com.igrium.replaylab.editor.EditorState;
 import com.igrium.replaylab.object.types.ObjectRenderSettings;
 import com.igrium.replaylab.scene.ReplayScene;
@@ -90,7 +90,7 @@ public class ExportWindow {
             if (wantsClose) {
                 ImGui.closeCurrentPopup();
             }
-            AppManager.drawGlobalPopup();
+            CraftUI.drawGlobalPopup();
             ImGui.endPopup();
         }
     }

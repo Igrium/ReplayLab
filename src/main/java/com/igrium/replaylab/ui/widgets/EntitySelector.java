@@ -1,6 +1,6 @@
 package com.igrium.replaylab.ui.widgets;
 
-import com.igrium.craftui.icon.FontAwesome;
+import com.igrium.craftui.api.icon.FontAwesome;
 import com.igrium.replaylab.ui.util.ReplayLabControls;
 import imgui.ImGui;
 import imgui.type.ImInt;

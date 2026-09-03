@@ -1,6 +1,6 @@
 package com.igrium.replaylab.render;
 
-import com.igrium.craftui.app.AppManager;
+import com.igrium.craftui.impl.AppManager;
 import com.igrium.replaylab.editor.EditorState;
 import com.igrium.replaylab.object.types.ObjectRenderSettings;
 import com.igrium.replaylab.object.types.ObjectSceneProps;
@@ -45,6 +45,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.EnumMap;
+import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
@@ -446,8 +447,10 @@ public class VideoRenderer {
         return !abort;
     }
 
+    @SuppressWarnings("UnstableApiUsage") // It's expected that fucking with the Minecraft render cycle is unstable anyway
     private void drawGuiBound() {
         Window window = mc.getWindow();
+        Objects.requireNonNull(guiWindow);
 
         clearMainRenderTarget();
 

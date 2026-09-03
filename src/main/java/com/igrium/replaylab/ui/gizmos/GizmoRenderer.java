@@ -1,6 +1,6 @@
 package com.igrium.replaylab.ui.gizmos;
 
-import com.igrium.craftui.app.CraftApp;
+import com.igrium.craftui.api.app.CraftApp;
 import com.igrium.replaylab.editor.EditorState;
 import com.igrium.replaylab.object.EditFlags;
 import com.igrium.replaylab.operator.object.CommitObjectUpdateOperator;

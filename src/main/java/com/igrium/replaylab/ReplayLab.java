@@ -1,6 +1,6 @@
 package com.igrium.replaylab;
 
-import com.igrium.craftui.app.AppManager;
+import com.igrium.craftui.api.CraftUI;
 import com.igrium.replaylab.entity.AnimatedCameraRenderer;
 import com.igrium.replaylab.config.ReplayLabConfig;
 import com.igrium.replaylab.debug.PrintCameraCommand;
@@ -15,7 +15,6 @@ import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.api.ModInitializer;
 
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
-import net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.renderer.entity.EntityRenderers;
 import org.jetbrains.annotations.Nullable;
@@ -94,7 +93,7 @@ public class ReplayLab implements ModInitializer, ClientModInitializer {
 
         ReplayModReplay.instance.startReplay(replayFile, false, true);
         appInstance = new ReplayLabUI();
-        AppManager.openApp(appInstance);
+        CraftUI.openApp(appInstance);
         appInstance.afterOpen();
     }
 

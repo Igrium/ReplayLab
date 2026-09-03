@@ -3,13 +3,14 @@ package com.igrium.replaylab.ui.util;
 import com.igrium.replaylab.config.ReplayLabConfig;
 import com.igrium.replaylab.object.ReplayObject;
 import com.igrium.replaylab.util.Timestamps;
+import com.mojang.blaze3d.opengl.GlTexture;
+import com.mojang.blaze3d.textures.GpuTexture;
 import imgui.ImGui;
 import imgui.ImGuiIO;
 import imgui.flag.ImGuiCol;
 import imgui.flag.ImGuiInputTextFlags;
 import imgui.flag.ImGuiMouseCursor;
 import imgui.type.ImBoolean;
-import imgui.type.ImInt;
 import imgui.type.ImString;
 import lombok.NonNull;
 import net.minecraft.resources.Identifier;
@@ -38,7 +39,8 @@ public class ReplayLabControls {
      * @param options  The options for the user to choose from.
      * @return If the selected item was changed this frame.
      */
-    public static boolean stringCombo(@NonNull String label, @NonNull Mutable<String> selected, @NonNull Iterable<? extends String> options) {
+    public static boolean stringCombo(@NonNull String label, @NonNull Mutable<String> selected, @NonNull Iterable<?
+            extends String> options) {
         boolean updated = false;
         String preview = selected.getValue();
         if (ImGui.beginCombo(label, preview != null ? preview : "")) {
@@ -146,7 +148,8 @@ public class ReplayLabControls {
     /**
      * A timestamp field that can be dragged to change its value like <code>DragScalar</code>
      */
-    public static boolean inputTimestamp(String label, int[] timestamp, Timestamps.Display display, int imGuiInputTextFlags) {
+    public static boolean inputTimestamp(String label, int[] timestamp, Timestamps.Display display,
+                                         int imGuiInputTextFlags) {
         int id = ImGui.getID(label);
         // Typing mode: an ordinary editable inputText (native label, editing, and undo behavior).
         if (timestampInputId == id) {
@@ -255,8 +258,8 @@ public class ReplayLabControls {
     }
 
     public static int findRenderedTextEnd(String text) {
-        for (int i = 0; i < text.length()-1; i++) {
-            if (text.charAt(i) == '#' && text.charAt(i+1) == '#')
+        for (int i = 0; i < text.length() - 1; i++) {
+            if (text.charAt(i) == '#' && text.charAt(i + 1) == '#')
                 return i;
         }
         return -1;
@@ -266,4 +269,18 @@ public class ReplayLabControls {
         int end = findRenderedTextEnd(text);
         return end >= 0 ? text.substring(0, end) : text;
     }
+
+    /**
+     * Simple method to draw a texture on the GL backend and a dummy on the Vulkan backend until we get the vulkan
+     * backend to support textures.
+     */
+    public static void image(GpuTexture texture, float width, float height) {
+        if (texture instanceof GlTexture glTexture) {
+            ImGui.image(glTexture.glId(), width, height, 0, 1, 1, 0);
+        } else {
+            ImGui.dummy(width, height);
+        }
+    }
 }
+
+

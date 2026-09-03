@@ -1,7 +1,7 @@
 package com.igrium.replaylab.ui;
 
 
-import com.igrium.craftui.app.DockSpaceApp;
+import com.igrium.craftui.api.app.DockSpaceApp;
 import com.igrium.replaylab.ReplayLab;
 import com.igrium.replaylab.config.Keybinds;
 import com.igrium.replaylab.editor.EditorState;
@@ -128,6 +128,7 @@ public class ReplayLabUI extends DockSpaceApp {
         editorState.setExceptionCallback(exceptionPopup::displayException);
         editorState.setOperatorCallback(this::onApplyOperator);
         editorState.setQuickModeInitCallback(quickModePopup);
+        closeEvent().addListener(this::onAppClosed);
     }
 
     /**
@@ -139,7 +140,7 @@ public class ReplayLabUI extends DockSpaceApp {
     }
 
     @Override
-    protected void preRender(Minecraft client) {
+    public void preRender(Minecraft client) {
         super.preRender(client);
 
         if (getReplayHandler() == null) {
@@ -169,7 +170,7 @@ public class ReplayLabUI extends DockSpaceApp {
 
 
     @Override
-    protected void render(Minecraft client) {
+    public void render(Minecraft client) {
         var replayHandler = getReplayHandler();
         if (replayHandler == null) {
             close();
@@ -225,8 +226,7 @@ public class ReplayLabUI extends DockSpaceApp {
         firstFrame = false;
     }
 
-    @Override
-    protected void onClose() {
+    private void onAppClosed() {
         var rh = getReplayHandler();
         if (rh != null) {
             try {
@@ -235,7 +235,6 @@ public class ReplayLabUI extends DockSpaceApp {
                 LOGGER.error("Error closing replay: ", e);
             }
         }
-        super.onClose();
     }
 
     private void onApplyOperator(ReplayOperator op) {
@@ -429,7 +428,7 @@ public class ReplayLabUI extends DockSpaceApp {
     // =========================================================================
 
     @Override
-    protected ViewportBounds getCustomViewportBounds() {
+    public ViewportBounds getCustomViewportBounds() {
         var bounds = super.getCustomViewportBounds();
         if (bounds == null) return null;
 
@@ -474,7 +473,7 @@ public class ReplayLabUI extends DockSpaceApp {
     }
 
     @Override
-    protected @Nullable Identifier getLayoutPreset() {
+    public @Nullable Identifier getLayoutPreset() {
         return LAYOUT;
     }
 
