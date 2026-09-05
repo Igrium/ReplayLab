@@ -55,12 +55,7 @@ public abstract class UIPanel {
 
     public final void draw(EditorState editorState, int imGuiWindowFlags, @Nullable Runnable callback) {
         if (visible.get()) {
-
-            if (requestFocus) {
-                ImGui.setNextWindowFocus();
-                requestFocus = false;
-            }
-
+            preDraw();
             if (ImGui.begin(getPanelName(), visible, imGuiWindowFlags)) {
                 drawContents(editorState);
                 if (callback != null) {
@@ -70,7 +65,16 @@ public abstract class UIPanel {
             }
             ImGui.end();
         }
+    }
 
+    /**
+     * Called before ImGui.begin to set up window params (size, etc.)
+     */
+    protected void preDraw() {
+        if (requestFocus) {
+            ImGui.setNextWindowFocus();
+            requestFocus = false;
+        }
     }
 
     protected abstract void drawContents(EditorState editorState);

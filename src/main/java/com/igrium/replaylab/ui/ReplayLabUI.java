@@ -77,7 +77,8 @@ public class ReplayLabUI extends DockSpaceApp {
             new CurveEditor(Identifier.parse("replaylab:curveeditor")),
             new Outliner(Identifier.parse("replaylab:outliner")),
             inspector,
-            new ScenePropsPanel(Identifier.parse("replaylab:sceneprops"))
+            new ScenePropsPanel(Identifier.parse("replaylab:sceneprops")),
+            new PlayerBrowser(Identifier.parse("replaylab:playerbrowser"))
     );
 
     @Getter
