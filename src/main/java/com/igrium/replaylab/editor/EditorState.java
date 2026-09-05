@@ -719,6 +719,10 @@ public final class EditorState {
         snapViewportTo(target.x(), target.y(), target.z());
     }
 
+    public void snapViewportTo(Vec3 target) {
+        snapViewportTo(target.x(), target.y(), target.z());
+    }
+
     public void snapViewportTo(double x, double y, double z) {
         LocalPlayer player = mc.player;
         if (player == null) return;

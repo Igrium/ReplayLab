@@ -10,6 +10,7 @@ import com.igrium.replaylab.object.ReplayObjects;
 import com.igrium.replaylab.ui.subpanels.ObjectContextMenu;
 import imgui.ImGui;
 import imgui.flag.ImGuiCol;
+import imgui.flag.ImGuiCond;
 import imgui.flag.ImGuiKey;
 import imgui.type.ImString;
 import net.minecraft.resources.Identifier;
@@ -41,6 +42,12 @@ public class Outliner extends UIPanel {
         drawOutliner(editorState);
     }
 
+    @Override
+    protected void preDraw() {
+        super.preDraw();
+        ImGui.setNextWindowSize(400, 700, ImGuiCond.FirstUseEver);
+    }
+
     public void drawOutliner(EditorState editorState) {
 
         // HEADER
@@ -50,11 +57,7 @@ public class Outliner extends UIPanel {
 
         // Selectable uses header colors
         ImGui.pushStyleColor(ImGuiCol.Header, ARGB.color(48, ImGui.getColorU32(ImGuiCol.HeaderActive)));
-
-        if (ImGui.beginChild("objects")) {
-            ImGui.setNextItemWidth(ImGui.getContentRegionAvailX());
-
-            if (ImGui.beginListBox("##objects")) {
+            if (ImGui.beginListBox("##objects", ImGui.getContentRegionAvailX(), ImGui.getContentRegionAvailY())) {
                 String[] objs = editorState.getScene().getObjects().keySet().toArray(new String[0]);
 
                 int clickedIdx = -1;
@@ -67,7 +70,7 @@ public class Outliner extends UIPanel {
                         continue;
 
                     if (id.equals(currentRenamingItem)) {
-                        if (firstRenamingFrame) {} {
+                        if (firstRenamingFrame) {
                             ImGui.setKeyboardFocusHere();
                         }
                         ImGui.inputText("##name", renamingString);
@@ -127,10 +130,7 @@ public class Outliner extends UIPanel {
                 }
 
                 ImGui.endListBox();
-            }
-
         }
-        ImGui.endChild();
         ImGui.popStyleColor();
 
         if (ImGui.shortcut(Keybinds.deleteSelected())) {

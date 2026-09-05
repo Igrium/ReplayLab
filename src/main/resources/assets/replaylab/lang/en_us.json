@@ -20,6 +20,7 @@
   "panel.replaylab.sceneprops": "Scene Properties",
   "panel.replaylab.scenebrowser": "Scene Browser",
   "panel.replaylab.settings": "Settings",
+  "panel.replaylab.playerbrowser": "Player Overview",
 
   "gui.replaylab.file": "File",
   "gui.replaylab.new_scene": "New Scene",

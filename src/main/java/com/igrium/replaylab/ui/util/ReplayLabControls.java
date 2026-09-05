@@ -275,8 +275,12 @@ public class ReplayLabControls {
      * backend to support textures.
      */
     public static void image(GpuTexture texture, float width, float height) {
+        image(texture, width, height, 0, 1, 1, 0);
+    }
+
+    public static void image(GpuTexture texture, float width, float height, float u0, float v0, float u1, float v1) {
         if (texture instanceof GlTexture glTexture) {
-            ImGui.image(glTexture.glId(), width, height, 0, 1, 1, 0);
+            ImGui.image(glTexture.glId(), width, height, u0, v0, u1, v1);
         } else {
             ImGui.dummy(width, height);
         }
