@@ -1,6 +1,8 @@
 package com.igrium.replaylab.ui.subpanels;
 
 import com.igrium.craftui.api.CraftUI;
+import com.igrium.craftui.api.controls.ViewportControlHelper;
+import com.igrium.craftui.api.controls.ViewportControls.ControlMode;
 import com.igrium.replaylab.config.Keybinds;
 import com.igrium.replaylab.editor.EditorState;
 import com.igrium.replaylab.operator.object.RemoveObjectsOperator;
@@ -19,6 +21,9 @@ import net.minecraft.locale.Language;
 import net.minecraft.world.phys.EntityHitResult;
 import net.minecraft.world.phys.HitResult;
 import org.jetbrains.annotations.Nullable;
+import org.joml.Quaterniondc;
+import org.joml.Vector3d;
+import org.joml.Vector3dc;
 
 public class ViewportControls {
     private @Nullable ReplayObject contextObject;
@@ -26,6 +31,26 @@ public class ViewportControls {
 
     private final ImString renameStr = new ImString(20);
 
+    private static class ReplayLabControlHelper extends ViewportControlHelper {
+        EditorState editorState;
+
+        @Override
+        protected void setCameraTransform(Entity ent, Vector3dc pos, Quaterniondc rot) {
+            super.setCameraTransform(ent, pos, rot);
+            ent.setOldPosAndRot();
+        }
+
+        @Override
+        protected Vector3d computeOrbitCenter(Vector3dc pos, Quaterniondc rot, Entity camera) {
+            return super.computeOrbitCenter(pos, rot, camera);
+        }
+    }
+
+    private final ReplayLabControlHelper controlHelper = new ReplayLabControlHelper();
+
+    public ViewportControlHelper getControlHelper() {
+        return controlHelper;
+    }
 
     public void drawViewport(EditorState editorState) {
         EntityPicker.drawPicker();
@@ -82,7 +107,7 @@ public class ViewportControls {
             renamingObject = null;
         }
 
-        /// === GIZMO HOTKEYS ===
+        // === GIZMO HOTKEYS ===
         if (ImGui.shortcut(Keybinds.gizmoAll())) {
             editorState.toggleGizmos(true, true, true);
         }
@@ -112,12 +137,21 @@ public class ViewportControls {
         }
 
 
-        /// === ROLL ===
+        // === ROLL ===
         editorState.setRollingCamera(editorState.isPilotingCamera()
                 && ShortcutUtils.isKeyChordDown(Keybinds.cameraRoll()));
 
         UIPanel.processGlobalHotkeys(editorState);
         UIPanel.testAddKeyShortcut(editorState);
+
+        // === TRACKBALL CONTROLS ===
+        controlHelper.editorState = editorState;
+        controlHelper.handleViewportControls();
+
+        float scroll = ImGui.getIO().getMouseWheel();
+        if (Math.abs(scroll) >= .001) {
+            controlHelper.applyDiscreteMove(ControlMode.ZOOM, scroll * -12, 0);
+        }
     }
 
     private void raycastSelect(EditorState editorState) {
