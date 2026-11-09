@@ -75,7 +75,11 @@ public class ExportProgressWindow {
 
         SimpleTexture tex = r.getRenderTexture();
         if (tex != null) {
-            ImGui.image(TextureBindings.INSTANCE.textureId(tex.getTextureView()), imageHeight, imageHeight);
+            // Whyyyy can none of the graphics APIs agree which way is screen-up
+            ImGui.image(TextureBindings.INSTANCE.textureId(tex.getTextureView()),
+                    imageWidth, imageHeight,
+                    0f, 1f,
+                    1f, 0f);
         } else {
             ImGui.dummy(imageWidth, imageHeight);
         }

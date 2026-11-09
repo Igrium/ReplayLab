@@ -2,6 +2,7 @@ package com.igrium.replaylab.ui;
 
 
 import com.igrium.craftui.api.app.DockSpaceApp;
+import com.igrium.craftui.api.gizmo.GizmoHelper;
 import com.igrium.replaylab.ReplayLab;
 import com.igrium.replaylab.config.Keybinds;
 import com.igrium.replaylab.editor.EditorState;
@@ -196,7 +197,8 @@ public class ReplayLabUI extends DockSpaceApp {
             footer.drawPlaybackControls(editorState);
             ImGui.popStyleColor();
 
-            GizmoRenderer.drawGizmos(editorState, getViewportBounds());
+            GizmoHelper.setupGizmos(getViewportBounds());
+            GizmoRenderer.drawGizmos(editorState);
 
             viewportControls.drawViewport(editorState);
 

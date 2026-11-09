@@ -3,6 +3,7 @@ package com.igrium.replaylab.object;
 import com.google.gson.JsonDeserializationContext;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonSerializationContext;
+import com.igrium.craftui.api.gizmo.GizmoHelper;
 import com.igrium.replaylab.ReplayLab;
 import com.igrium.replaylab.config.ReplayLabConfig;
 import com.igrium.replaylab.editor.EditorState;
@@ -203,7 +204,7 @@ public abstract class ReplayObject3D extends ReplayObject implements TransformPr
         if (editor.showGizmoRot() && hasRot) operation |= Operation.ROTATE;
         if (editor.showGizmoScale() && hasScale()) operation |= Operation.SCALE;
 
-        GizmoRenderer.manipulate(viewMatrix, projectionMatrix, operation,
+        GizmoHelper.manipulate(viewMatrix, projectionMatrix, operation,
                 editor.isLocalGizmos() ? Mode.LOCAL : Mode.WORLD, dragMatrix);
 
         if (ImGuizmo.isUsing()) {
