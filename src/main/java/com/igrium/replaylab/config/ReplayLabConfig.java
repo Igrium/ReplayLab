@@ -18,7 +18,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.concurrent.CompletableFuture;
 
-@Getter @Setter
 public class ReplayLabConfig {
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     private static final Logger LOGGER = ReplayLab.getLogger();
@@ -47,28 +46,35 @@ public class ReplayLabConfig {
         return ReplayLab.getInstance().getConfig();
     }
 
-
-    private final Keybinds keybinds = new Keybinds();
+    @Getter
+    private Keybinds keybinds = new Keybinds();
 
     // Behavior
     /**
      * The first camera added to the scene automatically becomes the scene camera
      */
+    @Getter @Setter
     private boolean autoSetCamera = true;
 
     /**
      * When a new object is created, open the inspector to that object
      */
+    @Getter @Setter
     private boolean inspectOnCreate = true;
 
+    @Getter @Setter
     private Keyframe.HandleType defaultHandleType = Keyframe.HandleType.AUTO_CLAMPED;
 
     // Display
+    @Getter @Setter
     private Timestamps.Display timestampMode = Timestamps.Display.MINUTES;
+    @Getter @Setter
     private boolean displayDegrees = true;
 
     // 3D objects
+    @Getter @Setter
     private RotationMode defaultRotMode = RotationMode.EULER_YXZ;
+    @Getter @Setter
     private boolean rotModeConvert = true;
 
     public synchronized void saveConfig(Path path) throws IOException {
