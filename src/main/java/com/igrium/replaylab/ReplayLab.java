@@ -1,11 +1,13 @@
 package com.igrium.replaylab;
 
 import com.igrium.craftui.api.CraftUI;
+import com.igrium.craftui.api.event.CraftUIRenderEvents;
 import com.igrium.replaylab.entity.AnimatedCameraRenderer;
 import com.igrium.replaylab.config.ReplayLabConfig;
 import com.igrium.replaylab.debug.PrintCameraCommand;
 import com.igrium.replaylab.entity.EmptyObjectRenderer;
 import com.igrium.replaylab.entity.ReplayLabEntities;
+import com.igrium.replaylab.render.VideoRenderer;
 import com.igrium.replaylab.ui.ReplayLabUI;
 import com.replaymod.core.ReplayMod;
 import com.replaymod.replay.ReplayModReplay;
@@ -67,15 +69,12 @@ public class ReplayLab implements ModInitializer, ClientModInitializer {
         if (FabricLoader.getInstance().isDevelopmentEnvironment()) {
             ClientCommandRegistrationCallback.EVENT.register(PrintCameraCommand::register);
         }
-        EntityRenderers.register(
-                ReplayLabEntities.CAMERA,
-                AnimatedCameraRenderer::new
-        );
+        EntityRenderers.register(ReplayLabEntities.CAMERA, AnimatedCameraRenderer::new);
 
-        EntityRenderers.register(
-                ReplayLabEntities.EMPTY,
-                EmptyObjectRenderer::new
-        );
+        EntityRenderers.register(ReplayLabEntities.EMPTY, EmptyObjectRenderer::new);
+
+        CraftUIRenderEvents.COMPUTE_VIEWPORT_BOUNDS.register((_, bounds) ->
+                VideoRenderer.isRenderingVideo() ? null : bounds);
     }
 
     public boolean isEditorOpen() {

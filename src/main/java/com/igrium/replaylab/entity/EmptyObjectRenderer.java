@@ -41,7 +41,7 @@ public class EmptyObjectRenderer extends EntityRenderer<EmptyObjectEntity, Empty
         if (Minecraft.getInstance().gui.hud.isHidden()) return;
 
         matrices.pushPose();
-        matrices.mulPose(state.getRotation());
+        matrices.rotate(state.getRotation());
         matrices.scale(state.getScale().x(), state.getScale().y(), state.getScale().z());
 
         final int color;

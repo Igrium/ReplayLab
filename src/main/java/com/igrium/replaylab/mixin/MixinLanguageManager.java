@@ -13,8 +13,8 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(LanguageManager.class)
 public class MixinLanguageManager {
 
-    @Inject(method = "onResourceManagerReload", at = @At("RETURN"))
-    void onReload(ResourceManager resourceManager, CallbackInfo ci, @Local ClientLanguage translationStorage) {
-        LanguageReloadEvent.EVENT.invoker().onReloadLanguage(translationStorage);
+    @Inject(method = "onResourceManagerReload", at = @At(value = "INVOKE", target = "Ljava/util/function/Consumer;accept(Ljava/lang/Object;)V"))
+    void onReload(ResourceManager resourceManager, CallbackInfo ci, @Local(name = "locale") ClientLanguage locale) {
+        LanguageReloadEvent.EVENT.invoker().onReloadLanguage(locale);
     }
 }

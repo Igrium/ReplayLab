@@ -29,15 +29,5 @@ public class NoFFmpegPopup {
     public static void render() {
         ImGui.text(tt("replaymod.gui.rendering.error.message"));
         ReplayLabControls.hyperlink(LINK, LINK);
-//        ImGui.text(LINK);
-
-//        if (ImGui.button(t("chat.link.open"))) {
-//            Util.getOperatingSystem().open(LINK);
-//        }
-//
-//        ImGui.sameLine();
-//        if (ImGui.button(t("chat.copy"))) {
-//            ImGui.setClipboardText(LINK);
-//        }
     }
 }

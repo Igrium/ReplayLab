@@ -1,6 +1,5 @@
 package com.igrium.replaylab.render;
 
-import com.igrium.craftui.impl.AppManager;
 import com.igrium.replaylab.editor.EditorState;
 import com.igrium.replaylab.object.types.ObjectRenderSettings;
 import com.igrium.replaylab.object.types.ObjectSceneProps;
@@ -9,22 +8,20 @@ import com.igrium.replaylab.render.capture.FrameCapture;
 import com.igrium.replaylab.render.encoder.EncoderConfig;
 import com.igrium.replaylab.render.encoder.EncoderProcess;
 import com.igrium.replaylab.scene.ReplayScene;
-import com.mojang.blaze3d.buffers.GpuBuffer;
-import com.mojang.blaze3d.buffers.GpuBufferSlice;
-import com.mojang.blaze3d.buffers.GpuFence;
-import com.mojang.blaze3d.systems.CommandEncoder;
-import com.mojang.blaze3d.pipeline.RenderTarget;
+import com.mojang.renderpearl.api.buffers.GpuBuffer;
+import com.mojang.renderpearl.api.buffers.GpuBufferSlice;
+import com.mojang.renderpearl.api.commands.GpuFence;
+import com.mojang.renderpearl.api.commands.CommandEncoder;
 import com.mojang.blaze3d.platform.NativeImage;
 import com.mojang.blaze3d.platform.Window;
 import com.mojang.blaze3d.systems.RenderSystem;
-import com.mojang.blaze3d.textures.GpuTexture;
+import com.mojang.renderpearl.api.textures.GpuTexture;
 import com.replaymod.core.mixin.BlockableEventLoopAccessor;
 import com.replaymod.core.mixin.MinecraftAccessor;
 import com.replaymod.core.mixin.TimerAccessor;
 import com.replaymod.core.utils.Utils;
 import com.replaymod.core.versions.MCVer;
 import com.replaymod.pathing.player.ReplayTimer;
-import com.replaymod.render.gui.progress.VirtualWindow;
 import com.replaymod.render.hooks.ForceChunkLoadingHook;
 import com.replaymod.replay.ReplayHandler;
 import lombok.Getter;
@@ -32,20 +29,17 @@ import lombok.NonNull;
 import net.minecraft.ReportedException;
 import net.minecraft.util.Util;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.state.WindowRenderState;
+import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.resources.sounds.SimpleSoundInstance;
 import net.minecraft.resources.Identifier;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundSource;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.jetbrains.annotations.Nullable;
-import org.joml.Vector4f;
-import org.lwjgl.glfw.GLFW;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.EnumMap;
-import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
@@ -76,8 +70,6 @@ public class VideoRenderer {
 
     @Getter
     private final ReplayScene scene;
-
-    private @Nullable VirtualWindow guiWindow;
 
     @Getter
     private final FrameCapture frameCapture;
@@ -157,7 +149,7 @@ public class VideoRenderer {
 
         RenderScenePlayer scenePlayer = null;
         try {
-            /// === SETUP ===
+            // === SETUP ===
 
             frameCapture.setMetadata(renderMetadata);
 
@@ -170,14 +162,6 @@ public class VideoRenderer {
                 mc.debugEntries.setOverlayVisible(false);
             }
 
-
-            int[] realWidth = new int[1];
-            int[] realHeight = new int[1];
-            GLFW.glfwGetFramebufferSize(mc.getWindow().handle(), realWidth, realHeight);
-            MCVer.resizeMainWindow(mc, realWidth[0], realHeight[0]);
-
-            guiWindow = new VirtualWindow(mc);
-
             mc.mouseHandler.releaseMouse();
 
             for (var category : SoundSource.values()) {
@@ -189,7 +173,7 @@ public class VideoRenderer {
 
             forceChunkLoadingHook = new ForceChunkLoadingHook(mc.levelRenderer);
 
-            /// === TIMELINE SETUP ===
+            // === TIMELINE SETUP ===
             // I have no idea what mixin bullshit replay mod is doing, but I'll just copy it
             ReplayTimer timer = (ReplayTimer) ((MinecraftAccessor) mc).getTimer();
 
@@ -208,13 +192,13 @@ public class VideoRenderer {
                 }
             }
 
-            /// === RENDERING PIPELINE ===
+            // === RENDERING PIPELINE ===
             encoder.start(renderMetadata);
             renderTexture = frameCapture.generateTexture();
 
             renderState = RenderState.RENDERING;
             while (frameIdx < renderMetadata.totalFrames() && !abort) {
-                if (GLFW.glfwWindowShouldClose(mc.getWindow().handle()) || getDelayedCrash() != null) {
+                if (mc.getWindow().shouldClose() || getDelayedCrash() != null) {
                     encoder.finish().get(10, TimeUnit.SECONDS);
                 }
                 int curIdx = frameIdx;
@@ -236,7 +220,7 @@ public class VideoRenderer {
                 encoder.accept(nImage, curIdx);
             }
 
-            /// === FINISH ===
+            // === FINISH ===
             renderState = RenderState.FINISHING;
             CompletableFuture<?> finishFuture = encoder.finish().orTimeout(30000, TimeUnit.MILLISECONDS);
             while (!finishFuture.isDone()) {
@@ -263,7 +247,7 @@ public class VideoRenderer {
 
             return !abort;
         } finally {
-            /// === CLEANUP ===
+            // === CLEANUP ===
 
             renderingVideo = false;
             renderState = RenderState.DONE;
@@ -302,13 +286,6 @@ public class VideoRenderer {
 
             var event = SoundEvent.createFixedRangeEvent(Identifier.parse("replaymod:render_success"), 1);
             mc.getSoundManager().play(SimpleSoundInstance.forUI(event, 1));
-
-            // Finally, resize the Minecraft framebuffer to the actual width/height of the window
-
-            if (guiWindow != null) {
-                guiWindow.close();
-                MCVer.resizeMainWindow(mc, guiWindow.getFramebufferWidth(), guiWindow.getFramebufferHeight());
-            }
         }
     }
 
@@ -374,25 +351,19 @@ public class VideoRenderer {
     }
 
     public float queueFrame(int sampleIdx, int totalSamples) {
-        guiWindow.bind();
-
         // Updating the timer will cause the timeline player to update the game state
         ReplayTimer timer = (ReplayTimer) ((MinecraftAccessor) mc).getTimer();
-        try {
-            // TODO: GUI update
-            int elapsedTicks = timer.advanceGameTime(Util.getMillis());
-            executeTaskQueue();
+        // TODO: GUI update
+        int elapsedTicks = timer.advanceGameTime(Util.getMillis());
+        executeTaskQueue();
 
-            while (elapsedTicks-- > 0) {
-                mc.tick();
-            }
+        while (elapsedTicks-- > 0) {
+            mc.tick();
+        }
 
-            // 26.1+ moved per-frame level bookkeeping out of tick() and into Level.update()
-            if (mc.level != null) {
-                mc.level.update();
-            }
-        } finally {
-            guiWindow.unbind();
+        // 26.1+ moved per-frame level bookkeeping out of tick() and into Level.update()
+        if (mc.level != null) {
+            mc.level.update();
         }
 
         // TODO: camera path exporter
@@ -423,21 +394,21 @@ public class VideoRenderer {
 
     public boolean drawGui() {
         Window window = mc.getWindow();
-        if (GLFW.glfwWindowShouldClose(window.handle()) || getDelayedCrash() != null) {
+        if (window.shouldClose() || getDelayedCrash() != null) {
             return false;
         }
 
         // Minecraft's main loop isn't running during export; without this the OS window stops responding.
-        RenderSystem.pollEvents();
+        RenderSystem.pollEvents(((MinecraftAccessor) mc).getSdlEventHandler());
 
-        // captureFrame leaves Window sized to the video resolution. The progress UI is drawn at the
-        // window's real size (ImGui takes its display size straight from GLFW), so bind the virtual
-        // window for the duration -- otherwise everything is laid out against the video resolution.
-        guiWindow.bind();
+        // 26.3 dropped ReplayMod's VirtualWindow; like upstream, draw the progress UI through a regular
+        // frame with the level hidden. CraftUI hooks renderFrame to draw ImGui and present to the window.
+        ClientLevel orgLevel = mc.level;
         try {
-            drawGuiBound();
+            mc.level = null;
+            mc.renderFrame(false);
         } finally {
-            guiWindow.unbind();
+            mc.level = orgLevel;
         }
 
         if (mc.mouseHandler.isMouseGrabbed()) {
@@ -445,43 +416,6 @@ public class VideoRenderer {
         }
 
         return !abort;
-    }
-
-    @SuppressWarnings("UnstableApiUsage") // It's expected that fucking with the Minecraft render cycle is unstable anyway
-    private void drawGuiBound() {
-        Window window = mc.getWindow();
-        Objects.requireNonNull(guiWindow);
-
-        clearMainRenderTarget();
-
-        // While the gui window is bound for writing, mc.gameRenderer.mainRenderTarget() resolves to
-        // ReplayMod's gui framebuffer -- which is what CraftUI's ImGui backend draws into.
-        guiWindow.beginWrite();
-        try {
-            clearMainRenderTarget();
-
-            WindowRenderState windowRenderState = mc.gameRenderer.gameRenderState().windowRenderState;
-            windowRenderState.width = window.getWidth();
-            windowRenderState.height = window.getHeight();
-            windowRenderState.guiScale = window.getGuiScale();
-            windowRenderState.appropriateLineWidth = window.getAppropriateLineWidth();
-            windowRenderState.isMinimized = window.isMinimized();
-
-            // The progress UI is drawn entirely by CraftUI/ImGui, which writes straight into
-            // mainRenderTarget -- nothing goes through the vanilla gui render state here.
-            AppManager.render(mc);
-        } finally {
-            guiWindow.endWrite();
-        }
-
-        // Replaces Window.updateDisplay: presents the gui framebuffer through the window surface.
-        guiWindow.flip();
-    }
-
-    private void clearMainRenderTarget() {
-        RenderTarget target = mc.gameRenderer.mainRenderTarget();
-        RenderSystem.getDevice().createCommandEncoder().clearColorAndDepthTextures(
-                target.getColorTexture(), new Vector4f(), target.getDepthTexture(), 0);
     }
 
     public int getVideoTime() {

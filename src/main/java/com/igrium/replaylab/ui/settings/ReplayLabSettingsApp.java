@@ -5,9 +5,9 @@ import com.igrium.craftui.api.screen.CraftAppScreen;
 import com.igrium.replaylab.config.ReplayLabConfig;
 import imgui.ImGui;
 import imgui.flag.ImGuiCond;
+import imgui.flag.ImGuiKey;
 import imgui.flag.ImGuiWindowFlags;
 import net.minecraft.client.Minecraft;
-import org.lwjgl.glfw.GLFW;
 
 public class ReplayLabSettingsApp extends CraftApp {
 
@@ -20,7 +20,7 @@ public class ReplayLabSettingsApp extends CraftApp {
 
         if (ImGui.begin("ReplayLab Settings", ImGuiWindowFlags.NoCollapse
                 | ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoMove | ImGuiWindowFlags.NoSavedSettings)) {
-            if (ImGui.isKeyPressed(GLFW.GLFW_KEY_ESCAPE) && ImGui.isWindowFocused()) {
+            if (ImGui.isKeyPressed(ImGuiKey.Escape) && ImGui.isWindowFocused()) {
                 close();
             }
 

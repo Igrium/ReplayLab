@@ -1,5 +1,6 @@
 package com.igrium.replaylab.ui.windows;
 
+import cn.enaium.fabric.imgui.TextureBindings;
 import com.igrium.replaylab.editor.EditorState;
 import com.igrium.replaylab.render.VideoRenderer;
 import com.igrium.replaylab.ui.util.ReplayLabControls;
@@ -74,7 +75,7 @@ public class ExportProgressWindow {
 
         SimpleTexture tex = r.getRenderTexture();
         if (tex != null) {
-            ReplayLabControls.image(tex.getTexture(), imageWidth, imageHeight);
+            ImGui.image(TextureBindings.INSTANCE.textureId(tex.getTextureView()), imageHeight, imageHeight);
         } else {
             ImGui.dummy(imageWidth, imageHeight);
         }
