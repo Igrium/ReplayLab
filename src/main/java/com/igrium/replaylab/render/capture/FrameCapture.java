@@ -7,7 +7,7 @@ import com.igrium.replaylab.editor.EditorState;
 import com.igrium.replaylab.render.RenderMetadata;
 import com.igrium.replaylab.render.SimpleTexture;
 import com.igrium.replaylab.render.encoder.EncoderProcess;
-import com.mojang.blaze3d.GpuFormat;
+import com.mojang.renderpearl.api.GpuFormat;
 import imgui.ImGui;
 import lombok.Getter;
 import lombok.NonNull;

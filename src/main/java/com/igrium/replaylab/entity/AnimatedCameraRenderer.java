@@ -47,7 +47,7 @@ public class AnimatedCameraRenderer extends EntityRenderer<AnimatedCameraEntity,
         if (Minecraft.getInstance().gui.hud.isHidden()) return;
 
         matrices.pushPose();
-        matrices.mulPose(state.getRotation());
+        matrices.rotate(state.getRotation());
 
         float width = Math.min(1.0f, state.getAspectRatio());
         float height = width / state.getAspectRatio();

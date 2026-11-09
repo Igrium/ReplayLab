@@ -1,10 +1,12 @@
 package com.igrium.replaylab.ui.util;
 
+import cn.enaium.fabric.imgui.FabricImGui;
 import com.igrium.replaylab.config.ReplayLabConfig;
 import com.igrium.replaylab.object.ReplayObject;
 import com.igrium.replaylab.util.Timestamps;
-import com.mojang.blaze3d.opengl.GlTexture;
-import com.mojang.blaze3d.textures.GpuTexture;
+
+import com.mojang.renderpearl.api.textures.GpuTexture;
+import com.mojang.renderpearl.backend.opengl.GlTexture;
 import imgui.ImGui;
 import imgui.ImGuiIO;
 import imgui.flag.ImGuiCol;
@@ -245,16 +247,8 @@ public class ReplayLabControls {
 
     public static void hyperlink(String text, String link) {
         ImGui.pushStyleColor(ImGuiCol.Text, ImGui.getStyle().getColor(ImGuiCol.ButtonHovered));
-        ImGui.text(text);
+        ImGui.textLinkOpenURL(text, link);
         ImGui.popStyleColor();
-
-        if (ImGui.isItemHovered()) {
-            ImGui.setMouseCursor(ImGuiMouseCursor.Hand);
-        }
-
-        if (ImGui.isItemClicked(0)) {
-            Util.getPlatform().openUri(link);
-        }
     }
 
     public static int findRenderedTextEnd(String text) {
@@ -274,6 +268,7 @@ public class ReplayLabControls {
      * Simple method to draw a texture on the GL backend and a dummy on the Vulkan backend until we get the vulkan
      * backend to support textures.
      */
+    @Deprecated
     public static void image(GpuTexture texture, float width, float height) {
         if (texture instanceof GlTexture glTexture) {
             ImGui.image(glTexture.glId(), width, height, 0, 1, 1, 0);

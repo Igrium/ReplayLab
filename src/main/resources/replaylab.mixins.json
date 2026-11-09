@@ -6,7 +6,6 @@
     "AccessorGuiReplayEntry",
     "AccessorRenderSettings",
     "AccessorReplayHandler",
-    "MixinAppManager",
     "MixinEntity",
     "MixinGuiReplayViewer",
     "MixinKeyBindingRegistry",
@@ -24,7 +23,6 @@
     "MixinGameRenderer",
     "MixinHud",
     "MixinLanguageManager",
-    "MixinLevelRenderer",
     "MixinLocalPlayer"
   ]
 }
