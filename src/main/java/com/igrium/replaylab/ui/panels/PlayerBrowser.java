@@ -1,27 +1,34 @@
 package com.igrium.replaylab.ui.panels;
 
 import com.igrium.craftui.api.icon.FontAwesome;
-import com.igrium.replaylab.config.ReplayLabConfig;
 import com.igrium.replaylab.editor.EditorState;
 import com.igrium.replaylab.entity.AnimatedCameraEntity;
-import com.igrium.replaylab.ui.util.ReplayLabControls;
+import com.igrium.replaylab.object.ReplayObject;
+import com.igrium.replaylab.object.ReplayObjects;
+import com.igrium.replaylab.object.types.ObjectEntityProxy;
+import com.igrium.replaylab.operator.object.AddObjectOperator;
+import com.igrium.replaylab.ui.subpanels.ObjectContextMenu;
 import com.mojang.authlib.GameProfile;
 import com.replaymod.replay.camera.CameraEntity;
 import imgui.ImGui;
-import imgui.flag.ImGuiSelectableFlags;
+import imgui.flag.ImGuiMouseButton;
 import imgui.type.ImString;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.player.AbstractClientPlayer;
-import net.minecraft.client.renderer.texture.AbstractTexture;
+import net.minecraft.client.multiplayer.ClientLevel;
+import net.minecraft.locale.Language;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.entity.player.PlayerModelPart;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.phys.Vec3;
 import org.slf4j.LoggerFactory;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
+import java.util.stream.StreamSupport;
 
 public class PlayerBrowser extends UIPanel {
 
@@ -35,11 +42,16 @@ public class PlayerBrowser extends UIPanel {
         super(id, false);
     }
 
+    Player contextPlayer = null;
+
     @Override
     protected void drawContents(EditorState editorState) {
         if (ImGui.isWindowAppearing()) {
             findPlayers();
         }
+
+        if (contextPlayer != null && contextPlayer.isRemoved())
+            contextPlayer = null;
 
         ImGui.setNextItemWidth(ImGui.getContentRegionAvailX() - reloadButtonWidth - ImGui.getStyle().getItemSpacingX());
         ImGui.inputTextWithHint("##filter", "" + FontAwesome.ICON_MAGNIFYING_GLASS, filter);
@@ -49,70 +61,69 @@ public class PlayerBrowser extends UIPanel {
             findPlayers();
         }
         reloadButtonWidth = ImGui.getItemRectSizeX();
+        String filterStr = filter.get().toLowerCase();
 
-        if (ImGui.beginListBox("##players", ImGui.getContentRegionAvailX(), ImGui.getContentRegionAvailY())) {
+        if (ImGui.beginChild("PlayerList", ImGui.getContentRegionAvailX(), ImGui.getContentRegionAvailY())) {
             for (var player : players) {
                 GameProfile profile = player.getGameProfile();
-                if (!profile.name().contains(filter.get())) continue;
-
-                float cursorX = ImGui.getCursorPosX();
-                float cursorY = ImGui.getCursorPosY();
-                float rowHeight = ImGui.getTextLineHeight();
-
-                boolean clicked = ImGui.selectable("##" + profile.id().toString(), false,
-                        ImGuiSelectableFlags.AllowOverlap, 0, rowHeight);
-
-                ImGui.setCursorPos(cursorX, cursorY);
-                if (player instanceof AbstractClientPlayer clientPlayer) {
-                    drawProfilePic(clientPlayer);
-                    ImGui.sameLine();
+                if (!profile.name().toLowerCase().contains(filterStr)) continue;
+                ImGui.setNextItemWidth(ImGui.getContentRegionAvailX());
+                if (ImGui.selectable(profile.name() + "###" + profile.id().toString())) {
+                    LoggerFactory.getLogger("ReplayLab/PlayerBrowser").info("Player {} selected", player.getName());
+                    ReplayObject obj = editorState.getScene().firstReferencingObject(player);
+                    if (obj != null) {
+                        editorState.getSelectedObjects().clear();
+                        editorState.getSelectedObjects().add(obj.getId());
+                        editorState.setActiveObject(obj.getId());
+                        editorState.snapViewportToSelected();
+                    } else {
+                        editorState.snapViewportTo(player.position());
+                    }
                 }
-                ImGui.text(profile.name());
 
-                if (clicked) {
-                    selectPlayer(editorState, player);
+                if (ImGui.isItemClicked(ImGuiMouseButton.Right)) {
+                    contextPlayer = player;
+                    ImGui.openPopup("playerContext");
                 }
             }
-            ImGui.endListBox();
         }
-    }
 
-    private void drawProfilePic(AbstractClientPlayer player) {
-        float cursorX = ImGui.getCursorPosX();
-        float cursorY = ImGui.getCursorPosY();
+        if (contextPlayer != null && ImGui.beginPopup("playerContext")) {
+            ReplayObject obj = editorState.getScene().firstReferencingObject(contextPlayer);
+            if (obj != null) {
+                ObjectContextMenu.drawObjectContextMenu(obj, editorState,
+                        ObjectContextMenu.NO_DELETE | ObjectContextMenu.NO_RENAME);
+            } else {
+                if (ImGui.menuItem(t("gui.replaylab.ent.add_ent_proxy"))) {
+                    var proxy = ReplayObjects.ENTITY_PROXY.create(editorState.getScene());
+                    proxy.setEntId(contextPlayer.getId());
+                    editorState.applyOperator(new AddObjectOperator(contextPlayer.getGameProfile().name(), proxy));
 
-        float size = ImGui.getTextLineHeight();
-
-        Minecraft mc = Minecraft.getInstance();
-        AbstractTexture tex = mc.getTextureManager().getTexture(player.getSkin().body().texturePath());
-        ReplayLabControls.image(tex.getTexture(), size, size, .125f, .125f, .25f, .25f);
-
-        if (player.isModelPartShown(PlayerModelPart.HAT)) {
-            ImGui.setCursorPos(cursorX, cursorY);
-            ReplayLabControls.image(tex.getTexture(), size, size, .625f, .125f, .75f, .25f);
+                    editorState.getSelectedObjects().clear();
+                    editorState.getSelectedObjects().add(proxy.getId());
+                    editorState.setActiveObject(proxy.getId());
+                }
+                ImGui.setItemTooltip(tt("gui.replaylab.ent.add_ent_proxy.tooltip"));
+            }
+            ImGui.endPopup();
         }
+        ImGui.endChild();
     }
 
     public void findPlayers() {
-        Level level = Minecraft.getInstance().level;
+        ClientLevel level = Minecraft.getInstance().level;
         if (level != null) {
-            players = level.players().stream()
+
+            // Iterate over players instead of level.getPlayers so we only show the players in loaded chunks
+            players = StreamSupport.stream(level.entitiesForRendering().spliterator(), false)
+                    .map(ent -> ent instanceof Player p ? p : null)
+                    .filter(Objects::nonNull)
                     .filter(this::isPlayerAllowed)
                     .sorted(this::comparePlayers)
                     .toList();
         } else {
             players = Collections.emptyList();
         }
-    }
-
-    private void selectPlayer(EditorState editor, Player player) {
-        var obj = editor.getScene().firstReferencingObject(player);
-        if (obj != null) {
-            editor.getSelectedObjects().clear();
-            editor.getSelectedObjects().add(obj.getId());
-            editor.setActiveObject(obj.getId());
-        }
-        editor.snapViewportTo(player.position());
     }
 
     private boolean isPlayerAllowed(Entity player) {
@@ -125,8 +136,15 @@ public class PlayerBrowser extends UIPanel {
         } else if (!p1.isSpectator() && p2.isSpectator()) {
             return -1;
         } else {
-            return p1.getGameProfile().name().compareTo(p2.getGameProfile().name());
+            return p1.getGameProfile().name().toLowerCase().compareTo(p2.getGameProfile().name().toLowerCase());
         }
     }
 
+    private static String tt(String key) {
+        return Language.getInstance().getOrDefault(key);
+    }
+
+    private static String t(String key) {
+        return tt(key) + "###" + key;
+    }
 }

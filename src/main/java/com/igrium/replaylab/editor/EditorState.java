@@ -200,6 +200,9 @@ public final class EditorState {
     @Getter @Setter
     private boolean wantOpenInspector;
 
+    @Getter @Setter
+    private boolean wantOpenPlayerBrowser;
+
     @Setter @Nullable
     private QuickModeInitCallback quickModeInitCallback;
 

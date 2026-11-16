@@ -18,6 +18,7 @@ public class Keybinds {
     private int cameraToView = ImGuiKey.ImGuiMod_Shift | ImGuiKey.C;
     private int activeToCam = ImGuiKey.ImGuiMod_Alt | ImGuiKey.C;
     private int frameSelected = ImGuiKey.F;
+    private int playerOverview = ImGuiKey.ImGuiMod_Ctrl | ImGuiKey.B;
 
     private int selectAll = ImGuiKey.ImGuiMod_Ctrl | ImGuiKey.A;
     private int selectNone = ImGuiKey.ImGuiMod_Alt | ImGuiKey.A;
@@ -57,6 +58,7 @@ public class Keybinds {
         this.cameraToView = other.cameraToView;
         this.activeToCam = other.activeToCam;
         this.frameSelected = other.frameSelected;
+        this.playerOverview = other.playerOverview;
 
         this.addKey = other.addKey;
         this.addKeyPos = other.addKeyPos;
@@ -122,6 +124,10 @@ public class Keybinds {
 
     public static int frameSelected() {
         return getKeybinds().getFrameSelected();
+    }
+
+    public static int playerOverview() {
+        return getKeybinds().getPlayerOverview();
     }
 
     public static int addKey() {

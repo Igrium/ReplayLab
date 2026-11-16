@@ -126,6 +126,10 @@ public abstract class UIPanel {
         if (ImGui.shortcut(Keybinds.quickMode())) {
             editorState.setQuickMode(!editorState.isQuickMode());
         }
+
+        if (ImGui.shortcut(Keybinds.playerOverview())) {
+            editorState.setWantOpenPlayerBrowser(true);
+        }
     }
 
     public static void testAddKeyShortcut(EditorState editorState) {
