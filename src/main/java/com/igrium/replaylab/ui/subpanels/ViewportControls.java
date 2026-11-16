@@ -37,7 +37,6 @@ public class ViewportControls {
         @Override
         protected void setCameraTransform(Entity ent, Vector3dc pos, Quaterniondc rot) {
             super.setCameraTransform(ent, pos, rot);
-            ent.setOldPosAndRot();
         }
 
         @Override
@@ -147,11 +146,6 @@ public class ViewportControls {
         // === TRACKBALL CONTROLS ===
         controlHelper.editorState = editorState;
         controlHelper.handleViewportControls();
-
-        float scroll = ImGui.getIO().getMouseWheel();
-        if (Math.abs(scroll) >= .001) {
-            controlHelper.applyDiscreteMove(ControlMode.ZOOM, scroll * -12, 0);
-        }
     }
 
     private void raycastSelect(EditorState editorState) {
