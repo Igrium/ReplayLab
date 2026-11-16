@@ -25,7 +25,14 @@ public class ObjectContextMenu {
 
     private static Exception parseException;
 
+    public static int NO_DELETE = 1;
+    public static int NO_RENAME = 2;
+
     public static int drawObjectContextMenu(ReplayObject object, EditorState editorState) {
+        return drawObjectContextMenu(object, editorState, 0);
+    }
+
+    public static int drawObjectContextMenu(ReplayObject object, EditorState editorState, int flags) {
         int rFlags = 0;
 
         if (ImGui.menuItem(t("gui.replaylab.obj.reveal"))) {
@@ -33,12 +40,13 @@ public class ObjectContextMenu {
             editorState.setWantOpenInspector(true);
         }
 
-        if (ImGui.menuItem(t("gui.replaylab.obj.rename"))) {
+
+        if ((flags & NO_RENAME) == 0 && ImGui.menuItem(t("gui.replaylab.obj.rename"))) {
             rFlags |= WANT_RENAME;
         }
 
-
-        if (ImGui.menuItem(t("gui.replaylab.obj.delete"), ShortcutUtils.getChordLabel(Keybinds.deleteSelected()))) {
+        if ((flags & NO_DELETE) == 0 && ImGui.menuItem(t("gui.replaylab.obj.delete"),
+                ShortcutUtils.getChordLabel(Keybinds.deleteSelected()))) {
             rFlags |= WANT_DELETE;
         }
 

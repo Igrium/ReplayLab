@@ -20,6 +20,7 @@
   "panel.replaylab.sceneprops": "Scene Properties",
   "panel.replaylab.scenebrowser": "Scene Browser",
   "panel.replaylab.settings": "Settings",
+  "panel.replaylab.playerbrowser": "Player Overview",
 
   "gui.replaylab.file": "File",
   "gui.replaylab.new_scene": "New Scene",
@@ -129,6 +130,9 @@
   "gui.replaylab.obj.copy_transform": "Copy Transforms",
   "gui.replaylab.obj.paste_transform": "Paste Transforms",
 
+  "gui.replaylab.ent.add_ent_proxy": "Add Entity Proxy",
+  "gui.replaylab.ent.add_ent_proxy.tooltip": "Add an 'entity proxy' replay object that references this player",
+
   "gui.replaylab.handle_type": "Handle Type",
   "gui.replaylab.interp_mode": "Interpolation Mode",
 
@@ -215,6 +219,7 @@
   "key.replaylab.camera_to_view": "Snap Camera to Viewport",
   "key.replaylab.active_to_cam": "Set Scene Camera to Selected",
   "key.replaylab.frame": "Frame Selected",
+  "key.replaylab.playeroverview": "Player Overview",
 
   "key.replaylab.playpause": "Play/Pause",
   "key.replaylab.scene_start": "Scene Start",

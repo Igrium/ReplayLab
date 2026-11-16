@@ -72,6 +72,7 @@ public class ReplayLabUI extends DockSpaceApp {
     // =========================================================================
 
     private static final Inspector inspector = new Inspector(Identifier.parse("replaylab:inspector"));
+    private static final PlayerBrowser playerBrowser = new PlayerBrowser(Identifier.parse("replaylab:playerbrowser"));
 
     private final List<UIPanel> panels = List.of(
             new DopeSheet(Identifier.parse("replaylab:dopesheet")),
@@ -79,7 +80,7 @@ public class ReplayLabUI extends DockSpaceApp {
             new Outliner(Identifier.parse("replaylab:outliner")),
             inspector,
             new ScenePropsPanel(Identifier.parse("replaylab:sceneprops")),
-            new PlayerBrowser(Identifier.parse("replaylab:playerbrowser"))
+            playerBrowser
     );
 
     @Getter
@@ -117,8 +118,6 @@ public class ReplayLabUI extends DockSpaceApp {
      * The height of the viewport footer on the previous frame. Used when adjusting the viewport bounds.
      */
     private float viewportFooterHeight;
-
-    private float prevCameraControlsGroupWidth = 0;
 
     // =========================================================================
     // Constructor & lifecycle
@@ -210,6 +209,12 @@ public class ReplayLabUI extends DockSpaceApp {
             inspector.setVisible(true);
             inspector.requestFocus();
             editorState.setWantOpenInspector(false);
+        }
+
+        if (editorState.isWantOpenPlayerBrowser()) {
+            playerBrowser.setVisible(true);
+            playerBrowser.requestFocus();
+            editorState.setWantOpenPlayerBrowser(false);
         }
 
         for (var panel : panels) {

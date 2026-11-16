@@ -200,6 +200,9 @@ public final class EditorState {
     @Getter @Setter
     private boolean wantOpenInspector;
 
+    @Getter @Setter
+    private boolean wantOpenPlayerBrowser;
+
     @Setter @Nullable
     private QuickModeInitCallback quickModeInitCallback;
 
@@ -716,6 +719,10 @@ public final class EditorState {
     }
 
     public void snapViewportTo(Vector3dc target) {
+        snapViewportTo(target.x(), target.y(), target.z());
+    }
+
+    public void snapViewportTo(Vec3 target) {
         snapViewportTo(target.x(), target.y(), target.z());
     }
 
