@@ -1,5 +1,6 @@
 package com.igrium.replaylab.ui.gizmos;
 
+import com.igrium.craftui.api.CraftUI;
 import com.igrium.craftui.api.app.CraftApp;
 import com.igrium.craftui.api.gizmo.GizmoHelper;
 import com.igrium.replaylab.editor.EditorState;
@@ -29,11 +30,11 @@ public class GizmoRenderer {
         ImGuizmo.allowAxisFlip(false);
         boolean hidden = Minecraft.getInstance().gui.screen() != null;
 
-        Vec3 p = GizmoHelper.getCameraPos();
+        Vec3 p = CraftUI.getCameraPos();
         Vector3d camPos = new Vector3d(p.x(), p.y(), p.z());
         for (var obj : editorState.getScene().getObjects().values()) {
-            var state = obj.drawGizmos(editorState, camPos, GizmoHelper.getViewRotationMatrix(),
-                    GizmoHelper.getGizmoProjectionMatrix(), hidden);
+            var state = obj.drawGizmos(editorState, camPos, CraftUI.getViewRotationMatrix(),
+                    CraftUI.getProjectionMatrix(), hidden);
 
             if (hasFlag(state, EditFlags.UPDATE_SCENE)) {
                 editorState.applyToGame(hasFlag(state, EditFlags.RESAMPLE) ? o -> true : o -> o != obj);
