@@ -8,7 +8,9 @@ import com.google.gson.JsonArray;
 import com.igrium.replaylab.ReplayLab;
 import com.igrium.replaylab.anim.constraint.ConstraintEvaluator;
 import com.igrium.replaylab.math.Transform3;
+import com.igrium.replaylab.mixin.AccessorFullReplaySender;
 import com.igrium.replaylab.mixin.AccessorReplayHandler;
+import com.igrium.replaylab.object.*;
 import com.igrium.replaylab.operator.object.CommitObjectUpdateOperator;
 import com.igrium.replaylab.operator.keyframe.PasteKeyframesOperator;
 import com.igrium.replaylab.operator.object.PasteObjectsOperator;
@@ -19,15 +21,9 @@ import com.igrium.replaylab.render.VideoRenderer;
 import com.igrium.replaylab.scene.ReplayScene;
 import com.igrium.replaylab.scene.ReplayScenes;
 import com.igrium.replaylab.anim.KeyChannel;
-import com.igrium.replaylab.object.ReplayObject;
-import com.igrium.replaylab.object.ReplayObject3D;
-import com.igrium.replaylab.object.SerializedReplayObject;
-import com.igrium.replaylab.object.TransformProvider;
 import com.igrium.replaylab.ui.util.QuickModeInitCallback;
 import com.igrium.replaylab.render.RenderUtils;
-import com.replaymod.replay.QuickReplaySender;
-import com.replaymod.replay.ReplayHandler;
-import com.replaymod.replay.ReplayModReplay;
+import com.replaymod.replay.*;
 import com.replaymod.replaystudio.replay.ReplayFile;
 import imgui.type.ImInt;
 import it.unimi.dsi.fastutil.floats.FloatConsumer;
@@ -41,6 +37,8 @@ import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.client.CameraType;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.util.Util;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -346,8 +344,7 @@ public final class EditorState {
     public ReplayScene newScene(String sceneName) {
         ReplayScene scene = new ReplayScene();
         setScene(scene, sceneName);
-
-        // TODO: create camera and teleport to player
+        initScene(scene);
 
         try {
             saveScene();
@@ -358,6 +355,38 @@ public final class EditorState {
         }
         refreshSceneListSync();
         return scene;
+    }
+
+    private void initScene(ReplayScene scene) {
+
+        ReplayHandler replayHandler = getReplayHandler();
+        if (replayHandler != null) {
+            ReplaySender replaySender = replayHandler.getReplaySender();
+            Level level = Minecraft.getInstance().level;
+            // Start at local player
+            if (replaySender instanceof AccessorFullReplaySender full && level != null) {
+                int localId = full.getActualID();
+                Entity local = level.getEntity(localId);
+
+                if (local != null) {
+                    Vec3 localPos = local.position();
+                    Vector3d snapPos = new Vector3d();
+
+                    if (computeViewPosition(localPos.x, localPos.y, localPos.z, snapPos)) {
+                        var camera = ReplayObjects.CAMERA.create(scene);
+                        camera.position().set(snapPos);
+                        scene.addObject("camera", camera);
+
+                        Player client = Minecraft.getInstance().player;
+                        if (client != null) {
+                            client.setPos(snapPos.x(), snapPos.y(), snapPos.z());
+                        }
+                    }
+                }
+            }
+
+            scene.getSceneProps().setLength(replayHandler.getReplayDuration());
+        }
     }
 
     /**
@@ -730,14 +759,25 @@ public final class EditorState {
         LocalPlayer player = mc.player;
         if (player == null) return;
 
+        Vector3d vec = new Vector3d();
+        if (computeViewPosition(x, y, z, vec)) {
+            player.snapTo(vec.x, vec.y - player.getEyeHeight(), vec.z,
+                    player.getYRot(), player.getXRot());
+        }
+    }
+
+    /**
+     * Compute a position to snap the camera to in order to view an object cleanly
+     */
+    public boolean computeViewPosition(double x, double y, double z, Vector3d destPos) {
+        LocalPlayer player = mc.player;
+        if (player == null) return false;
+
         Vec3 forward = player.getLookAngle();
-        Vector3d vec = new Vector3d(forward.x, forward.y, forward.z);
-
-        vec.mul(-4);
-        vec.add(x, y, z);
-
-        player.snapTo(vec.x, vec.y - player.getEyeHeight(), vec.z,
-                player.getYRot(), player.getXRot());
+        destPos.set(forward.x, forward.y, forward.z);
+        destPos.mul(-4);
+        destPos.add(x, y, z);
+        return true;
     }
 
     public CompletableFuture<?> ensureQuickModeEnabled(@Nullable FloatConsumer progressConsumer) {
