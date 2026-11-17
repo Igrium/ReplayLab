@@ -2,6 +2,7 @@ package com.igrium.replaylab;
 
 import com.igrium.craftui.api.CraftUI;
 import com.igrium.craftui.api.event.CraftUIRenderEvents;
+import com.igrium.replaylab.render.ViewportLetterbox;
 import com.igrium.replaylab.entity.AnimatedCameraRenderer;
 import com.igrium.replaylab.config.ReplayLabConfig;
 import com.igrium.replaylab.debug.PrintCameraCommand;
@@ -75,6 +76,8 @@ public class ReplayLab implements ModInitializer, ClientModInitializer {
 
         CraftUIRenderEvents.COMPUTE_VIEWPORT_BOUNDS.register((_, bounds) ->
                 VideoRenderer.isRenderingVideo() ? null : bounds);
+
+        CraftUIRenderEvents.POST_COMPOSITE.register(ViewportLetterbox::clearOutside);
     }
 
     public boolean isEditorOpen() {
