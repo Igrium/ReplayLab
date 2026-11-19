@@ -8,6 +8,7 @@ import com.igrium.replaylab.operator.scene.SetSceneStartOperator;
 import com.igrium.replaylab.ui.util.ReplayLabControls;
 import com.igrium.replaylab.ui.util.TimelineFlags;
 import com.igrium.replaylab.util.Timestamps;
+import com.replaymod.replaystudio.data.Marker;
 import imgui.ImDrawList;
 import imgui.ImGui;
 import imgui.ImVec2;
@@ -16,6 +17,7 @@ import imgui.flag.ImGuiMouseButton;
 import imgui.type.ImInt;
 import it.unimi.dsi.fastutil.floats.FloatUnaryOperator;
 import lombok.Getter;
+import lombok.Setter;
 import lombok.experimental.Accessors;
 import net.minecraft.util.CommonColors;
 import net.minecraft.locale.Language;
@@ -74,9 +76,16 @@ public class TimelineHeader {
     @Getter
     private float widthMs;
 
+    /**
+     * The time that was right-clicked on
+     */
     private int contextTime;
     private String contextTimeStr = "";
 
+    private @Nullable Marker contextReplayMarker;
+
+    @Getter @Setter
+    private boolean drawReplayMarkers = true;
 
     /**
      * Draw the header of the dope sheet or curve editor.
@@ -198,7 +207,33 @@ public class TimelineHeader {
                 }
             }
 
+            // === MARKERS ===
+
             drawList.popClipRect();
+            if (drawReplayMarkers) {
+                float radius = ImGui.getFontSize() / 3f;
+                for (Marker marker : editorState.getReplayMarkers()) {
+                    int sceneTime = editorState.getScene().replayToSceneTime(marker.getTime());
+                    if (startTick <= sceneTime && sceneTime <= endTick) {
+                        float pos = msToPixel.apply(sceneTime) + cursorX;
+                        drawList.addTriangleFilled(
+                                pos - radius, cursorY,
+                                pos + radius, cursorY,
+                                pos, cursorY + radius * 2,
+                                0xAA0000AA);
+
+                        float mouseX = ImGui.getMousePosX();
+                        float mouseY = ImGui.getMousePosY();
+                        String name = marker.getName();
+                        if (name != null && ImGui.isWindowHovered()
+                                && pos - radius < mouseX && mouseX < pos + radius
+                                && cursorY < mouseY && mouseY < cursorY + radius * 2) {
+                            ImGui.setTooltip(name);
+                        }
+                    }
+
+                }
+            }
         }
 
         // === PLAYHEAD ===

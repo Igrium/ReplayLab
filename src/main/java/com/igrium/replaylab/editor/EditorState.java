@@ -24,6 +24,7 @@ import com.igrium.replaylab.anim.KeyChannel;
 import com.igrium.replaylab.ui.util.QuickModeInitCallback;
 import com.igrium.replaylab.render.RenderUtils;
 import com.replaymod.replay.*;
+import com.replaymod.replaystudio.data.Marker;
 import com.replaymod.replaystudio.replay.ReplayFile;
 import imgui.type.ImInt;
 import it.unimi.dsi.fastutil.floats.FloatConsumer;
@@ -63,7 +64,7 @@ import java.util.function.Predicate;
  */
 public final class EditorState {
 
-    /// ===== Static Members =====
+    // ===== Static Members =====
 
     private static final Logger LOGGER = ReplayLab.getLogger("ReplayLab/EditorState");
 
@@ -87,6 +88,8 @@ public final class EditorState {
         }
     }
 
+
+
     /**
      * Get the current get the currently-open editor.
      * @apiNote Prefer passing editorState directly; primarily for use in mixins.
@@ -96,7 +99,7 @@ public final class EditorState {
         return app != null ? app.getEditorState() : null;
     }
 
-    /// ===== Fields =====
+    // ===== Fields =====
 
     private final Minecraft mc = Minecraft.getInstance();
 
@@ -204,12 +207,12 @@ public final class EditorState {
     @Setter @Nullable
     private QuickModeInitCallback quickModeInitCallback;
 
-    /// ===== Constructors =====
+    // ===== Constructors =====
     public EditorState() {
         scene.setExceptionCallback(this::onException);
     }
 
-    /// ===== Getters/Setters =====
+    // ===== Getters/Setters =====
 
     public int getPlayhead() {
         return playheadRef.get();
@@ -339,7 +342,7 @@ public final class EditorState {
     }
 
 
-    /// ===== Scene Management =====
+    // ===== Scene Management =====
 
     public ReplayScene newScene(String sceneName) {
         ReplayScene scene = new ReplayScene();
@@ -493,7 +496,7 @@ public final class EditorState {
         refreshSceneListSync();
     }
 
-    /// ===== Playback =====
+    // ===== Playback =====
 
     public void onPreRender() {
         if (scenePlayer != null && scenePlayer.isActive()) {
@@ -684,7 +687,7 @@ public final class EditorState {
         // TODO: implement
     }
 
-    /// ===== Game Integration =====
+    // ===== Game Integration =====
 
     /**
      * Sample and all animated properties to the game.
@@ -692,6 +695,16 @@ public final class EditorState {
     public void applyToGame() {
         getScene().applyToGame(getPlayhead());
         wantsApplyToGame = false;
+    }
+
+    /**
+     * Get all of the replay markers in the replay handler
+     * @return Marker set
+     * @apiNote It is <em>not</em> safe to modify this set, as it may be immutable
+     */
+    public Set<Marker> getReplayMarkers() {
+        ReplayHandler handler = getReplayHandler();
+        return handler != null ? ((AccessorReplayHandler) handler).getMarkers() : Set.of();
     }
 
     /**
@@ -808,7 +821,7 @@ public final class EditorState {
         return future;
     }
 
-    /// ===== Operators & Undo/Redo =====
+    // ===== Operators & Undo/Redo =====
 
     public boolean applyOperator(ReplayOperator operator) {
         return applyOperator(operator, true);
@@ -901,7 +914,7 @@ public final class EditorState {
         }
     }
 
-    /// ===== Saving =====
+    // ===== Saving =====
 
     /**
      * Save the active scene to file.

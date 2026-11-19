@@ -117,6 +117,42 @@ public class ReplayScene {
         return Math.max(replayTime, 0);
     }
 
+    /**
+     * Convert a global replay time to a local scene timestamp. Inverse of <code>sceneToReplayTime</code>.
+     * If multiple scene times map to the replay time, the lowest is returned.
+     * If none do exactly, as when speed is above 1 and skips milliseconds, the first one past it is returned.
+     *
+     * @param replayTime Global replay time in ms.
+     * @return Scene time in ms, or <code>-1</code> if the scene never reaches the replay time.
+     */
+    public int replayToSceneTime(int replayTime) {
+        if (sceneToReplayTime(0) >= replayTime) return 0;
+
+        ObjectSceneProps props = getSceneProps();
+        KeyChannel chan = props.getChannel(PROP_SPEED);
+        double area = replayTime - props.getStartTime();
+
+        double sceneTime;
+        if (chan == null || chan.isEmpty()) {
+            double speed = props.getSpeed();
+            sceneTime = speed > 0 ? area / speed : Double.POSITIVE_INFINITY;
+        } else {
+            sceneTime = chan.inverseIntegrate(area);
+        }
+
+        if (!(sceneTime < Integer.MAX_VALUE)) return -1;
+
+        // Correct for floating point error and the int truncation in sceneToReplayTime
+        int result = (int) Math.ceil(sceneTime);
+        for (int i = 0; i < 8 && result > 0 && sceneToReplayTime(result - 1) >= replayTime; i++) {
+            result--;
+        }
+        for (int i = 0; i < 8 && sceneToReplayTime(result) < replayTime; i++) {
+            result++;
+        }
+        return result;
+    }
+
     public float getFps() {
         return getSceneProps().getFps();
     }

@@ -511,6 +511,69 @@ public final class KeyChannel {
 
         return integral;
     }
+
+    /**
+     * Inverse of <code>integrate</code>. Find the lowest non-negative time when the integral reaches an area.
+     *
+     * @param area Target area
+     * @return The lowest time at least 0 where the integral is at least <code>area</code>.
+     * <code>POSITIVE_INFINITY</code> if it never gets there.
+     * @apiNote Does not take modifiers into account. Assumes the curve is never negative.
+     */
+    public double inverseIntegrate(double area) {
+        Keyframe[] keys = keyframes.toArray(Keyframe[]::new);
+        Arrays.sort(keys);
+        return inverseIntegrate(keys, area);
+    }
+
+    /**
+     * Inverse of <code>integrate</code>. Find the lowest non-negative time when the integral reaches an area.
+     *
+     * @param keys Sorted array of keyframes
+     * @param area Target area
+     * @return The lowest time at least 0 where the integral is at least <code>area</code>.
+     * <code>POSITIVE_INFINITY</code> if it never gets there.
+     */
+    public static double inverseIntegrate(Keyframe[] keys, double area) {
+        if (area <= 0) return 0;
+        if (keys.length == 0) return Double.POSITIVE_INFINITY;
+        if (keys.length == 1) {
+            double v = keys[0].getValue();
+            return v > 0 ? area / v : Double.POSITIVE_INFINITY;
+        }
+
+        // Walk the same pieces as integrate, accumulating area until one contains the target.
+        double integral = 0;
+
+        // Constant region before the first key
+        double firstTime = keys[0].getTime();
+        if (firstTime > 0) {
+            double v = keys[0].getValue();
+            double piece = v * firstTime;
+            if (piece >= area) return area / v;
+            integral += piece;
+        }
+
+        for (int i = 0; i < keys.length - 1; i++) {
+            Keyframe key = keys[i];
+            Keyframe next = keys[i + 1];
+            if (next.getTime() <= key.getTime()) continue;
+
+            InterpolationMode mode = key.getInterpolationMode();
+            double piece = mode.integrate(key, next, next.getTime());
+            if (integral + piece >= area) {
+                // Segments before time 0 still count towards the integral, so clamp the result
+                return Math.max(0, mode.inverseIntegrate(key, next, area - integral));
+            }
+            integral += piece;
+        }
+
+        // Constant region after the last key
+        Keyframe last = keys[keys.length - 1];
+        double v = last.getValue();
+        if (v <= 0) return Double.POSITIVE_INFINITY;
+        return Math.max(0, last.getTime() + (area - integral) / v);
+    }
 }
 
 class KeyChannelSerializer implements JsonSerializer<KeyChannel>, JsonDeserializer<KeyChannel> {

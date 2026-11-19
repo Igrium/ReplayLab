@@ -1,6 +1,7 @@
 package com.igrium.replaylab.test;
 
 import com.igrium.replaylab.anim.ChannelUtils;
+import com.igrium.replaylab.anim.InterpolationMode;
 import com.igrium.replaylab.anim.KeyChannel;
 import com.igrium.replaylab.anim.Keyframe;
 import com.igrium.replaylab.anim.Keyframe.HandleType;
@@ -59,5 +60,45 @@ public class SpeedIntegrateTest {
                 prev = v;
             }
         }
+    }
+
+    @Test
+    public void inverseIntegrateRoundTrips() {
+        for (HandleType type : HandleType.values()) {
+            for (InterpolationMode mode : InterpolationMode.values()) {
+                KeyChannel chan = channel(type,
+                        new double[]{1000, 5.0}, new double[]{5000, 0.05}, new double[]{10000, 5.0});
+                for (Keyframe key : chan.getKeyframes()) {
+                    key.setInterpolationMode(mode);
+                }
+                for (int t = 0; t <= 12000; t += 250) {
+                    double area = chan.integrate(t);
+                    double inv = chan.inverseIntegrate(area);
+                    assertEquals(area, chan.integrate(inv), 1e-4,
+                            "inverse did not round trip with " + type + " " + mode + " at t=" + t);
+                }
+            }
+        }
+    }
+
+    @Test
+    public void inverseIntegratePicksLowestOnPlateau() {
+        // Speed is zero between 2000 and 4000, so every time in that range has the same integral
+        KeyChannel chan = channel(HandleType.AUTO_CLAMPED,
+                new double[]{0, 1.0}, new double[]{2000, 0}, new double[]{4000, 1.0});
+        for (Keyframe key : chan.getKeyframes()) {
+            key.setInterpolationMode(InterpolationMode.CONSTANT);
+        }
+        double plateau = chan.integrate(3000);
+        assertEquals(2000, chan.inverseIntegrate(plateau), 1, "should return the start of the plateau");
+    }
+
+    @Test
+    public void inverseIntegrateUnreachable() {
+        KeyChannel chan = channel(HandleType.AUTO_CLAMPED, new double[]{0, 1.0}, new double[]{1000, 0});
+        for (Keyframe key : chan.getKeyframes()) {
+            key.setInterpolationMode(InterpolationMode.LINEAR);
+        }
+        assertEquals(Double.POSITIVE_INFINITY, chan.inverseIntegrate(10000));
     }
 }
