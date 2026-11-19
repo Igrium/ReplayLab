@@ -216,20 +216,26 @@ public class TimelineHeader {
                     int sceneTime = editorState.getScene().replayToSceneTime(marker.getTime());
                     if (startTick <= sceneTime && sceneTime <= endTick) {
                         float pos = msToPixel.apply(sceneTime) + cursorX;
+
+                        float mouseX = ImGui.getMousePosX();
+                        float mouseY = ImGui.getMousePosY();
+                        boolean markerHovered = false;
+                        if (ImGui.isWindowHovered()
+                                && pos - radius < mouseX && mouseX < pos + radius
+                                && cursorY < mouseY && mouseY < cursorY + radius * 2) {
+                            markerHovered = true;
+                            String name = marker.getName();
+                            if (name != null) {
+                                ImGui.setTooltip(name);
+                            }
+                        }
+
+                        int color = markerHovered ? 0xFF0000AA : 0xAA0000AA;
                         drawList.addTriangleFilled(
                                 pos - radius, cursorY,
                                 pos + radius, cursorY,
                                 pos, cursorY + radius * 2,
-                                0xAA0000AA);
-
-                        float mouseX = ImGui.getMousePosX();
-                        float mouseY = ImGui.getMousePosY();
-                        String name = marker.getName();
-                        if (name != null && ImGui.isWindowHovered()
-                                && pos - radius < mouseX && mouseX < pos + radius
-                                && cursorY < mouseY && mouseY < cursorY + radius * 2) {
-                            ImGui.setTooltip(name);
-                        }
+                                color);
                     }
 
                 }
