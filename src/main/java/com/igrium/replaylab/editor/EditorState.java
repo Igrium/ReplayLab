@@ -1,5 +1,6 @@
 package com.igrium.replaylab.editor;
 
+import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -25,6 +26,7 @@ import com.igrium.replaylab.ui.util.QuickModeInitCallback;
 import com.igrium.replaylab.render.RenderUtils;
 import com.replaymod.replay.*;
 import com.replaymod.replaystudio.data.Marker;
+import com.replaymod.replaystudio.lib.guava.base.Optional;
 import com.replaymod.replaystudio.replay.ReplayFile;
 import imgui.type.ImInt;
 import it.unimi.dsi.fastutil.floats.FloatConsumer;
@@ -41,6 +43,7 @@ import net.minecraft.util.Util;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Math;
@@ -87,8 +90,6 @@ public final class EditorState {
             file.remove(ReplayScenes.getSceneName(sceneName));
         }
     }
-
-
 
     /**
      * Get the current get the currently-open editor.
@@ -206,6 +207,8 @@ public final class EditorState {
 
     @Setter @Nullable
     private QuickModeInitCallback quickModeInitCallback;
+
+    private @Nullable ArrayList<Marker> markers;
 
     // ===== Constructors =====
     public EditorState() {
@@ -699,12 +702,45 @@ public final class EditorState {
 
     /**
      * Get all of the replay markers in the replay handler
-     * @return Marker set
-     * @apiNote It is <em>not</em> safe to modify this set, as it may be immutable
+     *
+     * @return Marker list
+     * @apiNote Modifying this list (or the mutable markers therein) will not automatically save to the file.
+     * Call {@link #saveMarkers()}
      */
-    public Set<Marker> getReplayMarkers() {
-        ReplayHandler handler = getReplayHandler();
-        return handler != null ? ((AccessorReplayHandler) handler).getMarkers() : Set.of();
+    public List<Marker> getReplayMarkers() {
+        if (this.markers == null) {
+            var handler = getReplayHandlerOrThrow();
+            Optional<Set<Marker>> opt;
+            try {
+                opt = handler.getReplayFile().getMarkers();
+            } catch (IOException e) {
+                onException(e);
+                opt = Optional.absent();
+            }
+
+            this.markers = opt.isPresent() ? new ArrayList<>(opt.get()) : new ArrayList<>();
+        }
+        return this.markers;
+    }
+
+    /**
+     * Save the replay markers to file.
+     * @return A future that completes once the markers have been saved.
+     */
+    public CompletableFuture<Void> saveMarkers() {
+        if (this.markers == null) return CompletableFuture.completedFuture(null);
+        // Defensive copy to avoid concurrent modification while saving
+        Set<Marker> markers = ImmutableSet.copyOf(this.markers);
+        return CompletableFuture.runAsync(() -> {
+            try {
+                ReplayHandler replayHandler = getReplayHandlerOrThrow();
+                replayHandler.getReplayFile().writeMarkers(markers);
+            } catch (Exception e) {
+                onException(e);
+                // Propagate the exception to future listener
+                throw ExceptionUtils.asRuntimeException(e);
+            }
+        }, Util.ioPool());
     }
 
     /**

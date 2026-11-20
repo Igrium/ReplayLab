@@ -3,7 +3,10 @@ package com.igrium.replaylab.ui.subpanels;
 import com.igrium.craftui.api.style.CraftUIFonts;
 import com.igrium.replaylab.config.ReplayLabConfig;
 import com.igrium.replaylab.editor.EditorState;
-import com.igrium.replaylab.operator.scene.RenameReplayMarkerOperator;
+import com.igrium.replaylab.operator.replay.AddMarkerOperator;
+import com.igrium.replaylab.operator.replay.DeleteMarkerOperator;
+import com.igrium.replaylab.operator.replay.MoveMarkerOperator;
+import com.igrium.replaylab.operator.replay.RenameMarkerOperator;
 import com.igrium.replaylab.operator.scene.SetSceneLengthOperator;
 import com.igrium.replaylab.operator.scene.SetSceneStartOperator;
 import com.igrium.replaylab.ui.util.ReplayLabControls;
@@ -15,6 +18,8 @@ import imgui.ImGui;
 import imgui.ImVec2;
 import imgui.flag.ImGuiCol;
 import imgui.flag.ImGuiMouseButton;
+import imgui.flag.ImGuiPopupFlags;
+import imgui.flag.ImGuiSelectableFlags;
 import imgui.type.ImInt;
 import imgui.type.ImString;
 import it.unimi.dsi.fastutil.floats.FloatUnaryOperator;
@@ -88,7 +93,8 @@ public class TimelineHeader {
 
     private @Nullable Marker contextReplayMarker;
 
-    @Getter @Setter
+    @Getter
+    @Setter
     private boolean drawReplayMarkers = true;
 
     /**
@@ -97,6 +103,35 @@ public class TimelineHeader {
     private final Object2IntMap<Marker> markerCache = new Object2IntOpenHashMap<>();
 
     private final ImString markerNameCache = new ImString();
+
+    /**
+     * The replay marker the mouse was pressed on, if the button is still held.
+     * Only becomes {@link #draggedMarker} once ImGui's drag threshold is passed.
+     */
+    private @Nullable Marker pressedMarker;
+
+    /**
+     * The replay marker currently being dragged, if any.
+     */
+    @Getter
+    private @Nullable Marker draggedMarker;
+
+    /**
+     * The scene time of the pressed/dragged marker before the drag started.
+     */
+    private int markerDragStartTime;
+
+    /**
+     * The scene time the dragged marker is currently being previewed at.
+     */
+    private int markerDragTime;
+
+    /**
+     * True if the user is currently dragging a replay marker.
+     */
+    public boolean isDraggingMarker() {
+        return draggedMarker != null;
+    }
 
     /**
      * Draw the header of the dope sheet or curve editor.
@@ -139,15 +174,49 @@ public class TimelineHeader {
                 }
             }
         }
-        float markerSnapThresholdMs = SNAP_THRESHOLD_PX / zoomFactor;
 
         // === HOVER AND RIGHT-CLICK ===
         boolean hovered = ImGui.isItemHovered();
+        boolean active = ImGui.isItemActive();
+        boolean activated = ImGui.isItemActivated();
+
+        // The marker the cursor is directly over
+        float markerRadius = ImGui.getFontSize() / 3f;
+        Marker hoveredMarker = null;
+        if (markersEnabled && (hovered || active)) {
+            float mouseX = ImGui.getMousePosX();
+            float mouseY = ImGui.getMousePosY();
+            if (cursorY < mouseY && mouseY < cursorY + markerRadius * 2) {
+                float closestDist = Float.MAX_VALUE;
+                for (var entry : markerCache.object2IntEntrySet()) {
+                    float dist = Math.abs(msToPixel.apply(entry.getIntValue()) + cursorX - mouseX);
+                    if (dist < markerRadius && dist < closestDist) {
+                        hoveredMarker = entry.getKey();
+                        closestDist = dist;
+                    }
+                }
+            }
+        }
+
+        // === MARKER PRESS ===
+        if (markersEnabled && pressedMarker == null && draggedMarker == null && activated && hoveredMarker != null
+                && ImGui.isMouseClicked(ImGuiMouseButton.Left)) {
+            pressedMarker = hoveredMarker;
+            markerDragStartTime = markerCache.getInt(hoveredMarker);
+            markerDragTime = markerDragStartTime;
+        }
+
+        // While pressed/dragging, that marker is always the "hovered" one.
+        if (draggedMarker != null) {
+            hoveredMarker = draggedMarker;
+        } else if (pressedMarker != null) {
+            hoveredMarker = pressedMarker;
+        }
 
         if (ImGui.isItemClicked(ImGuiMouseButton.Right)) {
             ImGui.openPopup("headerPopup");
             int clickedTime = (int) pixelToMs.apply(ImGui.getMousePosX() - cursorX);
-            contextReplayMarker = getSnapMarker(clickedTime, markerSnapThresholdMs);
+            contextReplayMarker = hoveredMarker;
             contextTime = contextReplayMarker != null ? markerCache.getInt(contextReplayMarker) : clickedTime;
             contextTimeStr = Timestamps.toTimestamp(contextTime, 3,
                     ReplayLabConfig.getInstance().getTimestampMode());
@@ -166,10 +235,18 @@ public class TimelineHeader {
             if (contextReplayMarker != null) {
                 String name = contextReplayMarker.getName();
                 markerNameCache.set(name != null ? name : "");
-                ImGui.inputText("##markerName", markerNameCache);
+                ImGui.inputTextWithHint("##markerName", tt("gui.replaylab.marker_name"), markerNameCache);
                 if (ImGui.isItemDeactivatedAfterEdit()) {
-                    editorState.applyOperator(new RenameReplayMarkerOperator(contextReplayMarker, markerNameCache.get()));
+                    String newName = markerNameCache.get();
+                    editorState.applyOperator(new RenameMarkerOperator(contextReplayMarker,
+                            newName.isBlank() ? null : newName));
                 }
+
+                if (ImGui.menuItem(t("gui.replaylab.delete_marker"))) {
+                    editorState.applyOperator(new DeleteMarkerOperator(contextReplayMarker));
+                }
+
+                ImGui.separator();
             }
 
             if (ImGui.menuItem(t("gui.replaylab.copy_ts"))) {
@@ -187,6 +264,13 @@ public class TimelineHeader {
                 editorState.applyOperator(new SetSceneLengthOperator(contextTime));
             }
             ImGui.endDisabled();
+
+            if (contextReplayMarker == null) {
+                ImGui.separator();
+                if (ImGui.menuItem(t("gui.replaylab.add_marker"))) {
+                    editorState.applyOperator(new AddMarkerOperator(editorState.getScene().sceneToReplayTime(contextTime)));
+                }
+            }
 
             ImGui.endPopup();
         } else {
@@ -209,6 +293,53 @@ public class TimelineHeader {
             snapTargetMs = tinyInterval;
         } else {
             snapTargetMs = minorInterval;
+        }
+
+        // === MARKER DRAG UPDATE ===
+        boolean mouseHeld = active && ImGui.isMouseDown(ImGuiMouseButton.Left);
+
+        // A pressed marker only becomes a drag once ImGui's drag threshold is passed.
+        if (pressedMarker != null && draggedMarker == null && mouseHeld
+                && ImGui.isMouseDragging(ImGuiMouseButton.Left)) {
+            draggedMarker = pressedMarker;
+        }
+
+        if (draggedMarker != null) {
+            if (!markersEnabled) {
+                // Cancel
+                draggedMarker = null;
+                pressedMarker = null;
+            } else if (mouseHeld) {
+                int delta = Math.round(ImGui.getMouseDragDeltaX(ImGuiMouseButton.Left) / zoomFactor);
+                int newTime = markerDragStartTime + delta;
+
+                // Snap to the playhead if close enough
+                if (playhead != null && !hasFlag(TimelineFlags.NO_PLAYHEAD, flags)
+                        && Math.abs(newTime - playhead.get()) * zoomFactor < SNAP_THRESHOLD_PX) {
+                    newTime = playhead.get();
+                } else {
+                    newTime = snapTime(newTime, snapTargetMs, zoomFactor, keys, flags);
+                }
+                markerDragTime = newTime;
+            } else {
+                // Released
+                Marker marker = draggedMarker;
+                draggedMarker = null;
+                pressedMarker = null;
+                if (markerDragTime != markerDragStartTime) {
+                    var scene = editorState.getScene();
+                    commitMarkerDrag(editorState, marker,
+                            scene.sceneToReplayTime(markerDragStartTime), scene.sceneToReplayTime(markerDragTime));
+                }
+            }
+        } else if (pressedMarker != null && !mouseHeld) {
+            // Released without dragging: treat as a click and jump the playhead to the marker
+            if (markersEnabled && playhead != null && !hasFlag(TimelineFlags.NO_PLAYHEAD, flags)
+                    && !hasFlag(TimelineFlags.READONLY_PLAYHEAD, flags)) {
+                playhead.set(Math.clamp(markerDragStartTime, 0, length));
+                stoppedScrubbing = true;
+            }
+            pressedMarker = null;
         }
 
         if (!hasFlag(TimelineFlags.NO_TICKS, flags)) {
@@ -248,18 +379,18 @@ public class TimelineHeader {
 
             drawList.popClipRect();
             if (markersEnabled) {
-                float radius = ImGui.getFontSize() / 3f;
-                float mouseX = ImGui.getMousePosX();
-                float mouseY = ImGui.getMousePosY();
+                float radius = markerRadius;
+                if (draggedMarker != null && !markerCache.containsKey(draggedMarker)) {
+                    // Dragged marker's original position scrolled out of view; make sure it still renders.
+                    markerCache.put(draggedMarker, markerDragTime);
+                }
                 for (var entry : markerCache.object2IntEntrySet()) {
                     Marker marker = entry.getKey();
-                    float pos = msToPixel.apply(entry.getIntValue()) + cursorX;
+                    int markerTime = marker == draggedMarker ? markerDragTime : entry.getIntValue();
+                    float pos = msToPixel.apply(markerTime) + cursorX;
 
-                    boolean markerHovered = false;
-                    if (ImGui.isWindowHovered()
-                            && pos - radius < mouseX && mouseX < pos + radius
-                            && cursorY < mouseY && mouseY < cursorY + radius * 2) {
-                        markerHovered = true;
+                    boolean markerHovered = marker == hoveredMarker;
+                    if (markerHovered && ImGui.isWindowHovered()) {
                         String name = marker.getName();
                         if (name != null) {
                             ImGui.setTooltip(name);
@@ -276,10 +407,11 @@ public class TimelineHeader {
             }
         }
 
-        // === PLAYHEAD ===
+        // === PLAYHEAD ===inputText
         if (playhead != null && !hasFlag(TimelineFlags.NO_PLAYHEAD, flags)) {
 
-            if (!hasFlag(TimelineFlags.READONLY_PLAYHEAD, flags) && ImGui.isItemActive() && ImGui.isMouseDown(0)) {
+            if (!hasFlag(TimelineFlags.READONLY_PLAYHEAD, flags) && draggedMarker == null && pressedMarker == null && active
+                    && ImGui.isMouseDown(0)) {
                 scrubbing = true;
             } else if (scrubbing) {
                 scrubbing = false;
@@ -289,21 +421,11 @@ public class TimelineHeader {
             if (scrubbing) {
                 int newPlayhead = (int) Math.clamp(pixelToMs.apply(ImGui.getMousePosX() - cursorX), 0, length);
 
-                boolean ctrlPressed = ImGui.getIO().getKeyCtrl();
-                boolean shiftPressed = ImGui.getIO().getKeyShift();
+                newPlayhead = snapTime(newPlayhead, snapTargetMs, zoomFactor, keys, flags);
 
-                // If we're inverting or ctrl is pressed, but not both
-                if (hasFlag(TimelineFlags.INVERT_TICK_SNAP, flags) != ctrlPressed) {
-                    newPlayhead = Math.round((float) newPlayhead / snapTargetMs) * snapTargetMs;
-                }
-
-                if (keys != null && keys.length > 0 && hasFlag(TimelineFlags.INVERT_KEY_SNAP, flags) != shiftPressed) {
-                    float snapThresholdMs = SNAP_THRESHOLD_PX / zoomFactor;
-                    int closestKeyIDx = getClosestInt(keys, newPlayhead);
-
-                    if (closestKeyIDx >= 0 && Math.abs(keys[closestKeyIDx] - newPlayhead) < snapThresholdMs) {
-                        newPlayhead = keys[closestKeyIDx];
-                    }
+                // Snap to the marker being hovered (takes priority over other snapping)
+                if (hoveredMarker != null) {
+                    newPlayhead = Math.clamp(markerCache.getInt(hoveredMarker), 0, length);
                 }
 
                 playhead.set(newPlayhead);
@@ -329,15 +451,16 @@ public class TimelineHeader {
                 }
             }
 
-            if ((hovered || contextTime >= 0) && windowHeight > 0) {
+            if ((hovered || contextTime >= 0 || draggedMarker != null) && windowHeight > 0) {
                 float x;
-                if (contextTime >= 0) {
+                if (draggedMarker != null) {
+                    x = msToPixel.apply(markerDragTime) + cursorX;
+                } else if (contextTime >= 0) {
                     x = msToPixel.apply(contextTime) + cursorX;
                 } else {
                     x = ImGui.getMousePosX();
-                    Marker snapMarker = getSnapMarker(pixelToMs.apply(x - cursorX), markerSnapThresholdMs);
-                    if (snapMarker != null) {
-                        x = msToPixel.apply(markerCache.getInt(snapMarker)) + cursorX;
+                    if (hoveredMarker != null) {
+                        x = msToPixel.apply(markerCache.getInt(hoveredMarker)) + cursorX;
                     }
                 }
 
@@ -349,23 +472,39 @@ public class TimelineHeader {
     }
 
     /**
-     * Find the cached marker closest to the given scene time, if it's within the snap threshold.
+     * Called when the user finishes dragging a replay marker to a new position.
+     * Not called if the marker ended up where it started.
      *
-     * @param sceneTime   Scene time to snap (ms)
-     * @param thresholdMs Maximum distance to snap from (ms)
-     * @return The closest marker, or <code>null</code> if no marker is close enough.
+     * @param editorState   The editor state.
+     * @param marker        The marker that was dragged.
+     * @param oldReplayTime The marker's time before the drag, in replay time (ms).
+     * @param newReplayTime The marker's new time, in replay time (ms).
      */
-    private @Nullable Marker getSnapMarker(float sceneTime, float thresholdMs) {
-        Marker closest = null;
-        float closestTime = thresholdMs;
-        for (var entry : markerCache.object2IntEntrySet()) {
-            float dist = Math.abs(entry.getIntValue() - sceneTime);
-            if (dist < closestTime) {
-                closest = entry.getKey();
-                closestTime = dist;
+    protected void commitMarkerDrag(EditorState editorState, Marker marker, int oldReplayTime, int newReplayTime) {
+        editorState.applyOperator(new MoveMarkerOperator(marker, oldReplayTime, newReplayTime));
+    }
+
+    /**
+     * Apply tick and keyframe snapping to a timestamp based on modifier keys and flags.
+     */
+    private static int snapTime(int time, int snapTargetMs, float zoomFactor, int @Nullable [] keys, int flags) {
+        boolean ctrlPressed = ImGui.getIO().getKeyCtrl();
+        boolean shiftPressed = ImGui.getIO().getKeyShift();
+
+        // If we're inverting or ctrl is pressed, but not both
+        if (hasFlag(TimelineFlags.INVERT_TICK_SNAP, flags) != ctrlPressed) {
+            time = Math.round((float) time / snapTargetMs) * snapTargetMs;
+        }
+
+        if (keys != null && keys.length > 0 && hasFlag(TimelineFlags.INVERT_KEY_SNAP, flags) != shiftPressed) {
+            float snapThresholdMs = SNAP_THRESHOLD_PX / zoomFactor;
+            int closestKeyIDx = getClosestInt(keys, time);
+
+            if (closestKeyIDx >= 0 && Math.abs(keys[closestKeyIDx] - time) < snapThresholdMs) {
+                time = keys[closestKeyIDx];
             }
         }
-        return closest;
+        return time;
     }
 
     /**
@@ -390,6 +529,10 @@ public class TimelineHeader {
 
     private static boolean hasFlag(int flag, int flags) {
         return (flags & flag) == flag;
+    }
+
+    private static String tt(String key) {
+        return Language.getInstance().getOrDefault(key);
     }
 
     private static String t(String key) {

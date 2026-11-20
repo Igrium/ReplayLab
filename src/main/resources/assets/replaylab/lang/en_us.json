@@ -102,9 +102,13 @@
   "gui.replaylab.set_inverse": "Set Inverse",
   "gui.replaylab.clear_inverse": "Clear Inverse",
 
+  "gui.replaylab.marker_name": "Marker Name",
+  "gui.replaylab.delete_marker": "Delete Marker",
+
   "gui.replaylab.copy_ts": "Copy Timestamp",
   "gui.replaylab.set_scene_start": "Set scene start here",
   "gui.replaylab.set_scene_end": "Set scene end here",
+  "gui.replaylab.add_marker": "Add marker here",
 
   "gui.replaylab.pos": "Position",
   "gui.replaylab.rot": "Rotation",
