@@ -3,6 +3,7 @@ package com.igrium.replaylab.ui.subpanels;
 import com.igrium.craftui.api.style.CraftUIFonts;
 import com.igrium.replaylab.config.ReplayLabConfig;
 import com.igrium.replaylab.editor.EditorState;
+import com.igrium.replaylab.operator.scene.RenameReplayMarkerOperator;
 import com.igrium.replaylab.operator.scene.SetSceneLengthOperator;
 import com.igrium.replaylab.operator.scene.SetSceneStartOperator;
 import com.igrium.replaylab.ui.util.ReplayLabControls;
@@ -15,7 +16,10 @@ import imgui.ImVec2;
 import imgui.flag.ImGuiCol;
 import imgui.flag.ImGuiMouseButton;
 import imgui.type.ImInt;
+import imgui.type.ImString;
 import it.unimi.dsi.fastutil.floats.FloatUnaryOperator;
+import it.unimi.dsi.fastutil.objects.Object2IntMap;
+import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
@@ -88,6 +92,13 @@ public class TimelineHeader {
     private boolean drawReplayMarkers = true;
 
     /**
+     * Markers being rendered and their scene times. Recomputed once per frame.
+     */
+    private final Object2IntMap<Marker> markerCache = new Object2IntOpenHashMap<>();
+
+    private final ImString markerNameCache = new ImString();
+
+    /**
      * Draw the header of the dope sheet or curve editor.
      *
      * @param headerHeight Vertical height of the header (pixels)
@@ -114,12 +125,30 @@ public class TimelineHeader {
         ImDrawList drawList = ImGui.getWindowDrawList();
         ImGui.invisibleButton("#header", width, headerHeight);
 
+        // The amount of milliseconds the window is wide
+        widthMs = width / zoomFactor;
+
+        // === MARKER POSITIONS ===
+        boolean markersEnabled = drawReplayMarkers && !hasFlag(TimelineFlags.NO_TICKS, flags);
+        markerCache.clear();
+        if (markersEnabled) {
+            for (Marker marker : editorState.getReplayMarkers()) {
+                int sceneTime = editorState.getScene().replayToSceneTime(marker.getTime());
+                if (offsetX <= sceneTime && sceneTime <= offsetX + widthMs) {
+                    markerCache.put(marker, sceneTime);
+                }
+            }
+        }
+        float markerSnapThresholdMs = SNAP_THRESHOLD_PX / zoomFactor;
+
         // === HOVER AND RIGHT-CLICK ===
         boolean hovered = ImGui.isItemHovered();
 
         if (ImGui.isItemClicked(ImGuiMouseButton.Right)) {
             ImGui.openPopup("headerPopup");
-            contextTime = (int) pixelToMs.apply(ImGui.getMousePosX() - cursorX);
+            int clickedTime = (int) pixelToMs.apply(ImGui.getMousePosX() - cursorX);
+            contextReplayMarker = getSnapMarker(clickedTime, markerSnapThresholdMs);
+            contextTime = contextReplayMarker != null ? markerCache.getInt(contextReplayMarker) : clickedTime;
             contextTimeStr = Timestamps.toTimestamp(contextTime, 3,
                     ReplayLabConfig.getInstance().getTimestampMode());
         }
@@ -133,6 +162,15 @@ public class TimelineHeader {
             ImGui.popFont();
 
             ImGui.separator();
+
+            if (contextReplayMarker != null) {
+                String name = contextReplayMarker.getName();
+                markerNameCache.set(name != null ? name : "");
+                ImGui.inputText("##markerName", markerNameCache);
+                if (ImGui.isItemDeactivatedAfterEdit()) {
+                    editorState.applyOperator(new RenameReplayMarkerOperator(contextReplayMarker, markerNameCache.get()));
+                }
+            }
 
             if (ImGui.menuItem(t("gui.replaylab.copy_ts"))) {
                 ImGui.setClipboardText(contextTimeStr);
@@ -153,6 +191,7 @@ public class TimelineHeader {
             ImGui.endPopup();
         } else {
             contextTime = -1;
+            contextReplayMarker = null;
         }
 
         // === TICKS ===
@@ -175,8 +214,6 @@ public class TimelineHeader {
         if (!hasFlag(TimelineFlags.NO_TICKS, flags)) {
             drawList.pushClipRect(cursorX, cursorY, cursorX + width, cursorY + headerHeight);
 
-            // The amount of milliseconds the window is wide
-            widthMs = width / zoomFactor;
 
             int startTick = Math.floorDiv((int) offsetX, majorInterval) * majorInterval;
             int endTick = Math.ceilDiv((int) (offsetX + widthMs), majorInterval) * majorInterval;
@@ -210,34 +247,31 @@ public class TimelineHeader {
             // === MARKERS ===
 
             drawList.popClipRect();
-            if (drawReplayMarkers) {
+            if (markersEnabled) {
                 float radius = ImGui.getFontSize() / 3f;
-                for (Marker marker : editorState.getReplayMarkers()) {
-                    int sceneTime = editorState.getScene().replayToSceneTime(marker.getTime());
-                    if (startTick <= sceneTime && sceneTime <= endTick) {
-                        float pos = msToPixel.apply(sceneTime) + cursorX;
+                float mouseX = ImGui.getMousePosX();
+                float mouseY = ImGui.getMousePosY();
+                for (var entry : markerCache.object2IntEntrySet()) {
+                    Marker marker = entry.getKey();
+                    float pos = msToPixel.apply(entry.getIntValue()) + cursorX;
 
-                        float mouseX = ImGui.getMousePosX();
-                        float mouseY = ImGui.getMousePosY();
-                        boolean markerHovered = false;
-                        if (ImGui.isWindowHovered()
-                                && pos - radius < mouseX && mouseX < pos + radius
-                                && cursorY < mouseY && mouseY < cursorY + radius * 2) {
-                            markerHovered = true;
-                            String name = marker.getName();
-                            if (name != null) {
-                                ImGui.setTooltip(name);
-                            }
+                    boolean markerHovered = false;
+                    if (ImGui.isWindowHovered()
+                            && pos - radius < mouseX && mouseX < pos + radius
+                            && cursorY < mouseY && mouseY < cursorY + radius * 2) {
+                        markerHovered = true;
+                        String name = marker.getName();
+                        if (name != null) {
+                            ImGui.setTooltip(name);
                         }
-
-                        int color = markerHovered ? 0xFF0000AA : 0xAA0000AA;
-                        drawList.addTriangleFilled(
-                                pos - radius, cursorY,
-                                pos + radius, cursorY,
-                                pos, cursorY + radius * 2,
-                                color);
                     }
 
+                    int color = markerHovered ? 0xFF0000AA : 0xAA0000AA;
+                    drawList.addTriangleFilled(
+                            pos - radius, cursorY,
+                            pos + radius, cursorY,
+                            pos, cursorY + radius * 2,
+                            color);
                 }
             }
         }
@@ -296,13 +330,42 @@ public class TimelineHeader {
             }
 
             if ((hovered || contextTime >= 0) && windowHeight > 0) {
-                float x = contextTime >= 0 ? msToPixel.apply(contextTime) + cursorX : ImGui.getMousePosX();
+                float x;
+                if (contextTime >= 0) {
+                    x = msToPixel.apply(contextTime) + cursorX;
+                } else {
+                    x = ImGui.getMousePosX();
+                    Marker snapMarker = getSnapMarker(pixelToMs.apply(x - cursorX), markerSnapThresholdMs);
+                    if (snapMarker != null) {
+                        x = msToPixel.apply(markerCache.getInt(snapMarker)) + cursorX;
+                    }
+                }
 
                 if (Math.abs(x - playheadX) > 10)
                     fgDrawList.addLine(x, cursorY + headerHeight, x, cursorY + headerHeight + windowHeight,
                             CommonColors.BLACK);
             }
         }
+    }
+
+    /**
+     * Find the cached marker closest to the given scene time, if it's within the snap threshold.
+     *
+     * @param sceneTime   Scene time to snap (ms)
+     * @param thresholdMs Maximum distance to snap from (ms)
+     * @return The closest marker, or <code>null</code> if no marker is close enough.
+     */
+    private @Nullable Marker getSnapMarker(float sceneTime, float thresholdMs) {
+        Marker closest = null;
+        float closestTime = thresholdMs;
+        for (var entry : markerCache.object2IntEntrySet()) {
+            float dist = Math.abs(entry.getIntValue() - sceneTime);
+            if (dist < closestTime) {
+                closest = entry.getKey();
+                closestTime = dist;
+            }
+        }
+        return closest;
     }
 
     /**
