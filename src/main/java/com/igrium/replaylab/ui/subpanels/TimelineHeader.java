@@ -18,8 +18,6 @@ import imgui.ImGui;
 import imgui.ImVec2;
 import imgui.flag.ImGuiCol;
 import imgui.flag.ImGuiMouseButton;
-import imgui.flag.ImGuiPopupFlags;
-import imgui.flag.ImGuiSelectableFlags;
 import imgui.type.ImInt;
 import imgui.type.ImString;
 import it.unimi.dsi.fastutil.floats.FloatUnaryOperator;
@@ -36,6 +34,10 @@ public class TimelineHeader {
 
     private static final int TICK_MULTIPLE = 10;
     private static final float SNAP_THRESHOLD_PX = 8f;
+
+    private static final int TICK_COLOR = 0xAAAAAAAA;
+    private static final int MARKER_COLOR = 0xAA0000AA;
+    private static final int MARKER_HOVERED_COLOR = 0xFF0000AA;
 
 
     /**
@@ -105,32 +107,38 @@ public class TimelineHeader {
     private final ImString markerNameCache = new ImString();
 
     /**
-     * The replay marker the mouse was pressed on, if the button is still held.
-     * Only becomes {@link #draggedMarker} once ImGui's drag threshold is passed.
+     * A replay marker the mouse was pressed on, while the button is still held.
      */
-    private @Nullable Marker pressedMarker;
+    private static final class MarkerDrag {
+        final Marker marker;
+        /** Scene time of the marker before the drag started. */
+        final int startTime;
+        /** Scene time the marker is currently being previewed at. */
+        int time;
+        /** False until ImGui's drag threshold is passed; a release before then counts as a click. */
+        boolean dragging;
+
+        MarkerDrag(Marker marker, int startTime) {
+            this.marker = marker;
+            this.startTime = startTime;
+            this.time = startTime;
+        }
+    }
+
+    private @Nullable MarkerDrag markerDrag;
 
     /**
      * The replay marker currently being dragged, if any.
      */
-    @Getter
-    private @Nullable Marker draggedMarker;
-
-    /**
-     * The scene time of the pressed/dragged marker before the drag started.
-     */
-    private int markerDragStartTime;
-
-    /**
-     * The scene time the dragged marker is currently being previewed at.
-     */
-    private int markerDragTime;
+    public @Nullable Marker getDraggedMarker() {
+        return markerDrag != null && markerDrag.dragging ? markerDrag.marker : null;
+    }
 
     /**
      * True if the user is currently dragging a replay marker.
      */
     public boolean isDraggingMarker() {
-        return draggedMarker != null;
+        return markerDrag != null && markerDrag.dragging;
     }
 
     /**
@@ -149,85 +157,84 @@ public class TimelineHeader {
                            @Nullable ImInt playhead, float windowHeight, int @Nullable [] keys, int flags) {
         stoppedScrubbing = false;
 
-        FloatUnaryOperator msToPixel = ms -> (ms - offsetX) * zoomFactor;
-        FloatUnaryOperator pixelToMs = pixel -> pixel / zoomFactor + offsetX;
+        var scene = editorState.getScene();
+        boolean showTicks = !hasFlag(TimelineFlags.NO_TICKS, flags);
+        boolean markersEnabled = drawReplayMarkers && showTicks;
+        boolean showPlayhead = playhead != null && !hasFlag(TimelineFlags.NO_PLAYHEAD, flags);
+        boolean canMovePlayhead = showPlayhead && !hasFlag(TimelineFlags.READONLY_PLAYHEAD, flags);
 
         float width = ImGui.getContentRegionAvailX();
-
         float cursorX = ImGui.getCursorScreenPosX();
         float cursorY = ImGui.getCursorScreenPosY();
+        float em = ImGui.getFontSize();
+        float markerRadius = em / 3f;
+
+        // Scene time (ms) <-> screen-space X
+        FloatUnaryOperator toScreenX = ms -> (ms - offsetX) * zoomFactor + cursorX;
+        FloatUnaryOperator toTime = x -> (x - cursorX) / zoomFactor + offsetX;
 
         ImDrawList drawList = ImGui.getWindowDrawList();
         ImGui.invisibleButton("#header", width, headerHeight);
-
-        // The amount of milliseconds the window is wide
-        widthMs = width / zoomFactor;
-
-        // === MARKER POSITIONS ===
-        boolean markersEnabled = drawReplayMarkers && !hasFlag(TimelineFlags.NO_TICKS, flags);
-        markerCache.clear();
-        if (markersEnabled) {
-            for (Marker marker : editorState.getReplayMarkers()) {
-                int sceneTime = editorState.getScene().replayToSceneTime(marker.getTime());
-                if (offsetX <= sceneTime && sceneTime <= offsetX + widthMs) {
-                    markerCache.put(marker, sceneTime);
-                }
-            }
-        }
-
-        // === HOVER AND RIGHT-CLICK ===
         boolean hovered = ImGui.isItemHovered();
         boolean active = ImGui.isItemActive();
         boolean activated = ImGui.isItemActivated();
 
-        // The marker the cursor is directly over
-        float markerRadius = ImGui.getFontSize() / 3f;
+        widthMs = width / zoomFactor;
+
+        // === MARKER POSITIONS ===
+        markerCache.clear();
+        if (markersEnabled) {
+            for (Marker marker : editorState.getReplayMarkers()) {
+                int sceneTime = scene.replayToSceneTime(marker.getTime());
+                if (offsetX <= sceneTime && sceneTime <= offsetX + widthMs) {
+                    markerCache.put(marker, sceneTime);
+                }
+            }
+            if (markerDrag != null) {
+                markerCache.put(markerDrag.marker, markerDrag.time);
+            }
+        } else {
+            markerDrag = null; // Cancel any drag
+        }
+
+        // === MARKER HOVER AND PRESS ===
         Marker hoveredMarker = null;
-        if (markersEnabled && (hovered || active)) {
+        if (markerDrag != null) {
+            // While pressed/dragging, that marker is always the "hovered" one.
+            hoveredMarker = markerDrag.marker;
+        } else if (markersEnabled && (hovered || active)) {
             float mouseX = ImGui.getMousePosX();
             float mouseY = ImGui.getMousePosY();
             if (cursorY < mouseY && mouseY < cursorY + markerRadius * 2) {
-                float closestDist = Float.MAX_VALUE;
+                float closestDist = markerRadius;
                 for (var entry : markerCache.object2IntEntrySet()) {
-                    float dist = Math.abs(msToPixel.apply(entry.getIntValue()) + cursorX - mouseX);
-                    if (dist < markerRadius && dist < closestDist) {
+                    float dist = Math.abs(toScreenX.apply(entry.getIntValue()) - mouseX);
+                    if (dist < closestDist) {
                         hoveredMarker = entry.getKey();
                         closestDist = dist;
                     }
                 }
             }
+
+            if (hoveredMarker != null && activated && ImGui.isMouseClicked(ImGuiMouseButton.Left)) {
+                markerDrag = new MarkerDrag(hoveredMarker, markerCache.getInt(hoveredMarker));
+            }
         }
 
-        // === MARKER PRESS ===
-        if (markersEnabled && pressedMarker == null && draggedMarker == null && activated && hoveredMarker != null
-                && ImGui.isMouseClicked(ImGuiMouseButton.Left)) {
-            pressedMarker = hoveredMarker;
-            markerDragStartTime = markerCache.getInt(hoveredMarker);
-            markerDragTime = markerDragStartTime;
-        }
-
-        // While pressed/dragging, that marker is always the "hovered" one.
-        if (draggedMarker != null) {
-            hoveredMarker = draggedMarker;
-        } else if (pressedMarker != null) {
-            hoveredMarker = pressedMarker;
-        }
-
+        // === CONTEXT MENU ===
         if (ImGui.isItemClicked(ImGuiMouseButton.Right)) {
             ImGui.openPopup("headerPopup");
-            int clickedTime = (int) pixelToMs.apply(ImGui.getMousePosX() - cursorX);
             contextReplayMarker = hoveredMarker;
-            contextTime = contextReplayMarker != null ? markerCache.getInt(contextReplayMarker) : clickedTime;
+            contextTime = hoveredMarker != null
+                    ? markerCache.getInt(hoveredMarker)
+                    : (int) toTime.apply(ImGui.getMousePosX());
             contextTimeStr = Timestamps.toTimestamp(contextTime, 3,
                     ReplayLabConfig.getInstance().getTimestampMode());
         }
 
         if (ImGui.beginPopup("headerPopup")) {
-
             ImGui.pushFont(CraftUIFonts.getFont(ReplayLabControls.ROBOTO_MONO), 0);
-            ImGui.beginDisabled();
-            ImGui.text(contextTimeStr);
-            ImGui.endDisabled();
+            ImGui.textDisabled(contextTimeStr);
             ImGui.popFont();
 
             ImGui.separator();
@@ -253,22 +260,18 @@ public class TimelineHeader {
                 ImGui.setClipboardText(contextTimeStr);
             }
 
-            ImGui.beginDisabled(contextTime >= length);
-            if (ImGui.menuItem(t("gui.replaylab.set_scene_start"))) {
-                editorState.applyOperator(new SetSceneStartOperator(editorState.getScene().sceneToReplayTime(contextTime), true));
+            if (ImGui.menuItem(t("gui.replaylab.set_scene_start"), false, contextTime < length)) {
+                editorState.applyOperator(new SetSceneStartOperator(scene.sceneToReplayTime(contextTime), true));
             }
-            ImGui.endDisabled();
 
-            ImGui.beginDisabled(contextTime < 0);
-            if (ImGui.menuItem(t("gui.replaylab.set_scene_end"))) {
+            if (ImGui.menuItem(t("gui.replaylab.set_scene_end"), false, contextTime >= 0)) {
                 editorState.applyOperator(new SetSceneLengthOperator(contextTime));
             }
-            ImGui.endDisabled();
 
             if (contextReplayMarker == null) {
                 ImGui.separator();
                 if (ImGui.menuItem(t("gui.replaylab.add_marker"))) {
-                    editorState.applyOperator(new AddMarkerOperator(editorState.getScene().sceneToReplayTime(contextTime)));
+                    editorState.applyOperator(new AddMarkerOperator(scene.sceneToReplayTime(contextTime)));
                 }
             }
 
@@ -278,195 +281,146 @@ public class TimelineHeader {
             contextReplayMarker = null;
         }
 
-        // === TICKS ===
+        // === INTERVALS ===
         int majorInterval = (int) computeMajorInterval(zoomFactor);
         int minorInterval = majorInterval / 2;
         int tinyInterval = majorInterval / 4;
-
-        if (majorInterval == 0 || minorInterval == 0 || tinyInterval == 0) {
-            return;
-        }
-
-        float em = ImGui.getFontSize();
-        int snapTargetMs;
-        if (tinyInterval * zoomFactor > em * 1.2) {
-            snapTargetMs = tinyInterval;
-        } else {
-            snapTargetMs = minorInterval;
-        }
+        boolean showTinyTicks = tinyInterval * zoomFactor > em * 1.2f;
+        // At extreme zoom the intervals can round down to 0. Skip the ticks, but keep everything else working.
+        boolean intervalsValid = tinyInterval > 0;
+        int snapTargetMs = Math.max(1, showTinyTicks ? tinyInterval : minorInterval);
 
         // === MARKER DRAG UPDATE ===
-        boolean mouseHeld = active && ImGui.isMouseDown(ImGuiMouseButton.Left);
-
-        // A pressed marker only becomes a drag once ImGui's drag threshold is passed.
-        if (pressedMarker != null && draggedMarker == null && mouseHeld
-                && ImGui.isMouseDragging(ImGuiMouseButton.Left)) {
-            draggedMarker = pressedMarker;
-        }
-
-        if (draggedMarker != null) {
-            if (!markersEnabled) {
-                // Cancel
-                draggedMarker = null;
-                pressedMarker = null;
-            } else if (mouseHeld) {
-                int delta = Math.round(ImGui.getMouseDragDeltaX(ImGuiMouseButton.Left) / zoomFactor);
-                int newTime = markerDragStartTime + delta;
-
-                // Snap to the playhead if close enough
-                if (playhead != null && !hasFlag(TimelineFlags.NO_PLAYHEAD, flags)
-                        && Math.abs(newTime - playhead.get()) * zoomFactor < SNAP_THRESHOLD_PX) {
-                    newTime = playhead.get();
-                } else {
-                    newTime = snapTime(newTime, snapTargetMs, zoomFactor, keys, flags);
+        if (markerDrag != null) {
+            if (active && ImGui.isMouseDown(ImGuiMouseButton.Left)) {
+                // A press only becomes a drag once ImGui's drag threshold is passed.
+                if (ImGui.isMouseDragging(ImGuiMouseButton.Left)) {
+                    markerDrag.dragging = true;
                 }
-                markerDragTime = newTime;
+
+                if (markerDrag.dragging) {
+                    int newTime = markerDrag.startTime
+                            + Math.round(ImGui.getMouseDragDeltaX(ImGuiMouseButton.Left) / zoomFactor);
+
+                    // Snap to the playhead if close enough
+                    if (showPlayhead && Math.abs(newTime - playhead.get()) * zoomFactor < SNAP_THRESHOLD_PX) {
+                        newTime = playhead.get();
+                    } else {
+                        newTime = snapTime(newTime, snapTargetMs, zoomFactor, keys, flags);
+                    }
+                    markerDrag.time = newTime;
+                    markerCache.put(markerDrag.marker, newTime);
+                }
             } else {
                 // Released
-                Marker marker = draggedMarker;
-                draggedMarker = null;
-                pressedMarker = null;
-                if (markerDragTime != markerDragStartTime) {
-                    var scene = editorState.getScene();
-                    commitMarkerDrag(editorState, marker,
-                            scene.sceneToReplayTime(markerDragStartTime), scene.sceneToReplayTime(markerDragTime));
+                if (markerDrag.dragging) {
+                    if (markerDrag.time != markerDrag.startTime) {
+                        commitMarkerDrag(editorState, markerDrag.marker,
+                                scene.sceneToReplayTime(markerDrag.startTime), scene.sceneToReplayTime(markerDrag.time));
+                    }
+                } else if (canMovePlayhead) {
+                    // Released without dragging: treat as a click and jump the playhead to the marker
+                    playhead.set(Math.clamp(markerDrag.startTime, 0, length));
+                    stoppedScrubbing = true;
                 }
+                markerDrag = null;
             }
-        } else if (pressedMarker != null && !mouseHeld) {
-            // Released without dragging: treat as a click and jump the playhead to the marker
-            if (markersEnabled && playhead != null && !hasFlag(TimelineFlags.NO_PLAYHEAD, flags)
-                    && !hasFlag(TimelineFlags.READONLY_PLAYHEAD, flags)) {
-                playhead.set(Math.clamp(markerDragStartTime, 0, length));
-                stoppedScrubbing = true;
-            }
-            pressedMarker = null;
         }
 
-        if (!hasFlag(TimelineFlags.NO_TICKS, flags)) {
+        // === TICKS ===
+        if (showTicks && intervalsValid) {
             drawList.pushClipRect(cursorX, cursorY, cursorX + width, cursorY + headerHeight);
-
 
             int startTick = Math.floorDiv((int) offsetX, majorInterval) * majorInterval;
             int endTick = Math.ceilDiv((int) (offsetX + widthMs), majorInterval) * majorInterval;
+            int step = showTinyTicks ? tinyInterval : minorInterval;
 
-            ImVec2 strLength = new ImVec2();
-            for (int ms = startTick; ms <= endTick; ms += tinyInterval) {
-                float pos = msToPixel.apply(ms) + cursorX;
+            ImVec2 textSize = new ImVec2();
+            for (int ms = startTick; ms <= endTick; ms += step) {
+                float x = toScreenX.apply(ms);
+                float heightDivisor;
 
-                boolean isMajor = ms % majorInterval == 0;
-                boolean isMinor = ms % minorInterval == 0;
-
-                if (isMajor) {
-                    // Number
+                if (ms % majorInterval == 0) {
                     float sec = ms / 1000f;
                     String str = majorInterval < 1000 ? String.format("%.2f", sec) : Integer.toString(Math.round(sec));
-                    ImGui.calcTextSize(strLength, str);
-                    drawList.addText(pos - strLength.x / 2f, cursorY, ImGui.getColorU32(ImGuiCol.Text), str);
-
-                    // Tick
-                    drawList.addLine(pos, cursorY + headerHeight / 1.8f, pos, cursorY + headerHeight, 0xAAAAAAAA);
-
-                } else if (isMinor) {
-                    drawList.addLine(pos, cursorY + headerHeight / 1.4f, pos, cursorY + headerHeight, 0xAAAAAAAA);
-
-                } else if (tinyInterval * zoomFactor > em * 1.2f) {
-                    // Don't bother drawing tiny ticks if they're too small
-                    drawList.addLine(pos, cursorY + headerHeight / 1.2f, pos, cursorY + headerHeight, 0xAAAAAAAA);
+                    ImGui.calcTextSize(textSize, str);
+                    drawList.addText(x - textSize.x / 2f, cursorY, ImGui.getColorU32(ImGuiCol.Text), str);
+                    heightDivisor = 1.8f;
+                } else if (ms % minorInterval == 0) {
+                    heightDivisor = 1.4f;
+                } else {
+                    heightDivisor = 1.2f;
                 }
+
+                drawList.addLine(x, cursorY + headerHeight / heightDivisor, x, cursorY + headerHeight, TICK_COLOR);
             }
 
-            // === MARKERS ===
-
             drawList.popClipRect();
-            if (markersEnabled) {
-                float radius = markerRadius;
-                if (draggedMarker != null && !markerCache.containsKey(draggedMarker)) {
-                    // Dragged marker's original position scrolled out of view; make sure it still renders.
-                    markerCache.put(draggedMarker, markerDragTime);
-                }
-                for (var entry : markerCache.object2IntEntrySet()) {
-                    Marker marker = entry.getKey();
-                    int markerTime = marker == draggedMarker ? markerDragTime : entry.getIntValue();
-                    float pos = msToPixel.apply(markerTime) + cursorX;
+        }
 
-                    boolean markerHovered = marker == hoveredMarker;
-                    if (markerHovered && ImGui.isWindowHovered()) {
-                        String name = marker.getName();
-                        if (name != null) {
-                            ImGui.setTooltip(name);
-                        }
-                    }
+        // === MARKERS ===
+        if (markersEnabled) {
+            for (var entry : markerCache.object2IntEntrySet()) {
+                float x = toScreenX.apply(entry.getIntValue());
+                int color = entry.getKey() == hoveredMarker ? MARKER_HOVERED_COLOR : MARKER_COLOR;
+                drawList.addTriangleFilled(
+                        x - markerRadius, cursorY,
+                        x + markerRadius, cursorY,
+                        x, cursorY + markerRadius * 2,
+                        color);
+            }
 
-                    int color = markerHovered ? 0xFF0000AA : 0xAA0000AA;
-                    drawList.addTriangleFilled(
-                            pos - radius, cursorY,
-                            pos + radius, cursorY,
-                            pos, cursorY + radius * 2,
-                            color);
-                }
+            if (hoveredMarker != null && hoveredMarker.getName() != null && ImGui.isWindowHovered()) {
+                ImGui.setTooltip(hoveredMarker.getName());
             }
         }
 
-        // === PLAYHEAD ===inputText
-        if (playhead != null && !hasFlag(TimelineFlags.NO_PLAYHEAD, flags)) {
+        if (!showPlayhead) {
+            return;
+        }
 
-            if (!hasFlag(TimelineFlags.READONLY_PLAYHEAD, flags) && draggedMarker == null && pressedMarker == null && active
-                    && ImGui.isMouseDown(0)) {
-                scrubbing = true;
-            } else if (scrubbing) {
-                scrubbing = false;
-                stoppedScrubbing = true;
+        // === SCRUBBING ===
+        if (canMovePlayhead && markerDrag == null && active && ImGui.isMouseDown(ImGuiMouseButton.Left)) {
+            scrubbing = true;
+        } else if (scrubbing) {
+            scrubbing = false;
+            stoppedScrubbing = true;
+        }
+
+        if (scrubbing) {
+            // Snapping to a hovered marker takes priority over other snapping
+            int newPlayhead = hoveredMarker != null
+                    ? markerCache.getInt(hoveredMarker)
+                    : snapTime((int) toTime.apply(ImGui.getMousePosX()), snapTargetMs, zoomFactor, keys, flags);
+            playhead.set(Math.clamp(newPlayhead, 0, length));
+        }
+
+        // === PLAYHEAD ===
+        ImDrawList fgDrawList = ImGui.getForegroundDrawList();
+        int playheadColor = ImGui.getColorU32(ImGuiCol.CheckMark) | 0xFF000000;
+        float playheadX = toScreenX.apply(playhead.get());
+        float lineTop = cursorY + headerHeight;
+        float lineBottom = lineTop + windowHeight;
+
+        if (playheadX > cursorX) {
+            float radius = em / 2f;
+            fgDrawList.addRectFilled(playheadX - radius, cursorY + headerHeight / 2, playheadX + radius, lineTop,
+                    playheadColor);
+            if (windowHeight > 0) {
+                fgDrawList.addLine(playheadX, lineTop, playheadX, lineBottom, playheadColor);
             }
+        }
 
-            if (scrubbing) {
-                int newPlayhead = (int) Math.clamp(pixelToMs.apply(ImGui.getMousePosX() - cursorX), 0, length);
+        // === TIME INDICATOR ===
+        Marker draggedMarker = getDraggedMarker();
+        if (windowHeight > 0 && (hovered || contextTime >= 0 || draggedMarker != null)) {
+            float x = draggedMarker != null ? toScreenX.apply(markerCache.getInt(draggedMarker))
+                    : contextTime >= 0 ? toScreenX.apply(contextTime)
+                    : hoveredMarker != null ? toScreenX.apply(markerCache.getInt(hoveredMarker))
+                    : ImGui.getMousePosX();
 
-                newPlayhead = snapTime(newPlayhead, snapTargetMs, zoomFactor, keys, flags);
-
-                // Snap to the marker being hovered (takes priority over other snapping)
-                if (hoveredMarker != null) {
-                    newPlayhead = Math.clamp(markerCache.getInt(hoveredMarker), 0, length);
-                }
-
-                playhead.set(newPlayhead);
-            }
-
-            int color = ImGui.getColorU32(ImGuiCol.CheckMark) | 0xFF000000;
-
-            // Draw directly to the foreground draw list in screen space. This avoids
-            // the old beginChild/setCursorPos(0,0) hack, which reset the cursor relative
-            // to the enclosing window/table cell rather than this header, and corrupted
-            // the layout of any table this header was drawn inside of.
-            ImDrawList fgDrawList = ImGui.getForegroundDrawList();
-
-            float playheadX = msToPixel.apply(playhead.get()) + cursorX;
-            float radius = ImGui.getFontSize() / 2f;
-
-            if (playheadX > cursorX) {
-                fgDrawList.addRectFilled(playheadX - radius, cursorY + headerHeight / 2, playheadX + radius,
-                        cursorY + headerHeight, color);
-                if (windowHeight > 0) {
-                    fgDrawList.addLine(playheadX, cursorY + headerHeight, playheadX,
-                            cursorY + headerHeight + windowHeight, color);
-                }
-            }
-
-            if ((hovered || contextTime >= 0 || draggedMarker != null) && windowHeight > 0) {
-                float x;
-                if (draggedMarker != null) {
-                    x = msToPixel.apply(markerDragTime) + cursorX;
-                } else if (contextTime >= 0) {
-                    x = msToPixel.apply(contextTime) + cursorX;
-                } else {
-                    x = ImGui.getMousePosX();
-                    if (hoveredMarker != null) {
-                        x = msToPixel.apply(markerCache.getInt(hoveredMarker)) + cursorX;
-                    }
-                }
-
-                if (Math.abs(x - playheadX) > 10)
-                    fgDrawList.addLine(x, cursorY + headerHeight, x, cursorY + headerHeight + windowHeight,
-                            CommonColors.BLACK);
+            if (Math.abs(x - playheadX) > 10) {
+                fgDrawList.addLine(x, lineTop, x, lineBottom, CommonColors.BLACK);
             }
         }
     }
