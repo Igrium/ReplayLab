@@ -2,13 +2,17 @@ package com.igrium.replaylab.anim;
 
 import com.igrium.replaylab.math.Bezier2d;
 import com.igrium.replaylab.math.Beziers;
+import com.mojang.serialization.Codec;
 import lombok.Getter;
+import net.minecraft.util.StringRepresentable;
 import org.joml.Vector2dc;
 
-public enum InterpolationMode {
+public enum InterpolationMode implements StringRepresentable {
     BEZIER(new Bezier()),
     LINEAR(new Linear()),
     CONSTANT(new Constant());
+
+    public static final Codec<InterpolationMode> CODEC = StringRepresentable.fromEnum(InterpolationMode::values);
 
     private final Impl impl;
 
@@ -20,6 +24,10 @@ public enum InterpolationMode {
         this.translationKey = "interp_mode." + name().toLowerCase();
     }
 
+    @Override
+    public String getSerializedName() {
+        return name().toLowerCase();
+    }
 
     /**
      * Sample this line segment

@@ -4,12 +4,18 @@ import com.google.gson.TypeAdapter;
 import com.google.gson.annotations.JsonAdapter;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonWriter;
+import com.igrium.replaylab.ReplayLab;
+import com.igrium.replaylab.util.ReplayLabCodecs;
+import com.mojang.serialization.Codec;
+import com.mojang.serialization.codecs.RecordCodecBuilder;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.Setter;
+import net.minecraft.util.StringRepresentable;
 import org.jetbrains.annotations.NotNull;
 import org.joml.Vector2d;
 import org.joml.Vector2dc;
+import org.joml.Vector3dc;
 
 import java.io.IOException;
 import java.util.Objects;
@@ -22,9 +28,10 @@ import java.util.Objects;
  */
 public final class Keyframe implements Comparable<Keyframe> {
 
-    public enum HandleType {
-        FREE("free"), ALIGNED("aligned"), VECTOR("vector"), AUTO("auto"), AUTO_CLAMPED("autoClamped"),
-        ;
+    public enum HandleType implements StringRepresentable {
+        FREE("free"), ALIGNED("aligned"), VECTOR("vector"), AUTO("auto"), AUTO_CLAMPED("autoClamped");
+
+        public static final Codec<HandleType> CODEC = StringRepresentable.fromEnum(HandleType::values);
 
         @Getter
         private final String translationKey;
@@ -32,6 +39,32 @@ public final class Keyframe implements Comparable<Keyframe> {
         HandleType(String translationKey) {
             this.translationKey = "handle_type." + translationKey;
         }
+
+        @Override
+        public String getSerializedName() {
+            return translationKey;
+        }
+    }
+
+    public static final Codec<Keyframe> CODEC = RecordCodecBuilder.create(inst -> inst.group(
+            ReplayLabCodecs.VECTOR2D.fieldOf("center").forGetter(Keyframe::getCenter),
+            ReplayLabCodecs.VECTOR2D.fieldOf("handleA").forGetter(Keyframe::getHandleA),
+            ReplayLabCodecs.VECTOR2D.fieldOf("handleB").forGetter(Keyframe::getHandleB),
+            HandleType.CODEC.fieldOf("handleAType").forGetter(Keyframe::getHandleAType),
+            HandleType.CODEC.fieldOf("handleBType").forGetter(Keyframe::getHandleBType),
+            InterpolationMode.CODEC.fieldOf("interpolationMode").forGetter(Keyframe::getInterpolationMode)
+    ).apply(inst, Keyframe::construct));
+
+    private static Keyframe construct(Vector2dc center, Vector2dc handleA, Vector2dc handleB,
+                                      HandleType handleAType, HandleType handleBType, InterpolationMode interpolationMode) {
+        Keyframe key = new Keyframe();
+        key.center.set(center);
+        key.handleA.set(handleA);
+        key.handleB.set(handleB);
+        key.setHandleAType(handleAType);
+        key.setHandleBType(handleBType);
+        key.setInterpolationMode(interpolationMode);
+        return key;
     }
 
     /**
@@ -75,7 +108,6 @@ public final class Keyframe implements Comparable<Keyframe> {
     public Keyframe() {
     }
 
-    ;
 
     public Keyframe(Keyframe other) {
         copyFrom(other);

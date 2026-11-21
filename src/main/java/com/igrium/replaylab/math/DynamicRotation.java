@@ -5,6 +5,10 @@ import com.google.gson.annotations.JsonAdapter;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonWriter;
 import com.igrium.replaylab.math.DynamicRotation.RotationMode;
+import com.mojang.serialization.Codec;
+import com.mojang.serialization.codecs.RecordCodecBuilder;
+import net.minecraft.util.ExtraCodecs;
+import net.minecraft.util.StringRepresentable;
 import lombok.*;
 import lombok.experimental.Accessors;
 import org.joml.Matrix3f;
@@ -16,6 +20,7 @@ import org.joml.Vector3f;
 import org.joml.Vector3fc;
 
 import java.io.IOException;
+import java.util.Optional;
 
 class DynamicRotationSerializer extends TypeAdapter<DynamicRotation> {
 
@@ -111,8 +116,10 @@ class DynamicRotationSerializer extends TypeAdapter<DynamicRotation> {
 @EqualsAndHashCode
 @ToString
 public final class DynamicRotation {
-    public enum RotationMode {
+    public enum RotationMode implements StringRepresentable {
         QUATERNION, EULER_XYZ, EULER_ZYX, EULER_YXZ;
+
+        public static final Codec<RotationMode> CODEC = StringRepresentable.fromEnum(RotationMode::values);
 
         /**
          * Get the translation key of this rotation mode's label
@@ -120,7 +127,27 @@ public final class DynamicRotation {
         public String getLabel() {
             return "rot_mode." + name().toLowerCase();
         }
+
+        @Override
+        public String getSerializedName() {
+            return name();
+        }
     }
+
+    public static final Codec<DynamicRotation> CODEC = RecordCodecBuilder.create(inst -> inst.group(
+            RotationMode.CODEC.fieldOf("mode").forGetter(DynamicRotation::mode),
+            ExtraCodecs.QUATERNIONF.optionalFieldOf("quat").forGetter(r -> Optional.of(r.quaternion())),
+            ExtraCodecs.VECTOR3F.optionalFieldOf("euler").forGetter(r -> Optional.of(r.euler()))
+    ).apply(inst, (mode, quat, euler) -> {
+        DynamicRotation rot = new DynamicRotation();
+        rot.mode = mode;
+
+        quat.ifPresent(rot.quaternion::set);
+        euler.ifPresent(rot.euler::set);
+
+        return rot;
+    }));
+
 
     /**
      * Stores the rotation if we're in quaternion form.
