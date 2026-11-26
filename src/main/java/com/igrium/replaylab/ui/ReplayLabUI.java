@@ -80,7 +80,8 @@ public class ReplayLabUI extends DockSpaceApp {
             new Outliner(Identifier.parse("replaylab:outliner")),
             inspector,
             new ScenePropsPanel(Identifier.parse("replaylab:sceneprops")),
-            playerBrowser
+            playerBrowser,
+            new MarkerOverview(Identifier.parse("replaylab:marker_overview"))
     );
 
     @Getter

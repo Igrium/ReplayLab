@@ -21,6 +21,7 @@
   "panel.replaylab.scenebrowser": "Scene Browser",
   "panel.replaylab.settings": "Settings",
   "panel.replaylab.playerbrowser": "Player Overview",
+  "panel.replaylab.marker_overview": "Event Marker Overview",
 
   "gui.replaylab.file": "File",
   "gui.replaylab.new_scene": "New Scene",
@@ -104,6 +105,13 @@
 
   "gui.replaylab.marker_name": "Marker Name",
   "gui.replaylab.delete_marker": "Delete Marker",
+  "gui.replaylab.no_markers": "This replay has no markers.",
+
+  "gui.replaylab.marker_time": "Replay Timestamp",
+
+  "gui.replaylab.marker.goto": "Go To",
+  "gui.replaylab.marker.oob": "This marker is not within the scene bounds",
+  "gui.replaylab.marker.set_start": "Set scene start",
 
   "gui.replaylab.copy_ts": "Copy Timestamp",
   "gui.replaylab.set_scene_start": "Set scene start here",
