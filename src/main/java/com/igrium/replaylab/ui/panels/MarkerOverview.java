@@ -10,8 +10,6 @@ import com.replaymod.replay.ReplayHandler;
 import com.replaymod.replaystudio.data.Marker;
 import imgui.ImFont;
 import imgui.ImGui;
-import imgui.flag.ImGuiTableColumnFlags;
-import imgui.flag.ImGuiTableFlags;
 import imgui.type.ImString;
 import net.minecraft.locale.Language;
 import net.minecraft.resources.Identifier;
@@ -20,10 +18,10 @@ import java.util.List;
 
 public class MarkerOverview extends UIPanel {
     public MarkerOverview(Identifier id) {
-        super(id);
+        super(id, false);
     }
 
-    private static int RIGHT_BUTTONS_WIDTH_KEY = 69420; // Arbitrary value
+    private static final int RIGHT_BUTTONS_WIDTH_KEY = 69420; // Arbitrary value
 
     private final ImString nameCache = new ImString();
     private final int[] timeCache = new int[1];
@@ -85,6 +83,7 @@ public class MarkerOverview extends UIPanel {
                     ImGui.beginDisabled(oob);
                     if (ImGui.button(t("gui.replaylab.marker.goto")) && !oob) {
                         editorState.setPlayhead(sceneTime);
+                        editorState.snapViewportTo(marker.getX(), marker.getY(), marker.getZ(), marker.getYaw(), marker.getPitch());
                     }
                     if (oob) {
                         ImGui.setItemTooltip(tt("gui.replaylab.marker.oob"));

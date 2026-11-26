@@ -93,7 +93,7 @@ public class TimelineHeader {
     private int contextTime;
     private String contextTimeStr = "";
 
-    private @Nullable Marker contextReplayMarker;
+    private @Nullable Marker ctxMarker;
 
     @Getter
     @Setter
@@ -224,7 +224,7 @@ public class TimelineHeader {
         // === CONTEXT MENU ===
         if (ImGui.isItemClicked(ImGuiMouseButton.Right)) {
             ImGui.openPopup("headerPopup");
-            contextReplayMarker = hoveredMarker;
+            ctxMarker = hoveredMarker;
             contextTime = hoveredMarker != null
                     ? markerCache.getInt(hoveredMarker)
                     : (int) toTime.apply(ImGui.getMousePosX());
@@ -239,18 +239,23 @@ public class TimelineHeader {
 
             ImGui.separator();
 
-            if (contextReplayMarker != null) {
-                String name = contextReplayMarker.getName();
+            if (ctxMarker != null) {
+                String name = ctxMarker.getName();
                 markerNameCache.set(name != null ? name : "");
                 ImGui.inputTextWithHint("##markerName", tt("gui.replaylab.marker_name"), markerNameCache);
                 if (ImGui.isItemDeactivatedAfterEdit()) {
                     String newName = markerNameCache.get();
-                    editorState.applyOperator(new RenameMarkerOperator(contextReplayMarker,
+                    editorState.applyOperator(new RenameMarkerOperator(ctxMarker,
                             newName.isBlank() ? null : newName));
                 }
 
+                if (ImGui.menuItem(t("gui.replaylab.marker.goto"))) {
+                    editorState.snapViewportTo(ctxMarker.getX(), ctxMarker.getY(), ctxMarker.getZ(),
+                            ctxMarker.getYaw(), ctxMarker.getPitch());
+                }
+
                 if (ImGui.menuItem(t("gui.replaylab.delete_marker"))) {
-                    editorState.applyOperator(new DeleteMarkerOperator(contextReplayMarker));
+                    editorState.applyOperator(new DeleteMarkerOperator(ctxMarker));
                 }
 
                 ImGui.separator();
@@ -268,7 +273,7 @@ public class TimelineHeader {
                 editorState.applyOperator(new SetSceneLengthOperator(contextTime));
             }
 
-            if (contextReplayMarker == null) {
+            if (ctxMarker == null) {
                 ImGui.separator();
                 if (ImGui.menuItem(t("gui.replaylab.add_marker"))) {
                     editorState.applyOperator(new AddMarkerOperator(scene.sceneToReplayTime(contextTime)));
@@ -278,7 +283,7 @@ public class TimelineHeader {
             ImGui.endPopup();
         } else {
             contextTime = -1;
-            contextReplayMarker = null;
+            ctxMarker = null;
         }
 
         // === INTERVALS ===

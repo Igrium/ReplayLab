@@ -765,10 +765,6 @@ public final class EditorState {
         wantsApplyToGame = false;
     }
 
-    @Deprecated
-    private void spectateCamera() {
-        scene.spectateCamera();
-    }
 
     /**
      * Get the entity responsible for providing the camera view on a given frame.
@@ -801,6 +797,23 @@ public final class EditorState {
         snapViewportTo(center);
     }
 
+    /**
+     * Leave the camera view and snap the viewport to a given transform
+     *
+     * @param x     Global X
+     * @param y     Global Y
+     * @param z     Global Z
+     * @param yaw   Yaw in degrees
+     * @param pitch Pitch in degrees
+     */
+    public void snapViewportTo(double x, double y, double z, float yaw, float pitch) {
+        Player player = Minecraft.getInstance().player;
+        if (player == null) return;
+
+        setCameraView(false);
+        player.snapTo(x, y, z, yaw, pitch);
+    }
+
     public void snapViewportTo(Vector3dc target) {
         snapViewportTo(target.x(), target.y(), target.z());
     }
@@ -815,7 +828,7 @@ public final class EditorState {
 
         Vector3d vec = new Vector3d();
         if (computeViewPosition(x, y, z, vec)) {
-            player.snapTo(vec.x, vec.y - player.getEyeHeight(), vec.z,
+            snapViewportTo(vec.x, vec.y - player.getEyeHeight(), vec.z,
                     player.getYRot(), player.getXRot());
         }
     }
