@@ -51,6 +51,7 @@ public class MarkerOverview extends UIPanel {
             ImGui.textDisabled(tt("gui.replaylab.no_markers"));
             return;
         }
+
         if (ImGui.beginChild("##markerList", ImGui.getContentRegionAvailX(), ImGui.getContentRegionAvailY())) {
 
             int i = 0;

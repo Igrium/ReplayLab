@@ -717,18 +717,23 @@ public final class EditorState {
                 onException(e);
                 opt = Optional.absent();
             }
-
-            this.markers = opt.isPresent() ? new ArrayList<>(opt.get()) : new ArrayList<>();
+            if (opt.isPresent()) {
+                this.markers = new ArrayList<>(opt.get());
+                this.markers.sort(Comparator.comparing(Marker::getTime));
+            } else {
+                this.markers = new ArrayList<>();
+            }
         }
         return this.markers;
     }
 
     /**
-     * Save the replay markers to file.
+     * Sort the markers and save them to the replay file
      * @return A future that completes once the markers have been saved.
      */
     public CompletableFuture<Void> saveMarkers() {
         if (this.markers == null) return CompletableFuture.completedFuture(null);
+        this.markers.sort(Comparator.comparing(Marker::getTime));
         // Defensive copy to avoid concurrent modification while saving
         Set<Marker> markers = ImmutableSet.copyOf(this.markers);
         return CompletableFuture.runAsync(() -> {

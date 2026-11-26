@@ -94,6 +94,43 @@ public class SpeedIntegrateTest {
     }
 
     @Test
+    public void integrateStartsAtZeroWithKeysBeforeZero() {
+        KeyChannel chan = channel(HandleType.AUTO_CLAMPED, new double[]{-1000, 1.0}, new double[]{1000, 1.0});
+        for (int t = -3000; t <= 3000; t += 500) {
+            assertEquals(t, chan.integrate(t), EPS, "constant speed 1 should integrate to t at " + t);
+        }
+    }
+
+    @Test
+    public void integrateNegativeTime() {
+        KeyChannel chan = channel(HandleType.AUTO_CLAMPED, new double[]{1000, 2.0}, new double[]{5000, 2.0});
+        assertEquals(-2000, chan.integrate(-1000), EPS);
+    }
+
+    @Test
+    public void inverseIntegrateRoundTripsNegative() {
+        for (HandleType type : HandleType.values()) {
+            for (InterpolationMode mode : InterpolationMode.values()) {
+                KeyChannel chan = channel(type,
+                        new double[]{-6000, 5.0}, new double[]{-1000, 0.05}, new double[]{4000, 5.0});
+                for (Keyframe key : chan.getKeyframes()) {
+                    key.setInterpolationMode(mode);
+                }
+                double prev = Double.NEGATIVE_INFINITY;
+                for (int t = -8000; t <= 6000; t += 250) {
+                    double area = chan.integrate(t);
+                    assertTrue(area >= prev - EPS, "integral went backwards with " + type + " " + mode + " at t=" + t);
+                    prev = area;
+                    double inv = chan.inverseIntegrate(area);
+                    assertEquals(area, chan.integrate(inv), 1e-4,
+                            "inverse did not round trip with " + type + " " + mode + " at t=" + t);
+                    if (t < 0) assertTrue(inv < 0, "negative area should map to negative time at t=" + t);
+                }
+            }
+        }
+    }
+
+    @Test
     public void inverseIntegrateUnreachable() {
         KeyChannel chan = channel(HandleType.AUTO_CLAMPED, new double[]{0, 1.0}, new double[]{1000, 0});
         for (Keyframe key : chan.getKeyframes()) {

@@ -480,44 +480,54 @@ public final class KeyChannel {
      *
      * @param keys    Sorted array of keyframes
      * @param maxTime Timestamp to integrate to
-     * @return The integral of the sampled curve on <code>[0, maxTime]</code>
+     * @return The integral of the sampled curve on <code>[0, maxTime]</code>. Negative if <code>maxTime</code> is negative.
      */
     public static double integrate(Keyframe[] keys, double maxTime) {
         if (keys.length == 0) return 0;
         if (keys.length == 1) return keys[0].getValue() * maxTime;
 
+        // Integrate over [lo, hi] and flip the sign afterwards if maxTime is negative
+        double lo = Math.min(0, maxTime);
+        double hi = Math.max(0, maxTime);
+
         double integral = 0;
 
         // sample() clamps to the first key's value before its time,
-        // so that region integrates as a constant from t=0
+        // so that region integrates as a constant
         double firstTime = keys[0].getTime();
-        if (firstTime > 0) {
-            integral += keys[0].getValue() * Math.min(maxTime, firstTime);
+        if (lo < firstTime) {
+            integral += keys[0].getValue() * (Math.min(hi, firstTime) - lo);
         }
 
         for (int i = 0; i < keys.length - 1; i++) {
             Keyframe key = keys[i];
             Keyframe next = keys[i + 1];
-            if (key.getTime() >= maxTime) break;
+            if (key.getTime() >= hi) break;
+            if (next.getTime() <= lo) continue;
 
-            integral += key.getInterpolationMode().integrate(key, next, maxTime);
+            InterpolationMode mode = key.getInterpolationMode();
+            integral += mode.integrate(key, next, hi);
+            // Segment integrals start at the segment's first key, so cut off anything before lo
+            if (lo > key.getTime()) {
+                integral -= mode.integrate(key, next, lo);
+            }
         }
 
         // Same clamping past the last key
         Keyframe last = keys[keys.length - 1];
-        if (maxTime > last.getTime()) {
-            integral += last.getValue() * (maxTime - last.getTime());
+        if (hi > last.getTime()) {
+            integral += last.getValue() * (hi - Math.max(lo, last.getTime()));
         }
 
-        return integral;
+        return maxTime < 0 ? -integral : integral;
     }
 
     /**
-     * Inverse of <code>integrate</code>. Find the lowest non-negative time when the integral reaches an area.
+     * Inverse of <code>integrate</code>. Find the lowest time when the integral reaches an area.
      *
-     * @param area Target area
-     * @return The lowest time at least 0 where the integral is at least <code>area</code>.
-     * <code>POSITIVE_INFINITY</code> if it never gets there.
+     * @param area Target area. If negative, the result will be before time 0.
+     * @return The lowest time when the integral is at least <code>area</code>, or 0 if <code>area</code> is 0.
+     * <code>NaN</code> if it never gets there.
      * @apiNote Does not take modifiers into account. Assumes the curve is never negative.
      */
     public double inverseIntegrate(double area) {
@@ -527,26 +537,34 @@ public final class KeyChannel {
     }
 
     /**
-     * Inverse of <code>integrate</code>. Find the lowest non-negative time when the integral reaches an area.
+     * Inverse of <code>integrate</code>. Find the lowest time when the integral reaches an area.
      *
      * @param keys Sorted array of keyframes
-     * @param area Target area
-     * @return The lowest time at least 0 where the integral is at least <code>area</code>.
-     * <code>POSITIVE_INFINITY</code> if it never gets there.
+     * @param area Target area. If negative, the result will be before time 0.
+     * @return The lowest time when the integral is at least <code>area</code>, or 0 if <code>area</code> is 0.
+     * <code>NaN</code> if it never gets there.
      */
     public static double inverseIntegrate(Keyframe[] keys, double area) {
-        if (area <= 0) return 0;
-        if (keys.length == 0) return Double.POSITIVE_INFINITY;
+        if (area == 0) return 0;
+        if (keys.length == 0) return Double.NaN;
         if (keys.length == 1) {
             double v = keys[0].getValue();
-            return v > 0 ? area / v : Double.POSITIVE_INFINITY;
+            return v > 0 ? area / v : Double.NaN;
         }
 
         // Walk the same pieces as integrate, accumulating area until one contains the target.
-        double integral = 0;
+        // If the first key is before 0, start walking from it so the segments never need to be cut off.
+        double firstTime = keys[0].getTime();
+        double start = Math.min(0, firstTime);
+        double integral = integrate(keys, start);
+
+        // Constant region extending infinitely before the start
+        if (area < integral) {
+            double v = keys[0].getValue();
+            return v > 0 ? start + (area - integral) / v : Double.NaN;
+        }
 
         // Constant region before the first key
-        double firstTime = keys[0].getTime();
         if (firstTime > 0) {
             double v = keys[0].getValue();
             double piece = v * firstTime;
@@ -562,8 +580,7 @@ public final class KeyChannel {
             InterpolationMode mode = key.getInterpolationMode();
             double piece = mode.integrate(key, next, next.getTime());
             if (integral + piece >= area) {
-                // Segments before time 0 still count towards the integral, so clamp the result
-                return Math.max(0, mode.inverseIntegrate(key, next, area - integral));
+                return mode.inverseIntegrate(key, next, area - integral);
             }
             integral += piece;
         }
@@ -571,8 +588,8 @@ public final class KeyChannel {
         // Constant region after the last key
         Keyframe last = keys[keys.length - 1];
         double v = last.getValue();
-        if (v <= 0) return Double.POSITIVE_INFINITY;
-        return Math.max(0, last.getTime() + (area - integral) / v);
+        if (v <= 0) return Double.NaN;
+        return last.getTime() + (area - integral) / v;
     }
 }
 
