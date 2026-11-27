@@ -57,79 +57,80 @@ public class Outliner extends UIPanel {
 
         // Selectable uses header colors
         ImGui.pushStyleColor(ImGuiCol.Header, ARGB.color(48, ImGui.getColorU32(ImGuiCol.HeaderActive)));
-            if (ImGui.beginListBox("##objects", ImGui.getContentRegionAvailX(), ImGui.getContentRegionAvailY())) {
-                String[] objs = editorState.getScene().getObjects().keySet().toArray(new String[0]);
+        if (ImGui.beginListBox("##objects", ImGui.getContentRegionAvailX(),
+                ImGui.getContentRegionAvailY() - ImGui.getStyle().getItemSpacingY())) {
+            String[] objs = editorState.getScene().getObjects().keySet().toArray(new String[0]);
 
-                int clickedIdx = -1;
-                int activeIdx = -1;
+            int clickedIdx = -1;
+            int activeIdx = -1;
 
-                for (int i = 0; i < objs.length; i++) {
-                    String id = objs[i];
-                    ReplayObject obj = editorState.getScene().getObject(id);
-                    if (obj == null || obj.getType().hideInOutliner())
-                        continue;
+            for (int i = 0; i < objs.length; i++) {
+                String id = objs[i];
+                ReplayObject obj = editorState.getScene().getObject(id);
+                if (obj == null || obj.getType().hideInOutliner())
+                    continue;
 
-                    if (id.equals(currentRenamingItem)) {
-                        if (firstRenamingFrame) {
-                            ImGui.setKeyboardFocusHere();
-                        }
-                        ImGui.inputText("##name", renamingString);
-                        if (ImGui.isKeyPressed(ImGuiKey.Escape)) {
-                            currentRenamingItem = null;
-                        } else if (ImGui.isKeyPressed(ImGuiKey.Enter) || !(ImGui.isItemActive() || firstRenamingFrame)) {
-                            commitNameChange();
-                        }
-                        firstRenamingFrame = false;
-                    } else {
-                        boolean isSelected = editorState.isObjectSelected(id);
-                        boolean isActive = editorState.isObjectActive(id);
+                if (id.equals(currentRenamingItem)) {
+                    if (firstRenamingFrame) {
+                        ImGui.setKeyboardFocusHere();
+                    }
+                    ImGui.inputText("##name", renamingString);
+                    if (ImGui.isKeyPressed(ImGuiKey.Escape)) {
+                        currentRenamingItem = null;
+                    } else if (ImGui.isKeyPressed(ImGuiKey.Enter) || !(ImGui.isItemActive() || firstRenamingFrame)) {
+                        commitNameChange();
+                    }
+                    firstRenamingFrame = false;
+                } else {
+                    boolean isSelected = editorState.isObjectSelected(id);
+                    boolean isActive = editorState.isObjectActive(id);
 
-                        // Active object gets brighter color.
-                        if (isActive) {
-                            ImGui.pushStyleColor(ImGuiCol.Header, ARGB.color(128, ImGui.getColorU32(ImGuiCol.Header)));
-                            activeIdx = i;
-                        }
-                        if (ImGui.selectable(obj.getDisplayName() + "###" + id, isSelected)) {
-                            clickedIdx = i;
-                        }
-                        if (isActive) {
-                            ImGui.popStyleColor();
-                        }
+                    // Active object gets brighter color.
+                    if (isActive) {
+                        ImGui.pushStyleColor(ImGuiCol.Header, ARGB.color(128, ImGui.getColorU32(ImGuiCol.Header)));
+                        activeIdx = i;
+                    }
+                    if (ImGui.selectable(obj.getDisplayName() + "###" + id, isSelected)) {
+                        clickedIdx = i;
+                    }
+                    if (isActive) {
+                        ImGui.popStyleColor();
+                    }
 
-                        if (ImGui.beginPopupContextItem()) {
-                            drawContextMenu(editorState, id);
-                            ImGui.endPopup();
-                        }
+                    if (ImGui.beginPopupContextItem()) {
+                        drawContextMenu(editorState, id);
+                        ImGui.endPopup();
+                    }
 
-                        if (ImGui.isItemHovered() && ImGui.isMouseDoubleClicked(0)) {
-                            editorState.setActiveObject(id);
-                            editorState.setWantOpenInspector(true);
-                        }
+                    if (ImGui.isItemHovered() && ImGui.isMouseDoubleClicked(0)) {
+                        editorState.setActiveObject(id);
+                        editorState.setWantOpenInspector(true);
                     }
                 }
+            }
 
-                if (clickedIdx >= 0) {
-                    String id = objs[clickedIdx];
-                    if (ImGui.getIO().getKeyCtrl()) {
-                        boolean isSelected = editorState.isObjectSelected(id);
-                        editorState.setObjectSelected(id, !isSelected);
-                        if (isSelected && editorState.isObjectActive(id)) {
-                            editorState.setActiveObject(null);
-                        } else if (!isSelected) {
-                            editorState.setActiveObject(id);
-                        }
-                    } else if (ImGui.getIO().getKeyShift() && activeIdx >= 0) {
-                        for (int i = Math.min(clickedIdx, activeIdx); i <= Math.max(clickedIdx, activeIdx); i++) {
-                            editorState.setObjectSelected(objs[i], true);
-                        }
-                    } else {
-                        editorState.getSelectedObjects().clear();
-                        editorState.getSelectedObjects().add(id);
+            if (clickedIdx >= 0) {
+                String id = objs[clickedIdx];
+                if (ImGui.getIO().getKeyCtrl()) {
+                    boolean isSelected = editorState.isObjectSelected(id);
+                    editorState.setObjectSelected(id, !isSelected);
+                    if (isSelected && editorState.isObjectActive(id)) {
+                        editorState.setActiveObject(null);
+                    } else if (!isSelected) {
                         editorState.setActiveObject(id);
                     }
+                } else if (ImGui.getIO().getKeyShift() && activeIdx >= 0) {
+                    for (int i = Math.min(clickedIdx, activeIdx); i <= Math.max(clickedIdx, activeIdx); i++) {
+                        editorState.setObjectSelected(objs[i], true);
+                    }
+                } else {
+                    editorState.getSelectedObjects().clear();
+                    editorState.getSelectedObjects().add(id);
+                    editorState.setActiveObject(id);
                 }
+            }
 
-                ImGui.endListBox();
+            ImGui.endListBox();
         }
         ImGui.popStyleColor();
 

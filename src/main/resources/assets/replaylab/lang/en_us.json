@@ -103,8 +103,8 @@
   "gui.replaylab.set_inverse": "Set Inverse",
   "gui.replaylab.clear_inverse": "Clear Inverse",
 
-  "gui.replaylab.marker_name": "Marker Name",
-  "gui.replaylab.delete_marker": "Delete Marker",
+  "gui.replaylab.marker.name": "Marker Name",
+  "gui.replaylab.marker.delete": "Delete Marker",
   "gui.replaylab.no_markers": "This replay has no markers.",
 
   "gui.replaylab.marker_time": "Replay Timestamp",
@@ -112,6 +112,7 @@
   "gui.replaylab.marker.goto": "Go To",
   "gui.replaylab.marker.oob": "This marker is not within the scene bounds",
   "gui.replaylab.marker.set_start": "Set scene start",
+  "gui.replaylab.marker.unnamed": "[unnamed marker]",
 
   "gui.replaylab.copy_ts": "Copy Timestamp",
   "gui.replaylab.set_scene_start": "Set scene start here",

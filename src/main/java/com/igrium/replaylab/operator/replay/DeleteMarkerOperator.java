@@ -24,11 +24,13 @@ public class DeleteMarkerOperator implements ReplayOperator {
     @Override
     public void undo(EditorState editor) throws Exception {
         editor.getReplayMarkers().add(this.marker);
+        editor.saveMarkers();
     }
 
     @Override
     public void redo(EditorState editor) throws Exception {
         editor.getReplayMarkers().remove(this.marker);
+        editor.saveMarkers();
     }
 
     @Override

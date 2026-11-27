@@ -242,7 +242,7 @@ public class TimelineHeader {
             if (ctxMarker != null) {
                 String name = ctxMarker.getName();
                 markerNameCache.set(name != null ? name : "");
-                ImGui.inputTextWithHint("##markerName", tt("gui.replaylab.marker_name"), markerNameCache);
+                ImGui.inputTextWithHint("##markerName", tt("gui.replaylab.marker.name"), markerNameCache);
                 if (ImGui.isItemDeactivatedAfterEdit()) {
                     String newName = markerNameCache.get();
                     editorState.applyOperator(new RenameMarkerOperator(ctxMarker,
@@ -254,7 +254,7 @@ public class TimelineHeader {
                             ctxMarker.getYaw(), ctxMarker.getPitch());
                 }
 
-                if (ImGui.menuItem(t("gui.replaylab.delete_marker"))) {
+                if (ImGui.menuItem(t("gui.replaylab.marker.delete"))) {
                     editorState.applyOperator(new DeleteMarkerOperator(ctxMarker));
                 }
 

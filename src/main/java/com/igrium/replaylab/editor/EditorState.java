@@ -877,10 +877,23 @@ public final class EditorState {
 
     // ===== Operators & Undo/Redo =====
 
+    /**
+     * Execute a replay operator and apply it to the game
+     *
+     * @param operator Operator to execute
+     * @return Operator success
+     */
     public boolean applyOperator(ReplayOperator operator) {
         return applyOperator(operator, true);
     }
 
+    /**
+     * Execute a a replay operator
+     *
+     * @param operator    Operator to execute
+     * @param applyToGame Whether to re-apply animated properties to the game
+     * @return Operator success
+     */
     public boolean applyOperator(ReplayOperator operator, boolean applyToGame) {
         if (scene.applyOperator(this, operator)) {
             saveSceneAsync();
@@ -893,6 +906,31 @@ public final class EditorState {
             return true;
         }
         return false;
+    }
+
+    /**
+     * Schedule a replay operator to run on the next frame and apply it to the game
+     *
+     * @param operator Operator to execute
+     * @return A future to complete once the operator runs
+     */
+    public CompletableFuture<Boolean> scheduleOperator(ReplayOperator operator) {
+        return scheduleOperator(operator, true);
+    }
+
+    /**
+     * Schedule a replay operator to run on the next frame
+     *
+     * @param operator    Operator to execute
+     * @param applyToGame Whether to re-apply animated properties to the game
+     * @return A future to complete once the operator runs
+     */
+    public CompletableFuture<Boolean> scheduleOperator(ReplayOperator operator, boolean applyToGame) {
+        CompletableFuture<Boolean> future = new CompletableFuture<>();
+        Minecraft.getInstance().schedule(() -> {
+            future.complete(applyOperator(operator, applyToGame));
+        });
+        return future;
     }
 
     public boolean undo() {
